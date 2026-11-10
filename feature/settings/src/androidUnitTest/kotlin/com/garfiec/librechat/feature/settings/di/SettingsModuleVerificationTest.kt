@@ -43,6 +43,7 @@ import com.garfiec.librechat.core.data.update.AppInstallSource
 import com.garfiec.librechat.core.data.update.AppUpdateRepository
 import com.garfiec.librechat.core.data.util.PermissionGate
 import com.garfiec.librechat.core.logging.DiagnosticLogRepository
+import com.garfiec.librechat.core.logging.PlatformInfo
 import com.garfiec.librechat.core.network.client.CertificateTrustRegistry
 import com.garfiec.librechat.feature.settings.util.ContentReader
 import com.garfiec.librechat.feature.settings.util.PlatformCacheCleaner
@@ -62,6 +63,7 @@ class SettingsModuleVerificationTest {
                 // Supplied by a ViewModel's CreationExtras at resolution time, never declared.
                 SavedStateHandle::class,
                 AppInfo::class,
+                PlatformInfo::class,
                 ArtifactLibraryConsentStore::class,
                 McpAppLocationConsentStore::class,
                 UserRepository::class,

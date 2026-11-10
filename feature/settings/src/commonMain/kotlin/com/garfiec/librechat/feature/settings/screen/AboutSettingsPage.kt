@@ -10,12 +10,20 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.PrivacyTip
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.style.TextOverflow
@@ -25,25 +33,52 @@ import com.garfiec.librechat.core.model.config.BuildInfo
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AdaptiveSectionHeader
 import com.garfiec.librechat.core.ui.components.adaptiveSection
+import com.garfiec.librechat.core.ui.platform.TextFileSaver
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
+import com.garfiec.librechat.feature.settings.util.rememberClipboardWriter
+import com.garfiec.librechat.feature.settings.viewmodel.DataSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.GeneralSettingsViewModel
+import com.garfiec.librechat.feature.settings.viewmodel.LogsExportPayload
 import com.garfiec.librechat.feature.settings.viewmodel.UpdateCheckViewModel
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
-/** Settings › About: the app and server versions, the privacy policy and updates. */
+/**
+ * Settings › About, after web's About tab: the app and server builds, Copy diagnostics and the
+ * diagnostic logs, which every user may need for a bug report; then the privacy policy and updates.
+ */
 @Composable
 fun AboutSettingsPage(
     onNavigateToWhatsNew: () -> Unit,
     onNavigateToReleaseNotes: () -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
     viewModel: GeneralSettingsViewModel = koinViewModel(),
     updateViewModel: UpdateCheckViewModel = koinViewModel(),
+    dataViewModel: DataSettingsViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val updateState by updateViewModel.uiState.collectAsStateWithLifecycle()
+    val data by dataViewModel.uiState.collectAsStateWithLifecycle()
+    var showClearLogsDialog by remember { mutableStateOf(false) }
+    val clipboard = rememberClipboardWriter()
+    val scope = rememberCoroutineScope()
+    val copiedMsg = stringResource(Res.string.copied_to_clipboard)
+    val diagnosticsLabel = stringResource(Res.string.about_copy_diagnostics)
+
+    LaunchedEffect(data.error) {
+        val error = data.error ?: return@LaunchedEffect
+        snackbarHostState.showSnackbar(message = error)
+        dataViewModel.dismissError()
+    }
+    DiagnosticLogsSaver(
+        payload = data.logsExportReady,
+        onConsume = dataViewModel::consumeLogsExport,
+        snackbarHostState = snackbarHostState,
+    )
 
     SettingsListPage(contentPadding = contentPadding, modifier = modifier) {
         item(key = "about_header") {
@@ -57,6 +92,27 @@ fun AboutSettingsPage(
                     serverVersion = uiState.serverVersion,
                 )
             }
+            if (hasServerDetails(uiState.gitSha, uiState.serverTrustedViaUserCa, uiState.buildInfo)) {
+                row(key = "server_details") {
+                    ServerDetails(
+                        gitSha = uiState.gitSha,
+                        serverTrustedViaUserCa = uiState.serverTrustedViaUserCa,
+                        buildInfo = uiState.buildInfo,
+                    )
+                }
+            }
+            row(key = "copy_diagnostics") {
+                SettingsRow(
+                    icon = Icons.Default.ContentCopy,
+                    title = diagnosticsLabel,
+                    summary = stringResource(Res.string.about_copy_diagnostics_desc),
+                    onClick = {
+                        clipboard.copy(uiState.diagnostics, diagnosticsLabel)
+                        scope.launch { snackbarHostState.showSnackbar(copiedMsg) }
+                    },
+                    showChevron = false,
+                )
+            }
             row(key = "privacy_policy") {
                 val uriHandler = LocalUriHandler.current
                 SettingsRow(
@@ -65,6 +121,34 @@ fun AboutSettingsPage(
                     summary = stringResource(Res.string.privacy_policy_desc),
                     // Android throws when no browser is installed (de-Googled ROMs, work profiles).
                     onClick = { runCatching { uriHandler.openUri(PRIVACY_POLICY_URL) } },
+                )
+            }
+        }
+
+        item(key = "troubleshooting_header") {
+            AdaptiveSectionHeader(stringResource(Res.string.section_troubleshooting))
+        }
+        adaptiveSection {
+            row(key = "export_logs") {
+                SettingsRow(
+                    title = stringResource(Res.string.export_diagnostic_logs),
+                    summary = when {
+                        data.isLogsExporting -> stringResource(Res.string.exporting_logs)
+                        data.logsBufferBytes > 0 -> formatBytes(data.logsBufferBytes)
+                        else -> null
+                    },
+                    onClick = dataViewModel::exportLogs,
+                    enabled = !data.isLogsExporting,
+                    showChevron = false,
+                )
+            }
+            row(key = "clear_logs") {
+                SettingsRow(
+                    title = stringResource(Res.string.clear_diagnostic_logs),
+                    summary = if (data.isLogsClearing) stringResource(Res.string.clearing_logs) else null,
+                    onClick = { showClearLogsDialog = true },
+                    enabled = !data.isLogsClearing,
+                    destructive = true,
                 )
             }
         }
@@ -103,6 +187,61 @@ fun AboutSettingsPage(
         }
 
         item { Spacer(modifier = Modifier.height(32.dp)) }
+    }
+
+    if (showClearLogsDialog) {
+        ConfirmDialog(
+            title = Res.string.dialog_title_clear_logs,
+            message = Res.string.dialog_clear_logs_message,
+            confirmLabel = Res.string.clear_all,
+            destructive = true,
+            onConfirm = dataViewModel::clearLogs,
+            onDismiss = { showClearLogsDialog = false },
+        )
+    }
+}
+
+/**
+ * Hands an exported diagnostic log to the platform file saver once the ViewModel has read it, and
+ * reports how the save went in [snackbarHostState].
+ */
+@Composable
+private fun DiagnosticLogsSaver(
+    payload: LogsExportPayload?,
+    onConsume: () -> Unit,
+    snackbarHostState: SnackbarHostState,
+) {
+    val currentOnConsume by rememberUpdatedState(onConsume)
+    var pendingFileName by remember { mutableStateOf<String?>(null) }
+    var pendingContent by remember { mutableStateOf<String?>(null) }
+    var saverResult by remember { mutableStateOf<String?>(null) }
+    val exportedMsg = stringResource(Res.string.logs_exported)
+
+    LaunchedEffect(payload) {
+        payload ?: return@LaunchedEffect
+        pendingContent = payload.content
+        pendingFileName = payload.fileName
+        currentOnConsume()
+    }
+    TextFileSaver(
+        triggerFileName = pendingFileName,
+        content = pendingContent,
+        onComplete = { success, errorMessage ->
+            if (success) {
+                saverResult = exportedMsg
+            } else if (errorMessage != null) {
+                saverResult = errorMessage
+            }
+        },
+        onReset = {
+            pendingFileName = null
+            pendingContent = null
+        },
+    )
+    LaunchedEffect(saverResult) {
+        val message = saverResult ?: return@LaunchedEffect
+        snackbarHostState.showSnackbar(message = message)
+        saverResult = null
     }
 }
 
@@ -155,7 +294,7 @@ internal fun hasServerDetails(gitSha: String, serverTrustedViaUserCa: Boolean, b
         !(it.commitShort ?: it.commit).isNullOrBlank() || !it.branch.isNullOrBlank() || !it.buildDate.isNullOrBlank()
     } == true
 
-/** Advanced › Server: the app's build, the server's build metadata (v0.8.6) and how its certificate is trusted. */
+/** About: the app's build, the server's build metadata (v0.8.6) and how its certificate is trusted. */
 @Composable
 internal fun ServerDetails(
     gitSha: String,

@@ -1075,7 +1075,6 @@
     <string name="advanced_chat_settings">Advanced chat settings</string>
     <string name="advanced_chat_settings_summary">While generating, uploads, presets</string>
     <string name="advanced_data_settings">Advanced data settings</string>
-    <string name="advanced_data_settings_summary">Logs, code environments</string>
     <string name="section_listening">Listening</string>
     <string name="section_speaking">Speaking</string>
     <string name="advanced_voice_settings">Advanced voice settings</string>
@@ -1087,6 +1086,8 @@
     <string name="section_server">Server</string>
     <string name="section_developer">Developer</string>
     <string name="section_troubleshooting">Troubleshooting</string>
+    <string name="about_copy_diagnostics">Copy diagnostics</string>
+    <string name="about_copy_diagnostics_desc">App, server and device versions for a bug report</string>
     <string name="offline_reading">Offline reading</string>
     <string name="clear_cache_summary">%1$s of images and temporary files</string>
 </resources>

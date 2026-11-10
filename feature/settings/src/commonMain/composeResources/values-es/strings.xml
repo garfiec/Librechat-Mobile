@@ -1062,7 +1062,6 @@
     <string name="advanced_chat_settings">Ajustes avanzados de chat</string>
     <string name="advanced_chat_settings_summary">Durante la generación, subidas, ajustes preestablecidos</string>
     <string name="advanced_data_settings">Ajustes avanzados de datos</string>
-    <string name="advanced_data_settings_summary">Registros, entornos de código</string>
     <string name="section_listening">Dictado</string>
     <string name="section_speaking">Lectura en voz alta</string>
     <string name="advanced_voice_settings">Ajustes avanzados de voz</string>
@@ -1074,6 +1073,8 @@
     <string name="section_server">Servidor</string>
     <string name="section_developer">Desarrollador</string>
     <string name="section_troubleshooting">Solución de problemas</string>
+    <string name="about_copy_diagnostics">Copiar diagnóstico</string>
+    <string name="about_copy_diagnostics_desc">Versiones de la app, el servidor y el dispositivo para un informe de error</string>
     <string name="offline_reading">Lectura sin conexión</string>
     <string name="clear_cache_summary">%1$s de imágenes y archivos temporales</string>
 </resources>

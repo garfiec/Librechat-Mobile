@@ -164,6 +164,7 @@ internal fun SettingsPaneContent(
                 onNavigateToWhatsNew = { onNavigate(WhatsNew) },
                 onNavigateToReleaseNotes = { onNavigate(ReleaseNotes) },
                 contentPadding = contentPadding,
+                snackbarHostState = snackbarHostState,
             )
         }
     }

@@ -150,12 +150,15 @@ fun PrivacySettingsPage(
             }
         }
 
-        item(key = "advanced_link") {
-            AdvancedSettingsLink(
-                title = stringResource(Res.string.advanced_data_settings),
-                summary = stringResource(Res.string.advanced_data_settings_summary),
-                onClick = { onOpenAdvancedSettings(AdvancedSection.TROUBLESHOOTING) },
-            )
+        // Code environments are this category's only power setting, so the link follows their gate.
+        if (uiState.codeExecutionEnabled) {
+            item(key = "advanced_link") {
+                AdvancedSettingsLink(
+                    title = stringResource(Res.string.advanced_data_settings),
+                    summary = stringResource(Res.string.code_environments),
+                    onClick = { onOpenAdvancedSettings(AdvancedSection.CODE_ENVIRONMENTS) },
+                )
+            }
         }
     }
 

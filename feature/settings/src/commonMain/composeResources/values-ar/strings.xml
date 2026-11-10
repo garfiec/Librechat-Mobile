@@ -1125,7 +1125,6 @@
     <string name="advanced_chat_settings">إعدادات المحادثة المتقدمة</string>
     <string name="advanced_chat_settings_summary">أثناء الإنشاء، والرفع، والإعدادات المسبقة</string>
     <string name="advanced_data_settings">إعدادات البيانات المتقدمة</string>
-    <string name="advanced_data_settings_summary">السجلات وبيئات التعليمات البرمجية</string>
     <string name="section_listening">الإملاء</string>
     <string name="section_speaking">القراءة بصوت عالٍ</string>
     <string name="advanced_voice_settings">إعدادات الصوت المتقدمة</string>
@@ -1137,6 +1136,8 @@
     <string name="section_server">الخادم</string>
     <string name="section_developer">المطوّر</string>
     <string name="section_troubleshooting">استكشاف الأخطاء وإصلاحها</string>
+    <string name="about_copy_diagnostics">نسخ معلومات التشخيص</string>
+    <string name="about_copy_diagnostics_desc">إصدارات التطبيق والخادم والجهاز لإرفاقها ببلاغ خطأ</string>
     <string name="offline_reading">القراءة دون اتصال</string>
     <string name="clear_cache_summary">%1$s من الصور والملفات المؤقتة</string>
 </resources>

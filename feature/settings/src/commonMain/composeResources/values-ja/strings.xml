@@ -1045,7 +1045,6 @@
     <string name="advanced_chat_settings">チャットの詳細設定</string>
     <string name="advanced_chat_settings_summary">生成中の動作、アップロード、プリセット</string>
     <string name="advanced_data_settings">データの詳細設定</string>
-    <string name="advanced_data_settings_summary">ログ、コード環境</string>
     <string name="section_listening">音声入力</string>
     <string name="section_speaking">読み上げ</string>
     <string name="advanced_voice_settings">音声の詳細設定</string>
@@ -1057,6 +1056,8 @@
     <string name="section_server">サーバー</string>
     <string name="section_developer">開発者</string>
     <string name="section_troubleshooting">トラブルシューティング</string>
+    <string name="about_copy_diagnostics">診断情報をコピー</string>
+    <string name="about_copy_diagnostics_desc">不具合報告用のアプリ、サーバー、端末のバージョン</string>
     <string name="offline_reading">オフラインで読む</string>
     <string name="clear_cache_summary">画像と一時ファイル %1$s</string>
 </resources>

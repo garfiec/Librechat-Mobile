@@ -1045,7 +1045,6 @@
     <string name="advanced_chat_settings">고급 채팅 설정</string>
     <string name="advanced_chat_settings_summary">생성 중 동작, 업로드, 프리셋</string>
     <string name="advanced_data_settings">고급 데이터 설정</string>
-    <string name="advanced_data_settings_summary">로그, 코드 환경</string>
     <string name="section_listening">음성 입력</string>
     <string name="section_speaking">읽어 주기</string>
     <string name="advanced_voice_settings">고급 음성 설정</string>
@@ -1057,6 +1056,8 @@
     <string name="section_server">서버</string>
     <string name="section_developer">개발자</string>
     <string name="section_troubleshooting">문제 해결</string>
+    <string name="about_copy_diagnostics">진단 정보 복사</string>
+    <string name="about_copy_diagnostics_desc">버그 신고용 앱, 서버, 기기 버전</string>
     <string name="offline_reading">오프라인 읽기</string>
     <string name="clear_cache_summary">이미지 및 임시 파일 %1$s</string>
 </resources>

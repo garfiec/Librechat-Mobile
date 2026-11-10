@@ -1062,7 +1062,6 @@
     <string name="advanced_chat_settings">Paramètres avancés des chats</string>
     <string name="advanced_chat_settings_summary">Pendant la génération, envois, préréglages</string>
     <string name="advanced_data_settings">Paramètres avancés des données</string>
-    <string name="advanced_data_settings_summary">Journaux, environnements de code</string>
     <string name="section_listening">Dictée</string>
     <string name="section_speaking">Lecture à voix haute</string>
     <string name="advanced_voice_settings">Paramètres vocaux avancés</string>
@@ -1074,6 +1073,8 @@
     <string name="section_server">Serveur</string>
     <string name="section_developer">Développeur</string>
     <string name="section_troubleshooting">Dépannage</string>
+    <string name="about_copy_diagnostics">Copier les diagnostics</string>
+    <string name="about_copy_diagnostics_desc">Versions de l’app, du serveur et de l’appareil pour un rapport de bug</string>
     <string name="offline_reading">Lecture hors ligne</string>
     <string name="clear_cache_summary">%1$s d'images et de fichiers temporaires</string>
 </resources>

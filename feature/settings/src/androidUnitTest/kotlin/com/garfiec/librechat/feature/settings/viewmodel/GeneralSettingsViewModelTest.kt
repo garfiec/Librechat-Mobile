@@ -14,6 +14,8 @@ import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.repository.ConfigRepository
+import com.garfiec.librechat.core.logging.PlatformInfo
+import com.garfiec.librechat.core.model.config.BuildInfo
 import com.garfiec.librechat.core.model.config.StartupConfig
 import com.garfiec.librechat.core.network.client.CertificateAuthority
 import com.garfiec.librechat.core.network.client.CertificateTrustRegistry
@@ -88,6 +90,11 @@ class GeneralSettingsViewModelTest {
         },
         preferenceStore = preferenceStore,
         certificateTrust = certificateTrust,
+        platformInfo = object : PlatformInfo {
+            override val osName = "Android"
+            override val osVersion = "17"
+            override val deviceModel = "Google Pixel 9 Pro Fold"
+        },
     )
 
     @Test
@@ -209,5 +216,34 @@ class GeneralSettingsViewModelTest {
         startupConfig.value = StartupConfig(adminPanelURL = " ")
         advanceUntilIdle()
         assertThat(viewModel.uiState.value.adminPanelUrl).isNull()
+    }
+
+    @Test
+    fun `diagnostics name the app, server build and device but not the server address`() = runTest {
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.diagnostics).isEqualTo(
+            listOf(
+                "Switchboard version: 0.1.0",
+                "Switchboard build: testsha0",
+                "LibreChat version: —",
+                "Commit: —",
+                "Branch: —",
+                "Build date: —",
+                "Device: Android 17 · Google Pixel 9 Pro Fold",
+            ).joinToString("\n"),
+        )
+
+        version.value = "0.8.9-rc1"
+        startupConfig.value = StartupConfig(
+            buildInfo = BuildInfo(commit = "abcdef1234", commitShort = "abcdef1", branch = "main", buildDate = "2026-11-01"),
+        )
+        advanceUntilIdle()
+        val text = viewModel.uiState.value.diagnostics
+        assertThat(text).contains("LibreChat version: 0.8.9-rc1")
+        assertThat(text).contains("Commit: abcdef1234")
+        assertThat(text).contains("Branch: main")
+        assertThat(text).contains("Build date: 2026-11-01")
+        assertThat(text).doesNotContain("chat.example.com")
     }
 }

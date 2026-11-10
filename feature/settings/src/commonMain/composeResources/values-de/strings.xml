@@ -1061,7 +1061,6 @@
     <string name="advanced_chat_settings">Erweiterte Chat-Einstellungen</string>
     <string name="advanced_chat_settings_summary">Während der Antwort, Uploads, Voreinstellungen</string>
     <string name="advanced_data_settings">Erweiterte Dateneinstellungen</string>
-    <string name="advanced_data_settings_summary">Protokolle, Code-Umgebungen</string>
     <string name="section_listening">Diktat</string>
     <string name="section_speaking">Vorlesen</string>
     <string name="advanced_voice_settings">Erweiterte Spracheinstellungen</string>
@@ -1073,6 +1072,8 @@
     <string name="section_server">Server</string>
     <string name="section_developer">Entwickler</string>
     <string name="section_troubleshooting">Fehlerbehebung</string>
+    <string name="about_copy_diagnostics">Diagnosedaten kopieren</string>
+    <string name="about_copy_diagnostics_desc">App-, Server- und Geräteversionen für einen Fehlerbericht</string>
     <string name="offline_reading">Offline lesen</string>
     <string name="clear_cache_summary">%1$s an Bildern und temporären Dateien</string>
 </resources>

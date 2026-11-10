@@ -1093,7 +1093,6 @@
     <string name="advanced_chat_settings">Дополнительные настройки чатов</string>
     <string name="advanced_chat_settings_summary">Во время ответа, загрузки, пресеты</string>
     <string name="advanced_data_settings">Дополнительные настройки данных</string>
-    <string name="advanced_data_settings_summary">Журналы, среды выполнения кода</string>
     <string name="section_listening">Диктовка</string>
     <string name="section_speaking">Чтение вслух</string>
     <string name="advanced_voice_settings">Дополнительные настройки голоса</string>
@@ -1105,6 +1104,8 @@
     <string name="section_server">Сервер</string>
     <string name="section_developer">Для разработчиков</string>
     <string name="section_troubleshooting">Устранение неполадок</string>
+    <string name="about_copy_diagnostics">Скопировать диагностику</string>
+    <string name="about_copy_diagnostics_desc">Версии приложения, сервера и устройства для отчёта об ошибке</string>
     <string name="offline_reading">Чтение офлайн</string>
     <string name="clear_cache_summary">%1$s изображений и временных файлов</string>
 </resources>

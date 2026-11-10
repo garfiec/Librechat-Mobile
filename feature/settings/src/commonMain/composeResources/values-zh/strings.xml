@@ -1045,7 +1045,6 @@
     <string name="advanced_chat_settings">高级聊天设置</string>
     <string name="advanced_chat_settings_summary">生成期间、上传、预设</string>
     <string name="advanced_data_settings">高级数据设置</string>
-    <string name="advanced_data_settings_summary">日志、代码环境</string>
     <string name="section_listening">听写</string>
     <string name="section_speaking">朗读</string>
     <string name="advanced_voice_settings">高级语音设置</string>
@@ -1057,6 +1056,8 @@
     <string name="section_server">服务器</string>
     <string name="section_developer">开发者</string>
     <string name="section_troubleshooting">故障排除</string>
+    <string name="about_copy_diagnostics">复制诊断信息</string>
+    <string name="about_copy_diagnostics_desc">用于错误报告的应用、服务器和设备版本</string>
     <string name="offline_reading">离线阅读</string>
     <string name="clear_cache_summary">图片和临时文件 %1$s</string>
 </resources>

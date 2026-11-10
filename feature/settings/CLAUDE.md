@@ -14,7 +14,8 @@
 
 ## Pages
 - **Language & region, About** (`GeneralSettingsViewModel`): DataStore + `/api/config` only, no network
-  loads.
+  loads. About is web's About tab plus diagnostic logs: build and server details, Copy diagnostics and
+  the logs stay there for every user, never on Advanced.
   - `DateTimeSettingsDialog`: Save writes all three choices in one DataStore edit. The row shows only
     a summary; keep new date options in the dialog, not on the page.
 - **Appearance** (`AppearanceSettingsPage`, `AppearanceSettingsViewModel`, ThemeDataStore only).
@@ -32,7 +33,7 @@
   so it leaves them).
   - `ChatLayoutSettingsScreen`: `:feature:chat` is out of reach, so its preview redraws the message
     layout at `MessageBubble`'s measures (sharing `BubbleShape`). Change one, change the other.
-- **Privacy & data, Advanced's code environments and troubleshooting** (`DataSettingsViewModel`, hosts
+- **Privacy & data, About's troubleshooting, Advanced's code environments** (`DataSettingsViewModel`, hosts
   `DataManagementDelegate`). Memories and MCP servers open from the drawer's Workspace tray
   (`:feature:conversations`), not from Settings.
   - `archiveAllSupported` means "the server has not 404'd it" and is ANDed with the version gate in the

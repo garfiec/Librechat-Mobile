@@ -15,7 +15,7 @@ import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.resources.advanced_chat_settings
 import com.garfiec.librechat.feature.settings.resources.advanced_chat_settings_summary
 import com.garfiec.librechat.feature.settings.resources.advanced_data_settings
-import com.garfiec.librechat.feature.settings.resources.advanced_data_settings_summary
+import com.garfiec.librechat.feature.settings.resources.code_environments
 import com.garfiec.librechat.feature.settings.viewmodel.ArtifactLibraryChoice
 import com.garfiec.librechat.feature.settings.viewmodel.ChatSettingsGates
 import com.garfiec.librechat.feature.settings.viewmodel.ChatSettingsUiState
@@ -33,11 +33,11 @@ private fun AdvancedSettingsGlassPreview() = AdvancedPreviewSurface(UiStyle.LIQU
     AdvancedSettingsHost(section = null)
 }
 
-/** Opened from Privacy & data's link: scrolled to Troubleshooting. */
+/** Opened at a section, as a category's Advanced link does. */
 @PreviewNarrowScreens
 @Composable
 private fun AdvancedSettingsAtSectionPreview() = AdvancedPreviewSurface(UiStyle.MATERIAL) {
-    AdvancedSettingsHost(section = AdvancedSection.TROUBLESHOOTING)
+    AdvancedSettingsHost(section = AdvancedSection.SEARCH)
 }
 
 @PreviewNarrowScreens
@@ -75,8 +75,6 @@ private fun AdvancedSettingsHost(section: AdvancedSection?) {
         onOpenPresets = {},
         onOpenApiKeys = {},
         onOpenCodeEnvironments = {},
-        onExportLogs = {},
-        onClearLogs = {},
     )
 }
 
@@ -90,7 +88,7 @@ private fun AdvancedLinksHost() {
         )
         AdvancedSettingsLink(
             title = stringResource(Res.string.advanced_data_settings),
-            summary = stringResource(Res.string.advanced_data_settings_summary),
+            summary = stringResource(Res.string.code_environments),
             onClick = {},
         )
     }

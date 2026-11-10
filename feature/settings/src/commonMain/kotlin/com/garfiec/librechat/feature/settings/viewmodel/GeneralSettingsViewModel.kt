@@ -12,6 +12,7 @@ import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.repository.ConfigRepository
+import com.garfiec.librechat.core.logging.PlatformInfo
 import com.garfiec.librechat.core.model.config.BuildInfo
 import com.garfiec.librechat.core.network.client.CertificateAuthority
 import com.garfiec.librechat.core.network.client.CertificateTrustRegistry
@@ -57,7 +58,31 @@ data class GeneralSettingsUiState(
     val adminPanelUrl: String? = null,
     /** The Settings home's Chats and Voice summaries. */
     val homeChats: HomeChatPrefs = HomeChatPrefs(),
+    /** About's Copy diagnostics text, for a bug report. */
+    val diagnostics: String = "",
 )
+
+/**
+ * The plain-English text About's Copy diagnostics puts on the clipboard, after web's About tab. It
+ * leaves out the server address, which can name a private host in a public bug report.
+ */
+internal fun aboutDiagnostics(
+    appVersion: String,
+    gitSha: String,
+    serverVersion: String?,
+    buildInfo: BuildInfo?,
+    device: String,
+): String = listOf(
+    "Switchboard version: $appVersion",
+    "Switchboard build: ${gitSha.ifBlank { DIAGNOSTICS_MISSING }}",
+    "LibreChat version: ${serverVersion ?: DIAGNOSTICS_MISSING}",
+    "Commit: ${buildInfo?.commit?.takeIf { it.isNotBlank() } ?: DIAGNOSTICS_MISSING}",
+    "Branch: ${buildInfo?.branch?.takeIf { it.isNotBlank() } ?: DIAGNOSTICS_MISSING}",
+    "Build date: ${buildInfo?.buildDate?.takeIf { it.isNotBlank() } ?: DIAGNOSTICS_MISSING}",
+    "Device: $device",
+).joinToString("\n")
+
+private const val DIAGNOSTICS_MISSING = "—"
 
 /** The chat and voice preferences the Settings home summarizes. */
 data class HomeChatPrefs(
@@ -90,7 +115,10 @@ class GeneralSettingsViewModel(
     appInfo: AppInfo,
     private val preferenceStore: PreferenceStore,
     certificateTrust: CertificateTrustRegistry,
+    platformInfo: PlatformInfo,
 ) : ViewModel() {
+
+    private val device = "${platformInfo.osName} ${platformInfo.osVersion} · ${platformInfo.deviceModel}"
 
     private val dialogs = MutableStateFlow(GeneralDialogs())
 
@@ -134,6 +162,7 @@ class GeneralSettingsViewModel(
             serverVersion = version,
             adminPanelUrl = config?.adminPanelURL?.takeIf { it.isNotBlank() },
             homeChats = prefs.homeChats,
+            diagnostics = aboutDiagnostics(initial.appVersion, initial.gitSha, version, config?.buildInfo, device),
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, initial)
 

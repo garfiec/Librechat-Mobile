@@ -14,7 +14,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -32,7 +31,6 @@ import com.garfiec.librechat.core.ui.artifacts.artifactsModeDescription
 import com.garfiec.librechat.core.ui.artifacts.artifactsModeName
 import com.garfiec.librechat.core.ui.components.AdaptiveSectionHeader
 import com.garfiec.librechat.core.ui.components.adaptiveSection
-import com.garfiec.librechat.core.ui.platform.TextFileSaver
 import com.garfiec.librechat.core.ui.resources.artifacts_mode_intro
 import com.garfiec.librechat.core.ui.resources.artifacts_mode_title
 import com.garfiec.librechat.core.ui.resources.server_headers_no_server
@@ -49,7 +47,6 @@ import com.garfiec.librechat.feature.settings.viewmodel.DataSettingsUiState
 import com.garfiec.librechat.feature.settings.viewmodel.DataSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.GeneralSettingsUiState
 import com.garfiec.librechat.feature.settings.viewmodel.GeneralSettingsViewModel
-import com.garfiec.librechat.feature.settings.viewmodel.LogsExportPayload
 import com.garfiec.librechat.feature.settings.viewmodel.ServerHeadersViewModel
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
@@ -81,7 +78,6 @@ fun AdvancedSettingsPage(
     val serverHeadersState by serverHeadersViewModel.uiState.collectAsStateWithLifecycle()
 
     var openDialog by remember { mutableStateOf<ChatSettingDialog?>(null) }
-    var showClearLogsDialog by remember { mutableStateOf(false) }
     // Saveable, unlike the other dialog flags: the ViewModel behind it outlives the composition and
     // holds half-typed rows. A rotation that closed it without the discard prompt would strand them,
     // and reopening won't re-read while they are unsaved.
@@ -97,16 +93,6 @@ fun AdvancedSettingsPage(
         chatViewModel.retrySpeechConfig()
         chatViewModel.loadImageResizePolicy()
     }
-    LaunchedEffect(data.error) {
-        val error = data.error ?: return@LaunchedEffect
-        snackbarHostState.showSnackbar(message = error)
-        dataViewModel.dismissError()
-    }
-    DiagnosticLogsSaver(
-        payload = data.logsExportReady,
-        onConsume = dataViewModel::consumeLogsExport,
-        snackbarHostState = snackbarHostState,
-    )
 
     // Consume after showing: the ViewModel outlives the composition, so a flag that merely changes
     // re-fires on the next fresh composition tree (rotation, fold/unfold, theme change).
@@ -150,8 +136,6 @@ fun AdvancedSettingsPage(
         onOpenPresets = onNavigateToPresets,
         onOpenApiKeys = onNavigateToApiKeys,
         onOpenCodeEnvironments = onNavigateToCodeExecution,
-        onExportLogs = dataViewModel::exportLogs,
-        onClearLogs = { showClearLogsDialog = true },
         modifier = modifier,
         contentPadding = contentPadding,
     )
@@ -257,17 +241,6 @@ fun AdvancedSettingsPage(
         null -> Unit
     }
 
-    if (showClearLogsDialog) {
-        ConfirmDialog(
-            title = Res.string.dialog_title_clear_logs,
-            message = Res.string.dialog_clear_logs_message,
-            confirmLabel = Res.string.clear_all,
-            destructive = true,
-            onConfirm = dataViewModel::clearLogs,
-            onDismiss = { showClearLogsDialog = false },
-        )
-    }
-
     if (showServerHeadersDialog) {
         ServerHeadersDialog(
             serverUrl = serverHeadersState.serverUrl,
@@ -307,8 +280,6 @@ internal fun AdvancedSettingsContent(
     onOpenPresets: () -> Unit,
     onOpenApiKeys: () -> Unit,
     onOpenCodeEnvironments: () -> Unit,
-    onExportLogs: () -> Unit,
-    onClearLogs: () -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
 ) {
@@ -463,17 +434,6 @@ internal fun AdvancedSettingsContent(
                         )
                     },
                 )
-                if (hasServerDetails(general.gitSha, general.serverTrustedViaUserCa, general.buildInfo)) {
-                    add(
-                        "server_details" to {
-                            ServerDetails(
-                                gitSha = general.gitSha,
-                                serverTrustedViaUserCa = general.serverTrustedViaUserCa,
-                                buildInfo = general.buildInfo,
-                            )
-                        },
-                    )
-                }
             },
         ),
         AdvancedRows(
@@ -508,33 +468,6 @@ internal fun AdvancedSettingsContent(
             } else {
                 emptyList()
             },
-        ),
-        AdvancedRows(
-            AdvancedSection.TROUBLESHOOTING,
-            listOf(
-                "export_logs" to {
-                    SettingsRow(
-                        title = stringResource(Res.string.export_diagnostic_logs),
-                        summary = when {
-                            data.isLogsExporting -> stringResource(Res.string.exporting_logs)
-                            data.logsBufferBytes > 0 -> formatBytes(data.logsBufferBytes)
-                            else -> null
-                        },
-                        onClick = onExportLogs,
-                        enabled = !data.isLogsExporting,
-                        showChevron = false,
-                    )
-                },
-                "clear_logs" to {
-                    SettingsRow(
-                        title = stringResource(Res.string.clear_diagnostic_logs),
-                        summary = if (data.isLogsClearing) stringResource(Res.string.clearing_logs) else null,
-                        onClick = onClearLogs,
-                        enabled = !data.isLogsClearing,
-                        destructive = true,
-                    )
-                },
-            ),
         ),
     ).filter { it.rows.isNotEmpty() }
 
@@ -579,51 +512,6 @@ private fun AdvancedSection.title(): StringResource = when (this) {
     AdvancedSection.SERVER -> Res.string.section_server
     AdvancedSection.DEVELOPER -> Res.string.section_developer
     AdvancedSection.CODE_ENVIRONMENTS -> Res.string.code_environments
-    AdvancedSection.TROUBLESHOOTING -> Res.string.section_troubleshooting
-}
-
-/**
- * Hands an exported diagnostic log to the platform file saver once the ViewModel has read it, and
- * reports how the save went in [snackbarHostState].
- */
-@Composable
-private fun DiagnosticLogsSaver(
-    payload: LogsExportPayload?,
-    onConsume: () -> Unit,
-    snackbarHostState: SnackbarHostState,
-) {
-    val currentOnConsume by rememberUpdatedState(onConsume)
-    var pendingFileName by remember { mutableStateOf<String?>(null) }
-    var pendingContent by remember { mutableStateOf<String?>(null) }
-    var saverResult by remember { mutableStateOf<String?>(null) }
-    val exportedMsg = stringResource(Res.string.logs_exported)
-
-    LaunchedEffect(payload) {
-        payload ?: return@LaunchedEffect
-        pendingContent = payload.content
-        pendingFileName = payload.fileName
-        currentOnConsume()
-    }
-    TextFileSaver(
-        triggerFileName = pendingFileName,
-        content = pendingContent,
-        onComplete = { success, errorMessage ->
-            if (success) {
-                saverResult = exportedMsg
-            } else if (errorMessage != null) {
-                saverResult = errorMessage
-            }
-        },
-        onReset = {
-            pendingFileName = null
-            pendingContent = null
-        },
-    )
-    LaunchedEffect(saverResult) {
-        val message = saverResult ?: return@LaunchedEffect
-        snackbarHostState.showSnackbar(message = message)
-        saverResult = null
-    }
 }
 
 @Composable
