@@ -109,6 +109,7 @@ fun EntryProviderScope<NavKey>.settingsEntries(
     dateTimeSettingsEntry(onBack = onBack)
     whatsNewEntry(onBack = onBack)
     releaseNotesEntry(onBack = onBack)
+    reportProblemEntry(onBack = onBack)
 }
 
 val settingsSerializersModule = SerializersModule {
@@ -138,5 +139,6 @@ val settingsSerializersModule = SerializersModule {
         subclass(AppearanceSettings::class, AppearanceSettings.serializer())
         subclass(WhatsNew::class, WhatsNew.serializer())
         subclass(ReleaseNotes::class, ReleaseNotes.serializer())
+        subclass(ReportProblem::class, ReportProblem.serializer())
     }
 }

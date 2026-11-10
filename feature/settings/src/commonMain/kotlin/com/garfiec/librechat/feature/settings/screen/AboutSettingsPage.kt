@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.PrivacyTip
@@ -22,7 +23,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
@@ -33,26 +33,26 @@ import com.garfiec.librechat.core.model.config.BuildInfo
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AdaptiveSectionHeader
 import com.garfiec.librechat.core.ui.components.adaptiveSection
-import com.garfiec.librechat.core.ui.platform.TextFileSaver
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.util.rememberClipboardWriter
 import com.garfiec.librechat.feature.settings.viewmodel.DataSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.GeneralSettingsViewModel
-import com.garfiec.librechat.feature.settings.viewmodel.LogsExportPayload
 import com.garfiec.librechat.feature.settings.viewmodel.UpdateCheckViewModel
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
- * Settings › About, after web's About tab: the app and server builds, Copy diagnostics and the
- * diagnostic logs, which every user may need for a bug report; then the privacy policy and updates.
+ * Settings › About, after web's About tab: the app and server builds, Copy diagnostics, Report a
+ * problem and the diagnostic logs, which every user may need for a bug report; then the privacy
+ * policy and updates.
  */
 @Composable
 fun AboutSettingsPage(
     onNavigateToWhatsNew: () -> Unit,
     onNavigateToReleaseNotes: () -> Unit,
+    onNavigateToReportProblem: () -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
@@ -129,6 +129,15 @@ fun AboutSettingsPage(
             AdaptiveSectionHeader(stringResource(Res.string.section_troubleshooting))
         }
         adaptiveSection {
+            row(key = "report_problem") {
+                SettingsRow(
+                    icon = Icons.Default.BugReport,
+                    tileTint = SettingsTileTint.PRIMARY,
+                    title = stringResource(Res.string.report_problem_title),
+                    summary = stringResource(Res.string.report_problem_row_summary),
+                    onClick = onNavigateToReportProblem,
+                )
+            }
             row(key = "export_logs") {
                 SettingsRow(
                     title = stringResource(Res.string.export_diagnostic_logs),
@@ -198,50 +207,6 @@ fun AboutSettingsPage(
             onConfirm = dataViewModel::clearLogs,
             onDismiss = { showClearLogsDialog = false },
         )
-    }
-}
-
-/**
- * Hands an exported diagnostic log to the platform file saver once the ViewModel has read it, and
- * reports how the save went in [snackbarHostState].
- */
-@Composable
-private fun DiagnosticLogsSaver(
-    payload: LogsExportPayload?,
-    onConsume: () -> Unit,
-    snackbarHostState: SnackbarHostState,
-) {
-    val currentOnConsume by rememberUpdatedState(onConsume)
-    var pendingFileName by remember { mutableStateOf<String?>(null) }
-    var pendingContent by remember { mutableStateOf<String?>(null) }
-    var saverResult by remember { mutableStateOf<String?>(null) }
-    val exportedMsg = stringResource(Res.string.logs_exported)
-
-    LaunchedEffect(payload) {
-        payload ?: return@LaunchedEffect
-        pendingContent = payload.content
-        pendingFileName = payload.fileName
-        currentOnConsume()
-    }
-    TextFileSaver(
-        triggerFileName = pendingFileName,
-        content = pendingContent,
-        onComplete = { success, errorMessage ->
-            if (success) {
-                saverResult = exportedMsg
-            } else if (errorMessage != null) {
-                saverResult = errorMessage
-            }
-        },
-        onReset = {
-            pendingFileName = null
-            pendingContent = null
-        },
-    )
-    LaunchedEffect(saverResult) {
-        val message = saverResult ?: return@LaunchedEffect
-        snackbarHostState.showSnackbar(message = message)
-        saverResult = null
     }
 }
 

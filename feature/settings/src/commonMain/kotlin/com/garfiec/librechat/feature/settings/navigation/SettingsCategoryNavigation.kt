@@ -165,6 +165,7 @@ internal fun SettingsPaneContent(
             SettingsCategoryKey.ABOUT -> AboutSettingsPage(
                 onNavigateToWhatsNew = { onNavigate(WhatsNew) },
                 onNavigateToReleaseNotes = { onNavigate(ReleaseNotes) },
+                onNavigateToReportProblem = { onNavigate(ReportProblem) },
                 contentPadding = contentPadding,
                 snackbarHostState = snackbarHostState,
             )
