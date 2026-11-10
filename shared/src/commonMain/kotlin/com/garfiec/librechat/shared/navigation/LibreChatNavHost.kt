@@ -20,6 +20,7 @@ import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
@@ -37,6 +38,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
@@ -64,7 +66,9 @@ import com.garfiec.librechat.core.common.lifecycle.DeferredWorkWindow
 import com.garfiec.librechat.core.common.lifecycle.ForegroundSignal
 import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
 import com.garfiec.librechat.core.logging.Diag
+import com.garfiec.librechat.core.notifications.ReplySnackbars
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
+import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
 import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
 import com.garfiec.librechat.core.ui.components.BackClaims
 import com.garfiec.librechat.core.ui.components.BannerDisplay
@@ -133,6 +137,7 @@ import com.garfiec.librechat.shared.resources.version_mismatch_title
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.stringResource
@@ -223,7 +228,13 @@ fun LibreChatNavHost(
     val pendingDeepLink by deepLinkInbox.pending.collectAsStateWithLifecycle()
     LaunchedEffect(pendingDeepLink) {
         val link = pendingDeepLink ?: return@LaunchedEffect
-        navigator.placeDeepLink(DeepLinks.resolve(link), navHostViewModel.isLoggedIn.value)
+        // A tap that starts the app arrives while the account is still loading.
+        val account = navHostViewModel.accountState.first { it !is AccountState.Warming }
+        navigator.placeDeepLink(
+            resolution = DeepLinks.resolve(link),
+            isLoggedIn = navHostViewModel.isLoggedIn.value,
+            activeAccountId = (account as? AccountState.Resolved)?.id?.value,
+        )
         deepLinkInbox.consume(link)
     }
 
@@ -409,6 +420,14 @@ fun LibreChatNavHost(
                                 PhoneLayout(navigator = navigator, navDisplay = navDisplay)
                             }
                         }
+                        val replySnackbarState = remember { SnackbarHostState() }
+                        ReplySnackbars(replySnackbarState, onOpen = { id -> navigator.navigateToChat(conversationId = id) })
+                        AdaptiveSnackbarHost(
+                            hostState = replySnackbarState,
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .windowInsetsPadding(WindowInsets.safeDrawing),
+                        )
                     }
                 }
             }

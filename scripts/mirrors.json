@@ -6890,6 +6890,20 @@
       },
       "why": "The control outline for a theme that predates it.",
       "failure_mode": "A partial server theme resolves a role differently from the web: the app paints the stock colour where the browser follows the theme's own source role, or the reverse. Nothing errors; ServerThemeUpstreamParityTest only catches it once its expectations are regenerated."
+    },
+    {
+      "id": "reply-notification-capabilities",
+      "upstream": {
+        "file": "client/src/hooks/Conversations/replyNotificationSettings.ts",
+        "symbol": "useReplyNotificationCapabilities",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/config/InterfaceConfig.kt",
+        "symbol": "replyNotificationsAllowed / replyNotificationSoundAllowed"
+      },
+      "why": "How a deployment's interface.replyNotifications gates read: each field off only when explicitly false, so an older server that sends nothing keeps notifications on.",
+      "failure_mode": "If web changes the default (for example to off when the field is absent), the app keeps notifying on servers whose operators expect silence. Nothing errors."
     }
   ]
 }

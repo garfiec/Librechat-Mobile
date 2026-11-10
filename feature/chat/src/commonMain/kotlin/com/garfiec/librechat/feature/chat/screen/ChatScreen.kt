@@ -40,6 +40,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.data.datastore.ChatFontSize
 import com.garfiec.librechat.core.data.datastore.LatexRenderer
 import com.garfiec.librechat.core.model.response.pickerMimeTypes
+import com.garfiec.librechat.core.notifications.ReplyNotificationAsk
 import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
 import com.garfiec.librechat.core.ui.components.PdfPasswordDialog
 import com.garfiec.librechat.core.ui.glass.glassBackdropSource
@@ -223,6 +224,7 @@ fun ChatScreen(
         ChatFontSize.LARGE -> 1.2f
     }
     val snackbarHostState = remember { SnackbarHostState() }
+    ReplyNotificationAsk(streaming = uiState.isStreaming, snackbarHostState = snackbarHostState)
     val coroutineScope = rememberCoroutineScope()
     var showPresetPicker by remember { mutableStateOf(false) }
     var showThinkingSheet by rememberSaveable { mutableStateOf(false) }

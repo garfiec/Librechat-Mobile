@@ -1103,4 +1103,14 @@
     <string name="report_share_text">Bericht teilen</string>
     <string name="report_copy_text">Berichtstext kopieren</string>
     <string name="report_address_copied">Adresse kopiert</string>
+    <string name="category_notifications">Benachrichtigungen</string>
+    <string name="notifications_permission">Benachrichtigungen</string>
+    <string name="notifications_on">An</string>
+    <string name="notifications_off">Aus</string>
+    <string name="notifications_turn_on">Einschalten</string>
+    <string name="notifications_replies">Antworten</string>
+    <string name="notifications_replies_description">Wenn eine Antwort fertig ist, während du weg bist</string>
+    <string name="notifications_replies_server_off">Von deinem Server deaktiviert</string>
+    <string name="notifications_system_settings">Benachrichtigungseinstellungen</string>
+    <string name="notifications_system_settings_description">Ton, Sperrbildschirm und mehr in den Geräteeinstellungen</string>
 </resources>

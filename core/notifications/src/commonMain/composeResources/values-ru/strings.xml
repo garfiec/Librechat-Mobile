@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="channel_replies">Ответы</string>
+    <string name="channel_replies_description">Когда ответ готов, пока вас нет в приложении</string>
+    <string name="reply_title_fallback">Ваш чат</string>
+    <string name="reply_body_finished">Ваш ответ готов</string>
+    <string name="reply_body_failed">Ответ завершился ошибкой</string>
+    <string name="reply_public_body">Новый ответ</string>
+    <string name="reply_snackbar_finished">Ответ готов в «%1$s»</string>
+    <string name="reply_snackbar_failed">Ошибка ответа в «%1$s»</string>
+    <string name="reply_snackbar_open">Открыть</string>
+    <string name="ask_reply_notifications">Уведомлять, когда ответ готов, пока вас нет?</string>
+    <string name="ask_reply_notifications_allow">Разрешить</string>
+</resources>

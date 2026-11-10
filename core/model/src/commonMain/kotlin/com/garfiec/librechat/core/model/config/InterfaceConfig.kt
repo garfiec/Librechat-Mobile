@@ -131,7 +131,31 @@ data class InterfaceConfig(
     val queuedTurnReconciliationTimeoutMs: JsonElement? = null,
     /** How long a queued send may hold its pane (ms). Decoded only: mobile holds no such lock. */
     val queuedSendLockTimeoutMs: JsonElement? = null,
+    /** What the deployment lets readers turn on for replies. Read through [replyNotificationsAllowed]. */
+    val replyNotifications: ReplyNotificationsConfig? = null,
 )
+
+/**
+ * `interface.replyNotifications`. Only the two gates mobile has a counterpart for are decoded;
+ * `tabBadge` and the poll fields drive web's tab title and away poll.
+ */
+@Serializable
+data class ReplyNotificationsConfig(
+    /** Whether readers may turn on reply notifications (web: desktop notifications). */
+    val desktop: Boolean? = null,
+    /** Whether a reply notification may make a sound. */
+    val sound: Boolean? = null,
+)
+
+/**
+ * Whether the deployment allows reply notifications. A missing field is allowed: web reads each gate
+ * as `!== false`, so a server that predates the setting behaves as it did before it existed.
+ * MIRRORED from web's `useReplyNotificationCapabilities` (scripts/mirrors.json).
+ */
+val InterfaceConfig?.replyNotificationsAllowed: Boolean get() = this?.replyNotifications?.desktop != false
+
+/** Whether a reply notification may play a sound; same reading as [replyNotificationsAllowed]. */
+val InterfaceConfig?.replyNotificationSoundAllowed: Boolean get() = this?.replyNotifications?.sound != false
 
 /** Upstream `DEFAULT_QUEUED_TURN_RECONCILIATION_TIMEOUT_MS` (`packages/data-provider/src/config.ts`). */
 const val DEFAULT_QUEUED_TURN_RECONCILIATION_TIMEOUT_MS: Long = 60_000

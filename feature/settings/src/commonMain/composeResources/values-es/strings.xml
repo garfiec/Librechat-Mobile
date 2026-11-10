@@ -1104,4 +1104,14 @@
     <string name="report_share_text">Compartir informe</string>
     <string name="report_copy_text">Copiar texto del informe</string>
     <string name="report_address_copied">Dirección copiada</string>
+    <string name="category_notifications">Notificaciones</string>
+    <string name="notifications_permission">Notificaciones</string>
+    <string name="notifications_on">Activadas</string>
+    <string name="notifications_off">Desactivadas</string>
+    <string name="notifications_turn_on">Activar</string>
+    <string name="notifications_replies">Respuestas</string>
+    <string name="notifications_replies_description">Cuando una respuesta termina mientras no estás</string>
+    <string name="notifications_replies_server_off">Desactivadas por tu servidor</string>
+    <string name="notifications_system_settings">Ajustes de notificaciones</string>
+    <string name="notifications_system_settings_description">Sonido, pantalla de bloqueo y más, en los ajustes del dispositivo</string>
 </resources>

@@ -1087,4 +1087,14 @@
     <string name="report_share_text">신고 공유</string>
     <string name="report_copy_text">신고 내용 복사</string>
     <string name="report_address_copied">주소를 복사했습니다</string>
+    <string name="category_notifications">알림</string>
+    <string name="notifications_permission">알림</string>
+    <string name="notifications_on">켜짐</string>
+    <string name="notifications_off">꺼짐</string>
+    <string name="notifications_turn_on">켜기</string>
+    <string name="notifications_replies">답변</string>
+    <string name="notifications_replies_description">떠나 있는 동안 답변이 완료되면</string>
+    <string name="notifications_replies_server_off">서버에서 꺼 두었습니다</string>
+    <string name="notifications_system_settings">알림 설정</string>
+    <string name="notifications_system_settings_description">소리, 잠금 화면 등은 기기 설정에서</string>
 </resources>

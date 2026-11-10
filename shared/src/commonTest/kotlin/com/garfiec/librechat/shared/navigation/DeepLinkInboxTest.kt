@@ -49,7 +49,7 @@ class DeepLinkInboxTest {
     fun conversationLink_opensThatChat() {
         val (navigator, _) = navigatorOn(NewChat())
 
-        navigator.placeDeepLink(DeepLinks.resolve(link("conversation", chatId)), isLoggedIn = true)
+        navigator.placeDeepLink(DeepLinks.resolve(link("conversation", chatId)), isLoggedIn = true, activeAccountId = null)
 
         assertEquals(chatId, (navigator.currentRoute as Chat).conversationId)
     }
@@ -61,6 +61,7 @@ class DeepLinkInboxTest {
         navigator.placeDeepLink(
             DeepLinks.resolve(link("model", query = mapOf("endpoint" to "openAI", "model" to "gpt-4o"))),
             isLoggedIn = true,
+            activeAccountId = null,
         )
 
         assertEquals(NewChat(endpoint = "openAI", model = "gpt-4o"), navigator.currentRoute)
@@ -70,7 +71,7 @@ class DeepLinkInboxTest {
     fun signedOut_aRouteLandsOnSignIn() {
         val (navigator, backStack) = navigatorOn(NewChat())
 
-        navigator.placeDeepLink(DeepLinks.resolve(link("conversation", chatId)), isLoggedIn = false)
+        navigator.placeDeepLink(DeepLinks.resolve(link("conversation", chatId)), isLoggedIn = false, activeAccountId = null)
 
         assertEquals(listOf<NavKey>(ServerUrl), backStack.toList())
     }
@@ -79,9 +80,22 @@ class DeepLinkInboxTest {
     fun linksWithNothingToPlace_leaveTheStackAlone() {
         val (navigator, backStack) = navigatorOn(NewChat())
 
-        navigator.placeDeepLink(DeepLinks.resolve(link("oauth")), isLoggedIn = true)
-        navigator.placeDeepLink(DeepLinks.resolve(link("wat")), isLoggedIn = true)
+        navigator.placeDeepLink(DeepLinks.resolve(link("oauth")), isLoggedIn = true, activeAccountId = null)
+        navigator.placeDeepLink(DeepLinks.resolve(link("wat")), isLoggedIn = true, activeAccountId = null)
 
         assertEquals(listOf<NavKey>(NewChat()), backStack.toList())
+    }
+
+    @Test
+    fun aNotificationLink_opensOnlyUnderItsOwnAccount() {
+        val link = DeepLinks.resolve(link("conversation", chatId, query = mapOf("account" to "server:alice")))
+
+        val (own, _) = navigatorOn(NewChat())
+        own.placeDeepLink(link, isLoggedIn = true, activeAccountId = "server:alice")
+        assertEquals(chatId, (own.currentRoute as Chat).conversationId)
+
+        val (other, otherStack) = navigatorOn(NewChat())
+        other.placeDeepLink(link, isLoggedIn = true, activeAccountId = "server:bob")
+        assertEquals(listOf<NavKey>(NewChat()), otherStack.toList())
     }
 }

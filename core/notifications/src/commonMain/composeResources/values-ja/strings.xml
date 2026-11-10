@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="channel_replies">返信</string>
+    <string name="channel_replies_description">アプリを離れている間に返信が完了したとき</string>
+    <string name="reply_title_fallback">チャット</string>
+    <string name="reply_body_finished">返信の準備ができました</string>
+    <string name="reply_body_failed">返信はエラーで終了しました</string>
+    <string name="reply_public_body">新しい返信</string>
+    <string name="reply_snackbar_finished">「%1$s」の返信が完了しました</string>
+    <string name="reply_snackbar_failed">「%1$s」の返信に失敗しました</string>
+    <string name="reply_snackbar_open">開く</string>
+    <string name="ask_reply_notifications">アプリを離れている間に返信が完了したら通知しますか？</string>
+    <string name="ask_reply_notifications_allow">許可</string>
+</resources>
