@@ -87,6 +87,7 @@ import com.garfiec.librechat.core.ui.glass.LocalGlassBackdrop
 import com.garfiec.librechat.core.ui.glass.drawInsetOutlineStroke
 import com.garfiec.librechat.core.ui.glass.glassSurface
 import com.garfiec.librechat.core.ui.glass.rememberGlassStyle
+import com.garfiec.librechat.core.ui.theme.chatColors
 import com.garfiec.librechat.core.ui.theme.isLiquidGlass
 import com.garfiec.librechat.feature.chat.components.veil.LocalComposerFlare
 import com.garfiec.librechat.feature.chat.components.veil.retonedSurface
@@ -226,7 +227,7 @@ fun CommonChatInputCore(
     /** Draws no frame of its own ([ChatInputDefaults.textFieldColors]): the box is the frame. */
     textFieldContent: @Composable RowScope.(compact: Boolean) -> Unit,
 ) {
-    val surfaceColor = MaterialTheme.colorScheme.surface
+    val surfaceColor = chatColors().canvas
     // The fade keeps temporary chat's retone (see ModeVeil) rather than painting plain surface over it.
     val retonedSurfaceColor = retonedSurface(surfaceColor)
     val temporaryAmount = ChatInputDefaults.animateTemporaryAmount(isTemporaryChat)
@@ -300,7 +301,7 @@ fun CommonChatInputCore(
             val temporaryBorder = ChatInputDefaults.temporaryBorderColor
             val boxFill = ChatInputDefaults.containerColor
             val boxBorder = ChatInputDefaults.borderColor
-            val boxFocusedBorder = MaterialTheme.colorScheme.outline
+            val boxFocusedBorder = chatColors().composerBorderFocused
             val temporaryAccent = ChatInputDefaults.temporaryAccent
             var boxFocused by remember { mutableStateOf(false) }
             BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
@@ -788,7 +789,7 @@ fun SendStopButton(
             SendButtonMode.STOP -> IconButton(
                 onClick = onStop,
                 modifier = Modifier.size(buttonSize),
-                colors = ChatInputDefaults.sendButtonColors(MaterialTheme.colorScheme.error),
+                colors = ChatInputDefaults.stopButtonColors(),
             ) {
                 Icon(
                     imageVector = Icons.Default.Stop,
@@ -1051,7 +1052,7 @@ fun ChatInputPlaceholder(
             stringResource(Res.string.hint_message)
         },
         style = MaterialTheme.typography.bodyLarge,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        color = chatColors().composerPlaceholder,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
         modifier = modifier,

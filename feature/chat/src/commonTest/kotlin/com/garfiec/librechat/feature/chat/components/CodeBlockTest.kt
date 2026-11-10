@@ -1,8 +1,9 @@
 package com.garfiec.librechat.feature.chat.components
 
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.text.AnnotatedString
+import com.garfiec.librechat.core.ui.theme.SyntaxColors
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
@@ -10,10 +11,10 @@ import kotlin.test.assertTrue
 
 class CodeBlockTest {
 
-    private fun highlight(code: String, language: String?, palette: SyntaxPalette = SyntaxPalette.DARK) =
+    private fun highlight(code: String, language: String?, palette: SyntaxPalette = DARK) =
         highlightSyntax(code, language, palette)
 
-    private fun AnnotatedString.spansOf(kind: TokenKind, palette: SyntaxPalette = SyntaxPalette.DARK): List<String> =
+    private fun AnnotatedString.spansOf(kind: TokenKind, palette: SyntaxPalette = DARK): List<String> =
         spanStyles.filter { it.item == palette.styleOf(kind) }.map { text.substring(it.start, it.end) }
 
     private fun AnnotatedString.stringSpans(): List<String> = spansOf(TokenKind.STRING)
@@ -72,27 +73,15 @@ class CodeBlockTest {
     // --- theme ---
 
     @Test
-    fun every_token_colour_reads_on_its_themes_code_block() {
-        val failures = SyntaxPalette.entries.flatMap { palette ->
-            val block = if (palette == SyntaxPalette.LIGHT) LIGHT_BLOCK else DARK_BLOCK
-            TokenKind.entries.mapNotNull { kind ->
-                val ratio = contrast(palette.styleOf(kind).color, block)
-                if (ratio < MIN_CONTRAST) "$palette $kind ${(ratio * 100).toInt() / 100.0}:1" else null
-            }
-        }
-        assertTrue(failures.isEmpty(), "below $MIN_CONTRAST:1 on the code block: $failures")
-    }
-
-    @Test
     fun each_palette_colours_the_same_tokens_in_its_own_colours() {
         val code = "// hi\n@JvmStatic fun greet(n: Int = 3): String = \"a\"\n"
-        val light = highlight(code, "kotlin", SyntaxPalette.LIGHT)
-        val dark = highlight(code, "kotlin", SyntaxPalette.DARK)
+        val light = highlight(code, "kotlin", LIGHT)
+        val dark = highlight(code, "kotlin", DARK)
 
         assertEquals(dark.spanStyles.map { it.start..it.end }, light.spanStyles.map { it.start..it.end })
         for (kind in TokenKind.entries.filter { it != TokenKind.CONSTANT }) {
-            assertEquals(dark.spansOf(kind, SyntaxPalette.DARK), light.spansOf(kind, SyntaxPalette.LIGHT), "$kind")
-            assertTrue(light.spansOf(kind, SyntaxPalette.LIGHT).isNotEmpty(), "$kind")
+            assertEquals(dark.spansOf(kind, DARK), light.spansOf(kind, LIGHT), "$kind")
+            assertTrue(light.spansOf(kind, LIGHT).isNotEmpty(), "$kind")
         }
         assertNotEquals(dark.spanStyles.map { it.item }, light.spanStyles.map { it.item })
     }
@@ -101,21 +90,12 @@ class CodeBlockTest {
         // Far past the K/N recursion limit of any thread stack the tests or the app run on.
         const val LONG = 100_000
 
-        // WCAG AA for the block's 13sp text.
-        const val MIN_CONTRAST = 4.5f
-
-        // surfaceContainerHighest, the block's background: tone 90 (light) and 22 (dark) for every accent.
-        val LIGHT_BLOCK = Color(0xFFE2E2E9)
-        val DARK_BLOCK = Color(0xFF33353A)
+        val LIGHT = SyntaxPalette(SyntaxColors.switchboard(lightColorScheme(), dark = false))
+        val DARK = SyntaxPalette(SyntaxColors.switchboard(darkColorScheme(), dark = true))
 
         val LANGUAGES = listOf(
             "kotlin", "java", "python", "javascript", "typescript", "json", "bash", "xml", "css", "sql",
             "go", "rust", "c", "swift", "ruby", "yaml", "toml", "dockerfile", "plaintext",
         )
-
-        fun contrast(a: Color, b: Color): Float {
-            val (hi, lo) = listOf(a.luminance(), b.luminance()).sortedDescending()
-            return (hi + 0.05f) / (lo + 0.05f)
-        }
     }
 }

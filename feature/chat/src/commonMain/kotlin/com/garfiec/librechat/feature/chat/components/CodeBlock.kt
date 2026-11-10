@@ -37,7 +37,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -50,6 +49,8 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.garfiec.librechat.core.ui.theme.SyntaxColors
+import com.garfiec.librechat.core.ui.theme.chatColors
 import com.garfiec.librechat.core.ui.theme.isSurfaceDark
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
@@ -102,7 +103,7 @@ fun CodeBlock(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
-            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+            .background(chatColors().codeBody)
             .semantics {
                 contentDescription = blockCd
             },
@@ -111,7 +112,7 @@ fun CodeBlock(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                .background(chatColors().codeHeader)
                 .padding(horizontal = 12.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -161,8 +162,9 @@ fun CodeBlock(
                 .padding(12.dp),
         ) {
             val isDarkTheme = isSurfaceDark()
+            val syntax = chatColors().syntax
             val highlightedCode = rememberHighlightedCode(
-                input = HighlightInput(code, language, searchQuery, searchFocusedOccurrence, isDarkTheme),
+                input = HighlightInput(code, language, searchQuery, searchFocusedOccurrence, isDarkTheme, syntax),
                 streaming = streaming,
             )
             val focusedRange = remember(code, searchQuery, searchFocusedOccurrence) {
@@ -180,6 +182,7 @@ fun CodeBlock(
                     fontSize = 13.sp,
                     lineHeight = 20.sp,
                 ),
+                color = syntax.text,
                 onTextLayout = { layoutResult = it },
                 modifier = Modifier.reportFocusedMatchPosition(layoutResult, focusedRange, onFocusedMatchPosition),
             )
@@ -194,10 +197,11 @@ private data class HighlightInput(
     val searchQuery: String?,
     val searchFocusedOccurrence: Int,
     val isDarkTheme: Boolean,
+    val syntax: SyntaxColors,
 )
 
 private fun highlight(input: HighlightInput): AnnotatedString {
-    val syntax = highlightSyntax(input.code, input.language?.lowercase(), SyntaxPalette.of(input.isDarkTheme))
+    val syntax = highlightSyntax(input.code, input.language?.lowercase(), SyntaxPalette(input.syntax))
     return if (input.searchQuery.isNullOrBlank()) {
         syntax
     } else {
@@ -311,52 +315,25 @@ private const val DISABLED_ALPHA = 0.38f
 
 internal enum class TokenKind { COMMENT, STRING, KEYWORD, NUMBER, TYPE, FUNCTION, ANNOTATION, CONSTANT }
 
-/**
- * Token colours per app theme. Each must read at 4.5:1 or more on the block's
- * `surfaceContainerHighest` in its theme (tone 90 light, tone 22 dark); `CodeBlockTest` checks it.
- */
-internal enum class SyntaxPalette(colors: Map<TokenKind, Long>) {
-    // VS Code Light+, darkened: stock Light+ is tuned for white and misses 4.5:1 on tone 90.
-    LIGHT(
-        mapOf(
-            TokenKind.COMMENT to 0xFF006E00,
-            TokenKind.STRING to 0xFFA31515,
-            TokenKind.KEYWORD to 0xFF0000FF,
-            TokenKind.NUMBER to 0xFF076E48,
-            TokenKind.TYPE to 0xFF1F677C,
-            TokenKind.FUNCTION to 0xFF755B25,
-            TokenKind.ANNOTATION to 0xFF811F3F,
-            TokenKind.CONSTANT to 0xFF0061A7,
-        ),
-    ),
-
-    // VS Code Dark+, with comment, string and keyword lifted for tone 22.
-    DARK(
-        mapOf(
-            TokenKind.COMMENT to 0xFF85B06F,
-            TokenKind.STRING to 0xFFD69C83,
-            TokenKind.KEYWORD to 0xFF6AAEE8,
-            TokenKind.NUMBER to 0xFFB5CEA8,
-            TokenKind.TYPE to 0xFF4EC9B0,
-            TokenKind.FUNCTION to 0xFFDCDCAA,
-            TokenKind.ANNOTATION to 0xFFD7BA7D,
-            TokenKind.CONSTANT to 0xFF4FC1FF,
-        ),
-    ),
-    ;
-
+/** The highlighter's span style for each [TokenKind], in [colors]. */
+internal class SyntaxPalette(colors: SyntaxColors) {
     private val styles: Map<TokenKind, SpanStyle> = TokenKind.entries.associateWith { kind ->
         SpanStyle(
-            color = Color(colors.getValue(kind)),
+            color = when (kind) {
+                TokenKind.COMMENT -> colors.comment
+                TokenKind.STRING -> colors.string
+                TokenKind.KEYWORD -> colors.keyword
+                TokenKind.NUMBER -> colors.number
+                TokenKind.TYPE -> colors.type
+                TokenKind.FUNCTION -> colors.function
+                TokenKind.ANNOTATION -> colors.annotation
+                TokenKind.CONSTANT -> colors.constant
+            },
             fontStyle = if (kind == TokenKind.COMMENT) FontStyle.Italic else null,
         )
     }
 
     fun styleOf(kind: TokenKind): SpanStyle = styles.getValue(kind)
-
-    companion object {
-        fun of(dark: Boolean): SyntaxPalette = if (dark) DARK else LIGHT
-    }
 }
 
 // Cache token rules per language to avoid recreating Regex objects on every code block render.

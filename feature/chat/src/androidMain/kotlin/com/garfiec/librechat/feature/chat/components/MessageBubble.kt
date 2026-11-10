@@ -35,6 +35,7 @@ import com.garfiec.librechat.core.model.media.IconSource
 import com.garfiec.librechat.core.ui.components.AvatarImage
 import com.garfiec.librechat.core.ui.components.BubbleShape
 import com.garfiec.librechat.core.ui.components.EndpointAvatar
+import com.garfiec.librechat.core.ui.theme.chatColors
 import com.garfiec.librechat.feature.chat.components.sendflight.sendFlightBubble
 import com.garfiec.librechat.feature.chat.components.sendflight.sendFlightHeader
 import com.garfiec.librechat.feature.chat.resources.*
@@ -275,7 +276,7 @@ private fun ThreadMessageBubble(
         // When bubbles are ON in thread mode, wrap content in a subtle rounded background
         val threadBubbleBackground = if (showBubbles) {
             if (isUser) {
-                MaterialTheme.colorScheme.secondaryContainer
+                chatColors().userMessage
             } else {
                 MaterialTheme.colorScheme.surfaceVariant
             }
@@ -386,11 +387,9 @@ private fun TwoSidedMessageBubble(
         else -> null
     }
 
-    // Use secondaryContainer for user bubbles (better dark mode contrast than primaryContainer)
-    // and surfaceVariant for agent bubbles. Text uses onSecondaryContainer/onSurfaceVariant.
     val bubbleBackground = if (showBubbles) {
         if (isUser) {
-            MaterialTheme.colorScheme.secondaryContainer
+            chatColors().userMessage
         } else {
             MaterialTheme.colorScheme.surfaceVariant
         }

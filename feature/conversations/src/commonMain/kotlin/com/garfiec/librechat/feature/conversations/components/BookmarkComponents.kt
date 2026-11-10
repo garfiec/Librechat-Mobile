@@ -56,6 +56,7 @@ import com.garfiec.librechat.core.ui.components.menuDragTarget
 import com.garfiec.librechat.core.ui.components.rememberMenuDragSelection
 import com.garfiec.librechat.core.ui.resources.bookmark_chat_count
 import com.garfiec.librechat.core.ui.resources.bookmark_edit
+import com.garfiec.librechat.core.ui.theme.chromeColors
 import com.garfiec.librechat.feature.conversations.resources.Res
 import com.garfiec.librechat.feature.conversations.resources.bookmark_delete
 import com.garfiec.librechat.feature.conversations.resources.bookmark_delete_body
@@ -179,7 +180,7 @@ private fun BookmarkMenuButton(
         AdaptiveDropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            containerColor = chromeColors().popover,
             offset = DpOffset(0.dp, 0.dp),
             dragSelection = drag,
         ) {

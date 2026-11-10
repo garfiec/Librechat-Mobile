@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import com.garfiec.librechat.core.ui.theme.LocalDarkTheme
+import com.garfiec.librechat.core.ui.theme.chatColors
 
 object ChatInputDefaults {
     /** Resting fill shared by the composer box and the floating top-bar chips. */
@@ -70,15 +71,28 @@ object ChatInputDefaults {
     fun toolsButtonColors(): IconButtonColors =
         IconButtonDefaults.iconButtonColors(contentColor = MaterialTheme.colorScheme.onSurfaceVariant)
 
-    /** A bare icon in [color], no circle: the box is its frame. */
+    /**
+     * The send slot (Send and the during-run sends) in the theme's [chatColors]: Switchboard's is a bare
+     * icon, the box being its frame; a server's is the web's filled circle. A [color] keeps the bare icon.
+     */
     @Composable
-    fun sendButtonColors(color: Color = MaterialTheme.colorScheme.primary): IconButtonColors =
-        IconButtonDefaults.iconButtonColors(
-            contentColor = color,
-            disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = DISABLED_ALPHA),
+    fun sendButtonColors(color: Color? = null): IconButtonColors {
+        val chat = chatColors()
+        return IconButtonDefaults.iconButtonColors(
+            containerColor = if (color == null) chat.submit else Color.Transparent,
+            contentColor = color ?: chat.onSubmit,
+            disabledContainerColor = chat.submitDisabled,
+            disabledContentColor = chat.onSubmitDisabled,
         )
+    }
 
-    private const val DISABLED_ALPHA = 0.38f
+    /** Stop shares the send slot: a bare icon in Switchboard's error colour, or a server's filled circle. */
+    @Composable
+    fun stopButtonColors(): IconButtonColors {
+        val chat = chatColors()
+        return IconButtonDefaults.iconButtonColors(containerColor = chat.stop, contentColor = chat.onStop)
+    }
+
     private const val TEMPORARY_TINT_MS = 200
     private const val TEMPORARY_BORDER_ALPHA = 0.6f
     private const val TEMPORARY_WASH_ALPHA_LIGHT = 0.08f

@@ -54,6 +54,7 @@ import com.garfiec.librechat.core.ui.components.rememberMenuDragSelection
 import com.garfiec.librechat.core.ui.datetime.LocalDateTimeFormat
 import com.garfiec.librechat.core.ui.datetime.LocalRelativeTimeReference
 import com.garfiec.librechat.core.ui.datetime.resolve
+import com.garfiec.librechat.core.ui.theme.chromeColors
 import com.garfiec.librechat.feature.settings.model.SharedLinkDisplayData
 import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.resources.action_delete
@@ -166,7 +167,7 @@ private fun SharedLinkMenuButton(
         AdaptiveDropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            containerColor = chromeColors().popover,
             offset = DpOffset(0.dp, (MenuGapBelowIcon - (MenuButtonSize - MenuIconSize) / 2).coerceAtLeast(0.dp)),
             dragSelection = drag,
         ) {

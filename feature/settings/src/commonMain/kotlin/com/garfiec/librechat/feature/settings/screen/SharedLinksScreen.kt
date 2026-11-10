@@ -68,6 +68,7 @@ import com.garfiec.librechat.core.ui.components.topbar.BarIcons
 import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
 import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.core.ui.components.topbar.MaterialBarStyle
+import com.garfiec.librechat.core.ui.theme.chromeColors
 import com.garfiec.librechat.feature.settings.model.SharedLinkDisplayData
 import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.resources.action_cancel
@@ -345,7 +346,7 @@ private fun SharedLinksSortRow(sort: SharedLinksSort, loading: Boolean, onSortCh
             AdaptiveDropdownMenu(
                 expanded = menuOpen,
                 onDismissRequest = { menuOpen = false },
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                containerColor = chromeColors().popover,
             ) {
                 SharedLinksSort.entries.forEach { option ->
                     DropdownMenuItem(
