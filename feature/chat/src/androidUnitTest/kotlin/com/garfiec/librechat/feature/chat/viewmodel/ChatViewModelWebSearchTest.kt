@@ -1,17 +1,23 @@
 package com.garfiec.librechat.feature.chat.viewmodel
 
 import androidx.lifecycle.viewModelScope
+import com.garfiec.librechat.core.common.EndpointConstants
 import com.garfiec.librechat.core.common.ToolConstants
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.data.datastore.LastUsedSelection
 import com.garfiec.librechat.core.data.datastore.WebSearchPreference
+import com.garfiec.librechat.core.data.repository.ChatPayloadBuilder
 import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.Preset
 import com.garfiec.librechat.core.model.ToolAuthResult
+import com.garfiec.librechat.core.model.config.ModelSpec
+import com.garfiec.librechat.core.model.config.ModelSpecs
 import com.garfiec.librechat.core.model.config.StartupConfig
 import com.garfiec.librechat.core.model.permissions.PermissionType
 import com.garfiec.librechat.core.model.permissions.UserRolePermissions
 import com.garfiec.librechat.core.model.request.EphemeralAgent
+import com.garfiec.librechat.core.network.di.librechatJson
 import com.garfiec.librechat.feature.chat.model.PresetDisplayData
 import com.garfiec.librechat.feature.chat.util.WebSearchRoute
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PlatformFileHandler
@@ -36,6 +42,7 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import org.junit.After
@@ -55,9 +62,10 @@ class ChatViewModelWebSearchTest {
     private val fileHandler = mockk<PlatformFileHandler>(relaxed = true)
     private val startupConfig = MutableStateFlow<StartupConfig?>(StartupConfig(webSearch = SEARCH_CONFIG))
 
-    /** Each send's top-level `web_search` and `ephemeralAgent`. */
+    /** Each send's top-level `web_search`, `ephemeralAgent` and model parameters. */
     private val topLevel = mutableListOf<Boolean>()
     private val ephemeral = mutableListOf<EphemeralAgent?>()
+    private val params = mutableListOf<JsonObject?>()
 
     @Before
     fun setUp() {
@@ -432,6 +440,90 @@ class ChatViewModelWebSearchTest {
     }
 
     @Test
+    fun `a chat whose built-in search was turned on in web keeps it over the switch stored here`() {
+        coEvery { fixture.conversationRepository.getConversation(CONVERSATION, any()) } returns Result.Success(
+            Conversation(conversationId = CONVERSATION, endpoint = ENDPOINT, model = MODEL, webSearch = true),
+        )
+        coEvery { fixture.conversationWebSearchStore.get(CONVERSATION) } returns false
+        webSearchTest(CONVERSATION) { vm ->
+            advanceUntilIdle()
+            assertThat(vm.uiState.value.webSearchRoute).isEqualTo(WebSearchRoute.BUILT_IN)
+
+            send(vm)
+
+            assertThat(sentBody()[ToolConstants.WEB_SEARCH]).isEqualTo(JsonPrimitive(true))
+            assertThat(ephemeral.single()?.webSearch).isNull()
+        }
+    }
+
+    @Test
+    fun `a send with the control off says web_search false, so no admin default turns a search on`() =
+        webSearchTest { vm ->
+            vm.onModelSelected(ENDPOINT, MODEL)
+
+            send(vm)
+
+            assertThat(sentBody()[ToolConstants.WEB_SEARCH]).isEqualTo(JsonPrimitive(false))
+            assertThat(ephemeral.single()?.webSearch).isNull()
+        }
+
+    @Test
+    fun `LibreChat search goes with web_search false beside it`() = webSearchTest { vm ->
+        sendWithSearch(vm)
+
+        assertThat(ephemeral.single()?.webSearch).isTrue()
+        assertThat(sentBody()[ToolConstants.WEB_SEARCH]).isEqualTo(JsonPrimitive(false))
+    }
+
+    @Test
+    fun `an empty agents capabilities list runs the built-in search, not LibreChat's`() {
+        every { fixture.configRepository.endpointConfigs } returns MutableStateFlow(
+            mapOf(ENDPOINT to EndpointConfig(), EndpointConstants.AGENTS to EndpointConfig(capabilities = emptyList())),
+        )
+        webSearchTest { vm ->
+            sendWithSearch(vm)
+
+            assertThat(ephemeral.single()?.webSearch).isNull()
+            assertThat(sentBody()[ToolConstants.WEB_SEARCH]).isEqualTo(JsonPrimitive(true))
+        }
+    }
+
+    @Test
+    fun `a spec's webSearch without the capability shows no control and sends no search`() {
+        val spec = ModelSpec(name = "searching", preset = Preset(endpoint = ENDPOINT, model = MODEL), webSearch = true)
+        serveSpecs(ModelSpecs(list = listOf(spec)))
+        every { fixture.configRepository.endpointConfigs } returns MutableStateFlow(
+            mapOf(ENDPOINT to EndpointConfig(), EndpointConstants.AGENTS to EndpointConfig(capabilities = emptyList())),
+        )
+        webSearchTest { vm ->
+            vm.onSpecSelected(spec)
+            runCurrent()
+            assertThat(vm.uiState.value.webSearchAvailable).isFalse()
+
+            send(vm)
+
+            assertThat(ephemeral.single()?.webSearch).isNull()
+            assertThat(topLevel.single()).isFalse()
+        }
+    }
+
+    @Test
+    fun `under enforce a spec preset's web_search runs the built-in search alone`() {
+        val spec = ModelSpec(name = "grounded", preset = Preset(endpoint = ENDPOINT, model = MODEL, webSearch = true))
+        serveSpecs(ModelSpecs(enforce = true, list = listOf(spec)))
+        webSearchTest { vm ->
+            vm.onSpecSelected(spec)
+            runCurrent()
+            assertThat(vm.uiState.value.webSearchRoute).isEqualTo(WebSearchRoute.BUILT_IN)
+
+            send(vm)
+
+            assertThat(sentBody()[ToolConstants.WEB_SEARCH]).isEqualTo(JsonPrimitive(true))
+            assertThat(ephemeral.single()?.webSearch).isNull()
+        }
+    }
+
+    @Test
     fun `turning a kept built-in search off and on again follows the preference`() {
         coEvery { fixture.conversationRepository.getConversation(CONVERSATION, any()) } returns Result.Success(
             Conversation(conversationId = CONVERSATION, endpoint = ENDPOINT, model = MODEL, webSearch = true),
@@ -460,8 +552,27 @@ class ChatViewModelWebSearchTest {
     private fun MockKMatcherScope.startChatCapturing() = fixture.chatRepository.startChat(
         any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
         any(), any(), any(), any(), any(), any(), capture(topLevel), any(), any(), captureNullable(ephemeral),
-        any(), any(), any(), any(), any(),
+        any(), captureNullable(params), any(), any(), any(),
     )
+
+    /** The body the only send so far puts on the wire, encoded as the repository encodes it. */
+    private fun sentBody(): JsonObject {
+        val request = ChatPayloadBuilder.build(
+            text = "hello",
+            conversationId = null,
+            endpoint = ENDPOINT,
+            model = MODEL,
+            webSearch = topLevel.single(),
+            ephemeralAgent = ephemeral.single(),
+        )
+        return ChatPayloadBuilder.toBody(librechatJson, request, params.single())
+    }
+
+    private fun TestScope.send(vm: ChatViewModel) {
+        vm.onInputChanged("hello")
+        vm.sendMessage()
+        runCurrent()
+    }
 
     private fun TestScope.sendWithSearch(vm: ChatViewModel) {
         vm.onModelSelected(ENDPOINT, MODEL)
@@ -469,6 +580,12 @@ class ChatViewModelWebSearchTest {
         vm.onInputChanged("hello")
         vm.sendMessage()
         runCurrent()
+    }
+
+    /** Serves [specs]; the seeder that applies them combines last-used, which must emit. */
+    private fun serveSpecs(specs: ModelSpecs) {
+        startupConfig.value = StartupConfig(webSearch = SEARCH_CONFIG, modelSpecs = specs)
+        every { fixture.settingsDataStore.lastUsedSelection } returns MutableStateFlow(LastUsedSelection.NONE)
     }
 
     private fun webSearchTest(

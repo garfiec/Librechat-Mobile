@@ -668,11 +668,11 @@ class ChatViewModel(
         wantsStoredParameters = { !isHandedOffNewChat },
         rememberedWebSearch = conversationWebSearchStore::get,
         restoreParameters = { conversation, remembered ->
-            // The switch as this device last left it in this chat wins over the server's `web_search`,
-            // which holds only the built-in search. Not under a spec (see rememberWebSearch). Written
-            // with the parameters, so the load's "did the user change it meanwhile" check sees it.
+            // This device's last switch for this chat decides, unless the server's `web_search` is true
+            // (built-in search, turned on in web since). Not under a spec (see rememberWebSearch).
+            // Written with the parameters, so the load's "did the user change it meanwhile" check sees it.
             val restored = _uiState.value.selection.reopenedParameters(conversation)
-            val switch = remembered.takeIf { _uiState.value.selectedSpec == null }
+            val switch = remembered.takeIf { _uiState.value.selectedSpec == null && conversation.webSearch != true }
             modelDelegate.updateModelParameters(
                 switch?.let { restored.copy(webSearch = it) } ?: restored,
                 restoring = true,
@@ -1070,8 +1070,8 @@ class ChatViewModel(
                 keyStatusDelegate.recomputeFor(configs)
                 // If code interpreter is no longer available, remove it from enabled tools and
                 // from what was added on top of a spec
-                val agentsCapabilities = configs[EndpointConstants.AGENTS]?.capabilities ?: emptyList()
-                if (agentsCapabilities.isNotEmpty() && ToolConstants.EXECUTE_CODE !in agentsCapabilities) {
+                val agentsCapabilities = configs[EndpointConstants.AGENTS]?.capabilities
+                if (agentsCapabilities != null && ToolConstants.EXECUTE_CODE !in agentsCapabilities) {
                     _uiState.update {
                         val specTools = it.selection.specTools
                         val code = ToolConstants.CODE_INTERPRETER
