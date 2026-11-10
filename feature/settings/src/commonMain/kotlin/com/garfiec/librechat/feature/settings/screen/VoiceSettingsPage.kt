@@ -3,12 +3,10 @@ package com.garfiec.librechat.feature.settings.screen
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Stop
@@ -35,7 +33,6 @@ import com.garfiec.librechat.core.common.speech.sttSupportsLiveRecognition
 import com.garfiec.librechat.core.model.speech.SttEngine
 import com.garfiec.librechat.core.model.speech.TtsVoice
 import com.garfiec.librechat.core.ui.components.AdaptiveFilledTonalButton
-import com.garfiec.librechat.core.ui.components.AdaptiveGroupedPage
 import com.garfiec.librechat.core.ui.components.AdaptiveSectionHeader
 import com.garfiec.librechat.core.ui.components.adaptiveSection
 import com.garfiec.librechat.core.ui.datetime.LocalDateTimeFormat
@@ -116,101 +113,99 @@ internal fun VoiceSettingsContent(
     contentPadding: PaddingValues = PaddingValues(),
 ) {
     val deviceSource = state.ttsSource != TTS_SOURCE_SERVER
-    AdaptiveGroupedPage(modifier = modifier.fillMaxSize()) {
-        LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = contentPadding) {
-            item(key = "listening_header") {
-                AdaptiveSectionHeader(stringResource(Res.string.section_listening))
-            }
-            adaptiveSection {
-                row(key = "stt_auto_send") {
-                    SettingsSwitchRow(
-                        title = stringResource(Res.string.auto_send_after_speech),
-                        description = stringResource(Res.string.auto_send_after_speech_desc),
-                        checked = state.sttAutoSend,
-                        onCheckedChange = actions.onAutoSend,
-                    )
-                }
-                if (liveRecognizerHonorsPrefs(state.sttEngine)) {
-                    row(key = "stt_end_of_speech") {
-                        SettingsSwitchRow(
-                            title = stringResource(Res.string.stt_end_of_speech_toggle),
-                            description = stringResource(Res.string.stt_end_of_speech_toggle_desc),
-                            checked = state.sttEndOfSpeech,
-                            onCheckedChange = actions.onStopWhenPause,
-                        )
-                    }
-                }
-                row(key = "stt_language") {
-                    val autoDetect = stringResource(Res.string.stt_auto_detect)
-                    // The first option is the stored "Auto-detect", shown translated.
-                    val label = { option: String -> if (option == sttLanguageOptions.first()) autoDetect else option }
-                    SettingsChoiceRow(
-                        title = stringResource(Res.string.stt_language_label),
-                        value = state.sttLanguage.ifBlank { sttLanguageOptions.first() }.let(label),
-                        options = sttLanguageOptions.map { it to label(it) },
-                        onSelect = actions.onSpeechLanguage,
-                    )
-                }
-            }
-            item(key = "speaking_header") {
-                AdaptiveSectionHeader(stringResource(Res.string.section_speaking))
-            }
-            adaptiveSection {
-                row(key = "auto_read") {
-                    SettingsSwitchRow(
-                        title = stringResource(Res.string.auto_read_responses),
-                        description = stringResource(Res.string.auto_read_responses_desc),
-                        checked = state.autoReadEnabled,
-                        onCheckedChange = actions.onReadAloud,
-                    )
-                }
-                // A stored server source stays offered, so the row never shows a value it can't list.
-                if (state.serverTtsEnabled || !deviceSource) {
-                    row(key = "tts_source") {
-                        val sources = listOf(
-                            TTS_SOURCE_DEVICE to stringResource(Res.string.tts_source_device),
-                            TTS_SOURCE_SERVER to stringResource(Res.string.tts_source_server),
-                        )
-                        SettingsChoiceRow(
-                            title = stringResource(Res.string.tts_source_label),
-                            value = sources[if (deviceSource) 0 else 1].second,
-                            options = sources,
-                            onSelect = actions.onSource,
-                        )
-                    }
-                }
-                if (deviceSource) {
-                    if (state.availableDeviceVoices.isNotEmpty()) {
-                        row(key = "tts_device_voice") { DeviceVoiceRow(state, actions.onDeviceVoice) }
-                    }
-                    row(key = "tts_speed") {
-                        SpeechSlider(
-                            label = stringResource(Res.string.tts_speech_rate, oneDecimal(state.ttsSpeechRate)),
-                            value = state.ttsSpeechRate,
-                            onValueChange = actions.onSpeed,
-                        )
-                    }
-                    row(key = "tts_pitch") {
-                        SpeechSlider(
-                            label = stringResource(Res.string.tts_pitch, oneDecimal(state.ttsPitch)),
-                            value = state.ttsPitch,
-                            onValueChange = actions.onPitch,
-                        )
-                    }
-                } else {
-                    row(key = "tts_server_voice") { ServerVoiceRow(state, actions.onServerVoice) }
-                }
-                row(key = "tts_preview") {
-                    PreviewButton(playing = state.isTtsPreviewPlaying, onClick = actions.onPreviewToggle)
-                }
-            }
-            item(key = "advanced_link") {
-                AdvancedSettingsLink(
-                    title = stringResource(Res.string.advanced_voice_settings),
-                    summary = stringResource(Res.string.advanced_voice_settings_summary),
-                    onClick = actions.onOpenAdvanced,
+    SettingsListPage(contentPadding = contentPadding, modifier = modifier) {
+        item(key = "listening_header") {
+            AdaptiveSectionHeader(stringResource(Res.string.section_listening))
+        }
+        adaptiveSection {
+            row(key = "stt_auto_send") {
+                SettingsSwitchRow(
+                    title = stringResource(Res.string.auto_send_after_speech),
+                    description = stringResource(Res.string.auto_send_after_speech_desc),
+                    checked = state.sttAutoSend,
+                    onCheckedChange = actions.onAutoSend,
                 )
             }
+            if (liveRecognizerHonorsPrefs(state.sttEngine)) {
+                row(key = "stt_end_of_speech") {
+                    SettingsSwitchRow(
+                        title = stringResource(Res.string.stt_end_of_speech_toggle),
+                        description = stringResource(Res.string.stt_end_of_speech_toggle_desc),
+                        checked = state.sttEndOfSpeech,
+                        onCheckedChange = actions.onStopWhenPause,
+                    )
+                }
+            }
+            row(key = "stt_language") {
+                val autoDetect = stringResource(Res.string.stt_auto_detect)
+                // The first option is the stored "Auto-detect", shown translated.
+                val label = { option: String -> if (option == sttLanguageOptions.first()) autoDetect else option }
+                SettingsChoiceRow(
+                    title = stringResource(Res.string.stt_language_label),
+                    value = state.sttLanguage.ifBlank { sttLanguageOptions.first() }.let(label),
+                    options = sttLanguageOptions.map { it to label(it) },
+                    onSelect = actions.onSpeechLanguage,
+                )
+            }
+        }
+        item(key = "speaking_header") {
+            AdaptiveSectionHeader(stringResource(Res.string.section_speaking))
+        }
+        adaptiveSection {
+            row(key = "auto_read") {
+                SettingsSwitchRow(
+                    title = stringResource(Res.string.auto_read_responses),
+                    description = stringResource(Res.string.auto_read_responses_desc),
+                    checked = state.autoReadEnabled,
+                    onCheckedChange = actions.onReadAloud,
+                )
+            }
+            // A stored server source stays offered, so the row never shows a value it can't list.
+            if (state.serverTtsEnabled || !deviceSource) {
+                row(key = "tts_source") {
+                    val sources = listOf(
+                        TTS_SOURCE_DEVICE to stringResource(Res.string.tts_source_device),
+                        TTS_SOURCE_SERVER to stringResource(Res.string.tts_source_server),
+                    )
+                    SettingsChoiceRow(
+                        title = stringResource(Res.string.tts_source_label),
+                        value = sources[if (deviceSource) 0 else 1].second,
+                        options = sources,
+                        onSelect = actions.onSource,
+                    )
+                }
+            }
+            if (deviceSource) {
+                if (state.availableDeviceVoices.isNotEmpty()) {
+                    row(key = "tts_device_voice") { DeviceVoiceRow(state, actions.onDeviceVoice) }
+                }
+                row(key = "tts_speed") {
+                    SpeechSlider(
+                        label = stringResource(Res.string.tts_speech_rate, oneDecimal(state.ttsSpeechRate)),
+                        value = state.ttsSpeechRate,
+                        onValueChange = actions.onSpeed,
+                    )
+                }
+                row(key = "tts_pitch") {
+                    SpeechSlider(
+                        label = stringResource(Res.string.tts_pitch, oneDecimal(state.ttsPitch)),
+                        value = state.ttsPitch,
+                        onValueChange = actions.onPitch,
+                    )
+                }
+            } else {
+                row(key = "tts_server_voice") { ServerVoiceRow(state, actions.onServerVoice) }
+            }
+            row(key = "tts_preview") {
+                PreviewButton(playing = state.isTtsPreviewPlaying, onClick = actions.onPreviewToggle)
+            }
+        }
+        item(key = "advanced_link") {
+            AdvancedSettingsLink(
+                title = stringResource(Res.string.advanced_voice_settings),
+                summary = stringResource(Res.string.advanced_voice_settings_summary),
+                onClick = actions.onOpenAdvanced,
+            )
         }
     }
 }

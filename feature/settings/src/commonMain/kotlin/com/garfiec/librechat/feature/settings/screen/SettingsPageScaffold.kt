@@ -1,9 +1,15 @@
 package com.garfiec.librechat.feature.settings.screen
 
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import com.garfiec.librechat.core.ui.components.AdaptiveGroupedPage
 import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
 import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
@@ -44,4 +50,17 @@ internal fun SettingsPageScaffold(
         },
         content = content,
     )
+}
+
+/** A Settings page's grouped background and scrolling list; [contentPadding] is the bar's, from [SettingsPageScaffold]. */
+@Composable
+internal fun SettingsListPage(
+    contentPadding: PaddingValues,
+    modifier: Modifier = Modifier,
+    state: LazyListState = rememberLazyListState(),
+    content: LazyListScope.() -> Unit,
+) {
+    AdaptiveGroupedPage(modifier = modifier.fillMaxSize()) {
+        LazyColumn(modifier = Modifier.fillMaxSize(), state = state, contentPadding = contentPadding, content = content)
+    }
 }

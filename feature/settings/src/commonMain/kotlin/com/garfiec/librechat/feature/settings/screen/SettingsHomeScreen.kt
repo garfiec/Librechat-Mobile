@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.Forum
@@ -47,7 +46,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.coerceAtMost
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.garfiec.librechat.core.ui.components.AdaptiveGroupedPage
 import com.garfiec.librechat.core.ui.components.AdaptiveSectionScope
 import com.garfiec.librechat.core.ui.components.AvatarImage
 import com.garfiec.librechat.core.ui.components.adaptiveSection
@@ -261,26 +259,24 @@ internal fun SettingsHomeContent(
     contentPadding: PaddingValues = PaddingValues(),
     openPage: SettingsPaneRoute? = null,
 ) {
-    AdaptiveGroupedPage(modifier = modifier.fillMaxSize()) {
-        LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = contentPadding) {
-            item(key = "top_gap") { Spacer(modifier = Modifier.height(16.dp)) }
-            adaptiveSection {
-                row(key = "profile_card") {
-                    ProfileCard(
-                        profile = profile,
-                        selected = openPage?.let { it == SettingsCategory(SettingsCategoryKey.ACCOUNT) },
-                        onClick = { onOpen(SettingsCategory(SettingsCategoryKey.ACCOUNT)) },
-                    )
-                }
+    SettingsListPage(contentPadding = contentPadding, modifier = modifier) {
+        item(key = "top_gap") { Spacer(modifier = Modifier.height(16.dp)) }
+        adaptiveSection {
+            row(key = "profile_card") {
+                ProfileCard(
+                    profile = profile,
+                    selected = openPage?.let { it == SettingsCategory(SettingsCategoryKey.ACCOUNT) },
+                    onClick = { onOpen(SettingsCategory(SettingsCategoryKey.ACCOUNT)) },
+                )
             }
-            item(key = "categories_gap") { Spacer(modifier = Modifier.height(24.dp)) }
-            adaptiveSection { homeRows(CATEGORY_ROWS, summaries, openPage, onOpen) }
-            item(key = "more_gap") { Spacer(modifier = Modifier.height(24.dp)) }
-            adaptiveSection {
-                homeRows(MORE_ROWS.filter { showAdministration || it.key != "administration" }, summaries, openPage, onOpen)
-            }
-            item(key = "bottom_gap") { Spacer(modifier = Modifier.height(32.dp)) }
         }
+        item(key = "categories_gap") { Spacer(modifier = Modifier.height(24.dp)) }
+        adaptiveSection { homeRows(CATEGORY_ROWS, summaries, openPage, onOpen) }
+        item(key = "more_gap") { Spacer(modifier = Modifier.height(24.dp)) }
+        adaptiveSection {
+            homeRows(MORE_ROWS.filter { showAdministration || it.key != "administration" }, summaries, openPage, onOpen)
+        }
+        item(key = "bottom_gap") { Spacer(modifier = Modifier.height(32.dp)) }
     }
 }
 

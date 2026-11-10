@@ -2,11 +2,9 @@ package com.garfiec.librechat.feature.settings.screen
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
@@ -32,7 +30,6 @@ import com.garfiec.librechat.core.model.ArtifactsMode
 import com.garfiec.librechat.core.model.speech.SttEngine
 import com.garfiec.librechat.core.ui.artifacts.artifactsModeDescription
 import com.garfiec.librechat.core.ui.artifacts.artifactsModeName
-import com.garfiec.librechat.core.ui.components.AdaptiveGroupedPage
 import com.garfiec.librechat.core.ui.components.AdaptiveSectionHeader
 import com.garfiec.librechat.core.ui.components.adaptiveSection
 import com.garfiec.librechat.core.ui.platform.TextFileSaver
@@ -549,26 +546,24 @@ internal fun AdvancedSettingsContent(
     // a gated section above it appears once the config loads.
     val listState = rememberLazyListState(initialFirstVisibleItemIndex = anchor)
 
-    AdaptiveGroupedPage(modifier = modifier.fillMaxSize()) {
-        LazyColumn(modifier = Modifier.fillMaxSize(), state = listState, contentPadding = contentPadding) {
-            item(key = "intro") {
-                Text(
-                    text = stringResource(Res.string.advanced_intro),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.fillMaxWidth().padding(start = 32.dp, end = 32.dp, top = 16.dp),
-                )
-            }
-            sections.forEach { shown ->
-                item(key = "header_${shown.section.name}") {
-                    AdaptiveSectionHeader(stringResource(shown.section.title()))
-                }
-                adaptiveSection {
-                    shown.rows.forEach { (key, content) -> row(key = key) { content() } }
-                }
-            }
-            item(key = "bottom_gap") { Spacer(modifier = Modifier.height(32.dp)) }
+    SettingsListPage(contentPadding = contentPadding, modifier = modifier, state = listState) {
+        item(key = "intro") {
+            Text(
+                text = stringResource(Res.string.advanced_intro),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.fillMaxWidth().padding(start = 32.dp, end = 32.dp, top = 16.dp),
+            )
         }
+        sections.forEach { shown ->
+            item(key = "header_${shown.section.name}") {
+                AdaptiveSectionHeader(stringResource(shown.section.title()))
+            }
+            adaptiveSection {
+                shown.rows.forEach { (key, content) -> row(key = key) { content() } }
+            }
+        }
+        item(key = "bottom_gap") { Spacer(modifier = Modifier.height(32.dp)) }
     }
 }
 

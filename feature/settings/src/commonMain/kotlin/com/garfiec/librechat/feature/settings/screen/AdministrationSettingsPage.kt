@@ -2,10 +2,8 @@ package com.garfiec.librechat.feature.settings.screen
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.AdminPanelSettings
@@ -19,7 +17,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.garfiec.librechat.core.ui.components.AdaptiveGroupedPage
 import com.garfiec.librechat.core.ui.components.adaptiveSection
 import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.resources.admin_panel
@@ -59,45 +56,43 @@ internal fun AdministrationSettingsContent(
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
 ) {
-    AdaptiveGroupedPage(modifier = modifier.fillMaxSize()) {
-        LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = contentPadding) {
-            item(key = "top_gap") { Spacer(modifier = Modifier.height(16.dp)) }
-            adaptiveSection {
-                row(key = "role_skills_admin_row") {
+    SettingsListPage(contentPadding = contentPadding, modifier = modifier) {
+        item(key = "top_gap") { Spacer(modifier = Modifier.height(16.dp)) }
+        adaptiveSection {
+            row(key = "role_skills_admin_row") {
+                SettingsRow(
+                    icon = Icons.Default.Extension,
+                    title = stringResource(Res.string.role_skills_settings_row),
+                    summary = stringResource(Res.string.role_skills_description),
+                    onClick = onNavigateToRoleSkillsAdmin,
+                )
+            }
+            row(key = "role_memories_admin_row") {
+                SettingsRow(
+                    icon = Icons.Default.Lightbulb,
+                    title = stringResource(Res.string.role_memories_settings_row),
+                    summary = stringResource(Res.string.role_memories_description),
+                    onClick = onNavigateToRoleMemoriesAdmin,
+                )
+            }
+            if (adminPanelUrl != null) {
+                row(key = "admin_panel_row") {
+                    val uriHandler = LocalUriHandler.current
                     SettingsRow(
-                        icon = Icons.Default.Extension,
-                        title = stringResource(Res.string.role_skills_settings_row),
-                        summary = stringResource(Res.string.role_skills_description),
-                        onClick = onNavigateToRoleSkillsAdmin,
+                        icon = Icons.Default.AdminPanelSettings,
+                        title = stringResource(Res.string.admin_panel),
+                        summary = stringResource(Res.string.admin_panel_desc),
+                        // Android throws when no browser is installed (de-Googled ROMs, work profiles).
+                        onClick = { runCatching { uriHandler.openUri(adminPanelUrl) } },
+                        trailingContent = {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        },
                     )
-                }
-                row(key = "role_memories_admin_row") {
-                    SettingsRow(
-                        icon = Icons.Default.Lightbulb,
-                        title = stringResource(Res.string.role_memories_settings_row),
-                        summary = stringResource(Res.string.role_memories_description),
-                        onClick = onNavigateToRoleMemoriesAdmin,
-                    )
-                }
-                if (adminPanelUrl != null) {
-                    row(key = "admin_panel_row") {
-                        val uriHandler = LocalUriHandler.current
-                        SettingsRow(
-                            icon = Icons.Default.AdminPanelSettings,
-                            title = stringResource(Res.string.admin_panel),
-                            summary = stringResource(Res.string.admin_panel_desc),
-                            // Android throws when no browser is installed (de-Googled ROMs, work profiles).
-                            onClick = { runCatching { uriHandler.openUri(adminPanelUrl) } },
-                            trailingContent = {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.OpenInNew,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(20.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            },
-                        )
-                    }
                 }
             }
         }

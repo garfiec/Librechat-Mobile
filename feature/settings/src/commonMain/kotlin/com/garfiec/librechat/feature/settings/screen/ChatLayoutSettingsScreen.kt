@@ -8,14 +8,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
@@ -39,7 +37,6 @@ import com.garfiec.librechat.core.common.EndpointConstants
 import com.garfiec.librechat.core.data.datastore.ChatFontSize
 import com.garfiec.librechat.core.data.datastore.ChatHeaderAlignment
 import com.garfiec.librechat.core.data.datastore.ChatHeaderContent
-import com.garfiec.librechat.core.ui.components.AdaptiveGroupedPage
 import com.garfiec.librechat.core.ui.components.AdaptivePillChoice
 import com.garfiec.librechat.core.ui.components.AdaptiveSectionHeader
 import com.garfiec.librechat.core.ui.components.AvatarImage
@@ -104,76 +101,74 @@ internal fun ChatAppearanceContent(
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
 ) {
-    AdaptiveGroupedPage(modifier = modifier.fillMaxSize()) {
-        LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = contentPadding) {
-            item(key = "top_gap") { Spacer(modifier = Modifier.height(SectionGap)) }
-            adaptiveSection {
-                row(key = "preview") { ChatAppearancePreview(state) }
-            }
-            // The pills sit on the page rather than in a cell: a cell clips to its rounded shape, and the
-            // glass thumb's swell overhangs the control further than a cell's padding.
-            item(key = "layout") {
-                PillGroup(
-                    label = stringResource(Res.string.chat_appearance_layout),
-                    options = LayoutOptions.map { chatLayoutLabel(it) },
-                    selectedIndex = LayoutOptions.indexOf(state.layoutStyle).coerceAtLeast(0),
-                    onSelect = { actions.onLayoutStyle(LayoutOptions[it]) },
-                    description = stringResource(
-                        if (state.layoutStyle == ChatLayoutConstants.TWO_SIDED) {
-                            Res.string.chat_layout_two_sided_desc
-                        } else {
-                            Res.string.chat_layout_thread_desc
-                        },
-                    ),
-                )
-            }
-            item(key = "text_size") {
-                PillGroup(
-                    label = stringResource(Res.string.chat_appearance_text_size),
-                    options = ChatFontSize.entries.map { fontSizeLabel(it) },
-                    selectedIndex = state.fontSize.ordinal,
-                    onSelect = { actions.onFontSize(ChatFontSize.entries[it]) },
-                )
-            }
-            item(key = "title_bar_content") {
-                PillGroup(
-                    label = stringResource(Res.string.chat_appearance_title_bar),
-                    options = ChatHeaderContent.entries.map { chatHeaderContentLabel(it) },
-                    selectedIndex = state.headerContent.ordinal,
-                    onSelect = { actions.onHeaderContent(ChatHeaderContent.entries[it]) },
-                )
-            }
-            item(key = "title_position") {
-                PillGroup(
-                    label = stringResource(Res.string.chat_appearance_title_position),
-                    options = ChatHeaderAlignment.entries.map { chatHeaderAlignmentLabel(it) },
-                    selectedIndex = state.headerAlignment.ordinal,
-                    onSelect = { actions.onHeaderAlignment(ChatHeaderAlignment.entries[it]) },
-                    // With nothing in the title bar there is nothing to position.
-                    enabled = state.headerContent != ChatHeaderContent.NONE,
-                )
-            }
-            item(key = "switches_gap") { Spacer(modifier = Modifier.height(SwitchesGap)) }
-            adaptiveSection {
-                row(key = "show_bubbles") {
-                    SettingsSwitchRow(
-                        title = stringResource(Res.string.show_bubbles),
-                        description = stringResource(Res.string.show_bubbles_desc),
-                        checked = state.showBubbles,
-                        onCheckedChange = actions.onShowBubbles,
-                    )
-                }
-                row(key = "show_avatars") {
-                    SettingsSwitchRow(
-                        title = stringResource(Res.string.show_avatars),
-                        description = stringResource(Res.string.show_avatars_desc),
-                        checked = state.showAvatars,
-                        onCheckedChange = actions.onShowAvatars,
-                    )
-                }
-            }
-            item(key = "bottom_gap") { Spacer(modifier = Modifier.height(32.dp)) }
+    SettingsListPage(contentPadding = contentPadding, modifier = modifier) {
+        item(key = "top_gap") { Spacer(modifier = Modifier.height(SectionGap)) }
+        adaptiveSection {
+            row(key = "preview") { ChatAppearancePreview(state) }
         }
+        // The pills sit on the page rather than in a cell: a cell clips to its rounded shape, and the
+        // glass thumb's swell overhangs the control further than a cell's padding.
+        item(key = "layout") {
+            PillGroup(
+                label = stringResource(Res.string.chat_appearance_layout),
+                options = LayoutOptions.map { chatLayoutLabel(it) },
+                selectedIndex = LayoutOptions.indexOf(state.layoutStyle).coerceAtLeast(0),
+                onSelect = { actions.onLayoutStyle(LayoutOptions[it]) },
+                description = stringResource(
+                    if (state.layoutStyle == ChatLayoutConstants.TWO_SIDED) {
+                        Res.string.chat_layout_two_sided_desc
+                    } else {
+                        Res.string.chat_layout_thread_desc
+                    },
+                ),
+            )
+        }
+        item(key = "text_size") {
+            PillGroup(
+                label = stringResource(Res.string.chat_appearance_text_size),
+                options = ChatFontSize.entries.map { fontSizeLabel(it) },
+                selectedIndex = state.fontSize.ordinal,
+                onSelect = { actions.onFontSize(ChatFontSize.entries[it]) },
+            )
+        }
+        item(key = "title_bar_content") {
+            PillGroup(
+                label = stringResource(Res.string.chat_appearance_title_bar),
+                options = ChatHeaderContent.entries.map { chatHeaderContentLabel(it) },
+                selectedIndex = state.headerContent.ordinal,
+                onSelect = { actions.onHeaderContent(ChatHeaderContent.entries[it]) },
+            )
+        }
+        item(key = "title_position") {
+            PillGroup(
+                label = stringResource(Res.string.chat_appearance_title_position),
+                options = ChatHeaderAlignment.entries.map { chatHeaderAlignmentLabel(it) },
+                selectedIndex = state.headerAlignment.ordinal,
+                onSelect = { actions.onHeaderAlignment(ChatHeaderAlignment.entries[it]) },
+                // With nothing in the title bar there is nothing to position.
+                enabled = state.headerContent != ChatHeaderContent.NONE,
+            )
+        }
+        item(key = "switches_gap") { Spacer(modifier = Modifier.height(SwitchesGap)) }
+        adaptiveSection {
+            row(key = "show_bubbles") {
+                SettingsSwitchRow(
+                    title = stringResource(Res.string.show_bubbles),
+                    description = stringResource(Res.string.show_bubbles_desc),
+                    checked = state.showBubbles,
+                    onCheckedChange = actions.onShowBubbles,
+                )
+            }
+            row(key = "show_avatars") {
+                SettingsSwitchRow(
+                    title = stringResource(Res.string.show_avatars),
+                    description = stringResource(Res.string.show_avatars_desc),
+                    checked = state.showAvatars,
+                    onCheckedChange = actions.onShowAvatars,
+                )
+            }
+        }
+        item(key = "bottom_gap") { Spacer(modifier = Modifier.height(32.dp)) }
     }
 }
 

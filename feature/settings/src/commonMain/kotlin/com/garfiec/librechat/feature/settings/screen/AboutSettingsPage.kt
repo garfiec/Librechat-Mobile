@@ -6,11 +6,9 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.PrivacyTip
@@ -25,7 +23,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.model.config.BuildInfo
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
-import com.garfiec.librechat.core.ui.components.AdaptiveGroupedPage
 import com.garfiec.librechat.core.ui.components.AdaptiveSectionHeader
 import com.garfiec.librechat.core.ui.components.adaptiveSection
 import com.garfiec.librechat.feature.settings.resources.*
@@ -48,69 +45,64 @@ fun AboutSettingsPage(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val updateState by updateViewModel.uiState.collectAsStateWithLifecycle()
 
-    AdaptiveGroupedPage(modifier = modifier.fillMaxSize()) {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = contentPadding,
-        ) {
-            item(key = "about_header") {
-                AdaptiveSectionHeader(stringResource(Res.string.section_about))
-            }
-            adaptiveSection {
-                row(key = "about_info") {
-                    AboutInfo(
-                        serverUrl = uiState.serverUrl,
-                        appVersion = uiState.appVersion,
-                        serverVersion = uiState.serverVersion,
-                    )
-                }
-                row(key = "privacy_policy") {
-                    val uriHandler = LocalUriHandler.current
-                    SettingsRow(
-                        icon = Icons.Default.PrivacyTip,
-                        title = stringResource(Res.string.privacy_policy_title),
-                        summary = stringResource(Res.string.privacy_policy_desc),
-                        // Android throws when no browser is installed (de-Googled ROMs, work profiles).
-                        onClick = { runCatching { uriHandler.openUri(PRIVACY_POLICY_URL) } },
-                    )
-                }
-            }
-
-            if (updateViewModel.releaseNotesAvailable || updateViewModel.isSupported) {
-                item(key = "updates_header") {
-                    AdaptiveSectionHeader(stringResource(Res.string.section_updates))
-                }
-            }
-            adaptiveSection {
-                if (updateViewModel.releaseNotesAvailable) {
-                    row(key = "release_notes") {
-                        SettingsRow(
-                            icon = Icons.Default.Description,
-                            title = stringResource(Res.string.release_notes_title),
-                            summary = stringResource(Res.string.release_notes_desc, uiState.appVersion),
-                            onClick = onNavigateToReleaseNotes,
-                        )
-                    }
-                }
-                if (updateViewModel.isSupported) {
-                    row(key = "update_check") {
-                        UpdateCheckRow(
-                            state = updateState.checkState,
-                            onCheck = updateViewModel::check,
-                            onOpenWhatsNew = onNavigateToWhatsNew,
-                        )
-                    }
-                    row(key = "update_auto_check") {
-                        UpdateAutoCheckToggle(
-                            enabled = updateState.autoCheckEnabled,
-                            onEnabledChange = updateViewModel::setAutoCheckEnabled,
-                        )
-                    }
-                }
-            }
-
-            item { Spacer(modifier = Modifier.height(32.dp)) }
+    SettingsListPage(contentPadding = contentPadding, modifier = modifier) {
+        item(key = "about_header") {
+            AdaptiveSectionHeader(stringResource(Res.string.section_about))
         }
+        adaptiveSection {
+            row(key = "about_info") {
+                AboutInfo(
+                    serverUrl = uiState.serverUrl,
+                    appVersion = uiState.appVersion,
+                    serverVersion = uiState.serverVersion,
+                )
+            }
+            row(key = "privacy_policy") {
+                val uriHandler = LocalUriHandler.current
+                SettingsRow(
+                    icon = Icons.Default.PrivacyTip,
+                    title = stringResource(Res.string.privacy_policy_title),
+                    summary = stringResource(Res.string.privacy_policy_desc),
+                    // Android throws when no browser is installed (de-Googled ROMs, work profiles).
+                    onClick = { runCatching { uriHandler.openUri(PRIVACY_POLICY_URL) } },
+                )
+            }
+        }
+
+        if (updateViewModel.releaseNotesAvailable || updateViewModel.isSupported) {
+            item(key = "updates_header") {
+                AdaptiveSectionHeader(stringResource(Res.string.section_updates))
+            }
+        }
+        adaptiveSection {
+            if (updateViewModel.releaseNotesAvailable) {
+                row(key = "release_notes") {
+                    SettingsRow(
+                        icon = Icons.Default.Description,
+                        title = stringResource(Res.string.release_notes_title),
+                        summary = stringResource(Res.string.release_notes_desc, uiState.appVersion),
+                        onClick = onNavigateToReleaseNotes,
+                    )
+                }
+            }
+            if (updateViewModel.isSupported) {
+                row(key = "update_check") {
+                    UpdateCheckRow(
+                        state = updateState.checkState,
+                        onCheck = updateViewModel::check,
+                        onOpenWhatsNew = onNavigateToWhatsNew,
+                    )
+                }
+                row(key = "update_auto_check") {
+                    UpdateAutoCheckToggle(
+                        enabled = updateState.autoCheckEnabled,
+                        onEnabledChange = updateViewModel::setAutoCheckEnabled,
+                    )
+                }
+            }
+        }
+
+        item { Spacer(modifier = Modifier.height(32.dp)) }
     }
 }
 

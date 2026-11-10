@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -49,7 +48,6 @@ import com.garfiec.librechat.core.model.ui.UiStyle
 import com.garfiec.librechat.core.ui.components.AdaptiveButton
 import com.garfiec.librechat.core.ui.components.AdaptiveCard
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
-import com.garfiec.librechat.core.ui.components.AdaptiveGroupedPage
 import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
 import com.garfiec.librechat.core.ui.components.AdaptiveSectionHeader
 import com.garfiec.librechat.core.ui.components.AdaptiveSwitch
@@ -94,108 +92,106 @@ fun AppearanceSettingsPage(
     // The swipe opens the sidebar of the sidebar layout, so it means nothing while the drawer is in use.
     val usesSidebar = windowUsesSidebarLayout()
 
-    AdaptiveGroupedPage(modifier = modifier.fillMaxSize()) {
-        LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = contentPadding) {
-            item(key = "theme_header") {
-                AdaptiveSectionHeader(stringResource(Res.string.appearance_section_theme))
-            }
-            adaptiveSection {
-                row(key = "theme_selector") {
-                    ThemeSelector(
-                        selected = uiState.themeMode,
-                        uiStyle = uiState.uiStyle,
-                        accentColor = Color(uiState.shownAccentColor),
-                        useDynamicColor = uiState.useDynamicColor,
-                        onSelect = viewModel::setThemeMode,
-                    )
-                }
-            }
-            item(key = "style_header") {
-                AdaptiveSectionHeader(stringResource(Res.string.appearance_section_style))
-            }
-            adaptiveSection {
-                row(key = "ui_style_selector") {
-                    UiStyleSelector(
-                        selected = uiState.uiStyle,
-                        capability = uiState.glassCapability,
-                        onSelect = viewModel::setUiStyle,
-                    )
-                }
-            }
-            item(key = "color_header") {
-                AdaptiveSectionHeader(stringResource(Res.string.appearance_section_color))
-            }
-            adaptiveSection {
-                row(key = "accent_color_row") {
-                    AccentColorRow(
-                        color = uiState.shownAccentColor,
-                        enabled = !uiState.useDynamicColor,
-                        // Wallpaper colours outrank the server's accent; the row then says that, not "set by your server".
-                        serverName = uiState.serverAccent?.name?.takeIf { uiState.accentSetByServer && !uiState.useDynamicColor },
-                        onClick = { choosingAccent = true },
-                    )
-                }
-                // Only on a server with a theme; a withdrawn theme takes the row with it.
-                uiState.serverAccent?.let { serverAccent ->
-                    row(key = "server_accent_toggle") {
-                        ServerAccentToggle(
-                            enabled = serverAccent.enabled,
-                            onEnabledChange = viewModel::setUseServerAccent,
-                        )
-                    }
-                }
-                if (uiState.dynamicColorSupported) {
-                    row(key = "dynamic_color_toggle") {
-                        DynamicColorToggle(
-                            enabled = uiState.useDynamicColor,
-                            onEnabledChange = viewModel::setUseDynamicColor,
-                        )
-                    }
-                }
-            }
-            item(key = "conversations_header") {
-                AdaptiveSectionHeader(stringResource(Res.string.section_conversations))
-            }
-            adaptiveSection {
-                row(key = "chat_appearance_row") {
-                    SettingsRow(
-                        icon = Icons.Default.Forum,
-                        title = stringResource(Res.string.appearance_chat_appearance),
-                        summary = chatLayoutSummary(chatLayout),
-                        onClick = onNavigateToChatLayout,
-                    )
-                }
-            }
-            if (usesSidebar) {
-                item(key = "tablet_header") {
-                    AdaptiveSectionHeader(stringResource(Res.string.appearance_section_tablet_layout))
-                }
-                adaptiveSection {
-                    row(key = "tablet_sidebar_gesture") {
-                        SettingsSwitchRow(
-                            icon = Icons.Default.Tablet,
-                            title = stringResource(Res.string.sidebar_swipe_gesture),
-                            description = stringResource(Res.string.sidebar_swipe_gesture_desc),
-                            checked = general.tabletSidebarGestureEnabled,
-                            onCheckedChange = generalViewModel::setTabletSidebarGestureEnabled,
-                        )
-                    }
-                }
-            }
-            item(key = "bottom_gap") { Spacer(modifier = Modifier.height(32.dp)) }
+    SettingsListPage(contentPadding = contentPadding, modifier = modifier) {
+        item(key = "theme_header") {
+            AdaptiveSectionHeader(stringResource(Res.string.appearance_section_theme))
         }
+        adaptiveSection {
+            row(key = "theme_selector") {
+                ThemeSelector(
+                    selected = uiState.themeMode,
+                    uiStyle = uiState.uiStyle,
+                    accentColor = Color(uiState.shownAccentColor),
+                    useDynamicColor = uiState.useDynamicColor,
+                    onSelect = viewModel::setThemeMode,
+                )
+            }
+        }
+        item(key = "style_header") {
+            AdaptiveSectionHeader(stringResource(Res.string.appearance_section_style))
+        }
+        adaptiveSection {
+            row(key = "ui_style_selector") {
+                UiStyleSelector(
+                    selected = uiState.uiStyle,
+                    capability = uiState.glassCapability,
+                    onSelect = viewModel::setUiStyle,
+                )
+            }
+        }
+        item(key = "color_header") {
+            AdaptiveSectionHeader(stringResource(Res.string.appearance_section_color))
+        }
+        adaptiveSection {
+            row(key = "accent_color_row") {
+                AccentColorRow(
+                    color = uiState.shownAccentColor,
+                    enabled = !uiState.useDynamicColor,
+                    // Wallpaper colours outrank the server's accent; the row then says that, not "set by your server".
+                    serverName = uiState.serverAccent?.name?.takeIf { uiState.accentSetByServer && !uiState.useDynamicColor },
+                    onClick = { choosingAccent = true },
+                )
+            }
+            // Only on a server with a theme; a withdrawn theme takes the row with it.
+            uiState.serverAccent?.let { serverAccent ->
+                row(key = "server_accent_toggle") {
+                    ServerAccentToggle(
+                        enabled = serverAccent.enabled,
+                        onEnabledChange = viewModel::setUseServerAccent,
+                    )
+                }
+            }
+            if (uiState.dynamicColorSupported) {
+                row(key = "dynamic_color_toggle") {
+                    DynamicColorToggle(
+                        enabled = uiState.useDynamicColor,
+                        onEnabledChange = viewModel::setUseDynamicColor,
+                    )
+                }
+            }
+        }
+        item(key = "conversations_header") {
+            AdaptiveSectionHeader(stringResource(Res.string.section_conversations))
+        }
+        adaptiveSection {
+            row(key = "chat_appearance_row") {
+                SettingsRow(
+                    icon = Icons.Default.Forum,
+                    title = stringResource(Res.string.appearance_chat_appearance),
+                    summary = chatLayoutSummary(chatLayout),
+                    onClick = onNavigateToChatLayout,
+                )
+            }
+        }
+        if (usesSidebar) {
+            item(key = "tablet_header") {
+                AdaptiveSectionHeader(stringResource(Res.string.appearance_section_tablet_layout))
+            }
+            adaptiveSection {
+                row(key = "tablet_sidebar_gesture") {
+                    SettingsSwitchRow(
+                        icon = Icons.Default.Tablet,
+                        title = stringResource(Res.string.sidebar_swipe_gesture),
+                        description = stringResource(Res.string.sidebar_swipe_gesture_desc),
+                        checked = general.tabletSidebarGestureEnabled,
+                        onCheckedChange = generalViewModel::setTabletSidebarGestureEnabled,
+                    )
+                }
+            }
+        }
+        item(key = "bottom_gap") { Spacer(modifier = Modifier.height(32.dp)) }
+    }
 
-        if (choosingAccent) {
-            AccentColorDialog(
-                currentColor = uiState.accentColor,
-                note = if (uiState.accentSetByServer) stringResource(Res.string.accent_set_by_server_note) else null,
-                onColorSelect = {
-                    viewModel.setAccentColor(it)
-                    choosingAccent = false
-                },
-                onDismiss = { choosingAccent = false },
-            )
-        }
+    if (choosingAccent) {
+        AccentColorDialog(
+            currentColor = uiState.accentColor,
+            note = if (uiState.accentSetByServer) stringResource(Res.string.accent_set_by_server_note) else null,
+            onColorSelect = {
+                viewModel.setAccentColor(it)
+                choosingAccent = false
+            },
+            onDismiss = { choosingAccent = false },
+        )
     }
 }
 
