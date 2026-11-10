@@ -36,7 +36,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.unit.dp
-import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
@@ -57,6 +56,7 @@ import com.garfiec.librechat.feature.chat.components.artifact.retargetPinnedArti
 import com.garfiec.librechat.navigation.LibreChatNavHost
 import com.garfiec.librechat.navigation.toDeepLinkUri
 import com.garfiec.librechat.shared.navigation.AppShortcuts
+import com.garfiec.librechat.shared.navigation.DeepLinkInbox
 import com.garfiec.librechat.shared.navigation.DeepLinkResolution
 import com.garfiec.librechat.shared.navigation.DeepLinks
 import com.garfiec.librechat.shortcuts.ModelShortcuts
@@ -65,7 +65,6 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 
-private const val KEY_PENDING_DEEP_LINK = "pending_deep_link"
 private const val KEY_PENDING_SHARED_LINK = "pending_shared_link"
 
 private enum class IntentOutcome { Handled, ArtifactApp }
@@ -75,8 +74,7 @@ class MainActivity : ComponentActivity() {
     private val connectivityObserver: ConnectivityObserver by inject()
     private val settingsDataStore: SettingsDataStore by inject()
     private val configRepository: ConfigRepository by inject()
-
-    private var deepLinkUri by mutableStateOf<Uri?>(null)
+    private val deepLinkInbox: DeepLinkInbox by inject()
 
     /** Shared-in text that is exactly one `/share/` link, waiting for the nav host to route it. */
     private var sharedLinkText by mutableStateOf<String?>(null)
@@ -88,10 +86,8 @@ class MainActivity : ComponentActivity() {
 
         // Only process the launch intent on a genuinely fresh start. On recreation (rotation,
         // theme/locale change, restore) it is still sticky; re-processing would re-fire the deep link
-        // and yank the user back to it. Instead restore any not-yet-consumed link (see onSaveInstanceState):
-        // if the nav host hadn't composed to consume it before a recreation — e.g. a config change during
-        // the theme/locale warm-up gate below — it would otherwise be lost, since deepLinkUri isn't saved
-        // state and the back stack has nothing to restore yet. A consumed link was already nulled.
+        // and yank the user back to it. A link not yet placed survives a recreation in DeepLinkInbox.
+        // Restore a shared-in link the nav host hadn't consumed (see onSaveInstanceState).
         if (savedInstanceState == null) {
             retargetPinnedArtifactShortcuts(this)
             // Started only to hand a pinned artifact to its own app: there is no Switchboard to show.
@@ -100,7 +96,6 @@ class MainActivity : ComponentActivity() {
                 return
             }
         } else {
-            deepLinkUri = savedInstanceState.getString(KEY_PENDING_DEEP_LINK)?.toUri()
             sharedLinkText = savedInstanceState.getString(KEY_PENDING_SHARED_LINK)
         }
 
@@ -154,8 +149,6 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                         LibreChatNavHost(
-                            deepLinkUri = deepLinkUri,
-                            onDeepLinkConsume = { deepLinkUri = null },
                             sharedLinkText = sharedLinkText,
                             onSharedLinkConsume = { sharedLinkText = null },
                             appLocaleTag = appLocale,
@@ -177,9 +170,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
-        // Preserve a link that hasn't been placed on the back stack yet, so a recreation during the
+        // Preserve a shared-in link the nav host hasn't consumed yet, so a recreation during the
         // warm-up gate doesn't drop it (restored in onCreate). A consumed link is already null.
-        deepLinkUri?.let { outState.putString(KEY_PENDING_DEEP_LINK, it.toString()) }
         sharedLinkText?.let { outState.putString(KEY_PENDING_SHARED_LINK, it) }
     }
 
@@ -224,14 +216,15 @@ class MainActivity : ComponentActivity() {
         val uri = intent.data?.takeIf { it.scheme == DeepLinks.SCHEME } ?: return IntentOutcome.Handled
         // Same resolver the nav host uses — the accept decision and the routing decision can't
         // drift because they're one source of truth. Anything it doesn't route is dropped here.
-        when (val resolution = DeepLinks.resolve(uri.toDeepLinkUri())) {
+        val link = uri.toDeepLinkUri()
+        when (val resolution = DeepLinks.resolve(link)) {
             DeepLinkResolution.None -> Logger.w { "Ignoring unhandled deep link: $uri" }
             // Icons pinned by older builds still target this activity.
             is DeepLinkResolution.ArtifactApp -> {
                 startActivity(artifactAppIntent(this, resolution.snapshotId))
                 return IntentOutcome.ArtifactApp
             }
-            else -> deepLinkUri = uri
+            else -> deepLinkInbox.post(link)
         }
         return IntentOutcome.Handled
     }

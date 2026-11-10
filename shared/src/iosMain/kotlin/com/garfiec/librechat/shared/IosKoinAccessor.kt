@@ -16,7 +16,8 @@ import com.garfiec.librechat.core.model.ModelRef
 import com.garfiec.librechat.core.model.SHORTCUT_CANDIDATE_FACTOR
 import com.garfiec.librechat.core.model.offeredSpecs
 import com.garfiec.librechat.core.model.reconciledWith
-import com.garfiec.librechat.feature.chat.navigation.ModelShortcutBus
+import com.garfiec.librechat.shared.navigation.DeepLinkInbox
+import com.garfiec.librechat.shared.navigation.DeepLinkUri
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
@@ -68,11 +69,24 @@ object IosKoinAccessor {
 
     /**
      * Routes a tapped quick action into the shared navigation host — opens a new chat on the model,
-     * or on [spec] when the quick action was recorded from one.
+     * or on [spec] when the quick action was recorded from one. Posted as the `librechat://model`
+     * link Android's shortcuts carry, without building a URL string.
      */
     @Throws(Exception::class)
     fun requestModelShortcut(endpoint: String, model: String, spec: String?) {
-        koin.get<ModelShortcutBus>().request(endpoint, model, spec)
+        val query = buildMap {
+            put("endpoint", endpoint)
+            put("model", model)
+            spec?.let { put("spec", it) }
+        }
+        koin.get<DeepLinkInbox>().post(DeepLinkUri(host = "model", pathSegments = emptyList(), query = query))
+    }
+
+    /** Routes a `librechat://` URL the scene received into the shared navigation host; anything else is ignored. */
+    @Throws(Exception::class)
+    fun openDeepLink(url: String) {
+        val link = DeepLinkUri.parse(url) ?: return
+        koin.get<DeepLinkInbox>().post(link)
     }
 
     /**

@@ -2,7 +2,6 @@ package com.garfiec.librechat.feature.chat.di
 
 import com.garfiec.librechat.core.common.di.KoinQualifiers
 import com.garfiec.librechat.feature.chat.components.artifact.ArtifactViewerHandoff
-import com.garfiec.librechat.feature.chat.navigation.ModelShortcutBus
 import com.garfiec.librechat.feature.chat.prompts.PromptEditorViewModel
 import com.garfiec.librechat.feature.chat.prompts.PromptsViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.BackgroundTasksViewModel
@@ -33,7 +32,6 @@ val chatModule = module {
     single { ChatNoticeHandoff() }
     single { ServerFileSelectionHandoff() }
     single { ArtifactViewerHandoff() }
-    single { ModelShortcutBus() }
     single { SiteIconPromptSession() }
     single { LocalQueueStash() }
     viewModelOf(::PromptsViewModel)

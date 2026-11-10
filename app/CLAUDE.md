@@ -18,13 +18,15 @@ links, share-intent routing and phone/tablet branching. The shared module owns t
   (`MovableNavDisplayTest`).
 
 ## Deep links
-- Scheme `librechat://`; hosts `conversation/{id}`, `artifact/{uuid}`, `oauth`.
+- Scheme `librechat://`; hosts `conversation/{id}`, `artifact/{uuid}`, `model?endpoint=&model=[&spec=]`, `code-setup/{id}`, `oauth`.
 - **Single source of truth**: `DeepLinks.resolve()` (`:shared/commonMain`) → `DeepLinkResolution`
   (`Route` / `ArtifactApp` / `Consumed` / `None`). Add a link as one branch there; do NOT reintroduce a
   per-host allowlist here.
-- `MainActivity.handleDeepLink()` (and `onNewIntent`) resolves to accept/drop (`DeepLinkUriAdapter.kt`), then
-  `LibreChatNavHost` resolves again to place the target; a `Route` goes to login when signed out. `ArtifactApp`
-  never reaches the nav host: a pinned artifact runs in `ArtifactAppActivity`, its own task, signed in or not.
+- `MainActivity.handleDeepLink()` (and `onNewIntent`) resolves to accept/drop (`DeepLinkUriAdapter.kt`) and posts
+  what it accepts to `DeepLinkInbox` (`:shared`), the one intake iOS's URLs and quick actions use too; the shared
+  `LibreChatNavHost` places it (`placeDeepLink`); a `Route` goes to login when signed out. Don't hold a link in
+  activity state. `ArtifactApp` never reaches the nav host: a pinned artifact runs in `ArtifactAppActivity`, its
+  own task, signed in or not.
   `oauth` is `Consumed` (sign-in is in-app WebView); keep the mapping so links from older builds still bring
   the app forward.
 
