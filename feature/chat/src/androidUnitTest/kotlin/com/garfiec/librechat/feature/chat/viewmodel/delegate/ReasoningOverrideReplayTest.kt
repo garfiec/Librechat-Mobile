@@ -1,10 +1,10 @@
 package com.garfiec.librechat.feature.chat.viewmodel.delegate
 
 import com.garfiec.librechat.core.model.Message
-import com.garfiec.librechat.core.model.config.ModelSpec
-import com.garfiec.librechat.core.model.config.ModelSpecs
 import com.garfiec.librechat.core.model.Preset
 import com.garfiec.librechat.core.model.ReasoningOverride
+import com.garfiec.librechat.core.model.config.ModelSpec
+import com.garfiec.librechat.core.model.config.ModelSpecs
 import com.garfiec.librechat.feature.chat.util.buildActiveMessagePath
 import com.garfiec.librechat.feature.chat.util.restore
 import com.garfiec.librechat.feature.chat.viewmodel.ChatRequestBuilder
@@ -115,7 +115,10 @@ class ReasoningOverrideReplayTest {
     /** An enforced spec's preset locks the key: the server refuses an override of it. */
     @Test
     fun `a key an enforced spec sets is not replayed`() {
-        val spec = ModelSpec(name = "deep", preset = Preset(endpoint = "openAI", model = "gpt-5", reasoningEffort = "medium"))
+        val spec = ModelSpec(
+            name = "deep",
+            preset = Preset(endpoint = "openAI", model = "gpt-5", reasoningEffort = "medium"),
+        )
         val (repository, delegate) = fixture(
             selection = ModelSelectionState(
                 choice = ModelChoice.restore("openAI", "gpt-5", "deep"),

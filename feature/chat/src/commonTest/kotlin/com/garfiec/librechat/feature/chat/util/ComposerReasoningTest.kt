@@ -29,7 +29,9 @@ class ComposerReasoningTest {
         catalog: ReasoningCatalogState? = null,
         preset: Preset? = null,
         enforcedSpecUnserved: Boolean = false,
-    ) = composerReasoningSetting(version, parametersEnabled, endpointSupportsIt, comparing, target, configs, catalog, preset, enforcedSpecUnserved)
+    ) = composerReasoningSetting(
+        version, parametersEnabled, endpointSupportsIt, comparing, target, configs, catalog, preset, enforcedSpecUnserved,
+    )
 
     @Test
     fun resolvesForASupportedServerAndSelection() {

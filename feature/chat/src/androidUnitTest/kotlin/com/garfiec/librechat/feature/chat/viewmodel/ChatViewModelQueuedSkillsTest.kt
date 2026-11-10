@@ -17,6 +17,7 @@ import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.Preset
 import com.garfiec.librechat.core.model.StreamEvent
+import com.garfiec.librechat.core.model.ToolAuthResult
 import com.garfiec.librechat.core.model.config.ModelSpec
 import com.garfiec.librechat.core.model.config.ModelSpecs
 import com.garfiec.librechat.core.model.config.StartupConfig
@@ -27,6 +28,7 @@ import com.garfiec.librechat.core.model.response.ChatStatusResponse
 import com.garfiec.librechat.core.model.response.SteerResponse
 import com.garfiec.librechat.feature.chat.components.AttachedFile
 import com.garfiec.librechat.feature.chat.util.DraftItem
+import com.garfiec.librechat.feature.chat.util.WebSearchRoute
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PlatformFileHandler
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
@@ -42,20 +44,18 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
-import com.garfiec.librechat.core.model.ToolAuthResult
-import com.garfiec.librechat.feature.chat.util.WebSearchRoute
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
-import kotlinx.coroutines.test.advanceTimeBy
 
 /**
  * Skill chips on the local queue, in a non-agent chat (where skills are mostly used, and where a
@@ -66,6 +66,7 @@ import kotlinx.coroutines.test.advanceTimeBy
  * ViewModel scope inside the body and drives with [runCurrent].
  */
 @OptIn(ExperimentalCoroutinesApi::class)
+@Suppress("LargeClass")
 class ChatViewModelQueuedSkillsTest {
 
     private val testDispatcher = UnconfinedTestDispatcher()

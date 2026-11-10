@@ -214,7 +214,11 @@ class ChatViewModelKeepAndContinueTest {
     /** Under `enforce` the server runs a retargeted spec on its new model, so the kept lane moves there too. */
     @Test
     fun `keep and continue moves an enforced spec lane B onto the spec's current model`() {
-        val careful = ModelSpec(name = "careful", label = "Careful", preset = Preset(endpoint = SECOND_ENDPOINT, model = SECOND_MODEL))
+        val careful = ModelSpec(
+            name = "careful",
+            label = "Careful",
+            preset = Preset(endpoint = SECOND_ENDPOINT, model = SECOND_MODEL),
+        )
         startupConfig.value = StartupConfig(modelSpecs = ModelSpecs(list = listOf(careful)))
         vmTest(temporary = true) { vm ->
             stopComparisonInTemporaryChat(vm, laneBSpec = "careful")
