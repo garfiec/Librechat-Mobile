@@ -275,9 +275,12 @@ formatting:
 
 # Custom ruleset (:detekt-rules). AccountScopedDao enforces that account-scoped Room DAOs filter
 # every tenant-table statement by accountId. AlertDialogNestedScroll catches an AdaptiveAlertDialog
-# text slot that scrolls itself without opting out of the dialog's own scroll.
+# text slot that scrolls itself without opting out of the dialog's own scroll. MaskedFieldKeyboard
+# catches a masked text field that isn't on the password keyboard.
 librechat:
   AccountScopedDao:
     active: true
   AlertDialogNestedScroll:
+    active: true
+  MaskedFieldKeyboard:
     active: true

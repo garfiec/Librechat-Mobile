@@ -13,7 +13,8 @@ val UrlKeyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, autoCo
 val VerbatimKeyboardOptions = KeyboardOptions(autoCorrectEnabled = false)
 
 /**
- * Masked secrets ([SecretTextField] applies it). The password type keeps the value out of the
- * Android keyboard's learned words and turns on iOS secure entry; masking alone does neither.
+ * [SecretTextField]'s options. The password type keeps the value out of the Android keyboard's
+ * learned words and turns on iOS secure entry; masking alone does neither.
  */
-val MaskedSecretKeyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, autoCorrectEnabled = false)
+internal val MaskedSecretKeyboardOptions =
+    KeyboardOptions(keyboardType = KeyboardType.Password, autoCorrectEnabled = false)

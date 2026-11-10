@@ -34,8 +34,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.model.config.resolveLocalizedConfigText
 import com.garfiec.librechat.core.model.mcp.McpApiKeySource
@@ -51,12 +52,11 @@ import com.garfiec.librechat.core.ui.components.AdaptiveSectionHeader
 import com.garfiec.librechat.core.ui.components.AdaptiveSegmentedChoice
 import com.garfiec.librechat.core.ui.components.DiscardChangesDialog
 import com.garfiec.librechat.core.ui.components.LoadingIndicator
-import com.garfiec.librechat.core.ui.components.MaskedSecretKeyboardOptions
 import com.garfiec.librechat.core.ui.components.PlatformBackHandler
+import com.garfiec.librechat.core.ui.components.SecretTextField
 import com.garfiec.librechat.core.ui.components.UrlKeyboardOptions
 import com.garfiec.librechat.core.ui.components.VerbatimKeyboardOptions
 import com.garfiec.librechat.core.ui.components.clearFocusOnTap
-import com.garfiec.librechat.core.ui.components.excludeFromAutofill
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
 import com.garfiec.librechat.core.ui.components.topbar.BarAction
@@ -292,13 +292,14 @@ private fun ApiKeyFields(
             )
         }
         if (draft.apiKeySource == McpApiKeySource.ADMIN) {
-            AdaptiveOutlinedTextField(
+            var revealed by remember { mutableStateOf(false) }
+            LifecycleEventEffect(Lifecycle.Event.ON_PAUSE) { revealed = false }
+            SecretTextField(
                 value = draft.apiKey,
                 onValueChange = { value -> onChange { it.copy(apiKey = value) } },
+                revealed = revealed,
+                onRevealedChange = { revealed = it },
                 label = { Text(stringResource(Res.string.mcp_api_key_label)) },
-                singleLine = true,
-                visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = MaskedSecretKeyboardOptions,
                 isError = uiState.apiKeyReentryRequired,
                 supportingText = if (uiState.apiKeyReentryRequired) {
                     { Text(stringResource(Res.string.mcp_api_key_reentry_required)) }
@@ -306,7 +307,7 @@ private fun ApiKeyFields(
                     null
                 },
                 enabled = enabled,
-                modifier = Modifier.fillMaxWidth().bringIntoViewRequester(requester).excludeFromAutofill(),
+                modifier = Modifier.fillMaxWidth().bringIntoViewRequester(requester),
             )
         }
     }
@@ -330,13 +331,14 @@ private fun OAuthFields(
             enabled = enabled,
             modifier = Modifier.fillMaxWidth(),
         )
-        AdaptiveOutlinedTextField(
+        var secretRevealed by remember { mutableStateOf(false) }
+        LifecycleEventEffect(Lifecycle.Event.ON_PAUSE) { secretRevealed = false }
+        SecretTextField(
             value = draft.oauthClientSecret,
             onValueChange = { value -> onChange { it.copy(oauthClientSecret = value) } },
+            revealed = secretRevealed,
+            onRevealedChange = { secretRevealed = it },
             label = { Text(stringResource(Res.string.mcp_oauth_client_secret)) },
-            singleLine = true,
-            visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = MaskedSecretKeyboardOptions,
             // Flag this field, not the form: the secret is masked, so nothing about it looks wrong.
             isError = uiState.oauthSecretReentryRequired,
             supportingText = if (uiState.oauthSecretReentryRequired) {
@@ -345,7 +347,7 @@ private fun OAuthFields(
                 null
             },
             enabled = enabled,
-            modifier = Modifier.fillMaxWidth().bringIntoViewRequester(requester).excludeFromAutofill(),
+            modifier = Modifier.fillMaxWidth().bringIntoViewRequester(requester),
         )
         AdaptiveOutlinedTextField(
             value = draft.oauthAuthUrl,

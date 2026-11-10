@@ -18,22 +18,22 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.core.ui.components.AdaptiveRadioButton
-import com.garfiec.librechat.core.ui.components.MaskedSecretKeyboardOptions
+import com.garfiec.librechat.core.ui.components.SecretTextField
 import com.garfiec.librechat.core.ui.components.UrlKeyboardOptions
 import com.garfiec.librechat.core.ui.components.VerbatimKeyboardOptions
 import com.garfiec.librechat.core.ui.components.clearFocusOnTap
-import com.garfiec.librechat.core.ui.components.excludeFromAutofill
 import com.garfiec.librechat.feature.agents.resources.*
 import com.garfiec.librechat.feature.agents.resources.Res
 import org.jetbrains.compose.resources.stringResource
@@ -77,6 +77,12 @@ internal fun AuthConfigDialog(
     var localClientUrl by rememberSaveable { mutableStateOf(clientUrl) }
     var localScope by rememberSaveable { mutableStateOf(scope) }
     var localTokenExchangeMethod by rememberSaveable { mutableStateOf(tokenExchangeMethod) }
+    var apiKeyRevealed by remember { mutableStateOf(false) }
+    var clientSecretRevealed by remember { mutableStateOf(false) }
+    LifecycleEventEffect(Lifecycle.Event.ON_PAUSE) {
+        apiKeyRevealed = false
+        clientSecretRevealed = false
+    }
 
     AdaptiveAlertDialog(
         modifier = Modifier.clearFocusOnTap(),
@@ -124,21 +130,16 @@ internal fun AuthConfigDialog(
                             style = MaterialTheme.typography.labelLarge,
                         )
 
-                        AdaptiveOutlinedTextField(
+                        SecretTextField(
                             value = localApiKey,
                             onValueChange = { localApiKey = it },
+                            revealed = apiKeyRevealed,
+                            onRevealedChange = { apiKeyRevealed = it },
                             label = { Text(stringResource(Res.string.label_api_key)) },
                             placeholder = {
                                 Text(if (isEditing) HIDDEN_PLACEHOLDER else "sk-...")
                             },
-                            singleLine = true,
-                            visualTransformation = if (localApiKey == HIDDEN_PLACEHOLDER) {
-                                VisualTransformation.None
-                            } else {
-                                PasswordVisualTransformation()
-                            },
-                            keyboardOptions = MaskedSecretKeyboardOptions,
-                            modifier = Modifier.fillMaxWidth().excludeFromAutofill(),
+                            modifier = Modifier.fillMaxWidth(),
                         )
 
                         Text(
@@ -199,21 +200,16 @@ internal fun AuthConfigDialog(
                             modifier = Modifier.fillMaxWidth(),
                         )
 
-                        AdaptiveOutlinedTextField(
+                        SecretTextField(
                             value = localOauthClientSecret,
                             onValueChange = { localOauthClientSecret = it },
+                            revealed = clientSecretRevealed,
+                            onRevealedChange = { clientSecretRevealed = it },
                             label = { Text(stringResource(Res.string.label_client_secret)) },
                             placeholder = {
                                 Text(if (isEditing) HIDDEN_PLACEHOLDER else "client-secret")
                             },
-                            singleLine = true,
-                            visualTransformation = if (localOauthClientSecret == HIDDEN_PLACEHOLDER) {
-                                VisualTransformation.None
-                            } else {
-                                PasswordVisualTransformation()
-                            },
-                            keyboardOptions = MaskedSecretKeyboardOptions,
-                            modifier = Modifier.fillMaxWidth().excludeFromAutofill(),
+                            modifier = Modifier.fillMaxWidth(),
                         )
 
                         AdaptiveOutlinedTextField(
