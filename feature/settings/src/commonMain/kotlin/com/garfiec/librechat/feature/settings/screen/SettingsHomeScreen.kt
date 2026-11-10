@@ -45,6 +45,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
@@ -55,6 +56,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.ui.components.AdaptiveGroupedPage
+import com.garfiec.librechat.core.ui.components.AdaptiveSectionScope
 import com.garfiec.librechat.core.ui.components.AvatarImage
 import com.garfiec.librechat.core.ui.components.adaptiveSection
 import com.garfiec.librechat.core.ui.components.adaptiveSelectedRowColor
@@ -63,6 +65,7 @@ import com.garfiec.librechat.feature.settings.navigation.AppearanceSettings
 import com.garfiec.librechat.feature.settings.navigation.SettingsCategory
 import com.garfiec.librechat.feature.settings.navigation.SettingsCategoryKey
 import com.garfiec.librechat.feature.settings.navigation.SettingsPaneRoute
+import com.garfiec.librechat.feature.settings.navigation.titleRes
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.viewmodel.AccountSettingsViewModel
@@ -283,8 +286,6 @@ internal fun SettingsHomeContent(
     contentPadding: PaddingValues = PaddingValues(),
     openPage: SettingsPaneRoute? = null,
 ) {
-    fun isOpen(page: SettingsPaneRoute): Boolean? = openPage?.let { it == page }
-    fun onCategory(key: SettingsCategoryKey) = onOpen(SettingsCategory(key))
     AdaptiveGroupedPage(modifier = modifier.fillMaxSize()) {
         LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = contentPadding) {
             item(key = "top_gap") { Spacer(modifier = Modifier.height(16.dp)) }
@@ -292,107 +293,73 @@ internal fun SettingsHomeContent(
                 row(key = "profile_card") {
                     ProfileCard(
                         profile = profile,
-                        selected = isOpen(SettingsCategory(SettingsCategoryKey.ACCOUNT)),
-                        onClick = { onCategory(SettingsCategoryKey.ACCOUNT) },
+                        selected = openPage?.let { it == SettingsCategory(SettingsCategoryKey.ACCOUNT) },
+                        onClick = { onOpen(SettingsCategory(SettingsCategoryKey.ACCOUNT)) },
                     )
                 }
             }
             item(key = "categories_gap") { Spacer(modifier = Modifier.height(24.dp)) }
-            adaptiveSection {
-                row(key = "appearance") {
-                    SettingsRow(
-                        title = stringResource(Res.string.section_appearance),
-                        summary = summaries.appearance,
-                        icon = Icons.Default.Palette,
-                        tileTint = SettingsTileTint.PRIMARY,
-                        selected = isOpen(AppearanceSettings),
-                        onClick = { onOpen(AppearanceSettings) },
-                    )
-                }
-                row(key = "chats") {
-                    SettingsRow(
-                        title = stringResource(Res.string.category_chats),
-                        summary = summaries.chats,
-                        icon = Icons.Default.Forum,
-                        tileTint = SettingsTileTint.SECONDARY,
-                        selected = isOpen(SettingsCategory(SettingsCategoryKey.CHATS)),
-                        onClick = { onCategory(SettingsCategoryKey.CHATS) },
-                    )
-                }
-                row(key = "voice") {
-                    SettingsRow(
-                        title = stringResource(Res.string.category_voice),
-                        summary = summaries.voice,
-                        icon = Icons.Default.RecordVoiceOver,
-                        tileTint = SettingsTileTint.TERTIARY,
-                        selected = isOpen(SettingsCategory(SettingsCategoryKey.VOICE)),
-                        onClick = { onCategory(SettingsCategoryKey.VOICE) },
-                    )
-                }
-                row(key = "models") {
-                    SettingsRow(
-                        title = stringResource(Res.string.category_models_keys),
-                        summary = summaries.models,
-                        icon = Icons.Default.Key,
-                        tileTint = SettingsTileTint.PRIMARY,
-                        selected = isOpen(SettingsCategory(SettingsCategoryKey.MODELS)),
-                        onClick = { onCategory(SettingsCategoryKey.MODELS) },
-                    )
-                }
-                row(key = "language") {
-                    SettingsRow(
-                        title = stringResource(Res.string.section_language_region),
-                        summary = summaries.language,
-                        icon = Icons.Default.Language,
-                        tileTint = SettingsTileTint.SECONDARY,
-                        selected = isOpen(SettingsCategory(SettingsCategoryKey.LANGUAGE)),
-                        onClick = { onCategory(SettingsCategoryKey.LANGUAGE) },
-                    )
-                }
-                row(key = "privacy_data") {
-                    SettingsRow(
-                        title = stringResource(Res.string.category_privacy_data),
-                        summary = summaries.privacy,
-                        icon = Icons.Default.Shield,
-                        tileTint = SettingsTileTint.TERTIARY,
-                        selected = isOpen(SettingsCategory(SettingsCategoryKey.PRIVACY_DATA)),
-                        onClick = { onCategory(SettingsCategoryKey.PRIVACY_DATA) },
-                    )
-                }
-            }
+            adaptiveSection { homeRows(CATEGORY_ROWS, summaries, openPage, onOpen) }
             item(key = "more_gap") { Spacer(modifier = Modifier.height(24.dp)) }
             adaptiveSection {
-                if (showAdministration) {
-                    row(key = "administration") {
-                        SettingsRow(
-                            title = stringResource(Res.string.category_administration),
-                            summary = stringResource(Res.string.settings_home_admin_summary),
-                            icon = Icons.Default.AdminPanelSettings,
-                            selected = isOpen(SettingsCategory(SettingsCategoryKey.ADMINISTRATION)),
-                            onClick = { onCategory(SettingsCategoryKey.ADMINISTRATION) },
-                        )
-                    }
-                }
-                row(key = "advanced") {
-                    SettingsRow(
-                        title = stringResource(Res.string.category_advanced),
-                        summary = stringResource(Res.string.settings_home_advanced_summary),
-                        icon = Icons.Default.Tune,
-                        selected = openPage?.let { it is AdvancedSettings },
-                        onClick = { onOpen(AdvancedSettings()) },
-                    )
-                }
-                row(key = "about") {
-                    SettingsRow(
-                        title = stringResource(Res.string.section_about),
-                        summary = summaries.about,
-                        icon = Icons.Default.Info,
-                        selected = isOpen(SettingsCategory(SettingsCategoryKey.ABOUT)),
-                        onClick = { onCategory(SettingsCategoryKey.ABOUT) },
-                    )
-                }
+                homeRows(MORE_ROWS.filter { showAdministration || it.key != "administration" }, summaries, openPage, onOpen)
             }
             item(key = "bottom_gap") { Spacer(modifier = Modifier.height(32.dp)) }
+        }
+    }
+}
+
+/** A category row on the home; [summary] reads what it is set to. */
+private class HomeRow(
+    val key: String,
+    val page: SettingsPaneRoute,
+    val icon: ImageVector,
+    val tint: SettingsTileTint = SettingsTileTint.NEUTRAL,
+    val summary: @Composable (SettingsHomeSummaries) -> String,
+) {
+    /** Advanced is open whichever section it was opened at. */
+    fun isOpen(open: SettingsPaneRoute): Boolean = if (page is AdvancedSettings) open is AdvancedSettings else open == page
+}
+
+private val CATEGORY_ROWS = listOf(
+    HomeRow("appearance", AppearanceSettings, Icons.Default.Palette, SettingsTileTint.PRIMARY) { it.appearance },
+    HomeRow("chats", SettingsCategory(SettingsCategoryKey.CHATS), Icons.Default.Forum, SettingsTileTint.SECONDARY) { it.chats },
+    HomeRow("voice", SettingsCategory(SettingsCategoryKey.VOICE), Icons.Default.RecordVoiceOver, SettingsTileTint.TERTIARY) {
+        it.voice
+    },
+    HomeRow("models", SettingsCategory(SettingsCategoryKey.MODELS), Icons.Default.Key, SettingsTileTint.PRIMARY) { it.models },
+    HomeRow("language", SettingsCategory(SettingsCategoryKey.LANGUAGE), Icons.Default.Language, SettingsTileTint.SECONDARY) {
+        it.language
+    },
+    HomeRow("privacy_data", SettingsCategory(SettingsCategoryKey.PRIVACY_DATA), Icons.Default.Shield, SettingsTileTint.TERTIARY) {
+        it.privacy
+    },
+)
+
+private val MORE_ROWS = listOf(
+    HomeRow("administration", SettingsCategory(SettingsCategoryKey.ADMINISTRATION), Icons.Default.AdminPanelSettings) {
+        stringResource(Res.string.settings_home_admin_summary)
+    },
+    HomeRow("advanced", AdvancedSettings(), Icons.Default.Tune) { stringResource(Res.string.settings_home_advanced_summary) },
+    HomeRow("about", SettingsCategory(SettingsCategoryKey.ABOUT), Icons.Default.Info) { it.about },
+)
+
+private fun AdaptiveSectionScope.homeRows(
+    rows: List<HomeRow>,
+    summaries: SettingsHomeSummaries,
+    openPage: SettingsPaneRoute?,
+    onOpen: (SettingsPaneRoute) -> Unit,
+) {
+    for (homeRow in rows) {
+        row(key = homeRow.key) {
+            SettingsRow(
+                title = stringResource(homeRow.page.titleRes()),
+                summary = homeRow.summary(summaries),
+                icon = homeRow.icon,
+                tileTint = homeRow.tint,
+                selected = openPage?.let(homeRow::isOpen),
+                onClick = { onOpen(homeRow.page) },
+            )
         }
     }
 }
