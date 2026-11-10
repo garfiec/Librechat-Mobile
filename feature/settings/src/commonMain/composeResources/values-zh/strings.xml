@@ -843,7 +843,6 @@
     <string name="export_coming_soon">导出功能即将推出</string>
     <string name="mcp_tools_all">所有 MCP 工具</string>
     <string name="mcp_server_unknown">未知</string>
-    <string name="avatar_upload_unavailable_ios">iOS 暂不支持上传头像。</string>
     <string name="dialog_ok">确定</string>
     <plurals name="mcp_tool_count">
         <item quantity="other">%1$d 个工具</item>

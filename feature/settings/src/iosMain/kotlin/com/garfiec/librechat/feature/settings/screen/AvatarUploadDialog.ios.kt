@@ -1,31 +1,31 @@
 package com.garfiec.librechat.feature.settings.screen
 
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
-import com.garfiec.librechat.feature.settings.resources.Res
-import com.garfiec.librechat.feature.settings.resources.avatar_upload_unavailable_ios
-import com.garfiec.librechat.feature.settings.resources.dialog_ok
-import com.garfiec.librechat.feature.settings.resources.dialog_title_update_avatar
-import org.jetbrains.compose.resources.stringResource
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import com.garfiec.librechat.core.ui.media.imagePreviewOf
+import com.garfiec.librechat.core.ui.media.openPhotoPicker
 
+/** The dialog's preview circle is 120pt, drawn at 360 px on a 3x screen. */
+private const val AVATAR_PREVIEW_MAX_EDGE_PX = 360
+
+/**
+ * The ref is the picked bytes, read inside the picker's callback: the picker's files are gone by the
+ * time the upload reads them. The iOS settings ContentReader returns them as they are.
+ */
 @Composable
-internal actual fun AvatarUploadDialog(
-    currentAvatarUrl: String?,
-    isUploading: Boolean,
-    onPickImage: (Any) -> Unit,
-    onDismiss: () -> Unit,
-    modifier: Modifier,
-) {
-    // iOS: placeholder dialog — image picker not yet implemented
-    AdaptiveAlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(Res.string.dialog_title_update_avatar)) },
-        text = { Text(stringResource(Res.string.avatar_upload_unavailable_ios)) },
-        confirmButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(Res.string.dialog_ok)) }
-        },
-    )
+internal actual fun rememberAvatarPicker(onPick: (PickedAvatar) -> Unit): () -> Unit {
+    val currentOnPick by rememberUpdatedState(onPick)
+    return remember {
+        {
+            openPhotoPicker(
+                selectionLimit = 1,
+                decode = { bytes, _, image ->
+                    PickedAvatar(ref = bytes, preview = imagePreviewOf(image, AVATAR_PREVIEW_MAX_EDGE_PX))
+                },
+                onResult = { picks -> picks.firstOrNull()?.let { currentOnPick(it) } },
+            )
+        }
+    }
 }

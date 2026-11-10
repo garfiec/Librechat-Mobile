@@ -908,7 +908,6 @@
     <string name="export_coming_soon">التصدير قادم قريبًا</string>
     <string name="mcp_tools_all">كل أدوات MCP</string>
     <string name="mcp_server_unknown">غير معروف</string>
-    <string name="avatar_upload_unavailable_ios">رفع الصورة الرمزية غير متاح بعد على iOS.</string>
     <string name="dialog_ok">حسنًا</string>
     <plurals name="mcp_tool_count">
         <item quantity="zero">%1$d أداة</item>
