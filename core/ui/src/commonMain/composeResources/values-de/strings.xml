@@ -410,4 +410,5 @@
     <string name="artifacts_mode_shadcnui_desc">Bringt der KI zusätzlich fertige Buttons, Formulare und Karten (shadcn/ui) für schönere interaktive Apps bei. Jede Nachricht wird für die KI länger, daher können Antworten langsamer kommen.</string>
     <string name="artifacts_mode_custom">Nur meine Anweisungen</string>
     <string name="artifacts_mode_custom_desc">Schaltet die eingebaute Anleitung aus, sodass die KI nur deinen eigenen benutzerdefinierten Anweisungen folgt. Ohne Erklärung darin erstellt sie eventuell keine Artefakte.</string>
+    <string name="topbar_more_options">Weitere Optionen</string>
 </resources>

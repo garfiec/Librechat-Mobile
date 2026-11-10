@@ -416,4 +416,5 @@
     <string name="artifacts_mode_shadcnui_desc">Apprend aussi à l'IA un ensemble de boutons, formulaires et cartes prêts à l'emploi (shadcn/ui) pour des applis interactives plus belles. Chaque message est plus long à lire pour l'IA, les réponses peuvent donc être plus lentes.</string>
     <string name="artifacts_mode_custom">Mes instructions uniquement</string>
     <string name="artifacts_mode_custom_desc">Désactive les consignes intégrées : l'IA suit seulement les instructions personnalisées que vous avez écrites. Elle peut ne pas créer d'artefacts si vos instructions n'expliquent pas comment.</string>
+    <string name="topbar_more_options">Plus d'options</string>
 </resources>

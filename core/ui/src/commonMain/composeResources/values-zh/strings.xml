@@ -404,4 +404,5 @@
     <string name="artifacts_mode_shadcnui_desc">额外教给 AI 一套现成的按钮、表单和卡片（shadcn/ui），做出更好看的交互应用。AI 需要阅读的消息变长，回复可能更慢。</string>
     <string name="artifacts_mode_custom">仅我的指令</string>
     <string name="artifacts_mode_custom_desc">关闭内置指导，AI 只遵循你自己编写的自定义指令。如果你的指令没有说明做法，它可能不会制作 Artifact。</string>
+    <string name="topbar_more_options">更多选项</string>
 </resources>

@@ -422,4 +422,5 @@
     <string name="artifacts_mode_shadcnui_desc">Дополнительно учит ИИ набору готовых кнопок, форм и карточек (shadcn/ui) для более красивых интерактивных приложений. Каждое сообщение становится длиннее для ИИ, поэтому ответы могут приходить медленнее.</string>
     <string name="artifacts_mode_custom">Только мои инструкции</string>
     <string name="artifacts_mode_custom_desc">Отключает встроенные указания: ИИ следует только вашим собственным инструкциям. Без объяснения в них он может не создавать артефакты.</string>
+    <string name="topbar_more_options">Дополнительно</string>
 </resources>

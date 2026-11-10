@@ -23,6 +23,8 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.DropdownMenuItem
@@ -95,6 +97,10 @@ private val TextActionBadgeSize = 6.dp
 /**
  * An M3 `TopAppBar` in Material, the system glass bar on iOS 26+, a simulated glass bar elsewhere.
  * [belowBar] holds Compose content that can't be bar data (a search field, a tab row).
+ *
+ * In an `AdaptiveScaffold`'s top bar slot, while the window has vertical bars (iPhone Duo), the
+ * controls go to the scaffold's [AdaptiveSideRail] and only the title (and [belowBar]) draws here,
+ * as a heading.
  */
 @Composable
 fun AdaptiveTopBar(
@@ -102,6 +108,22 @@ fun AdaptiveTopBar(
     modifier: Modifier = Modifier,
     materialStyle: MaterialBarStyle = MaterialBarStyle(),
     belowBar: (@Composable () -> Unit)? = null,
+) {
+    val rail = LocalRailSlot.current
+    // A dialog or sheet window composed inside a top bar slot has bars of its own, not the screen's.
+    if (rail != null && !rail.superseded && !LocalInSeparateWindow.current) {
+        RailHeading(spec, rail, materialStyle, belowBar, modifier)
+        return
+    }
+    HorizontalTopBar(spec.forHorizontalBar(), materialStyle, belowBar, modifier)
+}
+
+@Composable
+private fun HorizontalTopBar(
+    spec: AdaptiveTopBarSpec,
+    materialStyle: MaterialBarStyle,
+    belowBar: (@Composable () -> Unit)?,
+    modifier: Modifier = Modifier,
 ) {
     val level = LocalGlassLevel.current
     if (level == null) {
@@ -142,20 +164,7 @@ private fun TranslucentMaterialTopBar(
     belowBar: (@Composable () -> Unit)? = null,
 ) {
     Box(modifier = modifier) {
-        val surface = MaterialTheme.colorScheme.surface
-        Box(
-            Modifier.matchParentSize().drawWithCache {
-                // Hold the scrim near-opaque behind the title and belowBar so their text stays readable over
-                // the list; only a fixed band at the bottom edge fades, however tall belowBar makes the bar.
-                val fadeStart = ((size.height - TranslucentFade.toPx()) / size.height).coerceIn(0f, 1f)
-                val brush = Brush.verticalGradient(
-                    0f to surface.copy(alpha = 0.92f),
-                    fadeStart to surface.copy(alpha = 0.82f),
-                    1f to Color.Transparent,
-                )
-                onDrawBehind { drawRect(brush) }
-            },
-        )
+        Box(Modifier.matchParentSize().translucentBarScrim(MaterialTheme.colorScheme.surface))
         Column {
             MaterialTopBar(spec, style.copy(containerColor = Color.Transparent))
             belowBar?.invoke()
@@ -236,30 +245,54 @@ private fun MaterialTopBarContent(spec: AdaptiveTopBarSpec, style: MaterialBarSt
 }
 
 /**
+ * Holds the scrim near-opaque behind a translucent Material bar's title and belowBar so their text
+ * stays readable over the list; only a fixed band at the bottom edge fades, however tall belowBar
+ * makes the bar.
+ */
+internal fun Modifier.translucentBarScrim(surface: Color): Modifier = drawWithCache {
+    val fadeStart = ((size.height - TranslucentFade.toPx()) / size.height).coerceIn(0f, 1f)
+    val brush = Brush.verticalGradient(
+        0f to surface.copy(alpha = 0.92f),
+        fadeStart to surface.copy(alpha = 0.82f),
+        1f to Color.Transparent,
+    )
+    onDrawBehind { drawRect(brush) }
+}
+
+/**
  * What separates the two Compose renderers' controls. An unspecified [default] keeps the button's
  * own content colour (Material), which dims a disabled icon.
  */
-private class BarActionColors(val default: Color, val accent: Color, val glass: Boolean = false)
+internal class BarActionColors(val default: Color, val accent: Color, val glass: Boolean = false)
 
 @Composable
-private fun BarActionButton(action: BarAction, colors: BarActionColors) {
+internal fun BarActionButton(action: BarAction, colors: BarActionColors) {
     when (action) {
         is BarAction.Icon -> IconButton(onClick = action.onClick, enabled = action.enabled && !action.busy) {
             if (action.busy) {
                 AdaptiveCircularProgressIndicator(modifier = Modifier.size(20.dp))
             } else {
-                Icon(
-                    imageVector = action.icon.vector,
-                    contentDescription = action.label,
-                    tint = when (action.tint) {
-                        BarTint.DEFAULT -> colors.default.takeOrElse { LocalContentColor.current }
-                        BarTint.DESTRUCTIVE -> if (action.enabled) {
-                            MaterialTheme.colorScheme.error
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        }
-                    },
-                )
+                val icon = @Composable {
+                    Icon(
+                        imageVector = action.icon.vector,
+                        contentDescription = action.label,
+                        tint = when (action.tint) {
+                            BarTint.DEFAULT -> colors.default.takeOrElse { LocalContentColor.current }
+                            BarTint.DESTRUCTIVE -> if (action.enabled) {
+                                MaterialTheme.colorScheme.error
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            }
+                        },
+                    )
+                }
+                val badge = action.badge
+                if (badge == null) {
+                    icon()
+                } else {
+                    // The label already says what the badge does, so the badge is not read out again.
+                    BadgedBox(badge = { Badge(Modifier.clearAndSetSemantics {}) { Text(badge) } }) { icon() }
+                }
             }
         }
 
@@ -426,7 +459,7 @@ internal expect fun NativeGlassTopBar(spec: AdaptiveTopBarSpec, modifier: Modifi
 private val TranslucentFade = 12.dp
 
 @Composable
-private fun glassEdgeScrim(): Brush {
+internal fun glassEdgeScrim(): Brush {
     val surface = MaterialTheme.colorScheme.surface
     return remember(surface) {
         // Nearly opaque through the bar, so a title never sits on legible text, then a short fade at
@@ -454,7 +487,7 @@ internal fun SimulatedGlassTopBar(spec: AdaptiveTopBarSpec, modifier: Modifier =
 }
 
 @Composable
-private fun glassTitleStyle() = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
+internal fun glassTitleStyle() = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
 
 @Composable
 private fun SimulatedGlassTopBarContent(spec: AdaptiveTopBarSpec) {
@@ -644,22 +677,6 @@ private fun labelsSqueezeTitle(
     val fontScale = with(density) { titleSize.toDp() / titleSize.value.dp }
     return room < TitleFloor * fontScale && room < width(title, metrics.titleStyle)
 }
-
-internal fun AdaptiveTopBarSpec.withCompactTextActions() = copy(
-    actions = actions.map { action ->
-        if (action is BarAction.Text) {
-            BarAction.Icon(
-                id = action.id,
-                icon = action.compactIcon,
-                label = action.accessibilityLabel ?: action.label,
-                enabled = action.enabled,
-                onClick = action.onClick,
-            )
-        } else {
-            action
-        }
-    },
-)
 
 /** The text prompt behind [BarRename] on the Compose renderer; the native bar uses a UIAlertController. */
 @Composable

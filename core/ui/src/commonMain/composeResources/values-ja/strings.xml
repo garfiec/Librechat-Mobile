@@ -404,4 +404,5 @@
     <string name="artifacts_mode_shadcnui_desc">ボタン・フォーム・カードなどの既製部品 (shadcn/ui) も AI に教え、見栄えのよいインタラクティブなアプリにします。AI が読むメッセージが長くなるため、返答が遅くなることがあります。</string>
     <string name="artifacts_mode_custom">自分の指示のみ</string>
     <string name="artifacts_mode_custom_desc">組み込みのガイドをオフにし、AI はあなたが書いたカスタム指示だけに従います。指示に作り方がないと、アーティファクトを作らないことがあります。</string>
+    <string name="topbar_more_options">その他のオプション</string>
 </resources>

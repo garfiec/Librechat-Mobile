@@ -404,4 +404,5 @@
     <string name="artifacts_mode_shadcnui_desc">보기 좋은 대화형 앱을 위해 미리 만들어진 버튼, 양식, 카드(shadcn/ui)도 AI에게 알려 줍니다. AI가 읽을 메시지가 길어져 응답이 느려질 수 있습니다.</string>
     <string name="artifacts_mode_custom">내 지침만</string>
     <string name="artifacts_mode_custom_desc">기본 안내를 끄고, AI는 직접 작성한 사용자 지정 지침만 따릅니다. 지침에 방법이 없으면 아티팩트를 만들지 않을 수 있습니다.</string>
+    <string name="topbar_more_options">추가 옵션</string>
 </resources>
