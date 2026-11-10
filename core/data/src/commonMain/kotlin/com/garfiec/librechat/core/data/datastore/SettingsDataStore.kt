@@ -300,18 +300,6 @@ class SettingsDataStore(
         prefs[KEY_STT_END_OF_SPEECH] ?: false
     }
 
-    val ttsEngine: Flow<String> = dataStore.data.map { prefs ->
-        prefs[KEY_TTS_ENGINE] ?: ""
-    }
-
-    val ttsVoice: Flow<String> = dataStore.data.map { prefs ->
-        prefs[KEY_TTS_VOICE] ?: ""
-    }
-
-    val ttsCaching: Flow<Boolean> = dataStore.data.map { prefs ->
-        prefs[KEY_TTS_CACHING] ?: true
-    }
-
     val chatLayoutStyle: Flow<String> = dataStore.data.map { prefs ->
         prefs[KEY_CHAT_LAYOUT_STYLE] ?: "thread"
     }
@@ -782,24 +770,6 @@ class SettingsDataStore(
         }
     }
 
-    suspend fun setTtsEngine(engine: String) {
-        dataStore.edit { prefs ->
-            prefs[KEY_TTS_ENGINE] = engine
-        }
-    }
-
-    suspend fun setTtsVoice(voice: String) {
-        dataStore.edit { prefs ->
-            prefs[KEY_TTS_VOICE] = voice
-        }
-    }
-
-    suspend fun setTtsCaching(enabled: Boolean) {
-        dataStore.edit { prefs ->
-            prefs[KEY_TTS_CACHING] = enabled
-        }
-    }
-
     suspend fun setChatLayoutStyle(style: String) {
         dataStore.edit { prefs ->
             prefs[KEY_CHAT_LAYOUT_STYLE] = style
@@ -954,9 +924,6 @@ class SettingsDataStore(
         private val KEY_STT_LANGUAGE = stringPreferencesKey("stt_language")
         private val KEY_STT_ON_DEVICE = booleanPreferencesKey("stt_on_device")
         private val KEY_STT_END_OF_SPEECH = booleanPreferencesKey("stt_end_of_speech")
-        private val KEY_TTS_ENGINE = stringPreferencesKey("tts_engine")
-        private val KEY_TTS_VOICE = stringPreferencesKey("tts_voice")
-        private val KEY_TTS_CACHING = booleanPreferencesKey("tts_caching")
         private val KEY_CHAT_LAYOUT_STYLE = stringPreferencesKey("chat_layout_style")
         private val KEY_FILES_VIEW_MODE = stringPreferencesKey("files_view_mode")
         private val KEY_FILES_SORT_FIELD = stringPreferencesKey("files_sort_field")

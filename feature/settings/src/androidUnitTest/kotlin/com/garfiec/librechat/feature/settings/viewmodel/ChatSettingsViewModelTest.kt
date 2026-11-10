@@ -17,6 +17,7 @@ import com.garfiec.librechat.core.model.config.InterfaceConfig
 import com.garfiec.librechat.core.model.config.StartupConfig
 import com.garfiec.librechat.core.model.permissions.UserRolePermissions
 import com.garfiec.librechat.core.model.speech.SpeechConfig
+import com.garfiec.librechat.core.model.speech.TtsVoice
 import com.garfiec.librechat.feature.settings.viewmodel.delegate.SpeechSettingsContract
 import com.garfiec.librechat.feature.settings.viewmodel.delegate.SpeechSettingsFactory
 import com.google.common.truth.Truth.assertThat
@@ -50,6 +51,9 @@ class ChatSettingsViewModelTest {
     private val siteIconsChoiceFlow = MutableStateFlow<Boolean?>(null)
     private val preferLastUsedFlow = MutableStateFlow(false)
     private val webSearchFirstFlow = MutableStateFlow(WebSearchPreference.LIBRECHAT_FIRST)
+    private val ttsSourceFlow = MutableStateFlow(TTS_SOURCE_DEVICE)
+    private val selectedVoiceIdFlow = MutableStateFlow<String?>(null)
+    private var speechStateHandle: SettingsStateHandle<ChatSettingsUiState>? = null
     private val speechRepository = mockk<SpeechRepository>(relaxed = true)
     private val libraryConsent = mockk<ArtifactLibraryConsentStore>(relaxed = true)
     private val startupConfig = MutableStateFlow<StartupConfig?>(null)
@@ -72,16 +76,13 @@ class ChatSettingsViewModelTest {
         // Setup DataStore flows
         every { settingsDataStore.thinkingOpenByDefault } returns MutableStateFlow(false)
         every { settingsDataStore.autoReadEnabled } returns MutableStateFlow(false)
-        every { settingsDataStore.selectedVoiceId } returns MutableStateFlow(null)
+        every { settingsDataStore.selectedVoiceId } returns selectedVoiceIdFlow
         every { settingsDataStore.showImageDescriptions } returns MutableStateFlow(false)
         every { settingsDataStore.dismissKeyboardOnSend } returns MutableStateFlow(false)
-        every { settingsDataStore.ttsSource } returns MutableStateFlow("device")
-        every { settingsDataStore.ttsSpeechRate } returns MutableStateFlow(1.0f)
-        every { settingsDataStore.ttsPitch } returns MutableStateFlow(1.0f)
-        every { settingsDataStore.ttsVoiceName } returns MutableStateFlow("")
-        every { settingsDataStore.ttsEngine } returns MutableStateFlow("")
-        every { settingsDataStore.ttsVoice } returns MutableStateFlow("")
-        every { settingsDataStore.ttsCaching } returns MutableStateFlow(true)
+        every { settingsDataStore.ttsSource } returns ttsSourceFlow
+        every { settingsDataStore.ttsSpeechRate } returns MutableStateFlow(1.5f)
+        every { settingsDataStore.ttsPitch } returns MutableStateFlow(0.75f)
+        every { settingsDataStore.ttsVoiceName } returns MutableStateFlow("en-gb-x-rjs-local")
         every { settingsDataStore.autoSendAfterStt } returns MutableStateFlow(false)
         every { settingsDataStore.sttEngine } returns MutableStateFlow("")
         every { settingsDataStore.sttLanguage } returns MutableStateFlow("")
@@ -115,7 +116,10 @@ class ChatSettingsViewModelTest {
     private fun createViewModel() = ChatSettingsViewModel(
         settingsDataStore = settingsDataStore,
         preferenceStore = preferenceStore,
-        speechSettingsFactory = SpeechSettingsFactory { speechSettingsContract },
+        speechSettingsFactory = SpeechSettingsFactory { handle ->
+            speechStateHandle = handle
+            speechSettingsContract
+        },
         libraryConsent = libraryConsent,
         fileRepository = io.mockk.mockk(relaxed = true),
         configRepository = configRepository,
@@ -228,6 +232,41 @@ class ChatSettingsViewModelTest {
         // The delegate fetches voices only once the config says the server has TTS.
         verify(exactly = 1) { speechSettingsContract.loadSpeechConfig() }
         verify(exactly = 0) { speechSettingsContract.loadVoices() }
+    }
+
+    @Test
+    fun `a device preview speaks with the saved speed, pitch and voice`() = runTest {
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.previewVoice("Hello")
+
+        verify { speechSettingsContract.previewDeviceTts("Hello", 1.5f, 0.75f, "en-gb-x-rjs-local") }
+    }
+
+    @Test
+    fun `a server preview asks for the chosen server voice`() = runTest {
+        ttsSourceFlow.value = TTS_SOURCE_SERVER
+        selectedVoiceIdFlow.value = "nova"
+        viewModel = createViewModel()
+        val voices = listOf(TtsVoice(id = "alloy", name = "alloy"), TtsVoice(id = "nova", name = "nova"))
+        speechStateHandle!!.update { copy(availableVoices = voices) }
+        advanceUntilIdle()
+
+        viewModel.previewVoice("Hello")
+
+        verify { speechSettingsContract.previewServerTts("Hello", "nova") }
+    }
+
+    @Test
+    fun `choosing a server voice saves its id, the one chat playback sends`() = runTest {
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.selectServerVoice(TtsVoice(id = "nova", name = "Nova"))
+        advanceUntilIdle()
+
+        coVerify { settingsDataStore.setSelectedVoiceId("nova") }
     }
 
     @Test

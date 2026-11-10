@@ -38,8 +38,6 @@
     <string name="cd_selected">Ausgewählt</string>
     <string name="cd_selected_avatar">Ausgewählter Avatar</string>
     <string name="cd_stop_voice_preview">Stimmenvorschau stoppen</string>
-    <string name="cd_test_tts_voice">Ausgewählte TTS-Stimme testen</string>
-    <string name="cd_tts_voice_selector">TTS-Stimme auswählen. Aktuell %1$s</string>
     <string name="cd_user_avatar">Benutzer-Avatar</string>
     <string name="cd_view_all_tools">Alle Tools anzeigen</string>
 
@@ -120,7 +118,6 @@
     <string name="prefetch_cache_images">Bilder und Dateien</string>
     <string name="section_profile">Profil</string>
     <string name="section_security">Sicherheit</string>
-    <string name="section_speech">Sprache</string>
     <!-- Screen titles -->
     <string name="title_api_keys">API-Schlüssel</string>
     <string name="title_memories">Erinnerungen</string>
@@ -420,20 +417,15 @@
     <string name="dialog_clear_logs_message">Dies löscht alle auf diesem Gerät gespeicherten Diagnoseprotokolle dauerhaft. Diese Aktion kann nicht rückgängig gemacht werden.</string>
 
     <!-- Speech settings -->
-    <string name="auto_send_after_speech">Automatisch nach Sprache senden</string>
-    <string name="auto_send_after_speech_desc">Die Nachricht automatisch senden, sobald die Spr-zu-Text-Erkennung abgeschlossen ist</string>
-    <string name="auto_read_responses">Antworten automatisch vorlesen</string>
-    <string name="auto_read_responses_desc">KI-Antworten automatisch per Text-zu-Sprache vorlesen</string>
-    <string name="tts_voice">TTS-Stimme</string>
-    <string name="test_voice">Stimme testen</string>
+    <string name="auto_send_after_speech">Senden, wenn ich aufhöre zu sprechen</string>
+    <string name="auto_send_after_speech_desc">Die Nachricht senden, sobald das Diktat endet</string>
+    <string name="auto_read_responses">Antworten vorlesen</string>
+    <string name="auto_read_responses_desc">Jede neue Antwort vorlesen, sobald sie fertig ist</string>
     <string name="no_server_tts_voices">Keine Server-TTS-Stimmen verfügbar. Sprachfunktionen sind auf dem Server möglicherweise nicht konfiguriert.</string>
-    <string name="using_device_tts">Verwendet die Text-zu-Sprache-Engine des Geräts. Stimme und Geschwindigkeit kannst du unten in den Text-zu-Sprache-Einstellungen konfigurieren.</string>
-    <string name="speech_to_text_settings">Sprache-zu-Text-Einstellungen</string>
-    <string name="text_to_speech_settings">Text-zu-Sprache-Einstellungen</string>
 
     <!-- STT detail dialog -->
-    <string name="stt_engine_label">Engine</string>
-    <string name="stt_language_label">Sprache</string>
+    <string name="stt_engine_label">Erkennungs-Engine</string>
+    <string name="stt_language_label">Diktiersprache</string>
     <string name="stt_default">Standard</string>
     <string name="stt_engine_browser">Integriert</string>
     <string name="stt_engine_external">Server</string>
@@ -442,18 +434,17 @@
     <string name="stt_on_device_toggle">Erkennung auf dem Gerät</string>
     <string name="stt_on_device_toggle_desc">Transkribiert auf diesem Gerät statt in der Cloud. Fällt auf die Cloud-Erkennung zurück, falls nicht verfügbar.</string>
     <string name="stt_end_of_speech_toggle">Anhalten, wenn ich pausiere</string>
-    <string name="stt_end_of_speech_toggle_desc">Beendet das Diktat automatisch, sobald du aufhörst zu sprechen, statt bis zum Tippen auf Stopp weiterzulaufen. Mit aktiviertem automatischem Senden nach der Sprache wird die Nachricht freihändig gesendet.</string>
+    <string name="stt_end_of_speech_toggle_desc">Beendet das Diktat, sobald du aufhörst zu sprechen, statt auf Stopp zu warten. Mit „Senden, wenn ich aufhöre zu sprechen“ geht es freihändig.</string>
     <string name="stt_auto_detect">Automatisch erkennen</string>
 
     <!-- TTS detail dialog -->
-    <string name="tts_source_label">Quelle</string>
+    <string name="tts_source_label">Stimmquelle</string>
     <string name="tts_source_device">Gerät (integriert)</string>
     <string name="tts_source_server">Server</string>
     <string name="tts_voice_label">Stimme</string>
     <string name="tts_system_default">Systemstandard</string>
-    <string name="tts_speech_rate">Sprechgeschwindigkeit: %1$sx</string>
+    <string name="tts_speech_rate">Geschwindigkeit: %1$sx</string>
     <string name="tts_pitch">Tonhöhe: %1$s</string>
-    <string name="tts_cache_audio">Audio zwischenspeichern</string>
     <string name="tts_preview_text">Dies ist eine Vorschau der ausgewählten Stimme.</string>
     <string name="tts_stop_preview">Vorschau stoppen</string>
     <string name="tts_preview_voice">Stimme anhören</string>
@@ -1018,7 +1009,6 @@
     <string name="pr_account_disconnect_error">Trennen fehlgeschlagen. Versuche es erneut.</string>
     <string name="pr_account_connect_error">Verbindung konnte nicht gestartet werden. Versuche es erneut.</string>
     <string name="pr_account_not_available">Auf diesem Server kann kein Konto verbunden werden.</string>
-    <string name="speech_error_voice_test">Die Stimme konnte nicht getestet werden. Versuche es erneut.</string>
     <string name="speech_error_voice_preview">Die Stimmvorschau konnte nicht abgespielt werden. Versuche es erneut.</string>
     <string name="speech_error_playback">Die Audiowiedergabe ist fehlgeschlagen.</string>
     <string name="accent_name_blue">Blau</string>
@@ -1069,6 +1059,10 @@
     <string name="advanced_chat_settings_summary">Während der Antwort, Uploads, Voreinstellungen</string>
     <string name="advanced_data_settings">Erweiterte Dateneinstellungen</string>
     <string name="advanced_data_settings_summary">Protokolle, Code-Umgebungen</string>
+    <string name="section_listening">Diktat</string>
+    <string name="section_speaking">Vorlesen</string>
+    <string name="advanced_voice_settings">Erweiterte Spracheinstellungen</string>
+    <string name="advanced_voice_settings_summary">Erkennungs-Engine, Erkennung auf dem Gerät</string>
     <string name="section_messages">Nachrichten</string>
     <string name="section_your_chats">Deine Chats</string>
     <string name="section_on_this_phone">Auf diesem Gerät</string>

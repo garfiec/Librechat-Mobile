@@ -11,11 +11,10 @@ import com.garfiec.librechat.core.data.datastore.UploadRoutingMode
 import com.garfiec.librechat.core.data.datastore.WebSearchPreference
 import com.garfiec.librechat.core.model.ArtifactsMode
 import com.garfiec.librechat.core.model.speech.TtsVoice
-import com.garfiec.librechat.feature.settings.screen.DeviceVoiceInfo
 
 @Immutable
 data class ChatSettingsUiState(
-    /** A voice test, preview or playback failure for the snackbar; cleared by [ChatSettingsViewModel.dismissError]. */
+    /** A voice preview or playback failure for the snackbar; cleared by [ChatSettingsViewModel.dismissError]. */
     val error: SpeechFailure? = null,
     // Chat preferences
     /** Whether a reply's reasoning block starts expanded; the block itself is always shown. */
@@ -32,9 +31,6 @@ data class ChatSettingsUiState(
     val autoReadEnabled: Boolean = false,
     val selectedVoice: TtsVoice? = null,
     val availableVoices: List<TtsVoice> = emptyList(),
-    // Speech detail dialogs
-    val showSttDetailDialog: Boolean = false,
-    val showTtsDetailDialog: Boolean = false,
     val sttEngine: String = "",
     val sttLanguage: String = "",
     val sttAutoSend: Boolean = false,
@@ -49,13 +45,10 @@ data class ChatSettingsUiState(
      * voices fetch, which a server without TTS answers with a 500. False until the config loads.
      */
     val serverTtsEnabled: Boolean = false,
-    val ttsEngine: String = "",
-    val ttsVoice: String = "",
     val ttsSpeechRate: Float = 1.0f,
     val ttsPitch: Float = 1.0f,
     val ttsDeviceVoiceName: String = "",
-    val ttsCaching: Boolean = true,
-    val ttsSource: String = "device",
+    val ttsSource: String = TTS_SOURCE_DEVICE,
     val availableDeviceVoices: List<DeviceVoiceInfo> = emptyList(),
     // TTS preview
     val isTtsPreviewPlaying: Boolean = false,
@@ -80,5 +73,15 @@ data class ChatSettingsUiState(
     val artifactsMode: ArtifactsMode = ArtifactsMode.DEFAULT,
 )
 
+/** The stored `tts_source` values: the device's own engine, or the server's TTS route. */
+internal const val TTS_SOURCE_DEVICE = "device"
+internal const val TTS_SOURCE_SERVER = "server"
+
+/** A device voice offered on the Voice page; [name] is what Settings stores and playback looks up. */
+data class DeviceVoiceInfo(
+    val name: String,
+    val locale: String,
+)
+
 /** Speech failures the page shows; the screen maps each to its string. */
-enum class SpeechFailure { VOICE_TEST, VOICE_PREVIEW, PLAYBACK }
+enum class SpeechFailure { VOICE_PREVIEW, PLAYBACK }

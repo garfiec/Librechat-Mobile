@@ -7,12 +7,10 @@ import android.speech.tts.UtteranceProgressListener
 import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.common.result.suspendRunCatching
-import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.repository.ServerSttGate
 import com.garfiec.librechat.core.data.repository.SpeechRepository
-import com.garfiec.librechat.core.model.speech.TtsVoice
-import com.garfiec.librechat.feature.settings.screen.DeviceVoiceInfo
 import com.garfiec.librechat.feature.settings.viewmodel.ChatSettingsUiState
+import com.garfiec.librechat.feature.settings.viewmodel.DeviceVoiceInfo
 import com.garfiec.librechat.feature.settings.viewmodel.SettingsStateHandle
 import com.garfiec.librechat.feature.settings.viewmodel.SpeechFailure
 import kotlinx.coroutines.CoroutineDispatcher
@@ -22,13 +20,12 @@ import kotlinx.coroutines.withContext
 import java.io.File
 
 /**
- * Handles TTS voice selection, test playback, device voice loading, and MediaPlayer lifecycle.
+ * Loads the server and device voices and plays the voice preview, owning its MediaPlayer.
  */
 class SpeechSettingsDelegate(
     private val stateHandle: SettingsStateHandle<ChatSettingsUiState>,
     private val context: Context,
     private val speechRepository: SpeechRepository,
-    private val settingsDataStore: SettingsDataStore,
     private val ioDispatcher: CoroutineDispatcher,
 ) : SpeechSettingsContract {
 
@@ -37,8 +34,8 @@ class SpeechSettingsDelegate(
 
     // Loads + latches the server speech config (STT and TTS flags) with the shared "unknown vs
     // disabled" retry policy. Until it has resolved once (gate.loaded), serverSttEnabled and
-    // serverTtsEnabled = false mean "unknown", not "disabled" — so opening either speech dialog
-    // retries rather than permanently hiding the External engine or the Server TTS source.
+    // serverTtsEnabled = false mean "unknown", not "disabled" — so opening the Voice page retries
+    // rather than permanently hiding the Server engine or the Server voice source.
     private val serverSttGate = ServerSttGate(speechRepository)
     private var speechConfigJob: Job? = null
 
@@ -84,11 +81,11 @@ class SpeechSettingsDelegate(
     }
 
     override fun loadSpeechConfig() {
-        // A dialog opened while the launch fetch is still in flight joins it rather than racing it.
+        // A page opened while the launch fetch is still in flight joins it rather than racing it.
         if (speechConfigJob?.isActive == true) return
         speechConfigJob = stateHandle.scope.launch {
-            // A null result means a transient failure — leave the gate unlatched so opening either
-            // speech dialog retries rather than trusting it as a definitive "disabled".
+            // A null result means a transient failure — leave the gate unlatched so opening the Voice
+            // page retries rather than trusting it as a definitive "disabled".
             val config = serverSttGate.refreshConfig()
             val ttsEnabled = config?.ttsExternal ?: false
             stateHandle.update {
@@ -96,43 +93,6 @@ class SpeechSettingsDelegate(
             }
             // A server without `speech.tts` answers the voices route with a 500.
             if (ttsEnabled) loadVoices()
-        }
-    }
-
-    override fun setAutoSendAfterStt(enabled: Boolean) {
-        stateHandle.scope.launch {
-            settingsDataStore.setAutoSendAfterStt(enabled)
-        }
-    }
-
-    override fun setAutoReadEnabled(enabled: Boolean) {
-        stateHandle.scope.launch {
-            settingsDataStore.setAutoReadEnabled(enabled)
-        }
-    }
-
-    override fun selectVoice(voice: TtsVoice) {
-        stateHandle.scope.launch {
-            settingsDataStore.setSelectedVoiceId(voice.id)
-        }
-    }
-
-    override fun testVoice(text: String) {
-        val voice = stateHandle.state.selectedVoice
-        stateHandle.scope.launch {
-            val result = speechRepository.synthesizeSpeech(
-                text = text,
-                voice = voice?.id,
-            )
-            when (result) {
-                is Result.Success -> {
-                    playAudioBytes(result.data)
-                }
-                is Result.Error -> {
-                    stateHandle.update { copy(error = SpeechFailure.VOICE_TEST) }
-                }
-                is Result.Loading -> { /* no-op */ }
-            }
         }
     }
 
@@ -162,18 +122,17 @@ class SpeechSettingsDelegate(
         tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "tts_preview")
     }
 
-    override fun previewServerTts(text: String, voice: String?, model: String?) {
+    override fun previewServerTts(text: String, voice: String?) {
         stopTtsPreview()
         stateHandle.update { copy(isTtsPreviewPlaying = true) }
         stateHandle.scope.launch {
             val result = speechRepository.synthesizeSpeech(
                 text = text,
                 voice = voice,
-                model = model,
             )
             when (result) {
                 is Result.Success -> {
-                    playAudioBytes(result.data, isPreview = true)
+                    playAudioBytes(result.data)
                 }
                 is Result.Error -> {
                     stateHandle.update {
@@ -188,6 +147,14 @@ class SpeechSettingsDelegate(
         }
     }
 
+    override fun retrySpeechConfig() {
+        if (!serverSttGate.loaded) {
+            loadSpeechConfig()
+        } else if (stateHandle.state.serverTtsEnabled && stateHandle.state.availableVoices.isEmpty()) {
+            loadVoices()
+        }
+    }
+
     override fun stopTtsPreview() {
         deviceTtsEngine?.stop()
         currentMediaPlayer?.release()
@@ -195,86 +162,11 @@ class SpeechSettingsDelegate(
         stateHandle.update { copy(isTtsPreviewPlaying = false) }
     }
 
-    // STT detail dialogs
-
-    override fun showSttDetailDialog() {
-        // Retry the speech-config fetch if it hasn't succeeded yet, so a transient error at settings
-        // launch doesn't permanently hide the External engine for the whole session.
-        if (!serverSttGate.loaded) loadSpeechConfig()
-        stateHandle.update { copy(showSttDetailDialog = true) }
-    }
-
-    override fun dismissSttDetailDialog() {
-        stateHandle.update { copy(showSttDetailDialog = false) }
-    }
-
-    override fun saveSttSettings(engine: String, language: String, onDevice: Boolean, endOfSpeech: Boolean) {
-        stateHandle.update {
-            copy(
-                sttEngine = engine,
-                sttLanguage = language,
-                sttOnDevice = onDevice,
-                sttEndOfSpeech = endOfSpeech,
-                showSttDetailDialog = false,
-            )
-        }
-        stateHandle.scope.launch {
-            settingsDataStore.setSttEngine(engine)
-            settingsDataStore.setSttLanguage(language)
-            settingsDataStore.setSttOnDevice(onDevice)
-            settingsDataStore.setSttEndOfSpeech(endOfSpeech)
-        }
-    }
-
-    override fun showTtsDetailDialog() {
-        // Same retry as the STT dialog: a failed config fetch at launch must not hide Server TTS,
-        // and a failed voices fetch must not hide the voice picker for the session.
-        if (!serverSttGate.loaded) {
-            loadSpeechConfig()
-        } else if (stateHandle.state.serverTtsEnabled && stateHandle.state.availableVoices.isEmpty()) {
-            loadVoices()
-        }
-        stateHandle.update { copy(showTtsDetailDialog = true) }
-    }
-
-    override fun dismissTtsDetailDialog() {
-        stateHandle.update { copy(showTtsDetailDialog = false) }
-    }
-
-    override fun saveTtsSettings(
-        engine: String,
-        voice: String,
-        rate: Float,
-        pitch: Float,
-        deviceVoiceName: String,
-        caching: Boolean,
-        source: String,
-    ) {
-        stateHandle.update {
-            copy(
-                ttsEngine = engine,
-                ttsVoice = voice,
-                ttsCaching = caching,
-                ttsSource = source,
-                showTtsDetailDialog = false,
-            )
-        }
-        stateHandle.scope.launch {
-            settingsDataStore.setTtsSource(source)
-            settingsDataStore.setTtsSpeechRate(rate)
-            settingsDataStore.setTtsPitch(pitch)
-            settingsDataStore.setTtsVoiceName(deviceVoiceName)
-            settingsDataStore.setTtsEngine(engine)
-            settingsDataStore.setTtsVoice(voice)
-            settingsDataStore.setTtsCaching(caching)
-        }
-    }
-
     /**
      * Plays audio bytes via MediaPlayer. Attaches listeners before calling prepare()
      * and releases the player if prepare/start fails.
      */
-    private suspend fun playAudioBytes(audioBytes: ByteArray, isPreview: Boolean = false) {
+    private suspend fun playAudioBytes(audioBytes: ByteArray) {
         suspendRunCatching {
             // Stop any currently playing audio
             currentMediaPlayer?.release()
@@ -295,9 +187,7 @@ class SpeechSettingsDelegate(
                 // so hand them to ioDispatcher rather than running them on Main.
                 mp.setOnCompletionListener { player ->
                     currentMediaPlayer = null
-                    if (isPreview) {
-                        stateHandle.update { copy(isTtsPreviewPlaying = false) }
-                    }
+                    stateHandle.update { copy(isTtsPreviewPlaying = false) }
                     stateHandle.scope.launch(ioDispatcher) {
                         player.release()
                         tempFile.delete()

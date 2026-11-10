@@ -38,8 +38,6 @@
     <string name="cd_selected">Selected</string>
     <string name="cd_selected_avatar">Selected avatar</string>
     <string name="cd_stop_voice_preview">Stop voice preview</string>
-    <string name="cd_test_tts_voice">Test selected TTS voice</string>
-    <string name="cd_tts_voice_selector">Select TTS voice. Currently %1$s</string>
     <string name="cd_user_avatar">User avatar</string>
     <string name="cd_view_all_tools">View all tools</string>
 
@@ -123,7 +121,6 @@
     <string name="prefetch_cache_images">Images and files</string>
     <string name="section_profile">Profile</string>
     <string name="section_security">Security</string>
-    <string name="section_speech">Speech</string>
     <!-- Screen titles -->
     <string name="title_api_keys">API keys</string>
     <string name="title_memories">Memories</string>
@@ -428,20 +425,15 @@
     <string name="dialog_clear_logs_message">This will permanently delete all stored diagnostic logs from this device. This action cannot be undone.</string>
 
     <!-- Speech settings -->
-    <string name="auto_send_after_speech">Auto-send after speech</string>
-    <string name="auto_send_after_speech_desc">Automatically send the message after speech-to-text finishes</string>
-    <string name="auto_read_responses">Auto-read responses</string>
-    <string name="auto_read_responses_desc">Automatically read AI responses aloud using text-to-speech</string>
-    <string name="tts_voice">TTS voice</string>
-    <string name="test_voice">Test voice</string>
+    <string name="auto_send_after_speech">Send after I stop speaking</string>
+    <string name="auto_send_after_speech_desc">Send the message as soon as dictation ends</string>
+    <string name="auto_read_responses">Read replies aloud</string>
+    <string name="auto_read_responses_desc">Read each new reply aloud when it finishes</string>
     <string name="no_server_tts_voices">No server TTS voices available. Speech features may not be configured on the server.</string>
-    <string name="using_device_tts">Using device text-to-speech engine. Configure voice and speed in Text-to-Speech Settings below.</string>
-    <string name="speech_to_text_settings">Speech-to-text settings</string>
-    <string name="text_to_speech_settings">Text-to-speech settings</string>
 
     <!-- STT detail dialog -->
-    <string name="stt_engine_label">Engine</string>
-    <string name="stt_language_label">Language</string>
+    <string name="stt_engine_label">Recognition engine</string>
+    <string name="stt_language_label">Speech language</string>
     <string name="stt_default">Default</string>
     <string name="stt_engine_browser">Built-in</string>
     <string name="stt_engine_external">Server</string>
@@ -450,18 +442,17 @@
     <string name="stt_on_device_toggle">On-device recognition</string>
     <string name="stt_on_device_toggle_desc">Transcribe on this device instead of the cloud. Falls back to the cloud recognizer if unavailable.</string>
     <string name="stt_end_of_speech_toggle">Stop when I pause</string>
-    <string name="stt_end_of_speech_toggle_desc">End dictation automatically once you stop speaking, instead of running until you tap stop. With Auto-send after speech on, this sends the message hands-free.</string>
+    <string name="stt_end_of_speech_toggle_desc">End dictation once you stop talking, instead of waiting for you to tap stop. With Send after I stop speaking on, it's hands-free.</string>
     <string name="stt_auto_detect">Auto-detect</string>
 
     <!-- TTS detail dialog -->
-    <string name="tts_source_label">Source</string>
+    <string name="tts_source_label">Voice source</string>
     <string name="tts_source_device">Device (built-in)</string>
     <string name="tts_source_server">Server</string>
     <string name="tts_voice_label">Voice</string>
     <string name="tts_system_default">System default</string>
-    <string name="tts_speech_rate">Speech rate: %1$sx</string>
+    <string name="tts_speech_rate">Speed: %1$sx</string>
     <string name="tts_pitch">Pitch: %1$s</string>
-    <string name="tts_cache_audio">Cache audio</string>
     <string name="tts_preview_text">This is a preview of the selected voice.</string>
     <string name="tts_stop_preview">Stop preview</string>
     <string name="tts_preview_voice">Preview voice</string>
@@ -1032,7 +1023,6 @@
     <string name="pr_account_disconnect_error">Couldn't disconnect. Try again.</string>
     <string name="pr_account_connect_error">Couldn't start connecting. Try again.</string>
     <string name="pr_account_not_available">Connecting an account isn't available on this server.</string>
-    <string name="speech_error_voice_test">Couldn't test the voice. Try again.</string>
     <string name="speech_error_voice_preview">Couldn't preview the voice. Try again.</string>
     <string name="speech_error_playback">Couldn't play the audio.</string>
     <string name="accent_name_blue">Blue</string>
@@ -1083,6 +1073,10 @@
     <string name="advanced_chat_settings_summary">While generating, uploads, presets</string>
     <string name="advanced_data_settings">Advanced data settings</string>
     <string name="advanced_data_settings_summary">Logs, code environments</string>
+    <string name="section_listening">Listening</string>
+    <string name="section_speaking">Speaking</string>
+    <string name="advanced_voice_settings">Advanced voice settings</string>
+    <string name="advanced_voice_settings_summary">Recognition engine, on-device recognition</string>
     <string name="section_messages">Messages</string>
     <string name="section_your_chats">Your chats</string>
     <string name="section_on_this_phone">On this phone</string>

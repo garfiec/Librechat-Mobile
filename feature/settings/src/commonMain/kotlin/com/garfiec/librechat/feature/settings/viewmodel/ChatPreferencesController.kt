@@ -29,13 +29,11 @@ private data class ExtraPreferences(
     val ttsSource: String,
 )
 
-/** Device TTS preferences (speech rate, pitch, voice name, engine, voice selection). */
+/** Device TTS preferences (speech rate, pitch, voice name). */
 private data class DeviceTtsPreferences(
     val speechRate: Float,
     val pitch: Float,
     val voiceName: String,
-    val ttsEngine: String,
-    val ttsVoice: String,
 )
 
 /** Additional preferences combined separately to stay within the 5-arg combine limit. */
@@ -43,7 +41,6 @@ private data class AdditionalPreferences(
     val autoSendAfterStt: Boolean,
     val sttEngine: String,
     val sttLanguage: String,
-    val ttsCaching: Boolean,
     val sttOnDevice: Boolean = true,
     val sttEndOfSpeech: Boolean = false,
     val latexRenderer: LatexRenderer = LatexRenderer.KATEX,
@@ -68,7 +65,7 @@ private data class AdditionalPreferences(
  * the matching write setters. The ViewModel keeps only imperative state and
  * forwards preference reads/writes here.
  */
-@Suppress("TooManyFunctions") // debt: 18 functions
+@Suppress("TooManyFunctions") // debt: 31 functions, one setter per setting
 class ChatPreferencesController(
     private val settingsDataStore: SettingsDataStore,
     private val preferenceStore: PreferenceStore,
@@ -86,21 +83,15 @@ class ChatPreferencesController(
         settingsDataStore.ttsSource,
     ) { autoRead, voiceId, showImgDesc, dismissKeyboard, ttsSource ->
         ExtraPreferences(autoRead, voiceId, showImgDesc, dismissKeyboard, ttsSource)
-    }.stateIn(scope, SharingStarted.Eagerly, ExtraPreferences(false, null, false, true, "device"))
+    }.stateIn(scope, SharingStarted.Eagerly, ExtraPreferences(false, null, false, true, TTS_SOURCE_DEVICE))
 
     private val deviceTtsPreferences: StateFlow<DeviceTtsPreferences> = combine(
         settingsDataStore.ttsSpeechRate,
         settingsDataStore.ttsPitch,
         settingsDataStore.ttsVoiceName,
-        settingsDataStore.ttsEngine,
-        settingsDataStore.ttsVoice,
-    ) { rate, pitch, voiceName, ttsEngine, ttsVoice ->
-        DeviceTtsPreferences(rate, pitch, voiceName, ttsEngine, ttsVoice)
-    }.stateIn(scope, SharingStarted.Eagerly, DeviceTtsPreferences(1.0f, 1.0f, "", "", ""))
-
-    /** TTS caching preference. Kept as a separate flow to stay within the 5-arg combine limit. */
-    private val ttsCachingPreference: StateFlow<Boolean> = settingsDataStore.ttsCaching
-        .stateIn(scope, SharingStarted.Eagerly, true)
+    ) { rate, pitch, voiceName ->
+        DeviceTtsPreferences(rate, pitch, voiceName)
+    }.stateIn(scope, SharingStarted.Eagerly, DeviceTtsPreferences(1.0f, 1.0f, ""))
 
     private val latexRendererPref: StateFlow<LatexRenderer> = settingsDataStore.latexRenderer
         .stateIn(scope, SharingStarted.Eagerly, LatexRenderer.KATEX)
@@ -130,9 +121,8 @@ class ChatPreferencesController(
         settingsDataStore.autoSendAfterStt,
         settingsDataStore.sttEngine,
         settingsDataStore.sttLanguage,
-        ttsCachingPreference,
-    ) { autoSendStt, sttEngine, sttLanguage, ttsCaching ->
-        AdditionalPreferences(autoSendStt, sttEngine, sttLanguage, ttsCaching)
+    ) { autoSendStt, sttEngine, sttLanguage ->
+        AdditionalPreferences(autoSendStt, sttEngine, sttLanguage)
     }
 
     private val additionalPreferences: StateFlow<AdditionalPreferences> = baseAdditionalPreferences.combine(
@@ -172,7 +162,7 @@ class ChatPreferencesController(
         scope,
         SharingStarted.Eagerly,
         // Seeded with the channel default so a store build's toggle doesn't flash off on open.
-        AdditionalPreferences(false, "", "", true, showSiteIcons = preferenceStore.initial(AppPreferences.SiteIcons) ?: false),
+        AdditionalPreferences(false, "", "", showSiteIcons = preferenceStore.initial(AppPreferences.SiteIcons) ?: false),
     )
 
     /** The single public UI state that merges DataStore preferences with imperative state. */
@@ -194,9 +184,6 @@ class ChatPreferencesController(
             ttsSpeechRate = deviceTts.speechRate,
             ttsPitch = deviceTts.pitch,
             ttsDeviceVoiceName = deviceTts.voiceName,
-            ttsEngine = deviceTts.ttsEngine,
-            ttsVoice = deviceTts.ttsVoice,
-            ttsCaching = additional.ttsCaching,
             sttAutoSend = additional.autoSendAfterStt,
             sttEngine = additional.sttEngine,
             sttLanguage = additional.sttLanguage,
@@ -298,5 +285,49 @@ class ChatPreferencesController(
 
     fun setArtifactsMode(mode: ArtifactsMode) {
         scope.launch { settingsDataStore.setArtifactsMode(mode) }
+    }
+
+    fun setAutoSendAfterStt(enabled: Boolean) {
+        scope.launch { settingsDataStore.setAutoSendAfterStt(enabled) }
+    }
+
+    fun setSttEndOfSpeech(enabled: Boolean) {
+        scope.launch { settingsDataStore.setSttEndOfSpeech(enabled) }
+    }
+
+    fun setSttLanguage(language: String) {
+        scope.launch { settingsDataStore.setSttLanguage(language) }
+    }
+
+    fun setSttEngine(engine: String) {
+        scope.launch { settingsDataStore.setSttEngine(engine) }
+    }
+
+    fun setSttOnDevice(enabled: Boolean) {
+        scope.launch { settingsDataStore.setSttOnDevice(enabled) }
+    }
+
+    fun setAutoReadEnabled(enabled: Boolean) {
+        scope.launch { settingsDataStore.setAutoReadEnabled(enabled) }
+    }
+
+    fun setTtsSource(source: String) {
+        scope.launch { settingsDataStore.setTtsSource(source) }
+    }
+
+    fun setServerVoice(voiceId: String) {
+        scope.launch { settingsDataStore.setSelectedVoiceId(voiceId) }
+    }
+
+    fun setDeviceVoice(voiceName: String) {
+        scope.launch { settingsDataStore.setTtsVoiceName(voiceName) }
+    }
+
+    fun setTtsSpeechRate(rate: Float) {
+        scope.launch { settingsDataStore.setTtsSpeechRate(rate) }
+    }
+
+    fun setTtsPitch(pitch: Float) {
+        scope.launch { settingsDataStore.setTtsPitch(pitch) }
     }
 }

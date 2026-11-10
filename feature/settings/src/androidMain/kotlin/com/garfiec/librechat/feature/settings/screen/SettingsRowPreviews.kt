@@ -73,10 +73,6 @@ private fun AboutInfoPreview() = PreviewSurface(UiStyle.MATERIAL) { AboutInfoHos
 
 @PreviewNarrowScreens
 @Composable
-private fun SpeechButtonsPreview() = PreviewSurface(UiStyle.MATERIAL) { SpeechDetailButtons({}, {}) }
-
-@PreviewNarrowScreens
-@Composable
 private fun NudgePreviewPreview() = PreviewSurface(UiStyle.MATERIAL) { NudgeHost() }
 
 @Composable

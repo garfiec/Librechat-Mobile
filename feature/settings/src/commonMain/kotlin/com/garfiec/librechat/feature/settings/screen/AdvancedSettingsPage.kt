@@ -30,6 +30,7 @@ import com.garfiec.librechat.core.data.datastore.UploadRoutingMode
 import com.garfiec.librechat.core.data.datastore.WebSearchPreference
 import com.garfiec.librechat.core.data.repository.HeaderWriteFailure
 import com.garfiec.librechat.core.model.ArtifactsMode
+import com.garfiec.librechat.core.model.speech.SttEngine
 import com.garfiec.librechat.core.ui.artifacts.artifactsModeDescription
 import com.garfiec.librechat.core.ui.artifacts.artifactsModeName
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
@@ -97,6 +98,8 @@ fun AdvancedSettingsPage(
         openDialog = null
     }
 
+    // The Server engine is offered only once the speech config says the server transcribes.
+    LaunchedEffect(Unit) { chatViewModel.retrySpeechConfig() }
     LaunchedEffect(data.error) {
         val error = data.error ?: return@LaunchedEffect
         snackbarHostState.showSnackbar(message = error)
@@ -139,6 +142,7 @@ fun AdvancedSettingsPage(
         general = general,
         onOpenDialog = { openDialog = it },
         onClientImageResizeChange = chatViewModel::setClientImageResize,
+        onSttOnDeviceChange = chatViewModel::setSttOnDevice,
         onAdvancedSearchChange = generalViewModel::setAdvancedSearchEnabled,
         onOpenServerConnection = {
             showServerHeadersDialog = true
@@ -221,6 +225,24 @@ fun AdvancedSettingsPage(
             onDecisionChange = chatViewModel::setArtifactLibraryDecision,
             onDismiss = dismissDialog,
         )
+        ChatSettingDialog.STT_ENGINE -> RadioSelectionDialog(
+            title = stringResource(Res.string.stt_engine_label),
+            // Server is offered when the server transcribes, or when it is already the stored choice.
+            options = listOfNotNull(
+                SttEngine.BROWSER,
+                SttEngine.EXTERNAL.takeIf { chat.serverSttEnabled || SttEngine.fromStored(chat.sttEngine) == it },
+            ),
+            selected = SttEngine.fromStored(chat.sttEngine),
+            onSave = saveAndClose { engine: SttEngine -> chatViewModel.setSttEngine(engine.storedValue) },
+            onDismiss = dismissDialog,
+            optionLabel = { sttEngineLabel(it) },
+            optionDescription = {
+                when (it) {
+                    SttEngine.BROWSER -> stringResource(Res.string.stt_hint_browser)
+                    SttEngine.EXTERNAL -> stringResource(Res.string.stt_hint_external)
+                }
+            },
+        )
         ChatSettingDialog.LATEX_RENDERER -> RadioSelectionDialog(
             title = stringResource(Res.string.latex_renderer),
             options = LatexRenderer.entries,
@@ -295,6 +317,7 @@ internal fun AdvancedSettingsContent(
     general: GeneralSettingsUiState,
     onOpenDialog: (ChatSettingDialog) -> Unit,
     onClientImageResizeChange: (Boolean) -> Unit,
+    onSttOnDeviceChange: (Boolean) -> Unit,
     onAdvancedSearchChange: (Boolean) -> Unit,
     onOpenServerConnection: () -> Unit,
     onOpenPresets: () -> Unit,
@@ -404,6 +427,32 @@ internal fun AdvancedSettingsContent(
                     )
                 },
             ),
+        ),
+        AdvancedRows(
+            AdvancedSection.VOICE,
+            buildList {
+                add(
+                    "stt_engine" to {
+                        SettingsRow(
+                            title = stringResource(Res.string.stt_engine_label),
+                            summary = sttEngineLabel(SttEngine.fromStored(chat.sttEngine)),
+                            onClick = { onOpenDialog(ChatSettingDialog.STT_ENGINE) },
+                        )
+                    },
+                )
+                if (liveRecognizerHonorsPrefs(chat.sttEngine)) {
+                    add(
+                        "stt_on_device" to {
+                            SettingsSwitchRow(
+                                title = stringResource(Res.string.stt_on_device_toggle),
+                                description = stringResource(Res.string.stt_on_device_toggle_desc),
+                                checked = chat.sttOnDevice,
+                                onCheckedChange = onSttOnDeviceChange,
+                            )
+                        },
+                    )
+                }
+            },
         ),
         AdvancedRows(
             AdvancedSection.SEARCH,
@@ -593,4 +642,10 @@ private fun DiagnosticLogsSaver(
         snackbarHostState.showSnackbar(message = message)
         saverResult = null
     }
+}
+
+@Composable
+private fun sttEngineLabel(engine: SttEngine): String = when (engine) {
+    SttEngine.BROWSER -> stringResource(Res.string.stt_engine_browser)
+    SttEngine.EXTERNAL -> stringResource(Res.string.stt_engine_external)
 }

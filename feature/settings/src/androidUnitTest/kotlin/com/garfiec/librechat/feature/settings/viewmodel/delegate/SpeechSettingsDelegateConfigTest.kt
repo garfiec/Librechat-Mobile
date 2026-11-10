@@ -2,7 +2,6 @@ package com.garfiec.librechat.feature.settings.viewmodel.delegate
 
 import android.content.Context
 import com.garfiec.librechat.core.common.result.Result
-import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.repository.SpeechRepository
 import com.garfiec.librechat.core.model.speech.SpeechConfig
 import com.garfiec.librechat.core.model.speech.TtsVoice
@@ -35,7 +34,6 @@ class SpeechSettingsDelegateConfigTest {
         stateHandle = SettingsStateHandle(state, this),
         context = mockk<Context>(relaxed = true),
         speechRepository = speechRepository,
-        settingsDataStore = mockk<SettingsDataStore>(relaxed = true),
         ioDispatcher = dispatcher,
     )
 
@@ -67,7 +65,7 @@ class SpeechSettingsDelegateConfigTest {
     }
 
     @Test
-    fun `a failed config fetch asks for no voices and is retried when the TTS dialog opens`() = runTest(dispatcher) {
+    fun `a failed config fetch asks for no voices and is retried when the Voice page opens`() = runTest(dispatcher) {
         coEvery { speechRepository.getSpeechConfig() } returns Result.Error(RuntimeException("offline"))
         val delegate = delegate()
 
@@ -78,22 +76,21 @@ class SpeechSettingsDelegateConfigTest {
 
         coEvery { speechRepository.getSpeechConfig() } returns Result.Success(SpeechConfig(ttsExternal = true))
         coEvery { speechRepository.getVoices() } returns Result.Success(emptyList())
-        delegate.showTtsDetailDialog()
+        delegate.retrySpeechConfig()
         advanceUntilIdle()
 
         coVerify(exactly = 2) { speechRepository.getSpeechConfig() }
         assertThat(state.value.serverTtsEnabled).isTrue()
-        assertThat(state.value.showTtsDetailDialog).isTrue()
     }
 
     @Test
-    fun `opening the TTS dialog after a successful load does not refetch the config`() = runTest(dispatcher) {
+    fun `opening the Voice page after a successful load does not refetch the config`() = runTest(dispatcher) {
         coEvery { speechRepository.getSpeechConfig() } returns Result.Success(SpeechConfig())
         val delegate = delegate()
 
         delegate.loadSpeechConfig()
         advanceUntilIdle()
-        delegate.showTtsDetailDialog()
+        delegate.retrySpeechConfig()
         advanceUntilIdle()
 
         coVerify(exactly = 1) { speechRepository.getSpeechConfig() }

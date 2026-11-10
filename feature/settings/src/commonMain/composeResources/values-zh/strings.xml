@@ -38,8 +38,6 @@
     <string name="cd_selected">已选择</string>
     <string name="cd_selected_avatar">已选头像</string>
     <string name="cd_stop_voice_preview">停止语音试听</string>
-    <string name="cd_test_tts_voice">测试所选 TTS 语音</string>
-    <string name="cd_tts_voice_selector">选择 TTS 语音。当前为 %1$s</string>
     <string name="cd_user_avatar">用户头像</string>
     <string name="cd_view_all_tools">查看全部工具</string>
 
@@ -120,7 +118,6 @@
     <string name="prefetch_cache_images">图片和文件</string>
     <string name="section_profile">个人资料</string>
     <string name="section_security">安全</string>
-    <string name="section_speech">语音</string>
     <!-- Screen titles -->
     <string name="title_api_keys">API 密钥</string>
     <string name="title_memories">记忆</string>
@@ -413,20 +410,15 @@
     <string name="dialog_clear_logs_message">这将从本设备永久删除所有已存储的诊断日志。此操作无法撤销。</string>
 
     <!-- Speech settings -->
-    <string name="auto_send_after_speech">语音后自动发送</string>
-    <string name="auto_send_after_speech_desc">语音转文字完成后自动发送消息</string>
-    <string name="auto_read_responses">自动朗读回复</string>
-    <string name="auto_read_responses_desc">使用文字转语音自动朗读 AI 回复</string>
-    <string name="tts_voice">TTS 语音</string>
-    <string name="test_voice">测试语音</string>
+    <string name="auto_send_after_speech">说完后发送</string>
+    <string name="auto_send_after_speech_desc">听写结束后立即发送消息</string>
+    <string name="auto_read_responses">朗读回复</string>
+    <string name="auto_read_responses_desc">每条新回复完成后朗读出来</string>
     <string name="no_server_tts_voices">没有可用的服务器 TTS 语音。服务器上可能未配置语音功能。</string>
-    <string name="using_device_tts">正在使用设备的文字转语音引擎。请在下方的文字转语音设置中配置语音和语速。</string>
-    <string name="speech_to_text_settings">语音转文字设置</string>
-    <string name="text_to_speech_settings">文字转语音设置</string>
 
     <!-- STT detail dialog -->
-    <string name="stt_engine_label">引擎</string>
-    <string name="stt_language_label">语言</string>
+    <string name="stt_engine_label">识别引擎</string>
+    <string name="stt_language_label">语音语言</string>
     <string name="stt_default">默认</string>
     <string name="stt_engine_browser">内置</string>
     <string name="stt_engine_external">服务器</string>
@@ -435,18 +427,17 @@
     <string name="stt_on_device_toggle">在设备上识别</string>
     <string name="stt_on_device_toggle_desc">在本设备而非云端进行转写。不可用时回退到云端识别。</string>
     <string name="stt_end_of_speech_toggle">停顿时停止</string>
-    <string name="stt_end_of_speech_toggle_desc">在你停止说话后自动结束听写，而不是持续到你点击停止。开启语音后自动发送时，将免提发送消息。</string>
+    <string name="stt_end_of_speech_toggle_desc">你停止说话后即结束听写，无需等你点按停止。开启“说完后发送”后即可免手动操作。</string>
     <string name="stt_auto_detect">自动检测</string>
 
     <!-- TTS detail dialog -->
-    <string name="tts_source_label">来源</string>
+    <string name="tts_source_label">语音来源</string>
     <string name="tts_source_device">设备（内置）</string>
     <string name="tts_source_server">服务器</string>
     <string name="tts_voice_label">语音</string>
     <string name="tts_system_default">跟随系统</string>
-    <string name="tts_speech_rate">语速：%1$sx</string>
+    <string name="tts_speech_rate">速度：%1$sx</string>
     <string name="tts_pitch">音调：%1$s</string>
-    <string name="tts_cache_audio">缓存音频</string>
     <string name="tts_preview_text">这是所选语音的试听。</string>
     <string name="tts_stop_preview">停止试听</string>
     <string name="tts_preview_voice">试听语音</string>
@@ -1002,7 +993,6 @@
     <string name="pr_account_disconnect_error">无法断开连接，请重试。</string>
     <string name="pr_account_connect_error">无法开始连接，请重试。</string>
     <string name="pr_account_not_available">此服务器不支持连接账号。</string>
-    <string name="speech_error_voice_test">无法测试语音，请重试。</string>
     <string name="speech_error_voice_preview">无法试听语音，请重试。</string>
     <string name="speech_error_playback">无法播放音频。</string>
     <string name="accent_name_blue">蓝色</string>
@@ -1053,6 +1043,10 @@
     <string name="advanced_chat_settings_summary">生成期间、上传、预设</string>
     <string name="advanced_data_settings">高级数据设置</string>
     <string name="advanced_data_settings_summary">日志、代码环境</string>
+    <string name="section_listening">听写</string>
+    <string name="section_speaking">朗读</string>
+    <string name="advanced_voice_settings">高级语音设置</string>
+    <string name="advanced_voice_settings_summary">识别引擎、在设备上识别</string>
     <string name="section_messages">消息</string>
     <string name="section_your_chats">你的聊天</string>
     <string name="section_on_this_phone">此设备上</string>

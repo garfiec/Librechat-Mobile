@@ -69,6 +69,7 @@ private fun AdvancedSettingsHost(section: AdvancedSection?) {
         ),
         onOpenDialog = {},
         onClientImageResizeChange = {},
+        onSttOnDeviceChange = {},
         onAdvancedSearchChange = {},
         onOpenServerConnection = {},
         onOpenPresets = {},

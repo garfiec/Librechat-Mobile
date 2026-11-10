@@ -38,8 +38,6 @@
     <string name="cd_selected">선택됨</string>
     <string name="cd_selected_avatar">선택된 아바타</string>
     <string name="cd_stop_voice_preview">음성 미리듣기 중지</string>
-    <string name="cd_test_tts_voice">선택한 TTS 음성 테스트</string>
-    <string name="cd_tts_voice_selector">TTS 음성 선택. 현재 %1$s</string>
     <string name="cd_user_avatar">사용자 아바타</string>
     <string name="cd_view_all_tools">모든 도구 보기</string>
 
@@ -120,7 +118,6 @@
     <string name="prefetch_cache_images">이미지 및 파일</string>
     <string name="section_profile">프로필</string>
     <string name="section_security">보안</string>
-    <string name="section_speech">음성</string>
     <!-- Screen titles -->
     <string name="title_api_keys">API 키</string>
     <string name="title_memories">메모리</string>
@@ -413,20 +410,15 @@
     <string name="dialog_clear_logs_message">이 기기에 저장된 모든 진단 로그를 영구적으로 삭제합니다. 이 작업은 되돌릴 수 없습니다.</string>
 
     <!-- Speech settings -->
-    <string name="auto_send_after_speech">음성 입력 후 자동 전송</string>
-    <string name="auto_send_after_speech_desc">음성-텍스트 변환이 끝나면 메시지를 자동으로 전송합니다</string>
-    <string name="auto_read_responses">응답 자동 읽기</string>
-    <string name="auto_read_responses_desc">텍스트-음성 변환으로 AI 응답을 자동으로 읽어줍니다</string>
-    <string name="tts_voice">TTS 음성</string>
-    <string name="test_voice">음성 테스트</string>
+    <string name="auto_send_after_speech">말을 마치면 보내기</string>
+    <string name="auto_send_after_speech_desc">받아쓰기가 끝나면 바로 메시지를 보냅니다</string>
+    <string name="auto_read_responses">답변 소리 내어 읽기</string>
+    <string name="auto_read_responses_desc">새 답변이 완료되면 소리 내어 읽습니다</string>
     <string name="no_server_tts_voices">사용 가능한 서버 TTS 음성이 없습니다. 서버에 음성 기능이 구성되지 않았을 수 있습니다.</string>
-    <string name="using_device_tts">기기의 텍스트-음성 변환 엔진을 사용 중입니다. 아래 텍스트-음성 변환 설정에서 음성과 속도를 구성하세요.</string>
-    <string name="speech_to_text_settings">음성-텍스트 변환 설정</string>
-    <string name="text_to_speech_settings">텍스트-음성 변환 설정</string>
 
     <!-- STT detail dialog -->
-    <string name="stt_engine_label">엔진</string>
-    <string name="stt_language_label">언어</string>
+    <string name="stt_engine_label">인식 엔진</string>
+    <string name="stt_language_label">음성 언어</string>
     <string name="stt_default">기본값</string>
     <string name="stt_engine_browser">내장</string>
     <string name="stt_engine_external">서버</string>
@@ -435,18 +427,17 @@
     <string name="stt_on_device_toggle">기기에서 인식</string>
     <string name="stt_on_device_toggle_desc">클라우드 대신 이 기기에서 받아씁니다. 사용할 수 없으면 클라우드 인식으로 전환됩니다.</string>
     <string name="stt_end_of_speech_toggle">멈추면 중지</string>
-    <string name="stt_end_of_speech_toggle_desc">중지를 누를 때까지 계속하는 대신, 말을 멈추면 자동으로 받아쓰기를 종료합니다. 음성 후 자동 전송이 켜져 있으면 핸즈프리로 메시지를 보냅니다.</string>
+    <string name="stt_end_of_speech_toggle_desc">정지를 탭할 때까지 기다리지 않고 말을 멈추면 받아쓰기를 끝냅니다. ‘말을 마치면 보내기’를 켜면 손을 쓰지 않아도 됩니다.</string>
     <string name="stt_auto_detect">자동 감지</string>
 
     <!-- TTS detail dialog -->
-    <string name="tts_source_label">소스</string>
+    <string name="tts_source_label">음성 소스</string>
     <string name="tts_source_device">기기 (내장)</string>
     <string name="tts_source_server">서버</string>
     <string name="tts_voice_label">음성</string>
     <string name="tts_system_default">시스템 기본값</string>
-    <string name="tts_speech_rate">말하기 속도: %1$sx</string>
+    <string name="tts_speech_rate">속도: %1$sx</string>
     <string name="tts_pitch">음높이: %1$s</string>
-    <string name="tts_cache_audio">오디오 캐시</string>
     <string name="tts_preview_text">선택한 음성의 미리듣기입니다.</string>
     <string name="tts_stop_preview">미리듣기 중지</string>
     <string name="tts_preview_voice">음성 미리듣기</string>
@@ -1002,7 +993,6 @@
     <string name="pr_account_disconnect_error">연결을 해제할 수 없습니다. 다시 시도하세요.</string>
     <string name="pr_account_connect_error">연결을 시작할 수 없습니다. 다시 시도하세요.</string>
     <string name="pr_account_not_available">이 서버에서는 계정을 연결할 수 없습니다.</string>
-    <string name="speech_error_voice_test">음성을 테스트할 수 없습니다. 다시 시도하세요.</string>
     <string name="speech_error_voice_preview">음성을 미리 들을 수 없습니다. 다시 시도하세요.</string>
     <string name="speech_error_playback">오디오를 재생할 수 없습니다.</string>
     <string name="accent_name_blue">파랑</string>
@@ -1053,6 +1043,10 @@
     <string name="advanced_chat_settings_summary">생성 중 동작, 업로드, 프리셋</string>
     <string name="advanced_data_settings">고급 데이터 설정</string>
     <string name="advanced_data_settings_summary">로그, 코드 환경</string>
+    <string name="section_listening">음성 입력</string>
+    <string name="section_speaking">읽어 주기</string>
+    <string name="advanced_voice_settings">고급 음성 설정</string>
+    <string name="advanced_voice_settings_summary">인식 엔진, 기기에서 인식</string>
     <string name="section_messages">메시지</string>
     <string name="section_your_chats">내 채팅</string>
     <string name="section_on_this_phone">이 기기</string>

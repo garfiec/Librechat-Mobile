@@ -38,8 +38,6 @@
     <string name="cd_selected">محدد</string>
     <string name="cd_selected_avatar">الصورة الرمزية المحددة</string>
     <string name="cd_stop_voice_preview">إيقاف معاينة الصوت</string>
-    <string name="cd_test_tts_voice">اختبار صوت تحويل النص إلى كلام المحدد</string>
-    <string name="cd_tts_voice_selector">اختيار صوت تحويل النص إلى كلام. الحالي %1$s</string>
     <string name="cd_user_avatar">الصورة الرمزية للمستخدم</string>
     <string name="cd_view_all_tools">عرض جميع الأدوات</string>
 
@@ -120,7 +118,6 @@
     <string name="prefetch_cache_images">الصور والملفات</string>
     <string name="section_profile">الملف الشخصي</string>
     <string name="section_security">الأمان</string>
-    <string name="section_speech">الكلام</string>
     <!-- Screen titles -->
     <string name="title_api_keys">مفاتيح API</string>
     <string name="title_memories">الذكريات</string>
@@ -448,20 +445,15 @@
     <string name="dialog_clear_logs_message">سيؤدي هذا إلى حذف جميع سجلات التشخيص المخزّنة من هذا الجهاز نهائيًا. لا يمكن التراجع عن هذا الإجراء.</string>
 
     <!-- Speech settings -->
-    <string name="auto_send_after_speech">الإرسال التلقائي بعد الكلام</string>
-    <string name="auto_send_after_speech_desc">إرسال الرسالة تلقائيًا بعد انتهاء تحويل الكلام إلى نص</string>
-    <string name="auto_read_responses">القراءة التلقائية للردود</string>
-    <string name="auto_read_responses_desc">قراءة ردود الذكاء الاصطناعي بصوت عالٍ تلقائيًا باستخدام تحويل النص إلى كلام</string>
-    <string name="tts_voice">صوت تحويل النص إلى كلام</string>
-    <string name="test_voice">اختبار الصوت</string>
+    <string name="auto_send_after_speech">إرسال بعد أن أتوقف عن الكلام</string>
+    <string name="auto_send_after_speech_desc">إرسال الرسالة فور انتهاء الإملاء</string>
+    <string name="auto_read_responses">قراءة الردود بصوت عالٍ</string>
+    <string name="auto_read_responses_desc">قراءة كل رد جديد بصوت عالٍ عند اكتماله</string>
     <string name="no_server_tts_voices">لا تتوفر أصوات تحويل النص إلى كلام في الخادم. قد لا تكون ميزات الكلام مُهيأة على الخادم.</string>
-    <string name="using_device_tts">استخدام محرك تحويل النص إلى كلام في الجهاز. اضبط الصوت والسرعة في إعدادات تحويل النص إلى كلام أدناه.</string>
-    <string name="speech_to_text_settings">إعدادات تحويل الكلام إلى نص</string>
-    <string name="text_to_speech_settings">إعدادات تحويل النص إلى كلام</string>
 
     <!-- STT detail dialog -->
-    <string name="stt_engine_label">المحرك</string>
-    <string name="stt_language_label">اللغة</string>
+    <string name="stt_engine_label">محرك التعرف</string>
+    <string name="stt_language_label">لغة الكلام</string>
     <string name="stt_default">افتراضي</string>
     <string name="stt_engine_browser">مدمج</string>
     <string name="stt_engine_external">الخادم</string>
@@ -470,18 +462,17 @@
     <string name="stt_on_device_toggle">التعرف على الجهاز</string>
     <string name="stt_on_device_toggle_desc">النسخ على هذا الجهاز بدلاً من السحابة. يعود إلى أداة التعرف السحابية إذا لم تكن متوفرة.</string>
     <string name="stt_end_of_speech_toggle">التوقف عند التوقف مؤقتًا</string>
-    <string name="stt_end_of_speech_toggle_desc">ينهي الإملاء تلقائيًا بمجرد توقفك عن الكلام، بدلاً من الاستمرار حتى تنقر على إيقاف. مع تفعيل الإرسال التلقائي بعد الكلام، يتم إرسال الرسالة دون استخدام اليدين.</string>
+    <string name="stt_end_of_speech_toggle_desc">إنهاء الإملاء عند توقفك عن الكلام بدلًا من انتظار النقر على إيقاف. مع تشغيل «إرسال بعد أن أتوقف عن الكلام» يعمل دون استخدام اليدين.</string>
     <string name="stt_auto_detect">كشف تلقائي</string>
 
     <!-- TTS detail dialog -->
-    <string name="tts_source_label">المصدر</string>
+    <string name="tts_source_label">مصدر الصوت</string>
     <string name="tts_source_device">الجهاز (مدمج)</string>
     <string name="tts_source_server">الخادم</string>
     <string name="tts_voice_label">الصوت</string>
     <string name="tts_system_default">افتراضي النظام</string>
-    <string name="tts_speech_rate">سرعة الكلام: %1$sx</string>
+    <string name="tts_speech_rate">السرعة: %1$sx</string>
     <string name="tts_pitch">طبقة الصوت: %1$s</string>
-    <string name="tts_cache_audio">تخزين الصوت مؤقتًا</string>
     <string name="tts_preview_text">هذه معاينة للصوت المحدد.</string>
     <string name="tts_stop_preview">إيقاف المعاينة</string>
     <string name="tts_preview_voice">معاينة الصوت</string>
@@ -1082,7 +1073,6 @@
     <string name="pr_account_disconnect_error">تعذّر الفصل. حاول مرة أخرى.</string>
     <string name="pr_account_connect_error">تعذّر بدء الاتصال. حاول مرة أخرى.</string>
     <string name="pr_account_not_available">ربط حساب غير متاح على هذا الخادم.</string>
-    <string name="speech_error_voice_test">تعذّر اختبار الصوت. حاول مرة أخرى.</string>
     <string name="speech_error_voice_preview">تعذّرت معاينة الصوت. حاول مرة أخرى.</string>
     <string name="speech_error_playback">تعذّر تشغيل الصوت.</string>
     <string name="accent_name_blue">أزرق</string>
@@ -1133,6 +1123,10 @@
     <string name="advanced_chat_settings_summary">أثناء الإنشاء، والرفع، والإعدادات المسبقة</string>
     <string name="advanced_data_settings">إعدادات البيانات المتقدمة</string>
     <string name="advanced_data_settings_summary">السجلات وبيئات التعليمات البرمجية</string>
+    <string name="section_listening">الإملاء</string>
+    <string name="section_speaking">القراءة بصوت عالٍ</string>
+    <string name="advanced_voice_settings">إعدادات الصوت المتقدمة</string>
+    <string name="advanced_voice_settings_summary">محرك التعرف، التعرف على الجهاز</string>
     <string name="section_messages">الرسائل</string>
     <string name="section_your_chats">محادثاتك</string>
     <string name="section_on_this_phone">على هذا الهاتف</string>

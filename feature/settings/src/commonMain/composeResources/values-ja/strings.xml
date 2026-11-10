@@ -38,8 +38,6 @@
     <string name="cd_selected">選択済み</string>
     <string name="cd_selected_avatar">選択されたアバター</string>
     <string name="cd_stop_voice_preview">音声プレビューを停止</string>
-    <string name="cd_test_tts_voice">選択したTTS音声をテスト</string>
-    <string name="cd_tts_voice_selector">TTS音声を選択。現在は %1$s</string>
     <string name="cd_user_avatar">ユーザーのアバター</string>
     <string name="cd_view_all_tools">すべてのツールを表示</string>
 
@@ -120,7 +118,6 @@
     <string name="prefetch_cache_images">画像とファイル</string>
     <string name="section_profile">プロフィール</string>
     <string name="section_security">セキュリティ</string>
-    <string name="section_speech">音声</string>
     <!-- Screen titles -->
     <string name="title_api_keys">APIキー</string>
     <string name="title_memories">メモリ</string>
@@ -413,20 +410,15 @@
     <string name="dialog_clear_logs_message">このデバイスに保存されているすべての診断ログを完全に削除します。この操作は取り消せません。</string>
 
     <!-- Speech settings -->
-    <string name="auto_send_after_speech">音声入力後に自動送信</string>
-    <string name="auto_send_after_speech_desc">音声からテキストへの変換が完了した後にメッセージを自動送信します</string>
-    <string name="auto_read_responses">応答を自動読み上げ</string>
-    <string name="auto_read_responses_desc">テキスト読み上げを使ってAIの応答を自動で読み上げます</string>
-    <string name="tts_voice">TTS音声</string>
-    <string name="test_voice">音声をテスト</string>
+    <string name="auto_send_after_speech">話し終えたら送信</string>
+    <string name="auto_send_after_speech_desc">音声入力が終わるとすぐにメッセージを送信します</string>
+    <string name="auto_read_responses">返信を読み上げる</string>
+    <string name="auto_read_responses_desc">新しい返信が完了したら読み上げます</string>
     <string name="no_server_tts_voices">利用可能なサーバーTTS音声がありません。サーバーで音声機能が設定されていない可能性があります。</string>
-    <string name="using_device_tts">デバイスのテキスト読み上げエンジンを使用しています。下の「テキスト読み上げ設定」で音声と速度を設定してください。</string>
-    <string name="speech_to_text_settings">音声入力の設定</string>
-    <string name="text_to_speech_settings">テキスト読み上げの設定</string>
 
     <!-- STT detail dialog -->
-    <string name="stt_engine_label">エンジン</string>
-    <string name="stt_language_label">言語</string>
+    <string name="stt_engine_label">認識エンジン</string>
+    <string name="stt_language_label">音声入力の言語</string>
     <string name="stt_default">デフォルト</string>
     <string name="stt_engine_browser">内蔵</string>
     <string name="stt_engine_external">サーバー</string>
@@ -435,18 +427,17 @@
     <string name="stt_on_device_toggle">デバイス上で認識</string>
     <string name="stt_on_device_toggle_desc">クラウドではなくこのデバイスで文字起こしします。利用できない場合はクラウド認識に切り替わります。</string>
     <string name="stt_end_of_speech_toggle">一時停止したら停止</string>
-    <string name="stt_end_of_speech_toggle_desc">停止をタップするまで続ける代わりに、話し終えると自動的に口述を終了します。音声後の自動送信をオンにすると、ハンズフリーでメッセージを送信します。</string>
+    <string name="stt_end_of_speech_toggle_desc">停止をタップするのを待たずに、話し終えると音声入力を終了します。「話し終えたら送信」をオンにすると、ハンズフリーで使えます。</string>
     <string name="stt_auto_detect">自動検出</string>
 
     <!-- TTS detail dialog -->
-    <string name="tts_source_label">ソース</string>
+    <string name="tts_source_label">音声のソース</string>
     <string name="tts_source_device">デバイス（内蔵）</string>
     <string name="tts_source_server">サーバー</string>
     <string name="tts_voice_label">音声</string>
     <string name="tts_system_default">システムのデフォルト</string>
-    <string name="tts_speech_rate">読み上げ速度: %1$sx</string>
+    <string name="tts_speech_rate">速度: %1$sx</string>
     <string name="tts_pitch">ピッチ: %1$s</string>
-    <string name="tts_cache_audio">音声をキャッシュ</string>
     <string name="tts_preview_text">これは選択した音声のプレビューです。</string>
     <string name="tts_stop_preview">プレビューを停止</string>
     <string name="tts_preview_voice">音声をプレビュー</string>
@@ -1002,7 +993,6 @@
     <string name="pr_account_disconnect_error">連携を解除できませんでした。もう一度お試しください。</string>
     <string name="pr_account_connect_error">接続を開始できませんでした。もう一度お試しください。</string>
     <string name="pr_account_not_available">このサーバーではアカウントを接続できません。</string>
-    <string name="speech_error_voice_test">音声をテストできませんでした。もう一度お試しください。</string>
     <string name="speech_error_voice_preview">音声をプレビューできませんでした。もう一度お試しください。</string>
     <string name="speech_error_playback">音声を再生できませんでした。</string>
     <string name="accent_name_blue">青</string>
@@ -1053,6 +1043,10 @@
     <string name="advanced_chat_settings_summary">生成中の動作、アップロード、プリセット</string>
     <string name="advanced_data_settings">データの詳細設定</string>
     <string name="advanced_data_settings_summary">ログ、コード環境</string>
+    <string name="section_listening">音声入力</string>
+    <string name="section_speaking">読み上げ</string>
+    <string name="advanced_voice_settings">音声の詳細設定</string>
+    <string name="advanced_voice_settings_summary">認識エンジン、デバイス上での認識</string>
     <string name="section_messages">メッセージ</string>
     <string name="section_your_chats">自分のチャット</string>
     <string name="section_on_this_phone">この端末</string>

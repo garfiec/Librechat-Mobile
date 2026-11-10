@@ -93,7 +93,6 @@ actual val settingsPlatformModule: Module = module {
             IosSpeechSettingsDelegate(
                 stateHandle = stateHandle,
                 speechRepository = get(),
-                settingsDataStore = get(),
             )
         }
     }

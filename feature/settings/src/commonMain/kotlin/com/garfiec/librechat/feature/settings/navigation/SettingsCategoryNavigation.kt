@@ -122,6 +122,7 @@ internal fun SettingsPaneContent(
                 contentPadding = contentPadding,
             )
             SettingsCategoryKey.VOICE -> VoiceSettingsPage(
+                onOpenAdvancedSettings = onOpenAdvancedSettings,
                 contentPadding = contentPadding,
                 snackbarHostState = snackbarHostState,
             )

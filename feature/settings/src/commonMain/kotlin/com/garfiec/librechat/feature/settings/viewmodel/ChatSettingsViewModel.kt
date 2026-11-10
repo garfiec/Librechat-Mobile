@@ -242,31 +242,31 @@ class ChatSettingsViewModel(
 
     // ── Delegated public API ───────────────────────────────────────
 
-    // Speech settings
-    fun setAutoSendAfterStt(enabled: Boolean) = speechDelegate.setAutoSendAfterStt(enabled)
-    fun setAutoReadEnabled(enabled: Boolean) = speechDelegate.setAutoReadEnabled(enabled)
-    fun selectVoice(voice: TtsVoice) = speechDelegate.selectVoice(voice)
-    fun testVoice(text: String) = speechDelegate.testVoice(text)
-    fun previewDeviceTts(text: String, rate: Float, pitch: Float, voiceName: String?) =
-        speechDelegate.previewDeviceTts(text, rate, pitch, voiceName)
-    fun previewServerTts(text: String, voice: String?, model: String?) =
-        speechDelegate.previewServerTts(text, voice, model)
+    // Voice
+    fun setAutoSendAfterStt(enabled: Boolean) = prefsController.setAutoSendAfterStt(enabled)
+    fun setSttEndOfSpeech(enabled: Boolean) = prefsController.setSttEndOfSpeech(enabled)
+    fun setSttLanguage(language: String) = prefsController.setSttLanguage(language)
+    fun setSttEngine(engine: String) = prefsController.setSttEngine(engine)
+    fun setSttOnDevice(enabled: Boolean) = prefsController.setSttOnDevice(enabled)
+    fun setAutoReadEnabled(enabled: Boolean) = prefsController.setAutoReadEnabled(enabled)
+    fun setTtsSource(source: String) = prefsController.setTtsSource(source)
+    fun selectServerVoice(voice: TtsVoice) = prefsController.setServerVoice(voice.id)
+    fun selectDeviceVoice(voiceName: String) = prefsController.setDeviceVoice(voiceName)
+    fun setTtsSpeechRate(rate: Float) = prefsController.setTtsSpeechRate(rate)
+    fun setTtsPitch(pitch: Float) = prefsController.setTtsPitch(pitch)
+    fun retrySpeechConfig() = speechDelegate.retrySpeechConfig()
     fun stopTtsPreview() = speechDelegate.stopTtsPreview()
-    fun showSttDetailDialog() = speechDelegate.showSttDetailDialog()
-    fun dismissSttDetailDialog() = speechDelegate.dismissSttDetailDialog()
-    fun saveSttSettings(engine: String, language: String, onDevice: Boolean, endOfSpeech: Boolean) =
-        speechDelegate.saveSttSettings(engine, language, onDevice, endOfSpeech)
-    fun showTtsDetailDialog() = speechDelegate.showTtsDetailDialog()
-    fun dismissTtsDetailDialog() = speechDelegate.dismissTtsDetailDialog()
-    fun saveTtsSettings(
-        engine: String,
-        voice: String,
-        rate: Float,
-        pitch: Float,
-        deviceVoiceName: String,
-        caching: Boolean,
-        source: String,
-    ) = speechDelegate.saveTtsSettings(engine, voice, rate, pitch, deviceVoiceName, caching, source)
+
+    /** Speaks [text] the way chat playback would, from the saved source, voice, speed and pitch. */
+    fun previewVoice(text: String) {
+        val state = uiState.value
+        if (state.ttsSource == TTS_SOURCE_SERVER) {
+            speechDelegate.previewServerTts(text, state.selectedVoice?.id)
+        } else {
+            val voiceName = state.ttsDeviceVoiceName.ifBlank { null }
+            speechDelegate.previewDeviceTts(text, state.ttsSpeechRate, state.ttsPitch, voiceName)
+        }
+    }
 
     override fun onCleared() {
         super.onCleared()

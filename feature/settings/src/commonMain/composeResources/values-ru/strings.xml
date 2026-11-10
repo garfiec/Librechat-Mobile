@@ -38,8 +38,6 @@
     <string name="cd_selected">Выбрано</string>
     <string name="cd_selected_avatar">Выбранный аватар</string>
     <string name="cd_stop_voice_preview">Остановить прослушивание голоса</string>
-    <string name="cd_test_tts_voice">Проверить выбранный голос TTS</string>
-    <string name="cd_tts_voice_selector">Выберите голос TTS. Сейчас выбран %1$s</string>
     <string name="cd_user_avatar">Аватар пользователя</string>
     <string name="cd_view_all_tools">Показать все инструменты</string>
 
@@ -120,7 +118,6 @@
     <string name="prefetch_cache_images">Изображения и файлы</string>
     <string name="section_profile">Профиль</string>
     <string name="section_security">Безопасность</string>
-    <string name="section_speech">Речь</string>
     <!-- Screen titles -->
     <string name="title_api_keys">API-ключи</string>
     <string name="title_memories">Память</string>
@@ -434,20 +431,15 @@
     <string name="dialog_clear_logs_message">Это безвозвратно удалит все сохранённые диагностические журналы с этого устройства. Это действие нельзя отменить.</string>
 
     <!-- Speech settings -->
-    <string name="auto_send_after_speech">Автоотправка после речи</string>
-    <string name="auto_send_after_speech_desc">Автоматически отправлять сообщение после завершения распознавания речи</string>
-    <string name="auto_read_responses">Автоозвучивание ответов</string>
-    <string name="auto_read_responses_desc">Автоматически озвучивать ответы ИИ с помощью синтеза речи</string>
-    <string name="tts_voice">Голос TTS</string>
-    <string name="test_voice">Проверить голос</string>
+    <string name="auto_send_after_speech">Отправлять, когда я замолчу</string>
+    <string name="auto_send_after_speech_desc">Отправлять сообщение сразу после окончания диктовки</string>
+    <string name="auto_read_responses">Читать ответы вслух</string>
+    <string name="auto_read_responses_desc">Читать вслух каждый новый ответ, когда он готов</string>
     <string name="no_server_tts_voices">Голоса TTS на сервере недоступны. Возможно, функции речи не настроены на сервере.</string>
-    <string name="using_device_tts">Используется встроенный синтез речи устройства. Настройте голос и скорость в разделе «Настройки синтеза речи» ниже.</string>
-    <string name="speech_to_text_settings">Настройки распознавания речи</string>
-    <string name="text_to_speech_settings">Настройки синтеза речи</string>
 
     <!-- STT detail dialog -->
-    <string name="stt_engine_label">Движок</string>
-    <string name="stt_language_label">Язык</string>
+    <string name="stt_engine_label">Движок распознавания</string>
+    <string name="stt_language_label">Язык речи</string>
     <string name="stt_default">По умолчанию</string>
     <string name="stt_engine_browser">Встроенный</string>
     <string name="stt_engine_external">Сервер</string>
@@ -456,18 +448,17 @@
     <string name="stt_on_device_toggle">Распознавание на устройстве</string>
     <string name="stt_on_device_toggle_desc">Транскрибирует на этом устройстве, а не в облаке. При недоступности переключается на облачное распознавание.</string>
     <string name="stt_end_of_speech_toggle">Останавливать при паузе</string>
-    <string name="stt_end_of_speech_toggle_desc">Автоматически завершает диктовку, когда вы перестаёте говорить, вместо того чтобы продолжать до нажатия «Стоп». При включённой автоотправке после речи сообщение отправляется без помощи рук.</string>
+    <string name="stt_end_of_speech_toggle_desc">Завершает диктовку, как только вы замолкаете, а не ждёт нажатия «Стоп». Вместе с «Отправлять, когда я замолчу» всё работает без рук.</string>
     <string name="stt_auto_detect">Автоопределение</string>
 
     <!-- TTS detail dialog -->
-    <string name="tts_source_label">Источник</string>
+    <string name="tts_source_label">Источник голоса</string>
     <string name="tts_source_device">Устройство (встроенный)</string>
     <string name="tts_source_server">Сервер</string>
     <string name="tts_voice_label">Голос</string>
     <string name="tts_system_default">Системный</string>
-    <string name="tts_speech_rate">Скорость речи: %1$sx</string>
+    <string name="tts_speech_rate">Скорость: %1$sx</string>
     <string name="tts_pitch">Высота тона: %1$s</string>
-    <string name="tts_cache_audio">Кэшировать аудио</string>
     <string name="tts_preview_text">Это образец выбранного голоса.</string>
     <string name="tts_stop_preview">Остановить прослушивание</string>
     <string name="tts_preview_voice">Прослушать голос</string>
@@ -1050,7 +1041,6 @@
     <string name="pr_account_disconnect_error">Не удалось отключить. Попробуйте ещё раз.</string>
     <string name="pr_account_connect_error">Не удалось начать подключение. Попробуйте ещё раз.</string>
     <string name="pr_account_not_available">На этом сервере нельзя подключить аккаунт.</string>
-    <string name="speech_error_voice_test">Не удалось проверить голос. Попробуйте ещё раз.</string>
     <string name="speech_error_voice_preview">Не удалось прослушать голос. Попробуйте ещё раз.</string>
     <string name="speech_error_playback">Не удалось воспроизвести звук.</string>
     <string name="accent_name_blue">Синий</string>
@@ -1101,6 +1091,10 @@
     <string name="advanced_chat_settings_summary">Во время ответа, загрузки, пресеты</string>
     <string name="advanced_data_settings">Дополнительные настройки данных</string>
     <string name="advanced_data_settings_summary">Журналы, среды выполнения кода</string>
+    <string name="section_listening">Диктовка</string>
+    <string name="section_speaking">Чтение вслух</string>
+    <string name="advanced_voice_settings">Дополнительные настройки голоса</string>
+    <string name="advanced_voice_settings_summary">Движок распознавания, распознавание на устройстве</string>
     <string name="section_messages">Сообщения</string>
     <string name="section_your_chats">Ваши чаты</string>
     <string name="section_on_this_phone">На этом устройстве</string>

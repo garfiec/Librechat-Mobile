@@ -21,7 +21,6 @@ actual val settingsPlatformModule: Module = module {
                 stateHandle = stateHandle,
                 context = androidContext(),
                 speechRepository = get(),
-                settingsDataStore = get(),
                 ioDispatcher = get(KoinQualifiers.IO),
             )
         }
