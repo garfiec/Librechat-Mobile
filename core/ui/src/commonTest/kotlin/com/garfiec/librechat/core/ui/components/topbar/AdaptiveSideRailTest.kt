@@ -119,21 +119,28 @@ class AdaptiveSideRailTest {
 
     @Test
     fun aScreenAtTheBarSideReachesIt() {
-        assertTrue(reachesBarSide(BarSide.RIGHT, left = 0f, right = 466f, windowWidth = 466f))
-        assertTrue(reachesBarSide(BarSide.LEFT, left = 0f, right = 466f, windowWidth = 466f))
+        assertTrue(reachesBarSide(BarSide.RIGHT, left = 0f, width = 466f, windowWidth = 466f))
+        assertTrue(reachesBarSide(BarSide.LEFT, left = 0f, width = 466f, windowWidth = 466f))
+        assertTrue(reachesBarSide(BarSide.RIGHT, left = 320f, width = 631f, windowWidth = 951f))
     }
 
     @Test
     fun aPaneShortOfTheBarSideDoesNotReachIt() {
-        assertFalse(reachesBarSide(BarSide.RIGHT, left = 0f, right = 320f, windowWidth = 951f))
-        assertFalse(reachesBarSide(BarSide.LEFT, left = 320f, right = 951f, windowWidth = 951f))
+        assertFalse(reachesBarSide(BarSide.RIGHT, left = 0f, width = 320f, windowWidth = 951f))
+        assertFalse(reachesBarSide(BarSide.LEFT, left = 320f, width = 631f, windowWidth = 951f))
     }
 
     @Test
-    fun aScreenSlidingAcrossAnEdgeKeepsItsRail() {
-        // Leaving to the left, and coming in from the left on back.
-        assertTrue(reachesBarSide(BarSide.RIGHT, left = -200f, right = 266f, windowWidth = 466f))
+    fun aFullWidthScreenScaledByAPopTransitionKeepsItsRail() {
+        assertTrue(reachesBarSide(BarSide.RIGHT, left = 23.3f, width = 466f, windowWidth = 466f))
+        assertTrue(reachesBarSide(BarSide.LEFT, left = 23.3f, width = 466f, windowWidth = 466f))
+    }
+
+    @Test
+    fun aPaneSlidingAcrossAnEdgeKeepsItsRail() {
+        // Leaving to the left with the bars on the right.
+        assertTrue(reachesBarSide(BarSide.RIGHT, left = -200f, width = 631f, windowWidth = 951f))
         // Coming in from the right with the bars on the left.
-        assertTrue(reachesBarSide(BarSide.LEFT, left = 200f, right = 666f, windowWidth = 466f))
+        assertTrue(reachesBarSide(BarSide.LEFT, left = 700f, width = 400f, windowWidth = 951f))
     }
 }

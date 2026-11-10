@@ -70,9 +70,8 @@ fun AdaptiveScaffold(
             modifier = if (bars != null) {
                 modifier.onPlaced { coordinates ->
                     val side = currentBars?.side ?: return@onPlaced
-                    val left = coordinates.positionInRoot().x
                     val windowWidth = coordinates.findRootCoordinates().size.width.toFloat()
-                    atBarSide = reachesBarSide(side, left, left + coordinates.size.width, windowWidth)
+                    atBarSide = reachesBarSide(side, coordinates.positionInRoot().x, coordinates.size.width.toFloat(), windowWidth)
                 }
             } else {
                 modifier

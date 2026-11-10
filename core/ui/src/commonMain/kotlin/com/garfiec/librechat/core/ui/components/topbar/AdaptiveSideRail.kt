@@ -252,13 +252,18 @@ private fun List<BarAction>.asMenuSections(): List<BarMenuSection> {
 }
 
 /**
- * Whether a layout spanning [left]..[right] (px, window coordinates) reaches the window's [side].
- * Only a layout lying wholly inside the window short of that side is off it, so a screen sliding
- * across an edge in a navigation transition keeps its rail.
+ * Whether a layout [width] wide (its own, untransformed) whose left edge sits at [left] (px, window
+ * coordinates, after any transition's offset or scale) reaches the window's [side]. A full-width
+ * layout always does, so a screen scaled by a pop transition keeps its rail; otherwise only one lying
+ * wholly inside the window short of that side is off it, so a screen sliding across an edge does too.
  */
-internal fun reachesBarSide(side: BarSide, left: Float, right: Float, windowWidth: Float): Boolean = when (side) {
-    BarSide.RIGHT -> left < -EDGE_SLOP || right >= windowWidth - EDGE_SLOP
-    BarSide.LEFT -> right > windowWidth + EDGE_SLOP || left <= EDGE_SLOP
+internal fun reachesBarSide(side: BarSide, left: Float, width: Float, windowWidth: Float): Boolean {
+    if (width >= windowWidth - EDGE_SLOP) return true
+    val right = left + width
+    return when (side) {
+        BarSide.RIGHT -> left < -EDGE_SLOP || right >= windowWidth - EDGE_SLOP
+        BarSide.LEFT -> right > windowWidth + EDGE_SLOP || left <= EDGE_SLOP
+    }
 }
 
 private const val EDGE_SLOP = 1f
