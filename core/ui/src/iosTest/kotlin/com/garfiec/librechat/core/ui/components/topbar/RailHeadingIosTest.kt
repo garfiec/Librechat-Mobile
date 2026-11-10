@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -25,6 +26,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.v2.runComposeUiTest
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
 import com.garfiec.librechat.core.ui.platform.BarSide
@@ -112,6 +114,70 @@ class RailHeadingIosTest {
         assertTrue(titleIsHeading())
     }
 
+    @Test
+    fun aRailBoxOnVerticalBarsHandsItsTopBarToTheRail() = runComposeUiTest {
+        var inRail = false
+        setContent {
+            CompositionLocalProvider(LocalWindowFeatures provides duoBars) {
+                AdaptiveRailBox(Modifier.fillMaxSize()) {
+                    inRail = this.inRail
+                    RailTopBar { AdaptiveTopBar(barSpec) }
+                }
+            }
+        }
+
+        assertBarControlsShown()
+        assertTrue(titleIsHeading())
+        assertTrue(inRail)
+    }
+
+    @Test
+    fun withoutVerticalBarsARailBoxKeepsItsTopBarHorizontal() = runComposeUiTest {
+        var inRail = true
+        setContent {
+            AdaptiveRailBox(Modifier.fillMaxSize()) {
+                inRail = this.inRail
+                RailTopBar { AdaptiveTopBar(barSpec) }
+            }
+        }
+
+        assertBarControlsShown()
+        assertFalse(titleIsHeading())
+        assertFalse(inRail)
+    }
+
+    @Test
+    fun aRailTooShortForItsLastBottomActionLetsTheScreenShowIt() = runComposeUiTest {
+        // Back, Share and two bottom actions need 208dp of rail; 272dp less the 82dp zone and 8dp end padding leaves 182.
+        var height by mutableStateOf(SHORT_RAIL_BOX)
+        var showsFirst = false
+        var showsLast = true
+        val spec = barSpec.copy(
+            bottomActions = listOf(
+                BarAction.Icon(id = FIRST_BOTTOM, icon = BarIcons.BackgroundTasks, label = "Tasks", onClick = {}),
+                BarAction.Icon(id = LAST_BOTTOM, icon = BarIcons.ContextUsage, label = "Context", onClick = {}),
+            ),
+        )
+        setContent {
+            CompositionLocalProvider(LocalWindowFeatures provides duoBars) {
+                AdaptiveRailBox(Modifier.fillMaxWidth().height(height)) {
+                    showsFirst = railShowsBottomAction(FIRST_BOTTOM)
+                    showsLast = railShowsBottomAction(LAST_BOTTOM)
+                    RailTopBar { AdaptiveTopBar(spec) }
+                }
+            }
+        }
+        waitForIdle()
+        assertTrue(showsFirst)
+        assertFalse(showsLast)
+
+        runOnIdle { height = TALL_RAIL_BOX }
+        waitForIdle()
+
+        assertTrue(showsFirst)
+        assertTrue(showsLast)
+    }
+
     @Composable
     private fun Screen() {
         AdaptiveScaffold(Modifier.fillMaxSize(), topBar = { AdaptiveTopBar(barSpec) }) {}
@@ -128,5 +194,9 @@ class RailHeadingIosTest {
     private companion object {
         const val HEADING = "heading"
         const val PANE_SHARE = 0.66f
+        const val FIRST_BOTTOM = "tasks"
+        const val LAST_BOTTOM = "context"
+        val SHORT_RAIL_BOX: Dp = 272.dp
+        val TALL_RAIL_BOX: Dp = 400.dp
     }
 }
