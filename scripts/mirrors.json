@@ -1110,7 +1110,7 @@
         "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/viewmodel/delegate/QueueOrchestrationDelegate.kt",
         "symbol": "serverOwnedSpec"
       },
-      "why": "The server's queued turn has no `spec` field, so under `modelSpecs.enforce` a turn queued on the server is refused by `buildEndpointOption` when it drains, even if the composer held a spec. `serverOwnedSpec` keeps such a follow-up on the local drain instead.",
+      "why": "The server's queued turn has no `spec` field. Under `modelSpecs.enforce` the server can run it only because v0.8.9-rc1's `restoreAgentTriggerModelSpec` puts the conversation's agents spec back (see queued-turn-enforced-spec-restore); any other spec is refused by `buildEndpointOption` at drain. `serverOwnedSpec` keeps those follow-ups on the local drain.",
       "failure_mode": "Upstream adds `spec` to the enqueue schema and mobile keeps routing enforce-mode follow-ups locally -- harmless but stale. Or the schema stays and someone removes the local fallback: the queued turn is silently refused at drain time."
     },
     {
@@ -1123,8 +1123,22 @@
         "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/viewmodel/delegate/QueueOrchestrationDelegate.kt",
         "symbol": "serverOwnedSpec"
       },
-      "why": "The other half of queued-turn-enqueue-no-spec: the worker re-posts a drained queued turn to the chat route without a `spec`. If it starts carrying one, enforce-mode follow-ups could go to the server queue like any other.",
+      "why": "The other half of queued-turn-enqueue-no-spec: the worker re-posts a drained queued turn to the chat route with `endpoint: agents`, the agent's id and no `spec`, which is what restoreAgentTriggerModelSpec matches on. If it starts carrying the spec, every enforce-mode follow-up could go to the server queue like any other.",
       "failure_mode": "Upstream's worker starts sending the spec and mobile keeps the local-drain detour it no longer needs, or the reverse."
+    },
+    {
+      "id": "queued-turn-enforced-spec-restore",
+      "upstream": {
+        "file": "packages/api/src/modelSpecs/continuation.ts",
+        "symbol": "restoreAgentTriggerModelSpec",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/viewmodel/delegate/QueueOrchestrationDelegate.kt",
+        "symbol": "enforcedSpecRestored"
+      },
+      "why": "Under `enforce`, a queued turn re-posted without a `spec` runs only when this restores the conversation's spec: an agents spec whose preset `agent_id` is the turn's agent, with a name no other spec shares. `enforcedSpecRestored` copies those conditions to decide which follow-ups may go to the server queue.",
+      "failure_mode": "Upstream narrows the restore and mobile keeps handing those follow-ups to the server, which accepts them, refuses the re-post with \"No model spec selected\" and leaves the row claimed, blocking that chat's server queue. Or it widens and mobile keeps them local, where they are lost with the app."
     },
     {
       "id": "oauth-browser-flow-routes",
@@ -1600,8 +1614,22 @@
         "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/SpecSeed.kt",
         "symbol": "SPEC_REFUSALS (isSpecRefusal); also ModelChoice.stored"
       },
-      "why": "The start POST's spec refusals, matched verbatim to open the model picker: 'No model spec selected' and 'Invalid model spec' under `enforce`, 'Model spec mismatch' with or without it. The same middleware decides which stored specs the server applies (the enforce branch replaces the body with the preset; the other applies only private fields and refuses only an endpoint mismatch), which `ModelChoice.stored` mirrors.",
+      "why": "The start POST's spec refusals, matched verbatim to open the model picker: 'No model spec selected' and 'Invalid model spec' under `enforce`, 'Model spec mismatch' with or without it. 'Error parsing model spec' is left out on purpose: it is a server fault (the preset failed to parse), which picking another model doesn't fix. The same middleware decides which stored specs the server applies (the enforce branch replaces the body with the preset; the other applies only private fields and refuses only an endpoint mismatch), which `ModelChoice.stored` mirrors.",
       "failure_mode": "Upstream rewords a refusal and the picker no longer opens (the sentence still shows). Or it changes when a stored spec is refused, and mobile keeps or drops specs the server now treats the other way."
+    },
+    {
+      "id": "model-spec-enforced-reasoning-keys",
+      "upstream": {
+        "file": "packages/api/src/modelSpecs/index.ts",
+        "symbol": "applyModelSpecPreset",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/ComposerReasoning.kt",
+        "symbol": "reasoningKeys"
+      },
+      "why": "Under `enforce` the server records every key the spec's preset sets (`enforcedFields = Object.keys(preset)`) and `reasoningOverride.ts` refuses an override of one of them. The client can't read that list, so `reasoningKeys` copies the four reasoning keys a preset can set (web's twin is `Thinking.tsx`'s `blockedReasoningKeys`) to hide the chip for them.",
+      "failure_mode": "Upstream adds a reasoning key or stops locking preset keys: the chip offers a level the server refuses with an `Invalid reasoning override` error frame, or hides itself for a key it would take. Nothing fails to decode."
     },
     {
       "id": "model-spec-preset-web",
@@ -5207,7 +5235,7 @@
         "symbol": "ReasoningSettingResolver.resolve"
       },
       "why": "Which reasoning key and values a one-turn reasoningOverride may carry for an endpoint and model. The server runs the same function on the request, so the Thinking chip and the send-time check must agree with it.",
-      "failure_mode": "The chip offers a level the server answers with a 400 invalid-reasoning-override (the send fails), or hides itself for a model that takes one. Nothing fails to decode."
+      "failure_mode": "The chip offers a level the server refuses with an `Invalid reasoning override` SSE error frame on a 200 (the send fails), or hides itself for a model that takes one. Nothing fails to decode."
     },
     {
       "id": "reasoning-setting-per-model",

@@ -40,7 +40,9 @@ fun reasoningTarget(
  * The reasoning control the composer may offer for one turn (upstream `useComposerReasoning`), or
  * null when there is none: a server older than v0.8.9-rc1 (or of unknown version), parameters off
  * (`interface.parameters`, which model specs default off), an assistants endpoint, a comparison, a
- * target that does not resolve, or a key an enforced spec's preset sets.
+ * target that does not resolve, a key an enforced spec's preset sets, or an enforced spec the config
+ * doesn't serve ([enforcedSpecUnserved]: its locked keys can't be known, and the server refuses an
+ * override of one).
  */
 @Suppress("LongParameterList")
 fun composerReasoningSetting(
@@ -52,9 +54,11 @@ fun composerReasoningSetting(
     endpointConfigs: Map<String, EndpointConfig>,
     catalog: ReasoningCatalogState?,
     enforcedPreset: Preset?,
+    enforcedSpecUnserved: Boolean = false,
 ): ReasoningSetting? {
     val supported = backendVersion?.let { BackendVersion.isCompatibleOrNewer(it, REASONING_OVERRIDE_MIN_VERSION) } == true
     if (!supported || !parametersEnabled || !endpointSupportsIt || comparing || target == null) return null
+    if (enforcedSpecUnserved) return null
     val model = target.model ?: return null
     val config = endpointConfigs[target.endpoint]
     val customParams = config?.customParams

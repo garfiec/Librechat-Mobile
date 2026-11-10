@@ -7,6 +7,7 @@ import com.garfiec.librechat.core.ui.components.ReasoningSettingResolver
 import com.garfiec.librechat.feature.chat.util.reasoningTarget
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ModelSelectionState
+import com.garfiec.librechat.feature.chat.viewmodel.QueuedEditSession
 import com.garfiec.librechat.feature.chat.viewmodel.ReasoningCatalogState
 import com.garfiec.librechat.feature.chat.viewmodel.ReasoningHandle
 import kotlinx.coroutines.delay
@@ -25,8 +26,9 @@ import kotlin.time.Clock
  *   and refetches when the server's lifetime runs out, so a list is never held longer than the
  *   server holds it. While unknown (loading, failed, expired) the efforts are hidden. A failure is
  *   retried with backoff.
- * - **The staged choice.** When the target or its resolved setting changes, a pending choice the
- *   new setting refuses is dropped. Not while the catalog is unknown: that says nothing about the
+ * - **The staged choice.** A switch of endpoint, agent or model drops it (web's `Reasoning.tsx`), unless
+ *   the same emission brings its own (a queued edit's). When the resolved setting changes, a pending
+ *   choice it refuses is dropped. Not while the catalog is unknown: that says nothing about the
  *   choice, which is checked again once the catalog lands.
  */
 class ReasoningCatalogDelegate(
@@ -58,6 +60,23 @@ class ReasoningCatalogDelegate(
                 .map { state -> state.reasoningSetting to state.isCatalogPending() }
                 .distinctUntilChanged()
                 .collect { (_, pending) -> if (!pending) dropRefusedChoice() }
+        }
+        handle.scope.launch {
+            var last: Triple<Pair<String, String?>, ReasoningOverride?, QueuedEditSession?>? = null
+            handle.stateFlow
+                .map { Triple(it.selectedEndpoint to it.selectedModel, it.composer.pendingReasoningOverride, it.editingQueuedItem) }
+                .distinctUntilChanged()
+                .collect { current ->
+                    val previous = last
+                    last = current
+                    val (target, pending, session) = current
+                    // A queued edit starting or ending swaps in a choice of its own, equal or not.
+                    if (previous != null && previous.first != target && pending != null &&
+                        pending == previous.second && session == previous.third
+                    ) {
+                        handle.update { if (pendingReasoningOverride == pending) pendingReasoningOverride = null }
+                    }
+                }
         }
     }
 

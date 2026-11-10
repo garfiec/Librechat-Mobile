@@ -28,7 +28,10 @@ class ComposerReasoningTest {
         configs: Map<String, EndpointConfig> = emptyMap(),
         catalog: ReasoningCatalogState? = null,
         preset: Preset? = null,
-    ) = composerReasoningSetting(version, parametersEnabled, endpointSupportsIt, comparing, target, configs, catalog, preset)
+        enforcedSpecUnserved: Boolean = false,
+    ) = composerReasoningSetting(
+        version, parametersEnabled, endpointSupportsIt, comparing, target, configs, catalog, preset, enforcedSpecUnserved,
+    )
 
     @Test
     fun resolvesForASupportedServerAndSelection() {
@@ -52,6 +55,12 @@ class ComposerReasoningTest {
     fun hiddenWhenAnEnforcedSpecSetsTheKey() {
         assertNull(setting(preset = Preset(reasoningEffort = "high")))
         assertNotNull(setting(preset = Preset(effort = "high")))
+    }
+
+    /** A hidden spec's preset isn't served, so which keys it locks is unknown and any level may be refused. */
+    @Test
+    fun hiddenUnderAnEnforcedSpecTheServerDoesNotServe() {
+        assertNull(setting(enforcedSpecUnserved = true))
     }
 
     @Test

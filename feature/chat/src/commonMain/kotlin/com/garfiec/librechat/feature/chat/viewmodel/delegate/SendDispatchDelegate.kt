@@ -20,9 +20,11 @@ import com.garfiec.librechat.feature.chat.util.NEW_CHAT_DRAFT_KEY
 import com.garfiec.librechat.feature.chat.util.buildActiveMessagePath
 import com.garfiec.librechat.feature.chat.util.sendableManualSkills
 import com.garfiec.librechat.feature.chat.util.storedAgainst
+import com.garfiec.librechat.feature.chat.util.withChoice
 import com.garfiec.librechat.feature.chat.viewmodel.ChatNotice
 import com.garfiec.librechat.feature.chat.viewmodel.ChatRequestBuilder
 import com.garfiec.librechat.feature.chat.viewmodel.ChatScreenState
+import com.garfiec.librechat.feature.chat.viewmodel.ModelChoice
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedMessage
 import com.garfiec.librechat.feature.chat.viewmodel.SendDispatchHandle
 import com.garfiec.librechat.feature.chat.viewmodel.quotesSupportedOn
@@ -105,7 +107,8 @@ class SendDispatchDelegate(
 
     /**
      * Snapshots the current send config into a [QueuedMessage]. Used both for a normal send
-     * (fired immediately) and for queueing (fired later, unchanged by intervening config edits).
+     * (fired immediately) and for queueing (fired later, with the composer as it was; a drain
+     * re-derives the request fields from it under the config of that moment).
      * Returns null when there is nothing to send (blank text and no uploaded files).
      */
     @OptIn(ExperimentalUuidApi::class)
@@ -395,8 +398,40 @@ class SendDispatchDelegate(
     }
 
     /**
+     * A drained turn's request fields re-derived from its own composer snapshot on [choice] (the
+     * snapshot's spec held against the current config) under the current config and gates, through
+     * the builder a live send uses. The config may have changed while the turn waited: a dropped or
+     * moved spec takes its tools and preset parameters with it, and a web-search route captured while
+     * the key check was out ([com.garfiec.librechat.feature.chat.util.WebSearchRoute.CHECKING]) runs
+     * the search the check answered.
+     */
+    private fun QueuedMessage.rebuiltForDrain(choice: ModelChoice): QueuedMessage {
+        val state = handle.state
+        val selection = state.selection.copy(
+            choice = this.choice,
+            enabledTools = enabledTools,
+            selectedMcpServerNames = mcpServerNames,
+            specTools = specTools,
+            modelParameters = modelParameters,
+            skillsToggle = ephemeralAgent?.skills == true,
+        ).withChoice(choice, from = this.choice)
+        val rebuilt = state.copy(selection = selection)
+        val builder = ChatRequestBuilder { rebuilt }
+        return copy(
+            choice = choice,
+            specTools = selection.specTools,
+            modelParameters = selection.modelParameters,
+            webSearch = builder.builtInWebSearch(),
+            modelParamsPayload = builder.buildModelParams(),
+            ephemeralAgent = builder.buildEphemeralAgent(),
+            dispatch = builder.currentDispatch(),
+        )
+    }
+
+    /**
      * Sends one message from a [QueuedMessage] config snapshot. The config (endpoint/model/
-     * tools/webSearch/attachments/dispatch/ephemeralAgent) comes from the spec, but the
+     * tools/webSearch/attachments/dispatch/ephemeralAgent) comes from the spec (a drain re-derives
+     * the request fields from it, see [rebuiltForDrain]), but the
      * lineage — conversationId, parentMessageId, and the minted optimistic user-message id —
      * is recomputed from the *current* tree, so a drained item chains onto the freshly-
      * finalized turn.
@@ -428,7 +463,7 @@ class SendDispatchDelegate(
                 reasoningOverride = takePendingReasoningOverride(),
             )
         } else {
-            baseSpec.copy(choice = choice)
+            baseSpec.rebuiltForDrain(choice)
         }
         if (fromComposer) clearComposer()
 

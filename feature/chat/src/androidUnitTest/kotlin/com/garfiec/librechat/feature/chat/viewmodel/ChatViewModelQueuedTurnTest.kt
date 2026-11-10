@@ -46,6 +46,7 @@ import com.garfiec.librechat.core.model.response.ChatAbortResponse
 import com.garfiec.librechat.core.model.response.ChatStatusResponse
 import com.garfiec.librechat.core.model.response.SteerResponse
 import com.garfiec.librechat.feature.chat.util.DraftItem
+import com.garfiec.librechat.feature.chat.util.restore
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PlatformFileHandler
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
@@ -284,23 +285,13 @@ class ChatViewModelQueuedTurnTest {
     }
 
     /**
-     * The server's queued turn carries no spec, so `enforce` refuses it and the follow-up stays
-     * local (`QueueOrchestrationDelegate.serverOwnedSpec`).
+     * Below v0.8.9-rc1 the server's queued turn carries no spec, so `enforce` refuses it and the
+     * follow-up stays local (`QueueOrchestrationDelegate.serverOwnedSpec`).
      */
     @Test
-    fun `under enforce the follow-up stays local`() = queuedTurnTest(
-        arrange = {
-            // The spec config reaches the selection through the seeder's combine, which waits on this.
-            every { settingsDataStore.lastUsedSelection } returns flowOf(LastUsedSelection.NONE)
-            every { configRepository.startupConfig } returns MutableStateFlow(
-                StartupConfig(
-                    modelSpecs = ModelSpecs(
-                        list = listOf(ModelSpec(name = "helper", preset = Preset(endpoint = ENDPOINT, agentId = AGENT_ID))),
-                        enforce = true,
-                    ),
-                ),
-            )
-        },
+    fun `under enforce the follow-up stays local before rc1`() = queuedTurnTest(
+        choice = HELPER_SPEC_CHOICE,
+        arrange = { arrangeEnforcedSpecs(helperSpec()) },
     ) { vm ->
         assertThat(vm.uiState.value.isStreaming).isTrue()
 
@@ -312,6 +303,56 @@ class ChatViewModelQueuedTurnTest {
         val queued = vm.uiState.value.messageQueue.single()
         assertThat(queued.server).isNull()
         assertThat(queued.text).isEqualTo(TEXT)
+    }
+
+    /** rc1 restores the conversation's agents spec for a queued turn (`restoreAgentTriggerModelSpec`). */
+    @Test
+    fun `under enforce an agents spec's follow-up goes to the server on rc1`() = queuedTurnTest(
+        choice = HELPER_SPEC_CHOICE,
+        arrange = {
+            arrangeBackend("0.8.9-rc1")
+            arrangeEnforcedSpecs(helperSpec())
+        },
+    ) { vm ->
+        vm.onInputChanged(TEXT)
+        vm.queueMessage()
+        runCurrent()
+
+        coVerify(exactly = 1) { queuedTurnRepository.enqueue(any()) }
+        assertThat(vm.uiState.value.messageQueue.single().server).isNotNull()
+    }
+
+    /** The server restores a spec only when its name is unique, so a shared name stays local. */
+    @Test
+    fun `under enforce a spec whose name is shared stays local on rc1`() = queuedTurnTest(
+        choice = HELPER_SPEC_CHOICE,
+        arrange = {
+            arrangeBackend("0.8.9-rc1")
+            arrangeEnforcedSpecs(helperSpec(), helperSpec().copy(label = "Other"))
+        },
+    ) { vm ->
+        vm.onInputChanged(TEXT)
+        vm.queueMessage()
+        runCurrent()
+
+        coVerify(exactly = 0) { queuedTurnRepository.enqueue(any()) }
+        assertThat(vm.uiState.value.messageQueue.single().server).isNull()
+    }
+
+    private fun helperSpec() = ModelSpec(name = "helper", preset = Preset(endpoint = ENDPOINT, agentId = AGENT_ID))
+
+    private fun arrangeEnforcedSpecs(vararg specs: ModelSpec) {
+        // The spec config reaches the selection through the seeder's combine, which waits on this.
+        every { settingsDataStore.lastUsedSelection } returns flowOf(LastUsedSelection.NONE)
+        every { configRepository.startupConfig } returns MutableStateFlow(
+            StartupConfig(modelSpecs = ModelSpecs(list = specs.toList(), enforce = true)),
+        )
+    }
+
+    private fun arrangeBackend(version: String) {
+        every { configRepository.detectedBackend } returns
+            MutableStateFlow(DetectedBackend(version, BackendBuildClass.RC))
+        every { configRepository.detectedBackendVersion } returns MutableStateFlow(version)
     }
 
     /**
@@ -1619,6 +1660,7 @@ class ChatViewModelQueuedTurnTest {
     )
 
     private fun queuedTurnTest(
+        choice: ModelChoice = ModelChoice.Raw(ENDPOINT, AGENT_ID),
         arrange: () -> Unit = {},
         body: suspend TestScope.(ChatViewModel) -> Unit,
     ) = runTest(testDispatcher) {
@@ -1627,7 +1669,7 @@ class ChatViewModelQueuedTurnTest {
         // to capture, so without it there is nothing for the assertions to be about.
         selectionHandoff.put(
             conversationId = CONVERSATION_ID,
-            choice = ModelChoice.Raw(ENDPOINT, AGENT_ID),
+            choice = choice,
             optimisticUserMessage = Message(
                 messageId = USER_MESSAGE_ID,
                 conversationId = CONVERSATION_ID,
@@ -1654,5 +1696,6 @@ class ChatViewModelQueuedTurnTest {
         const val USER_MESSAGE_ID = "user-1"
         const val TEXT = "and then summarise it"
         const val EPOCH = 1_758_000_000_000L
+        val HELPER_SPEC_CHOICE = ModelChoice.restore(ENDPOINT, AGENT_ID, "helper")
     }
 }

@@ -1,8 +1,12 @@
 package com.garfiec.librechat.feature.chat.viewmodel.delegate
 
 import com.garfiec.librechat.core.model.Message
+import com.garfiec.librechat.core.model.Preset
 import com.garfiec.librechat.core.model.ReasoningOverride
+import com.garfiec.librechat.core.model.config.ModelSpec
+import com.garfiec.librechat.core.model.config.ModelSpecs
 import com.garfiec.librechat.feature.chat.util.buildActiveMessagePath
+import com.garfiec.librechat.feature.chat.util.restore
 import com.garfiec.librechat.feature.chat.viewmodel.ChatRequestBuilder
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
@@ -38,7 +42,12 @@ class ReasoningOverrideReplayTest {
     )
     private val reply = Message(messageId = "a1", conversationId = "c1", parentMessageId = "u1", text = "answer")
 
-    private fun fixture(model: String = "gpt-5", version: String? = "0.8.9-rc1"): Pair<RecordingChatRepository, MessageEditingDelegate> {
+    private fun fixture(
+        model: String = "gpt-5",
+        version: String? = "0.8.9-rc1",
+        parametersEnabled: Boolean = true,
+        selection: ModelSelectionState = ModelSelectionState(choice = ModelChoice.Raw("openAI", model)),
+    ): Pair<RecordingChatRepository, MessageEditingDelegate> {
         val flow = MutableStateFlow(
             ChatUiState(
                 conversation = ConversationMetaState(conversationId = "c1"),
@@ -46,8 +55,8 @@ class ReasoningOverrideReplayTest {
                     messages = listOf(userTurn, reply),
                     displayMessages = buildActiveMessagePath(listOf(userTurn, reply)),
                 ),
-                selection = ModelSelectionState(choice = ModelChoice.Raw("openAI", model)),
-                gates = FeatureGatesState(backendVersion = version),
+                selection = selection,
+                gates = FeatureGatesState(backendVersion = version, parametersEnabled = parametersEnabled),
                 composer = ComposerState(pendingReasoningOverride = pending),
             ),
         )
@@ -91,6 +100,31 @@ class ReasoningOverrideReplayTest {
     @Test
     fun `an older server gets no choice`() {
         val (repository, delegate) = fixture(version = "0.8.8")
+        delegate.regenerateMessage("a1")
+        assertThat(repository.sent.single().reasoningOverride).isNull()
+    }
+
+    /** The Thinking chip is hidden with parameters off, but the turn's own choice still goes out, as on web. */
+    @Test
+    fun `regenerate replays the choice with parameters off`() {
+        val (repository, delegate) = fixture(parametersEnabled = false)
+        delegate.regenerateMessage("a1")
+        assertThat(repository.sent.single().reasoningOverride).isEqualTo(high)
+    }
+
+    /** An enforced spec's preset locks the key: the server refuses an override of it. */
+    @Test
+    fun `a key an enforced spec sets is not replayed`() {
+        val spec = ModelSpec(
+            name = "deep",
+            preset = Preset(endpoint = "openAI", model = "gpt-5", reasoningEffort = "medium"),
+        )
+        val (repository, delegate) = fixture(
+            selection = ModelSelectionState(
+                choice = ModelChoice.restore("openAI", "gpt-5", "deep"),
+                modelSpecs = ModelSpecs(list = listOf(spec), enforce = true),
+            ),
+        )
         delegate.regenerateMessage("a1")
         assertThat(repository.sent.single().reasoningOverride).isNull()
     }

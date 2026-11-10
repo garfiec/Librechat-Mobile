@@ -7,6 +7,7 @@ import com.garfiec.librechat.core.model.Preset
 import com.garfiec.librechat.core.model.config.ModelSpec
 import com.garfiec.librechat.core.model.config.ModelSpecs
 import com.garfiec.librechat.core.model.media.ProviderId
+import com.garfiec.librechat.core.ui.components.ModelParameters
 import com.garfiec.librechat.feature.chat.components.LandingHeroIcon
 import com.garfiec.librechat.feature.chat.viewmodel.ChatPrefsState
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
@@ -176,6 +177,24 @@ class LandingTextTest {
         assertThat(state(agentSpec).replySenderName("Assistant")).isEqualTo("Travel Planner")
         val noModel = state(null).copy(selection = ModelSelectionState(choice = ModelChoice.Raw("openAI", null)))
         assertThat(noModel.replySenderName("Assistant")).isEqualTo("Assistant")
+    }
+
+    /** The server's sender: `modelLabel ?? spec label ?? modelDisplayLabel`, then the model. */
+    @Test
+    fun aReplyInProgressGoesByTheNameTheServerSavesItUnder() {
+        val labelled = modelSpec.copy(preset = modelSpec.preset!!.copy(modelLabel = "Bob"))
+        val enforced = state(labelled).copy(
+            selection = state(labelled).selection.copy(modelSpecs = ModelSpecs(list = listOf(labelled), enforce = true)),
+        )
+        assertThat(enforced.replySenderName("Assistant")).isEqualTo("Bob")
+        val customName = state(null).copy(
+            selection = state(null).selection.copy(modelParameters = ModelParameters(customName = "Ada")),
+        )
+        assertThat(customName.replySenderName("Assistant")).isEqualTo("Ada")
+        val displayLabel = state(null).copy(
+            selection = state(null).selection.copy(endpointConfigs = mapOf("openAI" to EndpointConfig(modelDisplayLabel = "GPT"))),
+        )
+        assertThat(displayLabel.replySenderName("Assistant")).isEqualTo("GPT")
     }
 
     @Test

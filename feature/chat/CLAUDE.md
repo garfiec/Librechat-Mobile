@@ -71,7 +71,8 @@ mirrored port of web's `getDefaultModelSpec` + `useNewConvo`.
   `prioritize: false` and `modelSelect: true`.
 - **Last spec**: a picked spec is stored with last-used (`LastUsedSelection.spec`; a raw pick clears
   it). Unless some spec is `default`, new chats reopen on it, under `prioritize` too. It reopens on
-  the spec's *current* pair (`reopenedPick`); only a spec the server dropped falls back to the raw pair.
+  the spec's *current* pair (`reopenedPick`); a spec the list doesn't serve (dropped or hidden) falls
+  back to the raw pair, as web's `getDefaultModelSpec` treats it as absent.
   Divergence: web also rewrites this when a conversation is opened; mobile writes it only on a pick.
 - **Soft default** applies only when last-used can't.
 - **"Start new chats on: My last-used model"** (`AppPreferences.PreferLastUsedModel`, mobile-only)
@@ -170,8 +171,10 @@ rows). A cached conversation with no spec is refetched once per account and proc
 the fetched config, not the selection; a failed refresh retries on the next open.
 - Compare's second lane follows the same rule though the server checks only the primary: its picker
   and quick picks list no raw rows (`SendBlockReason.SelectSecondaryModel`).
-- A follow-up queued during an agents run stays on the local drain
-  (`QueueOrchestrationDelegate.serverOwnedSpec`): the server's queued turn carries no `spec`.
+- A follow-up queued during an agents run goes to the server queue only on v0.8.9-rc1+ for a served
+  agents spec whose preset names the chat's agent and whose name is unique: the queued turn carries
+  no `spec` and only those are restored server-side. Anything else stays on the local drain
+  (`QueueOrchestrationDelegate.serverOwnedSpec`).
 
 **A user-key endpoint with no key is refused before sending** (`SendBlockReason.ApiKeyRequired`);
 the send goes through while the key state is loading or unknown. With no picker the reason is text only.
@@ -189,14 +192,16 @@ list, hidden specs included, and checks the endpoint only.
 
 It applies at every writer of a stored selection: conversation load (`applyResolvedConversationModel`),
 config change on an open chat (`withSpecsRefreshed`), preset load (adopting the spec's own pair when
-the preset names none), a queued turn restored or drained (`applyComposer`, `doSendWithSpec`) and
+the preset names none), a queued turn restored or drained (`applyComposer`, `doSendWithSpec`, which
+re-derives the drained turn's tools, parameters and web-search route on the held choice) and
 Compare's picked lane B. The preflight accepts any kept name; the three spec refusals
 (`isSpecRefusal`) open the picker with "Select a model" beside the server's sentence.
 - The seeder's own landing pick (`seededAgainst`) holds only specs served on that pair; one no longer
   served there re-seeds through the tiers.
 - A stored *pick* (last-used restore, model shortcut) follows the spec to its current pair
   (`reopenedPick`).
-- The header chip shows a kept spec the list doesn't serve by its model name; no picker row for it.
+- The header chip shows a kept spec the list doesn't serve by its model name, where web shows its
+  "Select a model" placeholder (and still sends the spec). Neither has a picker row for it.
 
 **Model shortcuts** (mobile-only) count usage per pair and spec and carry the spec in the link
 (`librechat://model?…&spec=`). Before publishing, reconcile with the cached spec config
@@ -368,7 +373,8 @@ other parts read-only beside them (divergence: web hides them); `NONE`: no Edit.
   pane needs its lane's agent id (`onFinal` fills a missing one from the final parts); a lane with no
   parts can't be kept. Keeping lane B first switches the chat to lane B's model, spec and parameters
   (`parametersLaneRanOn`: its spec's preset, or raw the defaults, with lane A's custom instructions).
-  It is a pick like any other, so it writes last-used, in a temporary chat too.
+  Its spec is held against the config (`stored()`), so under `enforce` a retargeted spec moves to its
+  new model. It writes last-used like any pick, except in a temporary chat.
 
 ## Continuing a cut-short reply
 The chip (`StoppedReplyFooter`) sits under the latest reply, always visible, not in the tap-to-reveal
@@ -724,14 +730,17 @@ and never send both** (the server runs both on OpenAI and custom endpoints).
 
 ### Per-turn thinking (`reasoningOverride`, v0.8.9-rc1)
 - `ReasoningSettingResolver` (`:core:ui`) ports upstream `resolveReasoningSettingForTarget`, which the
-  server also runs: any difference is a 400. It keeps its own key table, not
-  `EndpointParameterRegistry`'s. Mirrored.
+  server also runs: a difference fails the send (an `Invalid reasoning override` SSE error frame on a
+  200). It keeps its own key table, not `EndpointParameterRegistry`'s. Mirrored.
 - The chip shows only with: server ≥ 0.8.9-rc1, `interface.parameters` on, not assistants, not
   comparing, a resolved target (a saved agent's provider and model), a key an enforced spec's preset
-  doesn't set, and levels (a `thinkingBudget` model gets none). `hideBadgeRow` doesn't hide it.
+  doesn't set, and levels (a `thinkingBudget` model gets none). `hideBadgeRow` doesn't hide it. Under
+  `enforce` a kept spec the config doesn't serve (`showInMenu: false`) hides it: its locked keys can't
+  be known. Web shows it there and the send fails.
 - One message only: a staged choice rides that send or its `QueuedMessage`, and makes a mid-run send
-  queue, never steer. A model switch drops it only once the new setting is known and refuses it.
-  Edit/regenerate/continue send the user message's own `reasoningOverride`.
+  queue, never steer. A switch of endpoint, agent or model drops it, as web does; a changed setting
+  drops one it refuses once known. Edit/regenerate/continue send the user message's own
+  `reasoningOverride` when the model takes it and no enforced spec locks the key, chip shown or not.
 - **OpenRouter catalog:** an endpoint whose efforts come from the catalog (`usesCatalog`) offers none
   until `ReasoningCatalogDelegate` has it; it refetches at the server's `expiresInMs` and retries
   failures. A model the catalog doesn't list keeps the generic list.

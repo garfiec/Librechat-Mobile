@@ -182,8 +182,8 @@ class ChatViewModelKeepAndContinueTest {
 
             // Lane B ran on the server's defaults, with lane A's custom instructions sent alongside.
             assertThat(vm.uiState.value.modelParameters).isEqualTo(ModelParameters.DEFAULT.copy(customInstructions = "Be brief."))
-            // A pick like any other, temporary chat or not.
-            coVerify { fixture.settingsDataStore.setLastUsedModel(SECOND_ENDPOINT, SECOND_MODEL, null) }
+            // A temporary chat leaves no last-used behind.
+            coVerify(exactly = 0) { fixture.settingsDataStore.setLastUsedModel(SECOND_ENDPOINT, SECOND_MODEL, any()) }
         }
 
     @Test
@@ -208,6 +208,31 @@ class ChatViewModelKeepAndContinueTest {
             // Moving onto the spec resets the parameters; lane A's instructions, which lane B ran with, stay.
             assertThat(vm.uiState.value.modelParameters)
                 .isEqualTo(specs.parametersFor("careful")!!.copy(customInstructions = "Be brief."))
+        }
+    }
+
+    /** Under `enforce` the server runs a retargeted spec on its new model, so the kept lane moves there too. */
+    @Test
+    fun `keep and continue moves an enforced spec lane B onto the spec's current model`() {
+        val careful = ModelSpec(
+            name = "careful",
+            label = "Careful",
+            preset = Preset(endpoint = SECOND_ENDPOINT, model = SECOND_MODEL),
+        )
+        startupConfig.value = StartupConfig(modelSpecs = ModelSpecs(list = listOf(careful)))
+        vmTest(temporary = true) { vm ->
+            stopComparisonInTemporaryChat(vm, laneBSpec = "careful")
+            val retargeted = careful.copy(preset = careful.preset!!.copy(model = "gpt-5"))
+            startupConfig.value = StartupConfig(modelSpecs = ModelSpecs(list = listOf(retargeted), enforce = true))
+            runCurrent()
+            coEvery { messageRepository.branchMessage(CONVERSATION_ID, PARALLEL_ID, LANE_B) } returns
+                Result.Success(kept(parent = sends.first().userMessageId!!))
+
+            vm.keepAndContinue(LANE_B)
+            runCurrent()
+
+            assertThat(vm.uiState.value.selectedSpec).isEqualTo("careful")
+            assertThat(vm.uiState.value.selectedModel).isEqualTo("gpt-5")
         }
     }
 
@@ -278,6 +303,8 @@ class ChatViewModelKeepAndContinueTest {
             assertThat(sends.single().responseMessageId).isEqualTo(KEPT_ID)
             assertThat(vm.uiState.value.isStreaming).isTrue()
             assertThat(vm.uiState.value.error).isNotEqualTo(ChatNotice.CONTINUE_RESPONSE_FAILED.marker())
+            // Keeping lane B in a saved chat is a pick like any other.
+            coVerify { fixture.settingsDataStore.setLastUsedModel(SECOND_ENDPOINT, SECOND_MODEL, null) }
         }
 
     @Test

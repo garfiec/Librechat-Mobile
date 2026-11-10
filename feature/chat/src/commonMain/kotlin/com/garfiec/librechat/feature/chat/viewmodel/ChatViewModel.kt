@@ -100,6 +100,7 @@ import com.garfiec.librechat.feature.chat.util.parametersLaneRanOn
 import com.garfiec.librechat.feature.chat.util.reopenedParameters
 import com.garfiec.librechat.feature.chat.util.restore
 import com.garfiec.librechat.feature.chat.util.serializeMessageForClipboard
+import com.garfiec.librechat.feature.chat.util.stored
 import com.garfiec.librechat.feature.chat.util.withAttachmentSources
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.AttachmentPreviewDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.BranchSwitch
@@ -1119,6 +1120,12 @@ class ChatViewModel(
                     minVersion = "0.8.8",
                     landedDate = "2026-09-26",
                 )
+                // restoreAgentTriggerModelSpec (20701bed0, landed 2026-10-22): dated the day AFTER landing.
+                val serverQueueEnforcedAgentSpec = BackendVersion.supportsFeature(
+                    detected = detected,
+                    minVersion = "0.8.9-rc1",
+                    landedDate = "2026-10-23",
+                )
                 // thinkingDisplay `updates` (40bb16ed, landed 2026-09-28): PRESENT only, dated the day
                 // AFTER landing. Keep in step with AgentCapabilitiesDelegate; see VERSION_GATES.md.
                 val thinkingDisplayUpdates = BackendVersion.supportsFeature(
@@ -1141,6 +1148,7 @@ class ChatViewModel(
                             subagentThreadsSupported = subagentThreads,
                             serverQueueSupported = serverQueue,
                             serverQueueApprovalModeSupported = serverQueueApprovalMode,
+                            serverQueueEnforcedAgentSpecSupported = serverQueueEnforcedAgentSpec,
                             providerScopedUploadsSupported = providerScopedUploads,
                             backendVersion = detected?.version,
                         ),
@@ -2305,19 +2313,20 @@ class ChatViewModel(
      * Keeps [agentId]'s answer and continues it with the model that wrote it. A Continue sends with
      * the chat's model, which during a comparison is lane A's, so keeping lane B switches the chat
      * to lane B's model, spec and parameters first ([parametersLaneRanOn]); read now, since keeping
-     * the lane clears the comparison. A pick like any other, so it writes last-used.
+     * the lane clears the comparison. Its spec is held against the config as every writer holds it
+     * ([stored]). A pick like any other, so it writes last-used, except in a temporary chat.
      */
     fun keepAndContinue(agentId: String) {
         val state = _uiState.value
         val comparison = state.comparisonState
         val laneB = comparison.secondaryEndpoint?.takeIf { isAddedAgentId(agentId) }?.let { endpoint ->
-            comparison.secondaryModel?.let { model -> ModelChoice.restore(endpoint, model, state.laneBSpec) }
+            comparison.secondaryModel?.let { model -> ModelChoice.stored(endpoint, model, state.laneBSpec, state.modelSpecs) }
         }
         comparisonDelegate.keepAndContinue(agentId) {
             laneB?.let { choice ->
                 // Read before the pick: moving onto or off a spec resets lane A's custom instructions.
                 val ran = _uiState.value.selection.parametersLaneRanOn(choice)
-                modelDelegate.onChoiceSelected(choice)
+                modelDelegate.onChoiceSelected(choice, saveLastUsed = !state.isTemporaryChat)
                 modelDelegate.updateModelParameters(ran, restoring = true)
             }
             continueGeneration()

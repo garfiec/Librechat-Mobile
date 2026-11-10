@@ -1,6 +1,7 @@
 package com.garfiec.librechat.feature.chat.viewmodel.delegate
 
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.data.endpoint.EndpointDispatch
 import com.garfiec.librechat.core.data.repository.ReasoningCapabilitiesRepository
 import com.garfiec.librechat.core.data.repository.ReasoningCatalog
 import com.garfiec.librechat.core.model.CustomParams
@@ -9,11 +10,14 @@ import com.garfiec.librechat.core.model.ReasoningOverride
 import com.garfiec.librechat.core.model.reasoning.ModelReasoning
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
+import com.garfiec.librechat.feature.chat.viewmodel.ComposerSnapshot
 import com.garfiec.librechat.feature.chat.viewmodel.ComposerState
 import com.garfiec.librechat.feature.chat.viewmodel.ConversationMetaState
 import com.garfiec.librechat.feature.chat.viewmodel.FeatureGatesState
 import com.garfiec.librechat.feature.chat.viewmodel.ModelChoice
 import com.garfiec.librechat.feature.chat.viewmodel.ModelSelectionState
+import com.garfiec.librechat.feature.chat.viewmodel.QueuedEditSession
+import com.garfiec.librechat.feature.chat.viewmodel.QueuedMessage
 import com.garfiec.librechat.feature.chat.viewmodel.ReasoningCatalogState
 import com.garfiec.librechat.feature.chat.viewmodel.ReasoningHandle
 import com.google.common.truth.Truth.assertThat
@@ -86,9 +90,46 @@ class ReasoningCatalogDelegateTest {
         assertThat(flow.value.composer.pendingReasoningOverride).isNull()
     }
 
+    /** Web's `Reasoning.tsx` clears a staged choice on any change of agent, endpoint or model. */
     @Test
-    fun `a switch to a model that keeps the level keeps the choice`() = delegateTest(state("openAI", "gpt-5")) { flow, _ ->
-        flow.select("openAI", "o3")
+    fun `a switch to another model drops the choice even when it takes the level`() =
+        delegateTest(state("openAI", "gpt-5")) { flow, _ ->
+            flow.select("openAI", "o3")
+            runCurrent()
+            assertThat(flow.value.composer.pendingReasoningOverride).isNull()
+        }
+
+    /** A queued edit swaps the model and its own staged choice in one emission. */
+    @Test
+    fun `a choice arriving with the new model stays`() = delegateTest(state("openAI", "gpt-5")) { flow, _ ->
+        val low = ReasoningOverride.level("reasoning_effort", "low")
+        flow.update {
+            it.copy(
+                selection = it.selection.copy(choice = ModelChoice.Raw("openAI", "o3")),
+                composer = it.composer.copy(pendingReasoningOverride = low),
+            )
+        }
+        runCurrent()
+        assertThat(flow.value.composer.pendingReasoningOverride).isEqualTo(low)
+    }
+
+    /** Starting a queued edit brings the item's own choice, even one equal to the draft's. */
+    @Test
+    fun `a queued edit's choice equal to the draft's stays`() = delegateTest(state("openAI", "gpt-5")) { flow, _ ->
+        val item = QueuedMessage(
+            localId = "q1",
+            text = "hi",
+            choice = ModelChoice.Raw("openAI", "o3"),
+            reasoningOverride = high,
+            dispatch = EndpointDispatch(endpointType = null, key = null, modelDisplayLabel = null),
+        )
+        val stashed = ComposerSnapshot(text = "", choice = ModelChoice.Raw("openAI", "gpt-5"), reasoningOverride = high)
+        flow.update {
+            it.copy(
+                selection = it.selection.copy(choice = item.choice),
+                composer = it.composer.copy(editingQueuedItem = QueuedEditSession(item, 0, stashed)),
+            )
+        }
         runCurrent()
         assertThat(flow.value.composer.pendingReasoningOverride).isEqualTo(high)
     }

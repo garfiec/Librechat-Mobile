@@ -379,15 +379,25 @@ internal fun ChatUiState.landingHeroIcon(): LandingHeroIcon? =
 
 /**
  * The name a reply in progress goes by until the server's saved one replaces it: the agent's name
- * under the agents endpoint, else the selected spec's label (the names the server saves those
- * replies under), else the model, where the server's own name (`getResponseSender`) isn't ported.
+ * under the agents endpoint, else the server's sender chain (`getEphemeralSender`): the custom name
+ * (under `enforce`, the spec preset's, as the server sends the preset), the spec's label, the
+ * endpoint's `modelDisplayLabel`. Then the model, where `getResponseSender` isn't ported.
  */
 internal fun ChatUiState.replySenderName(fallback: String): String {
     val model = selectedModel
     if (selectedEndpoint == EndpointConstants.AGENTS && model != null) {
         return agents.find { it.id == model }?.name ?: model
     }
-    return modelSpecs?.labelFor(selectedSpec) ?: model ?: fallback
+    val customName = if (parametersSetBySpec) {
+        activeSpec?.preset?.let { it.modelLabel ?: it.chatGptLabel }
+    } else {
+        modelParameters.customName
+    }
+    return customName?.takeIf { it.isNotBlank() }
+        ?: modelSpecs?.labelFor(selectedSpec)
+        ?: endpointConfigs[selectedEndpoint]?.modelDisplayLabel
+        ?: model
+        ?: fallback
 }
 
 private fun ChatUiState.selectedAgent() =
