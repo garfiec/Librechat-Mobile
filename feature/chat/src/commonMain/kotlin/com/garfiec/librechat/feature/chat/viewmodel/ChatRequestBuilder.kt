@@ -90,9 +90,12 @@ class ChatRequestBuilder(
     /**
      * Snapshots the configured model parameters (temperature, top_p, promptCache/promptCacheTtl, …)
      * into the provider-keyed map sent at the top level of the chat payload, mirroring the web
-     * client. Returns null when nothing was customized so the send path stays byte-for-byte identical
-     * to before for untouched conversations. For the agents endpoint the underlying agent's provider
-     * selects the correct parameter set.
+     * client. Returns null when nothing is sent. For the agents endpoint the underlying agent's
+     * provider selects the correct parameter set.
+     *
+     * `web_search` always goes out with ephemeral tools, `false` off the built-in route: left out, an
+     * admin's `paramDefinitions` default would turn the built-in search on beside LibreChat's, or with
+     * the control off (`getOpenAILLMConfig`). A saved agent runs its own parameters, so none is sent.
      */
     fun buildModelParams(): JsonObject? {
         val state = stateProvider()
@@ -108,6 +111,7 @@ class ChatRequestBuilder(
             dropParamsMap = state.gates.dropParamsMap,
             settingsEndpoint = target.settingsEndpoint,
             settingsProvider = target.settingsProvider,
+            alwaysSent = if (state.showEphemeralTools) setOf(ToolConstants.WEB_SEARCH) else emptySet(),
         ).takeIf { it.isNotEmpty() }
     }
 

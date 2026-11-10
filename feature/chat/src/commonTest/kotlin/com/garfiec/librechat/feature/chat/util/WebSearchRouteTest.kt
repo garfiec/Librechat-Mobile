@@ -27,7 +27,11 @@ class WebSearchRouteTest {
         librechatUsable: Boolean = true,
         builtInAvailable: Boolean = true,
         librechatChecking: Boolean = false,
-    ) = webSearchRoute(on, sendsEphemeralTools, spec, comparing, preference, librechatUsable, builtInAvailable, librechatChecking)
+        specSearchAllowed: Boolean = true,
+    ) = webSearchRoute(
+        on, sendsEphemeralTools, spec, comparing, preference, librechatUsable, builtInAvailable, librechatChecking,
+        specSearchAllowed = specSearchAllowed,
+    )
 
     @Test
     fun `while LibreChat search is being checked a route that would pick it holds`() {
@@ -93,6 +97,15 @@ class WebSearchRouteTest {
             WebSearchRoute.LIBRECHAT,
             route(spec = searchSpec, preference = WebSearchPreference.BUILT_IN_FIRST, librechatUsable = false),
         )
+    }
+
+    @Test
+    fun `a spec's webSearch without the capability or role searches nothing`() {
+        assertEquals(WebSearchRoute.NONE, route(spec = searchSpec, specSearchAllowed = false))
+        // Not the built-in search either, unless the spec's preset asks for that too.
+        assertEquals(WebSearchRoute.NONE, route(spec = searchSpec, specSearchAllowed = false, librechatUsable = false))
+        assertEquals(WebSearchRoute.BUILT_IN, route(spec = bothSpec, specSearchAllowed = false))
+        assertEquals(WebSearchRoute.NONE, route(spec = bothSpec, specSearchAllowed = false, builtInAvailable = false))
     }
 
     @Test

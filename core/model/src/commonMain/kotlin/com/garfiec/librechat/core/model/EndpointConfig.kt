@@ -21,7 +21,7 @@ data class EndpointConfig(
     val name: String? = null,
     val userProvide: Boolean? = null,
     val userProvideURL: Boolean? = null,
-    val capabilities: List<String> = emptyList(),
+    val capabilities: List<String>? = null,
     val disableBuilder: Boolean? = null,
     val azure: Boolean? = null,
     /**

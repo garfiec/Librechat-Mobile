@@ -259,6 +259,11 @@ spec fields are honoured.
 
 **Server limits the client accepts** (don't "fix" without a server change):
 - Under `enforce`, a spec with `webSearch` and preset `web_search` on OpenAI runs both searches.
+- A custom endpoint's `addParams.web_search` turns the built-in search on whatever the request sends,
+  and is never served, so it can run beside LibreChat search or with the control off (web too).
+- A hidden spec (`showInMenu: false`) isn't served, so the client can't see its preset or tools, but
+  the server applies them: its `enforce` preset `web_search` and its `webSearch` flag both run
+  beside whatever the control sends.
 - **Lane B's web search:** with an ephemeral primary, lane B copies the primary's tools (`added.ts`)
   with empty `model_parameters`, so only LibreChat search reaches it (hence comparisons route to
   LibreChat search). A spec whose preset sets `web_search`, or a chat that `keepsBuiltInSearch`, keeps
@@ -672,18 +677,19 @@ LibreChat's own `web_search` tool (`ephemeralAgent.web_search`) vs the provider'
 (conversation parameter `web_search`). **Mobile shows one control on purpose: don't add a second,
 and never send both** (the server runs both on OpenAI and custom endpoints).
 - **Each send carries exactly one** (`util/WebSearchRoute.kt`). Order: off or a saved agent → nothing;
-  a spec's `webSearch` → LibreChat, its preset's `web_search` → built-in (on an endpoint with no
+  a spec's `webSearch` → LibreChat (without the capability: its preset's built-in where it can
+  run, else nothing; without the role, nothing; no control either way), its preset's `web_search` → built-in (on an endpoint with no
   built-in search, LibreChat when it can, else nothing; but under `enforce` the server sends the preset
   anyway, so built-in); a reopened chat whose stored conversation has `web_search` on keeps the
   built-in search until the user turns the control off (`keepsBuiltInSearch`: a send without it makes
   the server unset it); a comparison → LibreChat search when it can (lane B only gets the primary's
   tools); else `AppPreferences.WebSearchFirst`, falling back to the other, else hidden.
 - **LibreChat search counts only when ready** (`librechatSearchReady`: the agents `capabilities`
-  include `web_search` (a missing or empty list counts) and
-  `GET /api/agents/tools/web_search/auth` → `authenticated`, asked whether or not config serves
-  `webSearch`; cached per account in `WebSearchReadinessRepository`; a failure caches nothing and
-  retries; an answer after an account switch is dropped). Strict because the server adds the tool
-  without checking keys.
+  include `web_search` (a missing list counts, an empty one doesn't: the server keeps an admin's
+  `[]`) and `GET /api/agents/tools/web_search/auth` → `authenticated`, asked whether or not config
+  serves `webSearch`; cached per account in `WebSearchReadinessRepository`; a failure caches nothing
+  and retries; an answer after an account switch is dropped). Strict because the server adds the
+  tool without checking keys.
 - **While that check is out, a send that would use LibreChat search runs none**
   (`WebSearchRoute.CHECKING`), so the search never depends on timing, but only where config serves
   `webSearch`. Only LibreChat-search sends are held, not built-in ones. Once the readiness retries
@@ -697,8 +703,8 @@ and never send both** (the server runs both on OpenAI and custom endpoints).
   (`builtInSearchProvider`), unless `dropParams` names `web_search`.
 - **Per-chat memory** (`ConversationWebSearchStore`, account-scoped, 200 chats), written by one
   observer whenever it changes (`rememberWebSearchChanges`) and when a new chat is created. A reopen
-  reads it before applying the model and writes it with the restored parameters in one update. Not
-  under a spec or in a temporary chat.
+  reads it before applying the model and writes it with the restored parameters in one update; the
+  server's stored `web_search: true` wins over it. Not under a spec or in a temporary chat.
 - **Presets** save `sendParameters`: `web_search` is true for `BUILT_IN`, false when the control is
   off, and omitted while LibreChat search is on (a preset has no field for it, on web too).
 - **A model spec drives the tools** (`util/SpecTools.kt`, mirrored). Under a spec:

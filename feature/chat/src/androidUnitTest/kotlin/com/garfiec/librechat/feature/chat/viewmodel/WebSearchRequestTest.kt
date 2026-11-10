@@ -81,6 +81,14 @@ class WebSearchRequestTest {
     private data class Wire(val librechat: Boolean, val builtIn: Boolean)
 
     private fun wire(state: ChatUiState): Wire {
+        val body = body(state)
+        return Wire(
+            librechat = (body["ephemeralAgent"] as? JsonObject)?.get(ToolConstants.WEB_SEARCH) == JsonPrimitive(true),
+            builtIn = body[ToolConstants.WEB_SEARCH] == JsonPrimitive(true),
+        )
+    }
+
+    private fun body(state: ChatUiState): JsonObject {
         val builder = ChatRequestBuilder { state }
         val request = ChatPayloadBuilder.build(
             text = "hi",
@@ -90,11 +98,7 @@ class WebSearchRequestTest {
             webSearch = builder.builtInWebSearch(),
             ephemeralAgent = builder.buildEphemeralAgent(),
         )
-        val body = ChatPayloadBuilder.toBody(librechatJson, request, builder.buildModelParams())
-        return Wire(
-            librechat = (body["ephemeralAgent"] as? JsonObject)?.get(ToolConstants.WEB_SEARCH) == JsonPrimitive(true),
-            builtIn = body[ToolConstants.WEB_SEARCH] == JsonPrimitive(true),
-        )
+        return ChatPayloadBuilder.toBody(librechatJson, request, builder.buildModelParams())
     }
 
     private val librechat = Wire(librechat = true, builtIn = false)
@@ -208,6 +212,26 @@ class WebSearchRequestTest {
     @Test
     fun `a saved agent sends neither`() {
         assertEquals(nothing, wire(state(choice = ModelChoice.Raw(EndpointConstants.AGENTS, "agent_1"))))
+        assertNull(body(state(choice = ModelChoice.Raw(EndpointConstants.AGENTS, "agent_1")))[ToolConstants.WEB_SEARCH])
+    }
+
+    @Test
+    fun `a send without the built-in search says web_search false, so an admin default can't turn it on`() {
+        assertEquals(JsonPrimitive(false), body(state(on = false))[ToolConstants.WEB_SEARCH])
+        assertEquals(JsonPrimitive(false), body(state())[ToolConstants.WEB_SEARCH])
+        assertEquals(librechat, wire(state()))
+        val custom = state(
+            choice = ModelChoice.Raw("Ollama", "llama3"),
+            on = false,
+            endpointConfigs = mapOf("Ollama" to EndpointConfig(type = "custom")),
+        )
+        assertEquals(JsonPrimitive(false), body(custom)[ToolConstants.WEB_SEARCH])
+    }
+
+    @Test
+    fun `no web_search goes where the parameters have none or the server drops it`() {
+        assertNull(body(state(choice = ModelChoice.Raw("bedrock", "anthropic.claude-3"), on = false))[ToolConstants.WEB_SEARCH])
+        assertNull(body(state(on = false, dropWebSearch = true))[ToolConstants.WEB_SEARCH])
     }
 
     @Test
@@ -252,11 +276,36 @@ class WebSearchRequestTest {
 
     @Test
     fun `agents capabilities not stated leave LibreChat search, as the server falls back to defaults`() {
-        val unstated = mapOf(EndpointConstants.AGENTS to EndpointConfig(capabilities = emptyList()))
+        val unstated = mapOf(EndpointConstants.AGENTS to EndpointConfig(capabilities = null))
 
         assertEquals(librechat, wire(state(endpointConfigs = unstated)))
         val stated = mapOf(EndpointConstants.AGENTS to EndpointConfig(capabilities = listOf("web_search")))
         assertEquals(librechat, wire(state(endpointConfigs = stated)))
+    }
+
+    @Test
+    fun `an empty agents capabilities list rules out LibreChat search, as the server keeps it empty`() {
+        val none = mapOf(EndpointConstants.AGENTS to EndpointConfig(capabilities = emptyList()))
+
+        assertEquals(builtIn, wire(state(endpointConfigs = none)))
+        val custom = state(choice = ModelChoice.Raw("Ollama", "llama3"), endpointConfigs = none)
+        assertEquals(nothing, wire(custom))
+        assertFalse(custom.webSearchAvailable)
+    }
+
+    @Test
+    fun `a spec's webSearch without the capability or role shows no control and searches nothing`() {
+        val spec = ModelChoice.Spec("searching", "openAI", "gpt-4.1")
+        val none = mapOf(EndpointConstants.AGENTS to EndpointConfig(capabilities = emptyList()))
+
+        val noCapability = state(choice = spec, on = false, endpointConfigs = none)
+        assertEquals(nothing, wire(noCapability))
+        assertFalse(noCapability.webSearchAvailable)
+        assertFalse(ToolConstants.WEB_SEARCH in noCapability.effectiveEnabledTools)
+
+        val noRole = state(choice = spec, on = false, roleAllows = false)
+        assertEquals(nothing, wire(noRole))
+        assertFalse(noRole.webSearchAvailable)
     }
 
     @Test

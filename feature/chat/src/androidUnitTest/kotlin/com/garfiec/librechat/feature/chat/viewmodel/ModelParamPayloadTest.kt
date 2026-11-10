@@ -2,6 +2,7 @@ package com.garfiec.librechat.feature.chat.viewmodel
 
 import com.garfiec.librechat.core.ui.components.ModelParameters
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.double
@@ -24,6 +25,28 @@ class ModelParamPayloadTest {
     @Test
     fun `untouched params send nothing`() {
         assertTrue(build(ModelParameters.DEFAULT).isEmpty())
+    }
+
+    @Test
+    fun `an always-sent key goes out at its default, only where the parameter set has it`() {
+        val result = ModelParamPayload.build(
+            endpoint = "anthropic",
+            provider = null,
+            model = null,
+            extendedEffortSupported = false,
+            params = ModelParameters.DEFAULT,
+            alwaysSent = setOf("web_search"),
+        )
+        assertEquals(JsonObject(mapOf("web_search" to JsonPrimitive(false))), result)
+        val bedrock = ModelParamPayload.build(
+            endpoint = "bedrock",
+            provider = null,
+            model = "anthropic.claude-3",
+            extendedEffortSupported = false,
+            params = ModelParameters.DEFAULT,
+            alwaysSent = setOf("web_search"),
+        )
+        assertNull(bedrock["web_search"])
     }
 
     @Test

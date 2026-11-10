@@ -5,6 +5,7 @@ import com.garfiec.librechat.core.model.config.ModelSpec
 import com.garfiec.librechat.core.model.config.ModelSpecs
 import com.garfiec.librechat.core.ui.components.ModelParameters
 import com.garfiec.librechat.feature.chat.util.parametersFor
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonPrimitive
 import kotlin.test.Test
@@ -66,7 +67,7 @@ class ChatRequestBuilderSpecTest {
     }
 
     @Test
-    fun `an Anthropic spec that turns thinking off says so, and an untouched chat sends nothing`() {
+    fun `an Anthropic spec that turns thinking off says so, and an untouched chat sends only web_search off`() {
         val haiku = ModelSpecs(
             list = listOf(
                 ModelSpec(
@@ -87,7 +88,7 @@ class ChatRequestBuilderSpecTest {
 
         // Anthropic thinks by default, so an off that isn't sent leaves the server refusing the temperature.
         assertEquals("false", payload(haiku.parametersFor("plain")!!)?.get("thinking")?.jsonPrimitive?.content)
-        assertNull(payload(ModelParameters.DEFAULT))
+        assertEquals(JsonObject(mapOf("web_search" to JsonPrimitive(false))), payload(ModelParameters.DEFAULT))
     }
 
     @Test

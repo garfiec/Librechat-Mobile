@@ -631,12 +631,12 @@ data class ChatUiState(
 
     /**
      * Whether the agents endpoint's `capabilities` allow [capability]. Fails OPEN on a missing list,
-     * as the server (`resolveAgentCapabilities`) and web fall back to the defaults, and on an empty
-     * one, which the client can't tell from missing (`EndpointConfig.capabilities` defaults to empty).
+     * as the server (`resolveAgentCapabilities`) and web fall back to the defaults; an empty list
+     * allows nothing, as the server keeps an admin's `[]` (zod's default fires only on `undefined`).
      */
     private fun agentCapabilityAllows(capability: String): Boolean {
         val capabilities = endpointConfigs[EndpointConstants.AGENTS]?.capabilities ?: return true
-        return capabilities.isEmpty() || capability in capabilities
+        return capability in capabilities
     }
 
     /**
@@ -648,11 +648,11 @@ data class ChatUiState(
         get() = if (ToolConstants.WEB_SEARCH in selection.effectiveTools) webSearchTarget else WebSearchRoute.NONE
 
     /**
-     * Whether the web-search control is offered: the spec locks it on, or the control would run a
-     * search ([webSearchTarget], which applies the role and interface gates).
+     * Whether the web-search control is offered: the control would run a search ([webSearchTarget],
+     * which applies the role, interface and capability gates, a spec's own search included).
      */
     val webSearchAvailable: Boolean
-        get() = ToolConstants.WEB_SEARCH in lockedTools || webSearchTarget != WebSearchRoute.NONE
+        get() = webSearchTarget != WebSearchRoute.NONE
 
     /**
      * The search the control runs when on ([webSearchRoute]'s rules), which its caption names.
@@ -670,6 +670,7 @@ data class ChatUiState(
             builtInAvailable = gates.webSearchPermitted && (builtInSearchProvider != null || builtInSearchEnforced),
             librechatChecking = webSearchEnabled && librechatSearchCapable && gates.librechatSearchChecking,
             keepsBuiltIn = selection.keepsBuiltInSearch,
+            specSearchAllowed = gates.webSearchPermitted && librechatSearchCapable,
         )
 
     /** [webSearchTarget] with the provider it would run on, for the control's caption. */
@@ -992,11 +993,8 @@ data class ChatUiState(
      * Fails OPEN on a config that hasn't arrived, unlike [isMemoryToolAvailable]: upstream's own
      * default is `capabilities ?? defaultAgentCapabilities`, which includes `context`.
      *
-     * An **empty** list counts as "not stated" too, not as "none" — `EndpointConfig.capabilities`
-     * defaults to `emptyList()`, so a server that simply doesn't send the field is indistinguishable
-     * from one that sends `[]`, and no real deployment has zero agent capabilities. Reading `[]` as
-     * a denial would ship the whole feature dead against exactly those servers. A non-empty list
-     * that omits `context` is a genuine denial and is honoured.
+     * A missing list counts as the defaults; a list that omits `context`, empty included, is a
+     * denial the server honours too.
      */
     val isFileContextAvailable: Boolean
         get() {

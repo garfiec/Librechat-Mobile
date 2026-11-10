@@ -3454,8 +3454,22 @@
         "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/viewmodel/delegate/ChatConfigDelegate.kt",
         "symbol": "ChatConfigDelegate.loadWebSearchReadiness"
       },
-      "why": "The tool-definition path adds `web_search` on capability and permission alone; the search keys are checked only when the tool executes (`handleTools`, `loadWebSearchAuth`). So the app must check the keys itself (`GET /api/agents/tools/web_search/auth`) before sending LibreChat search, or the model gets a tool that fails when called and, on Anthropic and Google, loses its built-in search too. The capability half (`filteredTools`, the agents `capabilities` from `resolveAgentCapabilities`, which falls back to the defaults on an empty list) is `ChatUiState.librechatSearchCapable`.",
+      "why": "The tool-definition path adds `web_search` on capability and permission alone; the search keys are checked only when the tool executes (`handleTools`, `loadWebSearchAuth`). So the app must check the keys itself (`GET /api/agents/tools/web_search/auth`) before sending LibreChat search, or the model gets a tool that fails when called and, on Anthropic and Google, loses its built-in search too. The capability half is mirrored by `agent-capabilities-empty-list`.",
       "failure_mode": "If upstream starts checking the keys before adding the definition, the app's own check becomes redundant (harmless). If the auth route changes shape, the app reads every server as not set up and always uses the built-in search."
+    },
+    {
+      "id": "agent-capabilities-empty-list",
+      "upstream": {
+        "file": "api/server/services/ToolService.js",
+        "symbol": "resolveAgentCapabilities",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/viewmodel/ChatUiState.kt",
+        "symbol": "ChatUiState.agentCapabilityAllows"
+      },
+      "why": "The served agents `capabilities` decide which ephemeral tools a run loads (`filteredTools`: web_search, file_search, execute_code; also artifacts and file context). A missing list is the defaults (zod's `.default(defaultAgentCapabilities)` fires on `undefined`); an admin's explicit `[]` stays empty, and the fallback here re-reads the same `[]` from appConfig. So the app allows a capability when the list is missing and denies every one on an empty list.",
+      "failure_mode": "If upstream starts treating an empty list as the defaults, the app hides LibreChat search, artifacts and file context on a server that runs them. If it stops falling back on a missing list, the app offers tools the server drops silently."
     },
     {
       "id": "web-search-toggle-per-conversation",

@@ -228,20 +228,25 @@ class ChatViewModelUploadRoutingTest {
         }
 
     @Test
-    fun `an empty capability list is read as unstated, not as a denial`() =
+    fun `an empty agents capability list denies extraction`() =
         routingTest(
-            endpoint = "anthropic",
-            configs = mapOf(
-                "anthropic" to EndpointConfig(),
-                EndpointConstants.AGENTS to EndpointConfig(capabilities = emptyList()),
-            ),
+            endpoint = EndpointConstants.AGENTS,
+            model = AGENT_ID,
+            agentProvider = "ollama",
+            configs = mapOf(EndpointConstants.AGENTS to EndpointConfig(capabilities = emptyList())),
         ) { vm ->
-            // `EndpointConfig.capabilities` defaults to an empty list, so a server that omits the
-            // field is indistinguishable from one sending `[]`. Reading `[]` as "no context
-            // capability" would ship the feature dead against every such server.
-            val routes = routesFor(vm, "notes.docx" to DOCX)
+            assertThat(routesFor(vm, "notes.docx" to DOCX)).containsExactly(UploadRoute.PROVIDER)
+        }
 
-            assertThat(routes).containsExactly(UploadRoute.TEXT)
+    @Test
+    fun `a missing agents capability list allows extraction, as the server's defaults do`() =
+        routingTest(
+            endpoint = EndpointConstants.AGENTS,
+            model = AGENT_ID,
+            agentProvider = "ollama",
+            configs = mapOf(EndpointConstants.AGENTS to EndpointConfig(capabilities = null)),
+        ) { vm ->
+            assertThat(routesFor(vm, "notes.docx" to DOCX)).containsExactly(UploadRoute.TEXT)
         }
 
     // ── Manual mode ─────────────────────────────────────────────────────────

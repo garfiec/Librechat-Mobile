@@ -100,7 +100,7 @@ class ChatRequestBuilderSpecToolsTest {
         val builder = ChatRequestBuilder { state(onTools) }
 
         assertFalse(builder.builtInWebSearch())
-        assertNull(builder.buildModelParams()?.get(ToolConstants.WEB_SEARCH))
+        assertEquals(JsonPrimitive(false), builder.buildModelParams()?.get(ToolConstants.WEB_SEARCH))
         // The control still shows it on.
         assertTrue(state(onTools).selection.sendParameters.webSearch)
     }

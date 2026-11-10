@@ -28,9 +28,12 @@ enum class WebSearchRoute { NONE, LIBRECHAT, BUILT_IN, CHECKING }
  * 1. Nothing when the control is off ([on]) or the request sends no ephemeral tools (a saved agent,
  *    which runs its own tools and `model_parameters` and ignores the request's).
  * 2. A spec's `webSearch` is LibreChat search; its preset's `web_search` is the built-in one. Both
- *    are the admin's choice, so neither follows the preference. Where the preset asks for a built-in
- *    search the endpoint doesn't have (`dropParams`, a custom endpoint that isn't OpenRouter), it
- *    runs LibreChat search if that can, else nothing, rather than a parameter that searches nowhere.
+ *    are the admin's choice, so neither follows the preference. The server drops a spec's LibreChat
+ *    search without the capability or the role ([specSearchAllowed]): then only the preset's
+ *    built-in search where it can run ([builtInAvailable]), else nothing (web hides the control
+ *    too). Where the preset asks for a built-in search the endpoint doesn't have (`dropParams`, a
+ *    custom endpoint that isn't OpenRouter), it runs LibreChat search if that can, else nothing,
+ *    rather than a parameter that searches nowhere.
  *    Under `enforce` the server sends the preset anyway, so [builtInAvailable] counts it there.
  *    A chat whose stored conversation has the built-in search on ([keepsBuiltIn], set from web's
  *    parameters switch) takes the same rule: a send without `web_search` would make the server unset it.
@@ -55,9 +58,14 @@ internal fun webSearchRoute(
     builtInAvailable: Boolean,
     librechatChecking: Boolean = false,
     keepsBuiltIn: Boolean = false,
+    specSearchAllowed: Boolean = true,
 ): WebSearchRoute {
     if (!on || !sendsEphemeralTools) return WebSearchRoute.NONE
-    if (spec != null && ToolConstants.WEB_SEARCH in spec.forcedTools) return WebSearchRoute.LIBRECHAT
+    if (spec != null && ToolConstants.WEB_SEARCH in spec.forcedTools) {
+        if (specSearchAllowed) return WebSearchRoute.LIBRECHAT
+        val presetBuiltIn = ToolConstants.WEB_SEARCH in spec.presetTools && builtInAvailable
+        return if (presetBuiltIn) WebSearchRoute.BUILT_IN else WebSearchRoute.NONE
+    }
     val librechat = WebSearchRoute.LIBRECHAT.takeIf { librechatUsable || librechatChecking }
     val builtIn = WebSearchRoute.BUILT_IN.takeIf { builtInAvailable }
     val route = when {
