@@ -626,8 +626,8 @@ private val TrackPadding = 3.dp
 // Above and below a label that sets the control's height.
 private val LabelInsetY = 4.dp
 
-private val ThumbOverhangX = 12.dp
-private val ThumbOverhangY = 18.dp
+internal val ThumbOverhangX = 12.dp
+internal val ThumbOverhangY = 18.dp
 private val MaxShift = 8.dp
 private val MaxGrow = 4.dp
 
