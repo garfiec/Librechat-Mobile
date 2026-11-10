@@ -10,3 +10,10 @@ import androidx.compose.runtime.Composable
  */
 @Composable
 expect fun rememberShareText(): (text: String, subject: String?) -> Unit
+
+/**
+ * Returns a handler that hands [text] and an [attachment] together to the system share sheet, for
+ * when no mail app is set up. [subject] is Android only, as for [rememberShareText].
+ */
+@Composable
+expect fun rememberShareTextWithFile(): (text: String, subject: String?, attachment: EmailAttachment) -> Unit
