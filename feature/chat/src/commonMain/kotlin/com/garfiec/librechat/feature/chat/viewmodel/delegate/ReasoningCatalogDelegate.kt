@@ -7,6 +7,7 @@ import com.garfiec.librechat.core.ui.components.ReasoningSettingResolver
 import com.garfiec.librechat.feature.chat.util.reasoningTarget
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ModelSelectionState
+import com.garfiec.librechat.feature.chat.viewmodel.QueuedEditSession
 import com.garfiec.librechat.feature.chat.viewmodel.ReasoningCatalogState
 import com.garfiec.librechat.feature.chat.viewmodel.ReasoningHandle
 import kotlinx.coroutines.delay
@@ -61,15 +62,18 @@ class ReasoningCatalogDelegate(
                 .collect { (_, pending) -> if (!pending) dropRefusedChoice() }
         }
         handle.scope.launch {
-            var last: Pair<Pair<String, String?>, ReasoningOverride?>? = null
+            var last: Triple<Pair<String, String?>, ReasoningOverride?, QueuedEditSession?>? = null
             handle.stateFlow
-                .map { (it.selectedEndpoint to it.selectedModel) to it.composer.pendingReasoningOverride }
+                .map { Triple(it.selectedEndpoint to it.selectedModel, it.composer.pendingReasoningOverride, it.editingQueuedItem) }
                 .distinctUntilChanged()
                 .collect { current ->
                     val previous = last
                     last = current
-                    val (target, pending) = current
-                    if (previous != null && previous.first != target && pending != null && pending == previous.second) {
+                    val (target, pending, session) = current
+                    // A queued edit starting or ending swaps in a choice of its own, equal or not.
+                    if (previous != null && previous.first != target && pending != null &&
+                        pending == previous.second && session == previous.third
+                    ) {
                         handle.update { if (pendingReasoningOverride == pending) pendingReasoningOverride = null }
                     }
                 }

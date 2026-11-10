@@ -398,21 +398,6 @@ class SendDispatchDelegate(
     }
 
     /**
-     * Sends one message from a [QueuedMessage] config snapshot. The config (endpoint/model/
-     * tools/webSearch/attachments/dispatch/ephemeralAgent) comes from the spec (a drain re-derives
-     * the request fields from it, see [rebuiltForDrain]), but the
-     * lineage — conversationId, parentMessageId, and the minted optimistic user-message id —
-     * is recomputed from the *current* tree, so a drained item chains onto the freshly-
-     * finalized turn.
-     *
-     * [fromComposer] is the live send: only once the streaming guard has passed does it take the
-     * staged quote and skill chips onto the spec (which also turns Skills on) and clear the
-     * composer, so a lost readiness race can't wipe an unsent message or its chips. False for
-     * drains, which carry their own chips and must leave the user's composer untouched.
-     *
-     * Returns whether the turn was sent.
-     */
-    /**
      * A drained turn's request fields re-derived from its own composer snapshot on [choice] (the
      * snapshot's spec held against the current config) under the current config and gates, through
      * the builder a live send uses. The config may have changed while the turn waited: a dropped or
@@ -430,7 +415,8 @@ class SendDispatchDelegate(
             modelParameters = modelParameters,
             skillsToggle = ephemeralAgent?.skills == true,
         ).withChoice(choice, from = this.choice)
-        val builder = ChatRequestBuilder { state.copy(selection = selection) }
+        val rebuilt = state.copy(selection = selection)
+        val builder = ChatRequestBuilder { rebuilt }
         return copy(
             choice = choice,
             specTools = selection.specTools,
@@ -442,6 +428,21 @@ class SendDispatchDelegate(
         )
     }
 
+    /**
+     * Sends one message from a [QueuedMessage] config snapshot. The config (endpoint/model/
+     * tools/webSearch/attachments/dispatch/ephemeralAgent) comes from the spec (a drain re-derives
+     * the request fields from it, see [rebuiltForDrain]), but the
+     * lineage — conversationId, parentMessageId, and the minted optimistic user-message id —
+     * is recomputed from the *current* tree, so a drained item chains onto the freshly-
+     * finalized turn.
+     *
+     * [fromComposer] is the live send: only once the streaming guard has passed does it take the
+     * staged quote and skill chips onto the spec (which also turns Skills on) and clear the
+     * composer, so a lost readiness race can't wipe an unsent message or its chips. False for
+     * drains, which carry their own chips and must leave the user's composer untouched.
+     *
+     * Returns whether the turn was sent.
+     */
     @OptIn(ExperimentalUuidApi::class)
     fun doSendWithSpec(baseSpec: QueuedMessage, fromComposer: Boolean = false): Boolean {
         val fileRefs = baseSpec.attachments.map { it.toFileReference() }

@@ -202,7 +202,6 @@ Compare's picked lane B. The preflight accepts any kept name; the three spec ref
   (`reopenedPick`).
 - The header chip shows a kept spec the list doesn't serve by its model name, where web shows its
   "Select a model" placeholder (and still sends the spec). Neither has a picker row for it.
-- The header chip shows a kept spec the list doesn't serve by its model name; no picker row for it.
 
 **Model shortcuts** (mobile-only) count usage per pair and spec and carry the spec in the link
 (`librechat://model?…&spec=`). Before publishing, reconcile with the cached spec config
