@@ -12,6 +12,7 @@ import com.garfiec.librechat.feature.settings.resources.category_administration
 import com.garfiec.librechat.feature.settings.resources.category_advanced
 import com.garfiec.librechat.feature.settings.resources.category_chats
 import com.garfiec.librechat.feature.settings.resources.category_models_keys
+import com.garfiec.librechat.feature.settings.resources.category_notifications
 import com.garfiec.librechat.feature.settings.resources.category_privacy_data
 import com.garfiec.librechat.feature.settings.resources.category_voice
 import com.garfiec.librechat.feature.settings.resources.section_about
@@ -25,6 +26,7 @@ import com.garfiec.librechat.feature.settings.screen.AppearanceSettingsPage
 import com.garfiec.librechat.feature.settings.screen.ChatsSettingsPage
 import com.garfiec.librechat.feature.settings.screen.LanguageSettingsPage
 import com.garfiec.librechat.feature.settings.screen.ModelsSettingsPage
+import com.garfiec.librechat.feature.settings.screen.NotificationSettingsPage
 import com.garfiec.librechat.feature.settings.screen.PrivacySettingsPage
 import com.garfiec.librechat.feature.settings.screen.SettingsPageScaffold
 import com.garfiec.librechat.feature.settings.screen.VoiceSettingsPage
@@ -37,7 +39,7 @@ import org.jetbrains.compose.resources.stringResource
 
 /** A Settings category with a page of its own. Appearance keeps its own route, [AppearanceSettings]. */
 @Serializable
-enum class SettingsCategoryKey { ACCOUNT, CHATS, VOICE, MODELS, LANGUAGE, PRIVACY_DATA, ADMINISTRATION, ABOUT }
+enum class SettingsCategoryKey { ACCOUNT, CHATS, NOTIFICATIONS, VOICE, MODELS, LANGUAGE, PRIVACY_DATA, ADMINISTRATION, ABOUT }
 
 @Serializable data class SettingsCategory(val category: SettingsCategoryKey) : SettingsPaneRoute
 
@@ -60,6 +62,7 @@ internal fun SettingsPaneRoute.titleRes(): StringResource = when (this) {
     is SettingsCategory -> when (category) {
         SettingsCategoryKey.ACCOUNT -> Res.string.category_account
         SettingsCategoryKey.CHATS -> Res.string.category_chats
+        SettingsCategoryKey.NOTIFICATIONS -> Res.string.category_notifications
         SettingsCategoryKey.VOICE -> Res.string.category_voice
         SettingsCategoryKey.MODELS -> Res.string.category_models_keys
         SettingsCategoryKey.LANGUAGE -> Res.string.section_language_region
@@ -135,6 +138,7 @@ internal fun SettingsPaneContent(
                 onOpenAdvancedSettings = onOpenAdvancedSettings,
                 contentPadding = contentPadding,
             )
+            SettingsCategoryKey.NOTIFICATIONS -> NotificationSettingsPage(contentPadding = contentPadding)
             SettingsCategoryKey.VOICE -> VoiceSettingsPage(
                 onOpenAdvancedSettings = onOpenAdvancedSettings,
                 contentPadding = contentPadding,

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="channel_replies">الردود</string>
+    <string name="channel_replies_description">عند اكتمال رد أثناء ابتعادك عن التطبيق</string>
+    <string name="reply_title_fallback">محادثتك</string>
+    <string name="reply_body_finished">ردك جاهز</string>
+    <string name="reply_body_failed">انتهى الرد بخطأ</string>
+    <string name="reply_public_body">رد جديد</string>
+    <string name="reply_snackbar_finished">الرد جاهز في «%1$s»</string>
+    <string name="reply_snackbar_failed">فشل الرد في «%1$s»</string>
+    <string name="reply_snackbar_open">فتح</string>
+    <string name="ask_reply_notifications">هل تريد تلقي إشعار عند اكتمال رد أثناء ابتعادك؟</string>
+    <string name="ask_reply_notifications_allow">السماح</string>
+</resources>

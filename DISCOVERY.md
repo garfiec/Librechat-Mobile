@@ -1947,7 +1947,8 @@ DELETE /api/pull-requests/oauth                                204, removes ever
   `allowEmailChange` (`AccountGates`), `maxPasskeysPerUser`, `conversationListLimits` (drawer),
   `ragEnabled` (`ProjectContextGate`), `projects{…}`, `codeWorkspaceInheritanceVersion`
   (`CodeWorkspaceDelegate`), `mcpApps{…}` and `pullRequests*` (see "MCP Apps", "Conversation pull
-  requests"). Not decoded: `interface.replyNotifications`.
+  requests"). `interface.replyNotifications`: only `desktop` and `sound` are decoded (each off only
+  when `false`, as web reads them); `tabBadge` and the poll fields are web-only.
 - `interface.theme` (decoded raw): a bundled name (`librechat`, `clickhouse`) or an inline
   `{ version: 1, name, modes: { light, dark: { colors: { "rgb-accent-primary": "R G B", … } } } }`,
   served pre-login too. BUILT for inline definitions only: the light accent (dark when the light one

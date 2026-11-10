@@ -1167,4 +1167,14 @@
     <string name="report_share_text">مشاركة البلاغ</string>
     <string name="report_copy_text">نسخ نص البلاغ</string>
     <string name="report_address_copied">تم نسخ العنوان</string>
+    <string name="category_notifications">الإشعارات</string>
+    <string name="notifications_permission">الإشعارات</string>
+    <string name="notifications_on">مفعّلة</string>
+    <string name="notifications_off">متوقفة</string>
+    <string name="notifications_turn_on">تفعيل</string>
+    <string name="notifications_replies">الردود</string>
+    <string name="notifications_replies_description">عند اكتمال رد أثناء ابتعادك</string>
+    <string name="notifications_replies_server_off">أوقفها الخادم</string>
+    <string name="notifications_system_settings">إعدادات الإشعارات</string>
+    <string name="notifications_system_settings_description">الصوت وشاشة القفل والمزيد في إعدادات الجهاز</string>
 </resources>

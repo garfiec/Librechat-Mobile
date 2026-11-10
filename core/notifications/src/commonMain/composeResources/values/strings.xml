@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="channel_replies">Replies</string>
+    <string name="channel_replies_description">When a reply finishes while you're away</string>
+    <string name="reply_title_fallback">Your chat</string>
+    <string name="reply_body_finished">Your reply is ready</string>
+    <string name="reply_body_failed">The reply ended with an error</string>
+    <string name="reply_public_body">New reply</string>
+    <string name="reply_snackbar_finished">Reply ready in “%1$s”</string>
+    <string name="reply_snackbar_failed">Reply failed in “%1$s”</string>
+    <string name="reply_snackbar_open">Open</string>
+    <string name="ask_reply_notifications">Get a notification when a reply finishes while you're away?</string>
+    <string name="ask_reply_notifications_allow">Allow</string>
+</resources>

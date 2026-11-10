@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="channel_replies">回复</string>
+    <string name="channel_replies_description">离开应用时回复完成的通知</string>
+    <string name="reply_title_fallback">你的对话</string>
+    <string name="reply_body_finished">你的回复已就绪</string>
+    <string name="reply_body_failed">回复因错误而结束</string>
+    <string name="reply_public_body">新回复</string>
+    <string name="reply_snackbar_finished">“%1$s”中的回复已就绪</string>
+    <string name="reply_snackbar_failed">“%1$s”中的回复失败</string>
+    <string name="reply_snackbar_open">打开</string>
+    <string name="ask_reply_notifications">离开应用时，回复完成后是否通知你？</string>
+    <string name="ask_reply_notifications_allow">允许</string>
+</resources>

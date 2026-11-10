@@ -1117,4 +1117,14 @@
     <string name="report_share_text">Share report</string>
     <string name="report_copy_text">Copy report text</string>
     <string name="report_address_copied">Address copied</string>
+    <string name="category_notifications">Notifications</string>
+    <string name="notifications_permission">Notifications</string>
+    <string name="notifications_on">On</string>
+    <string name="notifications_off">Off</string>
+    <string name="notifications_turn_on">Turn on</string>
+    <string name="notifications_replies">Replies</string>
+    <string name="notifications_replies_description">When a reply finishes while you're away</string>
+    <string name="notifications_replies_server_off">Turned off by your server</string>
+    <string name="notifications_system_settings">Notification settings</string>
+    <string name="notifications_system_settings_description">Sound, lock screen and more, in your device's settings</string>
 </resources>

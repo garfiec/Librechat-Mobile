@@ -66,6 +66,8 @@ import com.garfiec.librechat.core.model.permissions.PermissionType
 import com.garfiec.librechat.core.model.pullrequest.pullRequestsAvailable
 import com.garfiec.librechat.core.model.request.ToolApprovalResolution
 import com.garfiec.librechat.core.model.response.UploadRoute
+import com.garfiec.librechat.core.notifications.ReplyWatch
+import com.garfiec.librechat.core.notifications.ReplyWatchScheduler
 import com.garfiec.librechat.core.ui.components.ModelParameters
 import com.garfiec.librechat.core.ui.media.MediaItem
 import com.garfiec.librechat.core.ui.media.MediaPreviewState
@@ -234,6 +236,7 @@ class ChatViewModel(
     private val promptInsertionHandoff: PromptInsertionHandoff,
     private val siteIconPromptSession: SiteIconPromptSession,
     private val preferenceStore: PreferenceStore,
+    private val replyWatchScheduler: ReplyWatchScheduler? = null,
     /** The wall clock key expiries are held against; a test moves it to stand in for a sleep. */
     clock: Clock = Clock.System,
 ) : ViewModel() {
@@ -1668,7 +1671,7 @@ class ChatViewModel(
     }
 
     fun onPause() {
-        streamingManager.onPause()
+        if (streamingManager.onPause()) watchDetachedReply()
         codeWorkspaceDelegate.onForeground(false)
         pullRequestDelegate.onForeground(false)
         queuedTurnDelegate.stopPolling()
@@ -1677,6 +1680,7 @@ class ChatViewModel(
 
     /** [mcpSignInEnding]: an MCP sign-in ends on this return and re-reads the MCP statuses itself. */
     fun onResume(mcpSignInEnding: Boolean = false) {
+        uiState.value.conversationId?.let { replyWatchScheduler?.stop(it) }
         streamingManager.onResume()
         codeWorkspaceDelegate.onForeground(true)
         pullRequestDelegate.onForeground(true)
@@ -1991,6 +1995,15 @@ class ChatViewModel(
 
     fun closeMedia() {
         _uiState.update { it.copy(mediaPreview = null) }
+    }
+
+    /** The reply runs on without this screen; the watcher announces it when it ends. */
+    private fun watchDetachedReply() {
+        val state = uiState.value
+        if (state.isTemporaryChat) return
+        val conversationId = state.conversationId ?: return
+        val account = activeAccountProvider.currentAccountId() ?: return
+        replyWatchScheduler?.watch(ReplyWatch(account, conversationId))
     }
 
     override fun onCleared() {

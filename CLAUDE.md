@@ -22,6 +22,7 @@ core/model/           → @Serializable data classes (pure Kotlin, no Android de
 core/network/         → Ktor client, 16 API services, SSE client, auth interceptor
 core/data/            → Room DB, DataStore, EncryptedSharedPrefs, repository impls
 core/ui/              → Material 3 theme, shared composables
+core/notifications/   → Reply notifications (system + in-app), permission, background reply watcher
 feature/auth/         → Server URL, Login, Register, 2FA, OAuth, Forgot Password
 feature/chat/         → Real-time chat with SSE streaming, message rendering
 feature/conversations/→ Paginated list, CRUD, tags, search, export/import

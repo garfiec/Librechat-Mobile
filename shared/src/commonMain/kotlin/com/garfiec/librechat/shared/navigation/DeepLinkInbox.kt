@@ -27,14 +27,19 @@ class DeepLinkInbox {
     }
 }
 
-/** Places a resolved link on the back stack; signed out, a route lands on sign-in instead. */
-internal fun Navigator.placeDeepLink(resolution: DeepLinkResolution, isLoggedIn: Boolean) {
+/**
+ * Places a resolved link on the back stack; signed out, a route lands on sign-in instead. A route for
+ * an account other than [activeAccountId] is dropped: it would open under the wrong account.
+ */
+internal fun Navigator.placeDeepLink(resolution: DeepLinkResolution, isLoggedIn: Boolean, activeAccountId: String?) {
     when (resolution) {
         is DeepLinkResolution.Route -> {
             val target = resolution.target
             when {
                 // Resuming to the target after sign-in is not done; this at least never lands on a dead screen.
                 !isLoggedIn -> navigateToAuth()
+                resolution.forAccount != null && resolution.forAccount != activeAccountId ->
+                    Logger.w { "Ignoring a link for an account that isn't active" }
                 // Switching chats replaces the current chat entry so back returns to NewChat.
                 target is Chat -> target.conversationId?.let { id ->
                     val messageId = target.targetMessageId

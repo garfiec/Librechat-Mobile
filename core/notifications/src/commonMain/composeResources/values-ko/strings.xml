@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="channel_replies">답변</string>
+    <string name="channel_replies_description">앱을 떠나 있는 동안 답변이 완료되면</string>
+    <string name="reply_title_fallback">내 채팅</string>
+    <string name="reply_body_finished">답변이 준비되었습니다</string>
+    <string name="reply_body_failed">답변이 오류로 종료되었습니다</string>
+    <string name="reply_public_body">새 답변</string>
+    <string name="reply_snackbar_finished">“%1$s”의 답변이 준비되었습니다</string>
+    <string name="reply_snackbar_failed">“%1$s”의 답변에 실패했습니다</string>
+    <string name="reply_snackbar_open">열기</string>
+    <string name="ask_reply_notifications">앱을 떠나 있는 동안 답변이 완료되면 알림을 받으시겠어요?</string>
+    <string name="ask_reply_notifications_allow">허용</string>
+</resources>

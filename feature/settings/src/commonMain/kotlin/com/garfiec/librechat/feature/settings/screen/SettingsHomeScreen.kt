@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.Forum
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.RecordVoiceOver
 import androidx.compose.material.icons.filled.Shield
@@ -58,9 +59,12 @@ import com.garfiec.librechat.feature.settings.navigation.SettingsPaneRoute
 import com.garfiec.librechat.feature.settings.navigation.titleRes
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
+import com.garfiec.librechat.feature.settings.resources.notifications_off
+import com.garfiec.librechat.feature.settings.resources.notifications_on
 import com.garfiec.librechat.feature.settings.viewmodel.AccountSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.AppearanceSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.GeneralSettingsViewModel
+import com.garfiec.librechat.feature.settings.viewmodel.NotificationSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.PrefetchActivityViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.delegate.ProviderKeysSummary
 import com.garfiec.librechat.feature.settings.viewmodel.displayHostOf
@@ -82,6 +86,7 @@ internal data class SettingsHomeProfile(
 internal data class SettingsHomeSummaries(
     val appearance: String,
     val chats: String,
+    val notifications: String,
     val voice: String,
     val models: String,
     val language: String,
@@ -104,6 +109,7 @@ fun SettingsHomeScreen(
     generalViewModel: GeneralSettingsViewModel = koinViewModel(),
     appearanceViewModel: AppearanceSettingsViewModel = koinViewModel(),
     prefetchViewModel: PrefetchActivityViewModel = koinViewModel(),
+    notificationsViewModel: NotificationSettingsViewModel = koinViewModel(),
     pageContent: @Composable (
         page: SettingsPaneRoute,
         onSelectPage: (SettingsPaneRoute) -> Unit,
@@ -114,6 +120,7 @@ fun SettingsHomeScreen(
     val account by accountViewModel.uiState.collectAsStateWithLifecycle()
     val general by generalViewModel.uiState.collectAsStateWithLifecycle()
     val appearance by appearanceViewModel.uiState.collectAsStateWithLifecycle()
+    val notifications by notificationsViewModel.uiState.collectAsStateWithLifecycle()
     // Only the status is read here, so the rest of the offline-reading state doesn't recompose the home.
     val prefetchState = prefetchViewModel.uiState.collectAsStateWithLifecycle()
     val prefetchStatus by remember { derivedStateOf { prefetchState.value.status } }
@@ -143,6 +150,7 @@ fun SettingsHomeScreen(
         chats = stringResource(
             if (homeChats.thinkingOpenByDefault) Res.string.settings_home_thinking_open else Res.string.settings_home_thinking_closed,
         ) + " · " + stringResource(Res.string.settings_home_artifacts, artifactDisplayModeLabel(homeChats.artifactDisplayMode)),
+        notifications = stringResource(if (notifications.on) Res.string.notifications_on else Res.string.notifications_off),
         voice = stringResource(
             if (homeChats.autoReadEnabled) Res.string.settings_home_read_aloud_on else Res.string.settings_home_read_aloud_off,
         ),
@@ -295,6 +303,9 @@ private class HomeRow(
 private val CATEGORY_ROWS = listOf(
     HomeRow("appearance", AppearanceSettings, Icons.Default.Palette, SettingsTileTint.PRIMARY) { it.appearance },
     HomeRow("chats", SettingsCategory(SettingsCategoryKey.CHATS), Icons.Default.Forum, SettingsTileTint.SECONDARY) { it.chats },
+    HomeRow("notifications", SettingsCategory(SettingsCategoryKey.NOTIFICATIONS), Icons.Default.Notifications, SettingsTileTint.PRIMARY) {
+        it.notifications
+    },
     HomeRow("voice", SettingsCategory(SettingsCategoryKey.VOICE), Icons.Default.RecordVoiceOver, SettingsTileTint.TERTIARY) {
         it.voice
     },

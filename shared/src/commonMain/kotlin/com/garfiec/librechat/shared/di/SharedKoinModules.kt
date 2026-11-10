@@ -4,6 +4,7 @@ import com.garfiec.librechat.core.common.di.commonModule
 import com.garfiec.librechat.core.data.di.dataModule
 import com.garfiec.librechat.core.logging.di.loggingModule
 import com.garfiec.librechat.core.network.di.networkModule
+import com.garfiec.librechat.core.notifications.di.notificationsModule
 import com.garfiec.librechat.feature.agents.di.agentsModule
 import com.garfiec.librechat.feature.auth.di.authModule
 import com.garfiec.librechat.feature.chat.di.chatModule
@@ -36,6 +37,7 @@ val sharedKoinModules: List<Module> = listOf(
     loggingModule,
     networkModule,
     dataModule,
+    notificationsModule,
     authModule,
     chatModule,
     conversationsModule,

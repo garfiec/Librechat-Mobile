@@ -94,6 +94,19 @@ object AppPreferences {
      */
     val ClientImageResize = boolPreference("client_image_resize", default = always(true))
 
+    /**
+     * Whether a reply that finishes while the user is elsewhere is announced (a system notification
+     * in the background, a snackbar in another chat). Device-wide. On by default, unlike web: it
+     * only takes effect once the user has granted notification permission, which they are asked for.
+     */
+    val ReplyNotifications = boolPreference("reply_notifications", default = always(true))
+
+    /**
+     * The in-context notification asks the user has already answered (`NotificationAskTrigger`
+     * names), so none is offered twice. Device-wide.
+     */
+    val NotificationAsksAnswered = stringListPreference("notification_asks_answered")
+
     val all: List<PreferenceSpec<*, *>> =
         listOf(
             SiteIcons,
@@ -109,5 +122,7 @@ object AppPreferences {
             ArtifactLibraryAnswers,
             CollapseLongUserMessages,
             ClientImageResize,
+            ReplyNotifications,
+            NotificationAsksAnswered,
         )
 }

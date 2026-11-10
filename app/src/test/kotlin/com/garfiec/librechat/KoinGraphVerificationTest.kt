@@ -129,6 +129,7 @@ import com.garfiec.librechat.core.network.client.ServerUrlProvider
 import com.garfiec.librechat.core.network.client.SwitchGate
 import com.garfiec.librechat.core.network.client.TokenManager
 import com.garfiec.librechat.core.network.sse.SseClient
+import com.garfiec.librechat.core.notifications.NotificationPermission
 import com.garfiec.librechat.feature.conversations.export.ConversationExporter
 import com.garfiec.librechat.feature.files.platform.FileReader
 import com.garfiec.librechat.shared.di.sharedKoinModules
@@ -299,6 +300,8 @@ class KoinGraphVerificationTest {
             SessionTaskRunner::class,
             AppUpdateRepository::class,
             AppInstallSource::class,
+            // core:notifications platform provides
+            NotificationPermission::class,
             // feature:files platform provides
             FileReader::class,
             // feature:conversations provides (consumed cross-module by shared NavHostViewModel)

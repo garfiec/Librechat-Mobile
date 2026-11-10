@@ -50,6 +50,7 @@ private val previewProfile = SettingsHomeProfile(
 private val previewSummaries = SettingsHomeSummaries(
     appearance = "Dark · Material",
     chats = "Thinking closed · Artifacts: Bottom sheet",
+    notifications = "On",
     voice = "Read replies aloud: off",
     models = "Provider keys: 2 of 4 set",
     language = "English · 09.11.2026 14:05",

@@ -900,18 +900,20 @@ class StreamingManagerDelegate(
         }
     }
 
-    fun onPause() {
+    /** Returns whether a live reply was detached: the run goes on server-side with no one following it. */
+    fun onPause(): Boolean {
         wasStreaming = handle.state.isStreaming
-        if (!wasStreaming) return
+        if (!wasStreaming) return false
         // A Stop is in flight: the collector is carrying the aborted final that holds the
         // partial, the ViewModel scope survives backgrounding, and the watchdog is armed.
         // Cancelling here would discard the frame — the stopped reply would come back blank
         // (the exact bug this design exists to fix).
-        if (abortRequested) return
+        if (abortRequested) return false
         // Normal streaming: detach as before (SSE over a backgrounded socket is unreliable);
         // onResume reconciles via the server-side stream status.
         streamJob?.cancel()
         buffer.stopUpdater()
+        return true
     }
 
     fun onResume() {

@@ -85,6 +85,7 @@ actual val chatPlatformModule: Module = module {
             siteIconPromptSession = get(),
             preferenceStore = get(),
             resumePinStore = get(),
+            replyWatchScheduler = get(),
         )
     }
 }

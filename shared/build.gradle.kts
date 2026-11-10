@@ -43,6 +43,7 @@ kotlin {
             api(project(":core:network"))
             api(project(":core:data"))
             api(project(":core:ui"))
+            implementation(project(":core:notifications"))
             implementation(project(":core:logging"))
             implementation(project(":feature:auth"))
             implementation(project(":feature:chat"))

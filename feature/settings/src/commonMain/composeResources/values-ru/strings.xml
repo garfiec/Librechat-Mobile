@@ -1135,4 +1135,14 @@
     <string name="report_share_text">Поделиться отчётом</string>
     <string name="report_copy_text">Скопировать текст отчёта</string>
     <string name="report_address_copied">Адрес скопирован</string>
+    <string name="category_notifications">Уведомления</string>
+    <string name="notifications_permission">Уведомления</string>
+    <string name="notifications_on">Вкл.</string>
+    <string name="notifications_off">Выкл.</string>
+    <string name="notifications_turn_on">Включить</string>
+    <string name="notifications_replies">Ответы</string>
+    <string name="notifications_replies_description">Когда ответ готов, пока вас нет</string>
+    <string name="notifications_replies_server_off">Отключено вашим сервером</string>
+    <string name="notifications_system_settings">Настройки уведомлений</string>
+    <string name="notifications_system_settings_description">Звук, экран блокировки и другое в настройках устройства</string>
 </resources>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="channel_replies">Antworten</string>
+    <string name="channel_replies_description">Wenn eine Antwort fertig ist, während du nicht in der App bist</string>
+    <string name="reply_title_fallback">Dein Chat</string>
+    <string name="reply_body_finished">Deine Antwort ist fertig</string>
+    <string name="reply_body_failed">Die Antwort wurde mit einem Fehler beendet</string>
+    <string name="reply_public_body">Neue Antwort</string>
+    <string name="reply_snackbar_finished">Antwort fertig in „%1$s“</string>
+    <string name="reply_snackbar_failed">Antwort fehlgeschlagen in „%1$s“</string>
+    <string name="reply_snackbar_open">Öffnen</string>
+    <string name="ask_reply_notifications">Benachrichtigen, wenn eine Antwort fertig ist, während du weg bist?</string>
+    <string name="ask_reply_notifications_allow">Erlauben</string>
+</resources>

@@ -40,8 +40,12 @@ data class DeepLinkUri(
  * expressible: navigate, open outside the nav host, accept-but-don't-navigate, ignore.
  */
 sealed interface DeepLinkResolution {
-    /** Navigate to [target]; logged out, the link lands on login instead. */
-    data class Route(val target: NavKey) : DeepLinkResolution
+    /**
+     * Navigate to [target]; logged out, the link lands on login instead. [forAccount] (a
+     * notification's link) is honoured only while that account is active: it can refuse a
+     * navigation, never switch accounts.
+     */
+    data class Route(val target: NavKey, val forAccount: String? = null) : DeepLinkResolution
 
     /**
      * A home-screen-pinned artifact. It opens in its own task outside the nav host, logged in or
@@ -85,13 +89,14 @@ object DeepLinks {
     )
 
     fun resolve(uri: DeepLinkUri): DeepLinkResolution = when (uri.host) {
-        // `?message=<uuid>` opens the chat at that message. It resolves within whichever account is
-        // active, like the conversation id itself; a message that isn't there reports "not found".
+        // `?message=<uuid>` opens the chat at that message. Without `?account=`, it resolves within
+        // whichever account is active; a message that isn't there reports "not found".
         "conversation" -> uri.pathSegments.firstOrNull()
             ?.takeIf { UUID_PATTERN.matches(it) }
             ?.let { id ->
                 val message = uri.query["message"]?.takeIf { UUID_PATTERN.matches(it) }
-                DeepLinkResolution.Route(Chat(id, targetMessageId = message))
+                val account = uri.query["account"]?.takeIf { it.isNotBlank() }
+                DeepLinkResolution.Route(Chat(id, targetMessageId = message), forAccount = account)
             }
             ?: DeepLinkResolution.None
 

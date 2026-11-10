@@ -1087,4 +1087,14 @@
     <string name="report_share_text">レポートを共有</string>
     <string name="report_copy_text">レポートの本文をコピー</string>
     <string name="report_address_copied">アドレスをコピーしました</string>
+    <string name="category_notifications">通知</string>
+    <string name="notifications_permission">通知</string>
+    <string name="notifications_on">オン</string>
+    <string name="notifications_off">オフ</string>
+    <string name="notifications_turn_on">オンにする</string>
+    <string name="notifications_replies">返信</string>
+    <string name="notifications_replies_description">離れている間に返信が完了したとき</string>
+    <string name="notifications_replies_server_off">サーバーによりオフになっています</string>
+    <string name="notifications_system_settings">通知設定</string>
+    <string name="notifications_system_settings_description">サウンドやロック画面などはデバイスの設定で</string>
 </resources>
