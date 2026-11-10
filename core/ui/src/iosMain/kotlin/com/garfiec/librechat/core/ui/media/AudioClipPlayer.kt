@@ -37,7 +37,8 @@ class AudioClipPlayer {
             session.setCategory(AVAudioSessionCategoryPlayback, error = null)
             session.setActive(true, error = null)
         }
-        val clip = AVAudioPlayer(data = audio.toNSData(), error = null) ?: return false
+        // Typed non-null, but the initializer throws for audio iOS can't decode.
+        val clip = runCatching { AVAudioPlayer(data = audio.toNSData(), error = null) }.getOrNull() ?: return false
         val finished = CompletableDeferred<Boolean>()
         clip.delegate = delegate
         player = clip

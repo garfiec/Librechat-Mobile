@@ -96,13 +96,18 @@ class TextToSpeechDelegate(
             return
         }
 
-        // Stop any current playback first
-        stopReading()
-
         val text = getMessageText(messageId)
-        if (text.isBlank()) return
+        if (text.isBlank()) {
+            stopReading()
+            return
+        }
+        startRead(messageId, text)
+    }
 
-        handle.update { voice = voice.copy(currentlyReadingMessageId = messageId) }
+    /** Every read starts here, so whatever was reading is stopped and the new read is the one Stop cancels. */
+    private fun startRead(readingId: String, text: String) {
+        stopReading()
+        handle.update { voice = voice.copy(currentlyReadingMessageId = readingId) }
 
         readJob = handle.scope.launch {
             val source = settingsDataStore.ttsSource.first()
@@ -112,7 +117,7 @@ class TextToSpeechDelegate(
                 val rate = settingsDataStore.ttsSpeechRate.first()
                 val pitch = settingsDataStore.ttsPitch.first()
                 val voiceName = settingsDataStore.ttsVoiceName.first()
-                readAloudViaDevice(messageId, text, rate, pitch, voiceName)
+                readAloudViaDevice(readingId, text, rate, pitch, voiceName)
             }
         }
     }
@@ -247,27 +252,16 @@ class TextToSpeechDelegate(
      *
      * Uses a synthetic message ID ("auto_read") because the real message ID
      * may not be available yet (Room observer hasn't emitted the final message).
+     * It runs after every completed send, so a read already playing is touched only once auto-read is
+     * known to be on.
      */
     fun maybeAutoReadResponse(responseText: String) {
         // Don't auto-read if the user has already started typing
         if (handle.state.inputText.isNotBlank()) return
 
-        readJob = handle.scope.launch {
-            val autoRead = settingsDataStore.autoReadEnabled.first()
-            if (!autoRead) return@launch
-
-            val syntheticId = "auto_read_${System.currentTimeMillis()}"
-            handle.update { voice = voice.copy(currentlyReadingMessageId = syntheticId) }
-
-            val source = settingsDataStore.ttsSource.first()
-            if (source == SettingsDataStore.TTS_SOURCE_SERVER) {
-                readAloudViaServer(responseText)
-            } else {
-                val rate = settingsDataStore.ttsSpeechRate.first()
-                val pitch = settingsDataStore.ttsPitch.first()
-                val voiceName = settingsDataStore.ttsVoiceName.first()
-                readAloudViaDevice(syntheticId, responseText, rate, pitch, voiceName)
-            }
+        handle.scope.launch {
+            if (!settingsDataStore.autoReadEnabled.first()) return@launch
+            startRead("auto_read_${System.currentTimeMillis()}", responseText)
         }
     }
 
