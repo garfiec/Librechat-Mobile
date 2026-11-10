@@ -29,17 +29,33 @@ actual fun rememberEmailComposer(): (draft: EmailDraft, onResult: (EmailComposeR
     }
 }
 
+/**
+ * Mail apps are the ones that take `mailto:`; each gets an `ACTION_SEND` addressed to its package,
+ * which carries the file. A `mailto:` selector on the send doesn't work: since Android 13 the send
+ * must also match the filters of the activity the selector picked, and Gmail's doesn't.
+ */
 private suspend fun composeEmail(context: Context, draft: EmailDraft): EmailComposeResult {
+    val mailApps = mailAppPackages(context)
+    if (mailApps.isEmpty()) return EmailComposeResult.NoMailApp
     val uri = draft.attachment?.let { writeMailAttachmentOrToast(context, it) ?: return EmailComposeResult.Cancelled }
+    val sends = mailApps.map { buildEmailIntent(draft, uri).setPackage(it) }
+    val launch = sends.singleOrNull()
+        ?: Intent.createChooser(sends.first(), null).putExtra(Intent.EXTRA_INITIAL_INTENTS, sends.drop(1).toTypedArray())
     return try {
-        context.startActivity(buildEmailIntent(draft, uri))
+        context.startActivity(launch)
         EmailComposeResult.Opened
     } catch (_: ActivityNotFoundException) {
         EmailComposeResult.NoMailApp
     }
 }
 
-/** The selector limits the send to apps that take `mailto:`, while the send itself carries the file. */
+/** Needs the `SENDTO mailto:` entry in `<queries>` (feature/settings' manifest) to see them. */
+private fun mailAppPackages(context: Context): List<String> =
+    context.packageManager
+        .queryIntentActivities(Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:")), 0)
+        .map { it.activityInfo.packageName }
+        .distinct()
+
 internal fun buildEmailIntent(draft: EmailDraft, attachmentUri: Uri?): Intent =
     Intent(Intent.ACTION_SEND).apply {
         type = draft.attachment?.mimeType ?: "text/plain"
@@ -47,7 +63,6 @@ internal fun buildEmailIntent(draft: EmailDraft, attachmentUri: Uri?): Intent =
         putExtra(Intent.EXTRA_SUBJECT, draft.subject)
         putExtra(Intent.EXTRA_TEXT, draft.body)
         if (attachmentUri != null) grantStream(attachmentUri)
-        selector = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:"))
     }
 
 internal fun Intent.grantStream(uri: Uri) {
