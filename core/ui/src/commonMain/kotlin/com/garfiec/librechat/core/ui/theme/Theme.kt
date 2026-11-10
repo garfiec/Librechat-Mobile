@@ -62,6 +62,7 @@ fun LibreChatTheme(
     CompositionLocalProvider(
         LocalGlassLevel provides capability.takeIf { (uiStyle ?: platformDefaultUiStyle()) == UiStyle.LIQUID_GLASS },
         LocalDarkTheme provides darkTheme,
+        LocalThemeTokens provides rememberThemeTokens(colorScheme, darkTheme),
         // One gate for the whole app: covering surfaces and native bars must see the same instance.
         LocalNativeOverlayGate provides remember { NativeOverlayGate() },
     ) {
@@ -86,15 +87,23 @@ fun ThemePreview(
     useDynamicColor: Boolean,
     content: @Composable () -> Unit,
 ) {
-    CompositionLocalProvider(LocalDarkTheme provides darkTheme) {
+    val colorScheme = rememberLibreChatColorScheme(darkTheme, accentColor, useDynamicColor)
+    CompositionLocalProvider(
+        LocalDarkTheme provides darkTheme,
+        LocalThemeTokens provides rememberThemeTokens(colorScheme, darkTheme),
+    ) {
         MaterialTheme(
-            colorScheme = rememberLibreChatColorScheme(darkTheme, accentColor, useDynamicColor),
+            colorScheme = colorScheme,
             typography = libreChatTypography,
             shapes = libreChatShapes,
             content = content,
         )
     }
 }
+
+@Composable
+private fun rememberThemeTokens(colorScheme: ColorScheme, darkTheme: Boolean): ThemeTokens =
+    remember(colorScheme, darkTheme) { ThemeTokens.switchboard(colorScheme, darkTheme) }
 
 /** The scheme for these settings, by the precedence [LibreChatTheme] documents. */
 @Composable

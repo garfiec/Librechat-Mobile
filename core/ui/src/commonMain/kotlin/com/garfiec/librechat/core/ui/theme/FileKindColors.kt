@@ -11,7 +11,8 @@ import com.garfiec.librechat.core.model.files.FileKind
  * here (video's violet beside image, file's pure blue), take the mobile design's hue instead. Every
  * fill was darkened in OKLCH (hue kept) until the white glyph reaches 4.5:1, and dark mode also drops
  * 20% of the chroma so tiles don't glare on dark surfaces. `FileKindColorsTest` holds both tables to
- * that ratio and keeps the kinds apart. Both styles read the same tables.
+ * that ratio and keeps the kinds apart. These are Switchboard's fills; tiles paint the active theme's
+ * ([ThemeTokens.fileKinds]).
  */
 object FileKindColors {
     /** Source fill (web, or "mobile" for the design's) → light → dark. */
@@ -34,7 +35,9 @@ object FileKindColors {
 
     fun dark(kind: FileKind): Color = table.getValue(kind).second
 
+    internal fun switchboard(kind: FileKind, dark: Boolean): Color = if (dark) dark(kind) else light(kind)
+
     @Composable
     @ReadOnlyComposable
-    fun of(kind: FileKind): Color = if (LocalDarkTheme.current) dark(kind) else light(kind)
+    fun of(kind: FileKind): Color = LocalThemeTokens.current.fileKinds.getValue(kind)
 }
