@@ -201,17 +201,20 @@ fun AppearanceSettingsPage(
 
 /** The home's one-line summary of this page: theme, then interface style. */
 @Composable
-internal fun appearanceSummary(themeMode: ThemeMode, uiStyle: UiStyle): String {
-    val theme = when (themeMode) {
-        ThemeMode.SYSTEM -> stringResource(Res.string.theme_system)
-        ThemeMode.LIGHT -> stringResource(Res.string.theme_light)
-        ThemeMode.DARK -> stringResource(Res.string.theme_dark)
-    }
-    val style = when (uiStyle) {
-        UiStyle.MATERIAL -> stringResource(Res.string.ui_style_material)
-        UiStyle.LIQUID_GLASS -> stringResource(Res.string.ui_style_liquid_glass)
-    }
-    return "$theme · $style"
+internal fun appearanceSummary(themeMode: ThemeMode, uiStyle: UiStyle): String =
+    "${themeModeLabel(themeMode)} · ${uiStyleLabel(uiStyle)}"
+
+@Composable
+private fun themeModeLabel(mode: ThemeMode): String = when (mode) {
+    ThemeMode.SYSTEM -> stringResource(Res.string.theme_system)
+    ThemeMode.LIGHT -> stringResource(Res.string.theme_light)
+    ThemeMode.DARK -> stringResource(Res.string.theme_dark)
+}
+
+@Composable
+private fun uiStyleLabel(style: UiStyle): String = when (style) {
+    UiStyle.MATERIAL -> stringResource(Res.string.ui_style_material)
+    UiStyle.LIQUID_GLASS -> stringResource(Res.string.ui_style_liquid_glass)
 }
 
 /** System, Light and Dark as previews of the app in each, in the current style and accent. */
@@ -239,11 +242,7 @@ internal fun ThemeSelector(
         ) {
             ThemeMode.entries.forEach { mode ->
                 PictureChoice(
-                    label = when (mode) {
-                        ThemeMode.SYSTEM -> stringResource(Res.string.theme_system)
-                        ThemeMode.LIGHT -> stringResource(Res.string.theme_light)
-                        ThemeMode.DARK -> stringResource(Res.string.theme_dark)
-                    },
+                    label = themeModeLabel(mode),
                     selected = selected == mode,
                     onClick = { onSelect(mode) },
                     modifier = Modifier.weight(1f),
@@ -290,10 +289,7 @@ private fun UiStyleSelector(
             ) {
                 UiStyle.entries.forEach { style ->
                     PictureChoice(
-                        label = when (style) {
-                            UiStyle.MATERIAL -> stringResource(Res.string.ui_style_material)
-                            UiStyle.LIQUID_GLASS -> stringResource(Res.string.ui_style_liquid_glass)
-                        },
+                        label = uiStyleLabel(style),
                         selected = selected == style,
                         onClick = { onSelect(style) },
                         modifier = Modifier.weight(1f),
