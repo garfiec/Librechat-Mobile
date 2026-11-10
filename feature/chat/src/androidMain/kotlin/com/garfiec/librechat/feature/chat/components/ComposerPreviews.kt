@@ -4,12 +4,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.core.data.endpoint.EndpointDispatch
 import com.garfiec.librechat.core.model.ui.UiStyle
@@ -18,6 +20,10 @@ import com.garfiec.librechat.core.model.usage.ContextUsage
 import com.garfiec.librechat.core.model.usage.ContextUsageTotals
 import com.garfiec.librechat.core.model.usage.TokenBudgetBreakdown
 import com.garfiec.librechat.core.ui.contextusage.ContextBreakdownModel
+import com.garfiec.librechat.core.ui.platform.BarSide
+import com.garfiec.librechat.core.ui.platform.LocalWindowFeatures
+import com.garfiec.librechat.core.ui.platform.VerticalBars
+import com.garfiec.librechat.core.ui.platform.WindowFeatures
 import com.garfiec.librechat.core.ui.preview.PreviewNarrowScreens
 import com.garfiec.librechat.core.ui.theme.LibreChatTheme
 import com.garfiec.librechat.feature.chat.viewmodel.CompactNudge
@@ -77,6 +83,15 @@ private fun QueuedNeedsAttentionPreview() = ComposerSurface(UiStyle.MATERIAL) {
     )
 }
 
+/** iPhone Duo's cover screen: the fade runs under the bar column on the right, the controls stop at it. */
+@PreviewNarrowScreens
+@Composable
+private fun ComposerBarColumnMaterialPreview() = ComposerSurface(UiStyle.MATERIAL) { BarColumn { MidRunComposerHost() } }
+
+@PreviewNarrowScreens
+@Composable
+private fun ComposerBarColumnGlassPreview() = ComposerSurface(UiStyle.LIQUID_GLASS) { BarColumn { MidRunComposerHost() } }
+
 /** Measured the way a DropdownMenu measures its items, at the menu's widest. */
 @Preview(name = "1.3x · ja", widthDp = 360, fontScale = 1.3f, locale = "ja", showBackground = true)
 @PreviewNarrowScreens
@@ -90,6 +105,12 @@ private fun ContextMenuItemPreview() = ComposerSurface(UiStyle.MATERIAL) {
 @Composable
 private fun ComposerSurface(style: UiStyle, content: @Composable () -> Unit) {
     LibreChatTheme(darkTheme = true, uiStyle = style, content = content)
+}
+
+@Composable
+private fun BarColumn(content: @Composable () -> Unit) {
+    val bars = VerticalBars(side = BarSide.RIGHT, columnWidth = 84.dp, systemZoneHeight = 174.dp)
+    CompositionLocalProvider(LocalWindowFeatures provides WindowFeatures(verticalBars = bars), content = content)
 }
 
 /** A steer-capable server mid-run, with a draft typed: the caret beside the send button shows. */

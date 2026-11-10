@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
@@ -46,6 +47,7 @@ import com.garfiec.librechat.core.ui.components.PdfPasswordDialog
 import com.garfiec.librechat.core.ui.glass.glassBackdropSource
 import com.garfiec.librechat.core.ui.mcp.McpVariablesSheet
 import com.garfiec.librechat.core.ui.platform.rememberReduceMotion
+import com.garfiec.librechat.core.ui.platform.verticalBarColumn
 import com.garfiec.librechat.core.ui.theme.chatColors
 import com.garfiec.librechat.core.ui.websearch.WebSearchKeysSheet
 import com.garfiec.librechat.feature.chat.components.AskUserQuestionPanel
@@ -474,7 +476,9 @@ fun ChatScreen(
         // snackbar); the composer handles its own nav-bar padding.
         contentWindowInsets = WindowInsets.navigationBars,
         containerColor = chatColors().canvas,
-        snackbarHost = { AdaptiveSnackbarHost(snackbarHostState) },
+        snackbarHost = {
+            AdaptiveSnackbarHost(snackbarHostState, modifier = Modifier.windowInsetsPadding(WindowInsets.verticalBarColumn))
+        },
     ) { _ ->
         // The composer overlays the message list at the bottom; the list reserves a scrollable
         // bottom inset so its latest content rests above the bar. We measure the bar's actual
@@ -494,11 +498,7 @@ fun ChatScreen(
         val topContentPadding = with(LocalDensity.current) {
             maxOf(statusBarTop + 56.dp, topBarHeightPx.toDp())
         }
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .onSizeChanged { chatWidthPx = it.width },
-        ) {
+        Box(modifier = Modifier.fillMaxSize()) {
             val pullUp = rememberChatPullUpSheetState()
             // Temporary chat's transition: the band and (Material) the retone draw over and behind
             // the landing, the composer and the top bar, which all react to it through LocalModeVeil.
@@ -528,6 +528,10 @@ fun ChatScreen(
                         // would silently drop the excerpts.
                         modifier = Modifier
                             .fillMaxSize()
+                            // The thread keeps out of the bar column (iPhone Duo) while the backdrop around
+                            // it fills under it; the panes' width gates measure what's left.
+                            .windowInsetsPadding(WindowInsets.verticalBarColumn)
+                            .onSizeChanged { chatWidthPx = it.width }
                             .addToChatSelectionItem(
                                 enabled = uiState.quoteCaptureAvailable,
                                 onAddToChat = viewModel::addPendingQuote,
@@ -673,7 +677,9 @@ fun ChatScreen(
                                             onOpenWhatsNew()
                                         },
                                         onDismiss = { updateBannerViewModel.acknowledge(update) },
-                                        modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 8.dp),
+                                        modifier = Modifier
+                                            .windowInsetsPadding(WindowInsets.verticalBarColumn)
+                                            .padding(start = 12.dp, end = 12.dp, top = 8.dp),
                                     )
                                 }
                             }
@@ -690,6 +696,7 @@ fun ChatScreen(
                                     // landing, so they carry its pull-up drag too.
                                     modifier = Modifier
                                         .weight(1f, fill = false)
+                                        .windowInsetsPadding(WindowInsets.verticalBarColumn)
                                         .then(pullUp.landingModifier),
                                 )
                             }
@@ -710,6 +717,7 @@ fun ChatScreen(
                                     // gets only the height it leaves.
                                     modifier = Modifier
                                         .weight(1f, fill = false)
+                                        .windowInsetsPadding(WindowInsets.verticalBarColumn)
                                         .padding(start = 12.dp, end = 12.dp, top = 8.dp),
                                 )
                             }
@@ -732,6 +740,7 @@ fun ChatScreen(
                                     resumeFailed = uiState.pendingActionResumeFailed,
                                     modifier = Modifier
                                         .navigationBarsPadding()
+                                        .windowInsetsPadding(WindowInsets.verticalBarColumn)
                                         .padding(horizontal = 12.dp, vertical = 8.dp),
                                 )
                             } else {

@@ -1,8 +1,10 @@
 package com.garfiec.librechat.feature.chat.screen
 
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -11,6 +13,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
+import com.garfiec.librechat.core.ui.platform.verticalBarColumn
 import com.garfiec.librechat.feature.chat.components.artifact.ArtifactViewer
 import com.garfiec.librechat.feature.chat.components.artifact.ArtifactViewerHandoff
 import org.koin.compose.koinInject
@@ -52,7 +55,11 @@ fun ArtifactFullscreenScreen(
             inSheet = false,
             onClose = onBack,
             onExpand = null,
-            modifier = Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding(),
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .windowInsetsPadding(WindowInsets.verticalBarColumn),
         )
     }
 }

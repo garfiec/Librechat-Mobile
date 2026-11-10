@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -68,6 +69,7 @@ import com.garfiec.librechat.core.ui.components.pressBounce
 import com.garfiec.librechat.core.ui.components.rememberMenuDragSelection
 import com.garfiec.librechat.core.ui.components.rememberPressBounce
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
+import com.garfiec.librechat.core.ui.platform.verticalBarColumn
 import com.garfiec.librechat.core.ui.theme.isLiquidGlass
 import com.garfiec.librechat.feature.chat.components.mcpapp.LocalMcpApps
 import com.garfiec.librechat.feature.chat.components.veil.LocalModeVeil
@@ -376,6 +378,7 @@ private fun MaterialChatTopBar(
                 .then(rememberChatTopBarScrim(barVeil.crossed))
                 .consumeUnhandledTouches()
                 .statusBarsPadding()
+                .windowInsetsPadding(WindowInsets.verticalBarColumn)
                 .padding(horizontal = 16.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -507,6 +510,7 @@ private fun MaterialChatTopBar(
         // In-conversation search bar, pinned directly under the floating bar.
         AnimatedVisibility(
             visible = uiState.isSearchOpen,
+            modifier = Modifier.windowInsetsPadding(WindowInsets.verticalBarColumn),
             enter = expandVertically(),
             exit = shrinkVertically(),
         ) {
