@@ -10,6 +10,7 @@ import com.garfiec.librechat.core.common.result.suspendRunCatching
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.repository.SpeechRepository
 import com.garfiec.librechat.feature.chat.util.SERVER_TTS_SEGMENT_CHARS
+import com.garfiec.librechat.feature.chat.util.serverVoiceToUse
 import com.garfiec.librechat.feature.chat.util.splitForSpeech
 import com.garfiec.librechat.feature.chat.viewmodel.TtsHandle
 import kotlinx.coroutines.CoroutineDispatcher
@@ -98,7 +99,7 @@ class TextToSpeechDelegate(
         readJob = handle.scope.launch {
             val source = settingsDataStore.ttsSource.first()
             if (source == "server") {
-                readAloudViaServer(text, settingsDataStore.selectedVoiceId.first())
+                readAloudViaServer(text, serverVoiceToUse(settingsDataStore.selectedVoiceId.first(), speechRepository::getVoices))
             } else {
                 val rate = settingsDataStore.ttsSpeechRate.first()
                 val pitch = settingsDataStore.ttsPitch.first()
@@ -251,7 +252,10 @@ class TextToSpeechDelegate(
 
             val source = settingsDataStore.ttsSource.first()
             if (source == "server") {
-                readAloudViaServer(responseText, settingsDataStore.selectedVoiceId.first())
+                readAloudViaServer(
+                    responseText,
+                    serverVoiceToUse(settingsDataStore.selectedVoiceId.first(), speechRepository::getVoices),
+                )
             } else {
                 val rate = settingsDataStore.ttsSpeechRate.first()
                 val pitch = settingsDataStore.ttsPitch.first()

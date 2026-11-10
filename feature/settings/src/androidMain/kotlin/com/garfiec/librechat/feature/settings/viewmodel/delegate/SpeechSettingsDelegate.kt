@@ -30,6 +30,7 @@ class SpeechSettingsDelegate(
 ) : SpeechSettingsContract {
 
     private var currentMediaPlayer: MediaPlayer? = null
+    private var serverPreviewJob: Job? = null
     private var deviceTtsEngine: TextToSpeech? = null
 
     // Loads + latches the server speech config (STT and TTS flags) with the shared "unknown vs
@@ -102,12 +103,8 @@ class SpeechSettingsDelegate(
         val tts = deviceTtsEngine ?: return
         tts.setSpeechRate(rate)
         tts.setPitch(pitch)
-        if (!voiceName.isNullOrBlank()) {
-            val targetVoice = tts.voices?.find { it.name == voiceName }
-            if (targetVoice != null) {
-                tts.voice = targetVoice
-            }
-        }
+        val targetVoice = voiceName?.takeIf { it.isNotBlank() }?.let { name -> tts.voices?.find { it.name == name } }
+        (targetVoice ?: tts.defaultVoice)?.let { tts.voice = it }
         stateHandle.update { copy(isTtsPreviewPlaying = true) }
         tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
             override fun onStart(utteranceId: String?) { /* no-op */ }
@@ -126,7 +123,7 @@ class SpeechSettingsDelegate(
     override fun previewServerTts(text: String, voice: String?) {
         stopTtsPreview()
         stateHandle.update { copy(isTtsPreviewPlaying = true) }
-        stateHandle.scope.launch {
+        serverPreviewJob = stateHandle.scope.launch {
             val result = speechRepository.synthesizeSpeech(
                 text = text,
                 voice = voice,
@@ -157,6 +154,8 @@ class SpeechSettingsDelegate(
     }
 
     override fun stopTtsPreview() {
+        serverPreviewJob?.cancel()
+        serverPreviewJob = null
         deviceTtsEngine?.stop()
         currentMediaPlayer?.release()
         currentMediaPlayer = null
@@ -237,6 +236,7 @@ class SpeechSettingsDelegate(
      * Releases TTS engine and media player resources. Call from ViewModel.onCleared().
      */
     override fun release() {
+        serverPreviewJob?.cancel()
         currentMediaPlayer?.release()
         currentMediaPlayer = null
         deviceTtsEngine?.shutdown()

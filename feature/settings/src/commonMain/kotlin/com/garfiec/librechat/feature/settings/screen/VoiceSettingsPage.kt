@@ -228,9 +228,12 @@ private fun DeviceVoiceRow(state: ChatSettingsUiState, onSelect: (String) -> Uni
     val systemDefault = stringResource(Res.string.tts_system_default)
     val options = listOf("" to systemDefault) +
         state.availableDeviceVoices.map { it.id to "${it.name} (${it.locale})" }
+    // An earlier build stored the voice's name, which playback still resolves.
+    val stored = state.availableDeviceVoices
+        .firstOrNull { it.name == state.ttsDeviceVoiceName }?.id ?: state.ttsDeviceVoiceName
     SettingsChoiceRow(
         title = stringResource(Res.string.tts_voice_label),
-        value = options.firstOrNull { it.first == state.ttsDeviceVoiceName }?.second ?: systemDefault,
+        value = options.firstOrNull { it.first == stored }?.second ?: systemDefault,
         options = options,
         onSelect = onSelect,
     )

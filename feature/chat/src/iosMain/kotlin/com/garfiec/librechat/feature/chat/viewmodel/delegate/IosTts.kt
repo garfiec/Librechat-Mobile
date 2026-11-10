@@ -3,11 +3,13 @@ package com.garfiec.librechat.feature.chat.viewmodel.delegate
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.repository.SpeechRepository
 import com.garfiec.librechat.core.ui.media.AudioClipPlayer
+import com.garfiec.librechat.feature.chat.util.serverVoiceToUse
 import com.garfiec.librechat.feature.chat.util.synthesizeInSegments
 import com.garfiec.librechat.feature.chat.viewmodel.TtsHandle
 import kotlinx.cinterop.ObjCSignatureOverride
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.ClosedSendChannelException
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -94,7 +96,10 @@ class IosTts(
 
         readJob = handle.scope.launch {
             if (settingsDataStore.ttsSource.first() == "server") {
-                readAloudViaServer(text, settingsDataStore.selectedVoiceId.first())
+                readAloudViaServer(
+                    text,
+                    serverVoiceToUse(settingsDataStore.selectedVoiceId.first(), speechRepository::getVoices),
+                )
             } else {
                 val speech = DeviceSpeech(
                     rate = settingsDataStore.ttsSpeechRate.first(),
@@ -133,14 +138,14 @@ class IosTts(
     /**
      * Requests [text] from the server in the same capped segments as Android (the server drops
      * whatever is past `speech.tts.maxInputChars` without an error) and plays each segment's audio in
-     * order, fetching the next while one plays.
+     * order, fetching only the next one while one plays. A failed request lets what arrived finish.
      */
     private suspend fun readAloudViaServer(text: String, serverVoice: String?) = coroutineScope {
-        val clips = Channel<ByteArray>(Channel.UNLIMITED)
+        val clips = Channel<ByteArray>(capacity = 1)
         val playback = launch {
             for (clip in clips) {
                 if (!serverAudio.play(clip)) {
-                    clips.cancel()
+                    clips.close()
                     endRead(error = "Couldn't play the server's audio")
                     return@launch
                 }
@@ -150,13 +155,17 @@ class IosTts(
         val failure = synthesizeInSegments(
             text,
             synthesize = { segment -> speechRepository.synthesizeSpeech(segment, voice = serverVoice) },
-        ) { _, audio, _ -> clips.trySend(audio).isSuccess }
-        clips.close()
-        if (failure != null) {
-            playback.cancel()
-            serverAudio.stop()
-            endRead(error = failure.message ?: "Server TTS request failed")
+        ) { _, audio, _ ->
+            try {
+                clips.send(audio)
+                true
+            } catch (_: ClosedSendChannelException) {
+                false
+            }
         }
+        clips.close()
+        playback.join()
+        if (failure != null) endRead(error = failure.message ?: "Server TTS request failed")
     }
 
     private fun endRead(error: String?) {

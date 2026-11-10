@@ -173,7 +173,9 @@ class ChatPreferencesController(
         deviceTtsPreferences,
         additionalPreferences,
     ) { state, thinkingOpen, extra, deviceTts, additional ->
-        val selectedVoice = extra.selectedVoiceId?.let { id -> state.availableVoices.find { it.id == id } }
+        // The voice chat reads with: the stored one while offered, else the server's first.
+        val selectedVoice = state.availableVoices.find { it.id == extra.selectedVoiceId }
+            ?: state.availableVoices.firstOrNull()
         state.copy(
             thinkingOpenByDefault = thinkingOpen,
             autoReadEnabled = extra.autoRead,
