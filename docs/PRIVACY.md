@@ -215,7 +215,8 @@ Only during single sign-on, as described in section 4. The app does not contact 
 ### 6.6 Operating-system features you trigger
 
 Sharing a message, exporting a conversation or saving a diagnostic log hands the data to the system
-share sheet or file picker, and from there to the app or location you choose. Opening a link opens
+share sheet or file picker, and from there to the app or location you choose. Report a problem hands
+your report to your own email app, which sends it only when you tap Send there. Opening a link opens
 your browser. These are your actions, and the receiving app's policy applies.
 
 ## 7. Crash and performance statistics collected by the platforms
@@ -380,7 +381,8 @@ build ships.
 
 ## 17. Contact
 
-Garfiec Apps: appsupport@garfiec.com. Bug reports and questions about the app can also be opened
+Garfiec Apps: appsupport@garfiec.com, or Settings → About → Report a problem in the app, which fills in
+an email to that address for you. Bug reports and questions about the app can also be opened
 at https://github.com/garfiec/Librechat-Mobile/issues (GitHub's privacy statement applies there).
 Questions about data held on a LibreChat server go to that server's operator.
 
