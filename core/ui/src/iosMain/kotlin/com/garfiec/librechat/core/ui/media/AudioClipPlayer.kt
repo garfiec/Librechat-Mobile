@@ -31,9 +31,12 @@ class AudioClipPlayer {
     suspend fun play(audio: ByteArray): Boolean {
         stop()
         // Dictation leaves the session in play-and-record (earpiece); spoken replies go to the speaker.
+        // Reconfigured only when something switched it away, not before every clip of a long reply.
         val session = AVAudioSession.sharedInstance()
-        session.setCategory(AVAudioSessionCategoryPlayback, error = null)
-        session.setActive(true, error = null)
+        if (session.category != AVAudioSessionCategoryPlayback) {
+            session.setCategory(AVAudioSessionCategoryPlayback, error = null)
+            session.setActive(true, error = null)
+        }
         val clip = AVAudioPlayer(data = audio.toNSData(), error = null) ?: return false
         val finished = CompletableDeferred<Boolean>()
         clip.delegate = delegate
