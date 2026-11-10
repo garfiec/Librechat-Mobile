@@ -514,7 +514,8 @@ internal fun RailHeading(
         else -> Modifier.background(materialStyle.containerColor.takeOrElse { surface })
     }
     var renaming by remember { mutableStateOf(false) }
-    Column(modifier.then(background)) {
+    // Content scrolls beneath the heading; a tap on it must not reach what it covers.
+    Column(modifier.then(background).consumeUnhandledTouches()) {
         val title = spec.title
         val text = title.text
         if (text != null) {
