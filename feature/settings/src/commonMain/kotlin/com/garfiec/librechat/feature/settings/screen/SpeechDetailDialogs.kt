@@ -18,7 +18,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -40,6 +39,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveExposedDropdownMenuBox
 import com.garfiec.librechat.core.ui.components.AdaptiveFilledTonalButton
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.core.ui.components.AdaptiveSwitch
+import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
 import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.core.ui.datetime.LocalDateTimeFormat
 import com.garfiec.librechat.feature.settings.resources.*
@@ -223,12 +223,12 @@ internal fun SttDetailDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(engine.storedValue, language, onDevice, endOfSpeech) }) {
+            AdaptiveTextButton(onClick = { onConfirm(engine.storedValue, language, onDevice, endOfSpeech) }) {
                 Text(stringResource(Res.string.action_save))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            AdaptiveTextButton(onClick = onDismiss) {
                 Text(stringResource(Res.string.action_cancel))
             }
         },
@@ -559,7 +559,7 @@ internal fun TtsDetailDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = {
+            AdaptiveTextButton(onClick = {
                 onStopPreview()
                 onConfirm(engine, voice, rate, currentPitch, currentDeviceVoice, caching, source)
             }) {
@@ -567,7 +567,7 @@ internal fun TtsDetailDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = {
+            AdaptiveTextButton(onClick = {
                 onStopPreview()
                 onDismiss()
             }) {

@@ -15,7 +15,6 @@ import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -28,6 +27,7 @@ import com.garfiec.librechat.core.common.extensions.formatLocalizedNumber
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AdaptiveSectionScope
+import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
 import com.garfiec.librechat.core.ui.contextusage.formatCost
 import com.garfiec.librechat.core.ui.datetime.LocalDateTimeFormat
 import com.garfiec.librechat.feature.settings.model.AutoRefillInfo
@@ -167,7 +167,7 @@ private fun BalanceErrorRow(onRetry: () -> Unit, modifier: Modifier = Modifier) 
             style = MaterialTheme.typography.bodyLarge,
             modifier = Modifier.weight(1f),
         )
-        TextButton(onClick = onRetry) { Text(stringResource(Res.string.action_retry)) }
+        AdaptiveTextButton(onClick = onRetry) { Text(stringResource(Res.string.action_retry)) }
     }
     AdaptiveDivider()
 }

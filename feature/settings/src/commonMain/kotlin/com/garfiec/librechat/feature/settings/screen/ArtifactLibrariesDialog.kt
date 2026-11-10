@@ -7,7 +7,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -15,6 +14,7 @@ import com.garfiec.librechat.core.data.datastore.ArtifactLibraryConsentStore.Dec
 import com.garfiec.librechat.core.data.datastore.ArtifactLibraryConsentStore.Subject
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveSegmentedChoice
+import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.viewmodel.ArtifactLibraryChoice
@@ -87,7 +87,7 @@ internal fun ArtifactLibrariesDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) {
+            AdaptiveTextButton(onClick = onDismiss) {
                 Text(stringResource(Res.string.action_done))
             }
         },

@@ -27,7 +27,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -47,6 +46,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicato
 import com.garfiec.librechat.core.ui.components.AdaptiveFloatingActionButton
 import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
 import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
+import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
 import com.garfiec.librechat.core.ui.components.topbar.BarIcons
@@ -209,7 +209,7 @@ fun ApiKeysScreen(
                 Text(stringResource(Res.string.dialog_delete_api_key_message, key.name))
             },
             confirmButton = {
-                TextButton(
+                AdaptiveTextButton(
                     onClick = {
                         val id = key.id
                         keyToDelete = null
@@ -225,7 +225,7 @@ fun ApiKeysScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { keyToDelete = null }) {
+                AdaptiveTextButton(onClick = { keyToDelete = null }) {
                     Text(stringResource(Res.string.action_cancel))
                 }
             },

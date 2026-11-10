@@ -10,7 +10,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -27,6 +26,7 @@ import com.garfiec.librechat.core.common.datetime.messageLabel
 import com.garfiec.librechat.core.common.extensions.RelativeTimeReference
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveSegmentedChoice
+import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
 import com.garfiec.librechat.core.ui.datetime.LocalDateTimeFormat
 import com.garfiec.librechat.core.ui.datetime.LocalRelativeTimeReference
 import com.garfiec.librechat.core.ui.datetime.rememberDateLocaleTag
@@ -132,12 +132,12 @@ internal fun DateTimeSettingsDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = { onSave(pending) }) {
+            AdaptiveTextButton(onClick = { onSave(pending) }) {
                 Text(stringResource(Res.string.action_save))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            AdaptiveTextButton(onClick = onDismiss) {
                 Text(stringResource(Res.string.action_cancel))
             }
         },

@@ -20,7 +20,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -36,6 +35,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
 import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
+import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
 import com.garfiec.librechat.core.ui.components.EmptyState
 import com.garfiec.librechat.core.ui.components.LoadingIndicator
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
@@ -130,7 +130,7 @@ fun PresetManagerScreen(
                 )
             },
             confirmButton = {
-                TextButton(onClick = {
+                AdaptiveTextButton(onClick = {
                     deleteConfirmation?.presetId?.let { viewModel.deletePreset(it) }
                     deleteConfirmation = null
                 }) {
@@ -141,7 +141,7 @@ fun PresetManagerScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { deleteConfirmation = null }) {
+                AdaptiveTextButton(onClick = { deleteConfirmation = null }) {
                     Text(stringResource(Res.string.action_cancel))
                 }
             },

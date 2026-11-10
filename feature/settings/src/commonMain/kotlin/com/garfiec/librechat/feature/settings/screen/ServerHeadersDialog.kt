@@ -6,7 +6,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -17,6 +16,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.network.client.HeaderRejection
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
+import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
 import com.garfiec.librechat.core.ui.components.CustomHeaderRow
 import com.garfiec.librechat.core.ui.components.CustomHeaderRowError
 import com.garfiec.librechat.core.ui.components.CustomHeadersEditor
@@ -128,7 +128,7 @@ fun ServerHeadersDialog(
             }
         },
         confirmButton = {
-            TextButton(
+            AdaptiveTextButton(
                 onClick = onSave,
                 enabled = !isSaving && isDirty,
                 modifier = Modifier.testTag("server_headers_save"),
@@ -137,7 +137,7 @@ fun ServerHeadersDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = requestClose, enabled = !isSaving) {
+            AdaptiveTextButton(onClick = requestClose, enabled = !isSaving) {
                 Text(stringResource(Res.string.action_cancel))
             }
         },
@@ -149,7 +149,7 @@ fun ServerHeadersDialog(
             title = { Text(stringResource(Res.string.server_headers_discard_title)) },
             text = { Text(stringResource(Res.string.server_headers_discard_message)) },
             confirmButton = {
-                TextButton(
+                AdaptiveTextButton(
                     onClick = {
                         showDiscardConfirm = false
                         // Revert, or the abandoned edit is still sitting there on the next open:
@@ -163,7 +163,7 @@ fun ServerHeadersDialog(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDiscardConfirm = false }) {
+                AdaptiveTextButton(onClick = { showDiscardConfirm = false }) {
                     Text(stringResource(Res.string.server_headers_keep_editing))
                 }
             },
