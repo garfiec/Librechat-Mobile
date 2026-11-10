@@ -1084,4 +1084,5 @@
     <string name="accent_using_wallpaper">Using wallpaper colors</string>
     <string name="admin_panel">Admin panel</string>
     <string name="admin_panel_desc">Opens in your browser</string>
+    <string name="api_keys_load_failed">Couldn't load API keys</string>
 </resources>

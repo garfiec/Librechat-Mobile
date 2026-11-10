@@ -1054,4 +1054,5 @@
     <string name="accent_using_wallpaper">壁紙の色を使用中</string>
     <string name="admin_panel">管理パネル</string>
     <string name="admin_panel_desc">ブラウザで開きます</string>
+    <string name="api_keys_load_failed">APIキーを読み込めませんでした</string>
 </resources>

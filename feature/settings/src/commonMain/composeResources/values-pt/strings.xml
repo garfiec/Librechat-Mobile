@@ -1071,4 +1071,5 @@
     <string name="accent_using_wallpaper">Usando as cores do papel de parede</string>
     <string name="admin_panel">Painel de administração</string>
     <string name="admin_panel_desc">Abre no seu navegador</string>
+    <string name="api_keys_load_failed">Não foi possível carregar as chaves de API</string>
 </resources>

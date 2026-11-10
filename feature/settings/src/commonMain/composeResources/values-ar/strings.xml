@@ -1134,4 +1134,5 @@
     <string name="accent_using_wallpaper">تُستخدم ألوان الخلفية</string>
     <string name="admin_panel">لوحة الإدارة</string>
     <string name="admin_panel_desc">يُفتح في متصفحك</string>
+    <string name="api_keys_load_failed">تعذّر تحميل مفاتيح API</string>
 </resources>

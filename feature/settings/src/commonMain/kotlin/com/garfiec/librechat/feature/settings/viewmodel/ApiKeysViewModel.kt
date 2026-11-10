@@ -3,6 +3,7 @@ package com.garfiec.librechat.feature.settings.viewmodel
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.ApiKeyRepository
 import com.garfiec.librechat.core.model.ApiKey
@@ -22,7 +23,18 @@ data class ApiKeysUiState(
     val isCreating: Boolean = false,
     val createdKey: ApiKey? = null,
     val deletingKeyId: String? = null,
+    /** Why the last load of the list failed; the page shows it in place of an empty list. */
+    val loadFailure: ApiKeysLoadFailure? = null,
 )
+
+@Immutable
+sealed interface ApiKeysLoadFailure {
+    /** The server has no API keys route (404). */
+    data object NotSupported : ApiKeysLoadFailure
+
+    /** Any other failure, with the server's or client's message when there is one. Retry reloads. */
+    data class Failed(val message: String?) : ApiKeysLoadFailure
+}
 
 /**
  * Manages API key CRUD operations for the API Keys settings screen.
@@ -43,7 +55,7 @@ class ApiKeysViewModel(
 
     fun loadKeys() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null, loadFailure = null)
             when (val result = apiKeyRepository.listApiKeys()) {
                 is Result.Success -> {
                     _uiState.value = _uiState.value.copy(
@@ -52,9 +64,14 @@ class ApiKeysViewModel(
                     )
                 }
                 is Result.Error -> {
+                    val notFound = (result.exception as? ApiException)?.statusCode == HTTP_NOT_FOUND
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        error = result.message ?: "Failed to load API keys",
+                        loadFailure = if (notFound) {
+                            ApiKeysLoadFailure.NotSupported
+                        } else {
+                            ApiKeysLoadFailure.Failed(result.message)
+                        },
                     )
                 }
                 is Result.Loading -> { /* no-op */ }
@@ -141,3 +158,5 @@ class ApiKeysViewModel(
         _uiState.value = _uiState.value.copy(error = null)
     }
 }
+
+private const val HTTP_NOT_FOUND = 404

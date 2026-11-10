@@ -1070,4 +1070,5 @@
     <string name="accent_using_wallpaper">Hintergrundfarben werden verwendet</string>
     <string name="admin_panel">Admin-Bereich</string>
     <string name="admin_panel_desc">Wird im Browser geöffnet</string>
+    <string name="api_keys_load_failed">API-Schlüssel konnten nicht geladen werden</string>
 </resources>

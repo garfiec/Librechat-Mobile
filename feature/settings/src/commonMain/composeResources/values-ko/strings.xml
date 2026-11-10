@@ -1054,4 +1054,5 @@
     <string name="accent_using_wallpaper">배경화면 색상 사용 중</string>
     <string name="admin_panel">관리자 패널</string>
     <string name="admin_panel_desc">브라우저에서 열립니다</string>
+    <string name="api_keys_load_failed">API 키를 불러오지 못했습니다</string>
 </resources>
