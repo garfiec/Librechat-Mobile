@@ -18,6 +18,7 @@ import com.garfiec.librechat.core.ui.components.topbar.LocalRailParent
 import com.garfiec.librechat.core.ui.components.topbar.LocalRailSlot
 import com.garfiec.librechat.core.ui.components.topbar.RailSlot
 import com.garfiec.librechat.core.ui.components.topbar.SlotRail
+import com.garfiec.librechat.core.ui.components.topbar.railTraversalScope
 import com.garfiec.librechat.core.ui.components.topbar.rememberRailPlacement
 import com.garfiec.librechat.core.ui.glass.GlassBackdropRecorder
 import com.garfiec.librechat.core.ui.glass.LocalGlassBackdrop
@@ -51,7 +52,7 @@ fun AdaptiveScaffold(
     val railMode = placement.bars != null
     CompositionLocalProvider(LocalGlassBackdrop provides backdrop) {
         // The same tree with and without bars, so a fold or rotation that brings them keeps the screen's state.
-        Box(modifier = modifier.then(placement.modifier)) {
+        Box(modifier = modifier.then(placement.modifier).then(railTraversalScope(railMode))) {
             Scaffold(
                 topBar = { CompositionLocalProvider(LocalRailSlot provides slot.takeIf { railMode }, content = topBar) },
                 bottomBar = bottomBar,

@@ -50,6 +50,9 @@ import androidx.compose.ui.layout.findRootCoordinates
 import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.isTraversalGroup
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.traversalIndex
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -103,6 +106,11 @@ fun AdaptiveSideRail(spec: AdaptiveTopBarSpec, bars: VerticalBars, modifier: Mod
     CompositionLocalProvider(LocalContentColor provides onSurface) {
         BoxWithConstraints(
             modifier
+                // Read before the screen's body, as a bar's controls are; the screen's box scopes the order.
+                .semantics {
+                    isTraversalGroup = true
+                    traversalIndex = -1f
+                }
                 .width(bars.columnWidth)
                 .fillMaxHeight()
                 .onPlaced { railTop = with(density) { it.positionInRoot().y.toDp() } }
@@ -355,6 +363,10 @@ internal fun rememberRailPlacement(): RailPlacement {
     return RailPlacement(bars?.takeIf { atBarSide && !LocalInSeparateWindow.current }, modifier)
 }
 
+/** Keeps the rail's reading order inside the screen that draws it, ahead of its body but not of the window's other panes. */
+internal fun railTraversalScope(railMode: Boolean): Modifier =
+    if (railMode) Modifier.semantics { isTraversalGroup = true } else Modifier
+
 /** Draws the rail for the bar in [slot] while there are [bars], unless a layout nested in this one draws its own. */
 @Composable
 internal fun BoxScope.SlotRail(slot: RailSlot, bars: VerticalBars?) {
@@ -387,7 +399,7 @@ fun AdaptiveRailBox(modifier: Modifier = Modifier, content: @Composable RailBoxS
     val parent = LocalRailParent.current
     val slot = remember(parent) { RailSlot(parent) }
     val placement = rememberRailPlacement()
-    Box(modifier.then(placement.modifier)) {
+    Box(modifier.then(placement.modifier).then(railTraversalScope(placement.bars != null))) {
         val scope = RailBoxScope(this, slot, inRail = placement.bars != null && !slot.superseded)
         CompositionLocalProvider(LocalRailParent provides slot) { scope.content() }
         SlotRail(slot, placement.bars)
