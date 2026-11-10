@@ -93,6 +93,15 @@ class QueueOrchestrationDelegate(
         }
     }
 
+    private fun ChatUiState.enforcedSpecRestored(): Boolean {
+        if (!gates.serverQueueEnforcedAgentSpecSupported) return false
+        val active = activeSpec ?: return false
+        val preset = active.preset ?: return false
+        return preset.endpoint == EndpointConstants.AGENTS &&
+            preset.agentId == selectedModel &&
+            modelSpecs?.list.orEmpty().count { it.name == active.name } == 1
+    }
+
     /**
      * Marks [spec] as one the SERVER will admit and run, or returns it unchanged for the legacy
      * local drain.
@@ -122,15 +131,6 @@ class QueueOrchestrationDelegate(
      * name. Anything else is refused with "No model spec selected", so it stays in the local drain,
      * which sends the spec.
      */
-    private fun ChatUiState.enforcedSpecRestored(): Boolean {
-        if (!gates.serverQueueEnforcedAgentSpecSupported) return false
-        val active = activeSpec ?: return false
-        val preset = active.preset ?: return false
-        return preset.endpoint == EndpointConstants.AGENTS &&
-            preset.agentId == selectedModel &&
-            modelSpecs?.list.orEmpty().count { it.name == active.name } == 1
-    }
-
     private fun serverOwnedSpec(spec: QueuedMessage): QueuedMessage {
         val state = handle.state
         if (!state.gates.serverQueueSupported) return spec

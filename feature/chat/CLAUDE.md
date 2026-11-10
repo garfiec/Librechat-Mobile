@@ -731,8 +731,7 @@ and never send both** (the server runs both on OpenAI and custom endpoints).
 ### Per-turn thinking (`reasoningOverride`, v0.8.9-rc1)
 - `ReasoningSettingResolver` (`:core:ui`) ports upstream `resolveReasoningSettingForTarget`, which the
   server also runs: a difference fails the send (an `Invalid reasoning override` SSE error frame on a
-  200, not a 400). It keeps its own key table, not
-  `EndpointParameterRegistry`'s. Mirrored.
+  200). It keeps its own key table, not `EndpointParameterRegistry`'s. Mirrored.
 - The chip shows only with: server ≥ 0.8.9-rc1, `interface.parameters` on, not assistants, not
   comparing, a resolved target (a saved agent's provider and model), a key an enforced spec's preset
   doesn't set, and levels (a `thinkingBudget` model gets none). `hideBadgeRow` doesn't hide it. Under
