@@ -843,7 +843,6 @@
     <string name="export_coming_soon">エクスポートは近日対応予定です</string>
     <string name="mcp_tools_all">すべての MCP ツール</string>
     <string name="mcp_server_unknown">不明</string>
-    <string name="avatar_upload_unavailable_ios">iOS ではアバターのアップロードはまだ利用できません。</string>
     <string name="dialog_ok">OK</string>
     <plurals name="mcp_tool_count">
         <item quantity="other">ツール %1$d 個</item>

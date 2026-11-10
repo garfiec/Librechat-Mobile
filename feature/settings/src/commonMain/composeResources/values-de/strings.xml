@@ -856,7 +856,6 @@
     <string name="export_coming_soon">Export folgt in Kürze</string>
     <string name="mcp_tools_all">Alle MCP-Tools</string>
     <string name="mcp_server_unknown">Unbekannt</string>
-    <string name="avatar_upload_unavailable_ios">Das Hochladen von Avataren ist unter iOS noch nicht verfügbar.</string>
     <string name="dialog_ok">OK</string>
     <plurals name="mcp_tool_count">
         <item quantity="one">%1$d Tool</item>

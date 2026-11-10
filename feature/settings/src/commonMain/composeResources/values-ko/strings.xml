@@ -843,7 +843,6 @@
     <string name="export_coming_soon">내보내기는 곧 지원됩니다</string>
     <string name="mcp_tools_all">모든 MCP 도구</string>
     <string name="mcp_server_unknown">알 수 없음</string>
-    <string name="avatar_upload_unavailable_ios">iOS에서는 아직 아바타를 업로드할 수 없습니다.</string>
     <string name="dialog_ok">확인</string>
     <plurals name="mcp_tool_count">
         <item quantity="other">도구 %1$d개</item>

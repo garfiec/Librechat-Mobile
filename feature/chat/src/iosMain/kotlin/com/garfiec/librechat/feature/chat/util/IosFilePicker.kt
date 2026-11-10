@@ -12,11 +12,6 @@ import platform.Foundation.NSURL
 import platform.Foundation.dataWithContentsOfURL
 import platform.Foundation.lastPathComponent
 import platform.Foundation.timeIntervalSince1970
-import platform.PhotosUI.PHPickerConfiguration
-import platform.PhotosUI.PHPickerFilter
-import platform.PhotosUI.PHPickerResult
-import platform.PhotosUI.PHPickerViewController
-import platform.PhotosUI.PHPickerViewControllerDelegateProtocol
 import platform.UIKit.UIDocumentPickerDelegateProtocol
 import platform.UIKit.UIDocumentPickerViewController
 import platform.UIKit.UIImage
@@ -57,29 +52,6 @@ fun openDocumentPicker(onResult: (List<Any>) -> Unit) {
         picker.allowsMultipleSelection = true
 
         val delegate = DocumentPickerDelegate(onResult)
-        picker.delegate = delegate
-        activePickerDelegate = delegate
-
-        viewController.presentViewController(picker, animated = true, completion = null)
-    }
-}
-
-/**
- * Opens PHPickerViewController for photo/image selection.
- */
-fun openPhotoPicker(onResult: (List<Any>) -> Unit) {
-    dispatch_async(dispatch_get_main_queue()) {
-        val viewController = currentTopmostViewController() ?: run {
-            Logger.w { "IosFilePicker: no root view controller" }
-            return@dispatch_async
-        }
-
-        val config = PHPickerConfiguration()
-        config.selectionLimit = 10
-        config.filter = PHPickerFilter.imagesFilter
-
-        val picker = PHPickerViewController(configuration = config)
-        val delegate = PhotoPickerDelegate(onResult)
         picker.delegate = delegate
         activePickerDelegate = delegate
 
@@ -183,78 +155,23 @@ private class DocumentPickerDelegate(
     }
 }
 
-private class PhotoPickerDelegate(
-    private val onResult: (List<Any>) -> Unit,
-) : NSObject(), PHPickerViewControllerDelegateProtocol {
-
-    @OptIn(ExperimentalForeignApi::class)
-    override fun picker(picker: PHPickerViewController, didFinishPicking: List<*>) {
-        picker.dismissViewControllerAnimated(true, completion = null)
-
-        if (didFinishPicking.isEmpty()) {
-            activePickerDelegate = null
-            onResult(emptyList())
-            return
-        }
-
-        // All `results`/`remaining` mutation and the terminal delivery happen on
-        // the Main queue so they're serialized — the per-item image decode runs
-        // off Main inside the loadDataRepresentation callback, which only hops
-        // back to Main to record its outcome. The non-image branches mirror that
-        // hop so every completion path is consistent.
-        val results = mutableListOf<Any>()
-        var remaining = didFinishPicking.size
-
-        fun completeOne(imageData: IosImageData?) {
-            dispatch_async(dispatch_get_main_queue()) {
-                if (imageData != null) results.add(imageData)
-                remaining--
-                if (remaining == 0) {
-                    activePickerDelegate = null
-                    onResult(results)
-                }
-            }
-        }
-
-        for (item in didFinishPicking) {
-            val pickerResult = item as? PHPickerResult
-            if (pickerResult == null) {
-                completeOne(null)
-                continue
-            }
-            val provider = pickerResult.itemProvider
-            if (provider.hasItemConformingToTypeIdentifier("public.image")) {
-                provider.loadDataRepresentationForTypeIdentifier("public.image") { data, error ->
-                    val imageData = data?.let { nsData ->
-                        val bytes = nsData.toByteArray().takeIf { it.isNotEmpty() }
-                        if (bytes != null) {
-                            val filename = provider.suggestedName ?: "photo"
-                            val image = UIImage(data = nsData)
-                            val cgImage = image?.CGImage
-                            val ext = if (filename.contains(".")) "" else ".jpg"
-                            IosImageData(
-                                bytes = bytes,
-                                filename = "$filename$ext",
-                                mimeType = "image/jpeg",
-                                width = cgImage?.let { CGImageGetWidth(it).toInt() },
-                                height = cgImage?.let { CGImageGetHeight(it).toInt() },
-                                // The asset's original data, often HEIC whatever the type says.
-                                preview = draftPreviewOf(image),
-                            )
-                        } else {
-                            null
-                        }
-                    }
-                    if (imageData == null) {
-                        Logger.e { "PHPicker: failed to load image: ${error?.localizedDescription}" }
-                    }
-                    completeOne(imageData)
-                }
-            } else {
-                completeOne(null)
-            }
-        }
-    }
+/**
+ * A photo-picker pick as an attachment, for the shared photo picker's `decode` (runs off Main).
+ * [bytes] are the asset's original data, often HEIC whatever the type says.
+ */
+@OptIn(ExperimentalForeignApi::class)
+internal fun photoPickerAttachment(bytes: ByteArray, suggestedName: String?, image: UIImage?): IosImageData {
+    val filename = suggestedName ?: "photo"
+    val cgImage = image?.CGImage
+    val ext = if (filename.contains(".")) "" else ".jpg"
+    return IosImageData(
+        bytes = bytes,
+        filename = "$filename$ext",
+        mimeType = "image/jpeg",
+        width = cgImage?.let { CGImageGetWidth(it).toInt() },
+        height = cgImage?.let { CGImageGetHeight(it).toInt() },
+        preview = draftPreviewOf(image),
+    )
 }
 
 @OptIn(ExperimentalForeignApi::class)

@@ -882,7 +882,6 @@
     <string name="export_coming_soon">Экспорт скоро появится</string>
     <string name="mcp_tools_all">Все инструменты MCP</string>
     <string name="mcp_server_unknown">Неизвестный</string>
-    <string name="avatar_upload_unavailable_ios">Загрузка аватара пока недоступна на iOS.</string>
     <string name="dialog_ok">ОК</string>
     <plurals name="mcp_tool_count">
         <item quantity="one">%1$d инструмент</item>
