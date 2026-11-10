@@ -16,4 +16,7 @@ interface PlatformInfo {
 
     /** Coarse device model, e.g. `Google Pixel 8` or `iPhone`. */
     val deviceModel: String
+
+    /** What installed the app, e.g. `F-Droid` or `TestFlight`; null when the platform can't say. */
+    val installSource: String? get() = null
 }

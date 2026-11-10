@@ -67,9 +67,10 @@ class ReportProblemViewModel(
 
     init {
         val device = diagnosticsDevice(platformInfo)
+        val installSource = diagnosticsInstallSource(appInfo, platformInfo)
         viewModelScope.launch {
             combine(configRepository.startupConfig, configRepository.detectedBackendVersion) { config, version ->
-                aboutDiagnostics(appInfo.versionName, appInfo.gitSha, version, config?.buildInfo, device)
+                aboutDiagnostics(appInfo.versionName, appInfo.gitSha, version, config?.buildInfo, device, installSource)
             }.collect { details -> _uiState.update { it.copy(details = details) } }
         }
         viewModelScope.launch {

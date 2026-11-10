@@ -8,6 +8,10 @@ body:
       value: |
         Thanks for taking the time to file a report. The fields below are what we need to actually reproduce and fix the problem — vague reports usually can't be acted on.
 
+        **No GitHub account?** In the app, Settings → About → Report a problem emails us the same details and the diagnostic log.
+
+        **Shortcut:** Settings → About → Copy diagnostics copies your app version, build, install source, server version and device. Paste it into any field below.
+
         **Before posting:** scrub your server URL, auth tokens, and email out of any screenshots, logs, or text you paste. The log export redacts most of this automatically, but double-check.
 
   - type: textarea
@@ -81,7 +85,7 @@ body:
     id: app_version
     attributes:
       label: App version
-      description: "Found in Settings → General → About (the \"App version\" row)."
+      description: "Found in Settings → About (the \"App version\" row)."
       placeholder: "2026.06.8"
     validations:
       required: true
@@ -92,8 +96,12 @@ body:
       label: How did you install the app?
       description: Debug and release builds, and different sideload paths, can behave differently.
       options:
-        - GitHub release (APK)
+        - Google Play
+        - App Store
+        - TestFlight
+        - F-Droid (or Droid-ify / Neo Store)
         - Obtainium
+        - GitHub release (APK)
         - Sideloaded IPA (AltStore / TrollStore)
         - Built it myself (debug)
         - Other (describe below)
@@ -104,7 +112,7 @@ body:
     id: server_version
     attributes:
       label: LibreChat server version
-      description: "Leave blank if you don't know it. If your server exposes it, Settings → General → About shows the server build commit/branch/date; otherwise the version you deployed."
+      description: "Leave blank if you don't know it. Settings → About shows the server version and, if your server exposes them, its build commit, branch and date; otherwise the version you deployed."
       placeholder: "v0.8.7 / self-hosted Docker"
     validations:
       required: false
@@ -116,7 +124,7 @@ body:
       description: |
         Optional but it speeds up diagnosis a lot.
         - A screenshot or screen recording of the problem.
-        - A diagnostic log: Settings → Data → Diagnostic Logs → "Export diagnostic logs" (auto-redacted), then attach the file here. Older app versions name it `.jsonl`, which GitHub rejects; rename it to `.log` first.
+        - A diagnostic log: Settings → About → "Export diagnostic logs" (auto-redacted), then attach the file here. Older app versions name it `.jsonl`, which GitHub rejects; rename it to `.log` first.
     validations:
       required: false
 

@@ -96,6 +96,7 @@ class GeneralSettingsViewModelTest {
             override val osName = "Android"
             override val osVersion = "17"
             override val deviceModel = "Google Pixel 9 Pro Fold"
+            override val installSource = "F-Droid"
         },
     )
 
@@ -210,6 +211,7 @@ class GeneralSettingsViewModelTest {
             listOf(
                 "Switchboard version: 0.1.0",
                 "Switchboard build: testsha0",
+                "Install source: oss · F-Droid",
                 "LibreChat version: —",
                 "Commit: —",
                 "Branch: —",
