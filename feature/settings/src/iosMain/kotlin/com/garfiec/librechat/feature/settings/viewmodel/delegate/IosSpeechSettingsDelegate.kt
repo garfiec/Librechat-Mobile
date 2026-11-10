@@ -74,6 +74,7 @@ class IosSpeechSettingsDelegate(
             .filterIsInstance<AVSpeechSynthesisVoice>()
             .map { voice ->
                 DeviceVoiceInfo(
+                    id = voice.identifier,
                     name = voice.name,
                     locale = voice.language,
                 )
@@ -108,9 +109,11 @@ class IosSpeechSettingsDelegate(
         utterance.pitchMultiplier = pitch.coerceIn(0.5f, 2.0f)
 
         if (!voiceName.isNullOrBlank()) {
-            val targetVoice = AVSpeechSynthesisVoice.speechVoices()
-                .filterIsInstance<AVSpeechSynthesisVoice>()
-                .find { it.name == voiceName }
+            // Settings stores the voice's identifier; a name stored by an older build still resolves.
+            val targetVoice = AVSpeechSynthesisVoice.voiceWithIdentifier(voiceName)
+                ?: AVSpeechSynthesisVoice.speechVoices()
+                    .filterIsInstance<AVSpeechSynthesisVoice>()
+                    .find { it.name == voiceName }
             if (targetVoice != null) {
                 utterance.voice = targetVoice
             }

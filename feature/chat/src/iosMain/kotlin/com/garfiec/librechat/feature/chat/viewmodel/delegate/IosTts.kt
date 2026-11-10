@@ -118,12 +118,16 @@ class IosTts(
         synthesizer.speakUtterance(utterance)
     }
 
-    /** The device voice Settings stored by name, or the default voice when it is unset or gone. */
-    private fun deviceVoice(name: String): AVSpeechSynthesisVoice? =
-        name.takeIf { it.isNotBlank() }?.let { stored ->
-            AVSpeechSynthesisVoice.speechVoices()
-                .filterIsInstance<AVSpeechSynthesisVoice>()
-                .find { it.name == stored }
+    /**
+     * The device voice Settings stored by identifier (a name stored by an older build still resolves),
+     * or the default voice when it is unset or gone.
+     */
+    private fun deviceVoice(stored: String): AVSpeechSynthesisVoice? =
+        stored.takeIf { it.isNotBlank() }?.let { id ->
+            AVSpeechSynthesisVoice.voiceWithIdentifier(id)
+                ?: AVSpeechSynthesisVoice.speechVoices()
+                    .filterIsInstance<AVSpeechSynthesisVoice>()
+                    .find { it.name == id }
         } ?: AVSpeechSynthesisVoice.voiceWithLanguage(null)
 
     /**

@@ -34,7 +34,7 @@ private val DeviceState = ChatSettingsUiState(
     sttLanguage = "German",
     serverTtsEnabled = true,
     ttsSpeechRate = 1.25f,
-    availableDeviceVoices = listOf(DeviceVoiceInfo("en-us-x-sfg-local", "English (United States)")),
+    availableDeviceVoices = listOf(DeviceVoiceInfo("en-us-x-sfg-local", "en-us-x-sfg-local", "English (United States)")),
     ttsDeviceVoiceName = "en-us-x-sfg-local",
 )
 

@@ -65,6 +65,7 @@ class SpeechSettingsDelegate(
                             val voices = withContext(ioDispatcher) {
                                 tts.voices?.map { voice ->
                                     DeviceVoiceInfo(
+                                        id = voice.name,
                                         name = voice.name,
                                         locale = voice.locale.displayName,
                                     )

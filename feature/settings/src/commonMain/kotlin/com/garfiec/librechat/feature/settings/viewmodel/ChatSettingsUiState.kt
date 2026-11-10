@@ -77,8 +77,12 @@ data class ChatSettingsUiState(
 internal const val TTS_SOURCE_DEVICE = "device"
 internal const val TTS_SOURCE_SERVER = "server"
 
-/** A device voice offered on the Voice page; [name] is what Settings stores and playback looks up. */
+/**
+ * A device voice offered on the Voice page; [id] is what Settings stores and playback looks up. It must
+ * be unique per voice: iOS reuses a voice's [name] across locales.
+ */
 data class DeviceVoiceInfo(
+    val id: String,
     val name: String,
     val locale: String,
 )

@@ -227,7 +227,7 @@ internal fun liveRecognizerHonorsPrefs(sttEngine: String): Boolean =
 private fun DeviceVoiceRow(state: ChatSettingsUiState, onSelect: (String) -> Unit) {
     val systemDefault = stringResource(Res.string.tts_system_default)
     val options = listOf("" to systemDefault) +
-        state.availableDeviceVoices.map { it.name to "${it.name} (${it.locale})" }
+        state.availableDeviceVoices.map { it.id to "${it.name} (${it.locale})" }
     SettingsChoiceRow(
         title = stringResource(Res.string.tts_voice_label),
         value = options.firstOrNull { it.first == state.ttsDeviceVoiceName }?.second ?: systemDefault,
