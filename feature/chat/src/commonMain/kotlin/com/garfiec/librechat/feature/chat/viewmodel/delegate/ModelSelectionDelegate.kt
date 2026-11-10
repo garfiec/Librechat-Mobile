@@ -1022,11 +1022,15 @@ class ModelSelectionDelegate(
         onChoiceSelected(seed.toChoice())
     }
 
-    /** A user pick: a raw model or agent, or a spec staged elsewhere (Compare setup's lane A). Also saved as last-used. */
-    fun onChoiceSelected(choice: ModelChoice) {
+    /**
+     * A user pick: a raw model or agent, or a spec staged elsewhere (Compare setup's lane A). Also saved
+     * as last-used unless [saveLastUsed] is false.
+     */
+    fun onChoiceSelected(choice: ModelChoice, saveLastUsed: Boolean = true) {
         val model = choice.model ?: return
         tier0AwaitingSpecs = null
         applySelection(choice, reason = if (choice is ModelChoice.Spec) "explicitSpec" else "explicitModel")
+        if (!saveLastUsed) return
         // Keep the cache in sync so refilterModels uses the latest choice
         cachedLastUsed = LastUsedSelection(choice.endpoint, model, choice.spec)
         handle.scope.launch {

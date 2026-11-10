@@ -370,7 +370,8 @@ other parts read-only beside them (divergence: web hides them); `NONE`: no Edit.
   pane needs its lane's agent id (`onFinal` fills a missing one from the final parts); a lane with no
   parts can't be kept. Keeping lane B first switches the chat to lane B's model, spec and parameters
   (`parametersLaneRanOn`: its spec's preset, or raw the defaults, with lane A's custom instructions).
-  It is a pick like any other, so it writes last-used, in a temporary chat too.
+  Its spec is held against the config (`stored()`), so under `enforce` a retargeted spec moves to its
+  new model. It writes last-used like any pick, except in a temporary chat.
 
 ## Continuing a cut-short reply
 The chip (`StoppedReplyFooter`) sits under the latest reply, always visible, not in the tap-to-reveal

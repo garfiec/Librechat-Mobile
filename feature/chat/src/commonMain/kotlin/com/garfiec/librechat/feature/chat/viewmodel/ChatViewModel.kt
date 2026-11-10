@@ -99,6 +99,7 @@ import com.garfiec.librechat.feature.chat.util.parametersFor
 import com.garfiec.librechat.feature.chat.util.parametersLaneRanOn
 import com.garfiec.librechat.feature.chat.util.reopenedParameters
 import com.garfiec.librechat.feature.chat.util.restore
+import com.garfiec.librechat.feature.chat.util.stored
 import com.garfiec.librechat.feature.chat.util.serializeMessageForClipboard
 import com.garfiec.librechat.feature.chat.util.withAttachmentSources
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.AttachmentPreviewDelegate
@@ -2312,19 +2313,20 @@ class ChatViewModel(
      * Keeps [agentId]'s answer and continues it with the model that wrote it. A Continue sends with
      * the chat's model, which during a comparison is lane A's, so keeping lane B switches the chat
      * to lane B's model, spec and parameters first ([parametersLaneRanOn]); read now, since keeping
-     * the lane clears the comparison. A pick like any other, so it writes last-used.
+     * the lane clears the comparison. Its spec is held against the config as every writer holds it
+     * ([stored]). A pick like any other, so it writes last-used, except in a temporary chat.
      */
     fun keepAndContinue(agentId: String) {
         val state = _uiState.value
         val comparison = state.comparisonState
         val laneB = comparison.secondaryEndpoint?.takeIf { isAddedAgentId(agentId) }?.let { endpoint ->
-            comparison.secondaryModel?.let { model -> ModelChoice.restore(endpoint, model, state.laneBSpec) }
+            comparison.secondaryModel?.let { model -> ModelChoice.stored(endpoint, model, state.laneBSpec, state.modelSpecs) }
         }
         comparisonDelegate.keepAndContinue(agentId) {
             laneB?.let { choice ->
                 // Read before the pick: moving onto or off a spec resets lane A's custom instructions.
                 val ran = _uiState.value.selection.parametersLaneRanOn(choice)
-                modelDelegate.onChoiceSelected(choice)
+                modelDelegate.onChoiceSelected(choice, saveLastUsed = !state.isTemporaryChat)
                 modelDelegate.updateModelParameters(ran, restoring = true)
             }
             continueGeneration()
