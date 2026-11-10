@@ -69,8 +69,10 @@ import com.garfiec.librechat.feature.settings.viewmodel.AccountSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.AppearanceSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.GeneralSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.PrefetchActivityViewModel
+import com.garfiec.librechat.feature.settings.viewmodel.delegate.ProviderKeysSummary
 import com.garfiec.librechat.feature.settings.viewmodel.displayHostOf
 import kotlinx.serialization.json.Json
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -87,6 +89,9 @@ internal data class SettingsHomeProfile(
 @Immutable
 internal data class SettingsHomeSummaries(
     val appearance: String,
+    val chats: String,
+    val voice: String,
+    val models: String,
     val language: String,
     val privacy: String,
     val about: String,
@@ -119,12 +124,19 @@ fun SettingsHomeScreen(
     val appearance by appearanceViewModel.uiState.collectAsStateWithLifecycle()
     val prefetch by prefetchViewModel.uiState.collectAsStateWithLifecycle()
 
-    // Back from Account (or the web, via another app) the card shows a changed name or avatar.
+    // Back from Account or Provider keys (or the web, via another app) the card and the Models & keys
+    // row show a changed name, avatar or key count.
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner, accountViewModel) {
         var replaying = true
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME && !replaying) accountViewModel.refreshOnReturn()
+            if (event != Lifecycle.Event.ON_RESUME) return@LifecycleEventObserver
+            if (replaying) {
+                accountViewModel.loadProviderKeysSummary()
+            } else {
+                accountViewModel.refreshOnReturn()
+                accountViewModel.refreshProviderKeysSummary()
+            }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         replaying = false
@@ -142,8 +154,27 @@ fun SettingsHomeScreen(
     )
     val language = languageDisplayName(general.selectedLanguage, stringResource(Res.string.language_system_default))
     val serverVersion = general.serverVersion
+    val homeChats = general.homeChats
+    val providerKeys = account.providerKeysSummary
     val summaries = SettingsHomeSummaries(
         appearance = appearanceSummary(appearance.themeMode, appearance.uiStyle),
+        chats = stringResource(
+            if (homeChats.thinkingOpenByDefault) Res.string.settings_home_thinking_open else Res.string.settings_home_thinking_closed,
+        ) + " · " + stringResource(Res.string.settings_home_artifacts, artifactDisplayModeLabel(homeChats.artifactDisplayMode)),
+        voice = stringResource(
+            if (homeChats.autoReadEnabled) Res.string.settings_home_read_aloud_on else Res.string.settings_home_read_aloud_off,
+        ),
+        models = if (providerKeys is ProviderKeysSummary.Count) {
+            val count = pluralStringResource(
+                Res.plurals.provider_keys_row_summary,
+                providerKeys.totalCount,
+                providerKeys.setCount,
+                providerKeys.totalCount,
+            )
+            stringResource(Res.string.settings_home_provider_keys, count)
+        } else {
+            stringResource(Res.string.settings_home_models_summary)
+        },
         language = "$language · ${dateTimeSample()}",
         privacy = stringResource(Res.string.settings_home_offline_reading, prefetch.status.label()),
         about = if (serverVersion != null) {
@@ -281,7 +312,7 @@ internal fun SettingsHomeContent(
                 row(key = "chats") {
                     SettingsRow(
                         title = stringResource(Res.string.category_chats),
-                        summary = stringResource(Res.string.settings_home_chats_summary),
+                        summary = summaries.chats,
                         icon = Icons.Default.Forum,
                         tileTint = SettingsTileTint.SECONDARY,
                         selected = isOpen(SettingsCategory(SettingsCategoryKey.CHATS)),
@@ -291,7 +322,7 @@ internal fun SettingsHomeContent(
                 row(key = "voice") {
                     SettingsRow(
                         title = stringResource(Res.string.category_voice),
-                        summary = stringResource(Res.string.settings_home_voice_summary),
+                        summary = summaries.voice,
                         icon = Icons.Default.RecordVoiceOver,
                         tileTint = SettingsTileTint.TERTIARY,
                         selected = isOpen(SettingsCategory(SettingsCategoryKey.VOICE)),
@@ -301,7 +332,7 @@ internal fun SettingsHomeContent(
                 row(key = "models") {
                     SettingsRow(
                         title = stringResource(Res.string.category_models_keys),
-                        summary = stringResource(Res.string.settings_home_models_summary),
+                        summary = summaries.models,
                         icon = Icons.Default.Key,
                         tileTint = SettingsTileTint.PRIMARY,
                         selected = isOpen(SettingsCategory(SettingsCategoryKey.MODELS)),

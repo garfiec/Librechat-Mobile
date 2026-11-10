@@ -1026,7 +1026,6 @@
     <string name="category_chats">Discussions</string>
     <string name="category_privacy_data">Confidentialité et données</string>
     <string name="category_administration">Administration</string>
-    <string name="settings_home_chats_summary">Messages, artefacts, utilisation du contexte</string>
     <string name="settings_home_admin_summary">Autorisations des compétences et de la mémoire</string>
     <string name="settings_home_offline_reading">Lecture hors ligne : %1$s</string>
     <string name="settings_home_about_summary">%1$s · Serveur %2$s</string>
@@ -1052,8 +1051,13 @@
     <string name="category_voice">Voix</string>
     <string name="category_models_keys">Modèles et clés</string>
     <string name="category_advanced">Avancé</string>
-    <string name="settings_home_voice_summary">Dictée et lecture des réponses à voix haute</string>
     <string name="settings_home_models_summary">Favoris, clés de fournisseurs, modèles suivis</string>
+    <string name="settings_home_thinking_open">Réflexion ouverte</string>
+    <string name="settings_home_thinking_closed">Réflexion fermée</string>
+    <string name="settings_home_artifacts">Artefacts : %1$s</string>
+    <string name="settings_home_read_aloud_on">Lecture des réponses à voix haute : activée</string>
+    <string name="settings_home_read_aloud_off">Lecture des réponses à voix haute : désactivée</string>
+    <string name="settings_home_provider_keys">Clés de fournisseurs : %1$s</string>
     <string name="settings_home_advanced_summary">Rendu, envois, serveur, journaux</string>
     <string name="advanced_intro">Pour les utilisateurs avancés. Les réglages par défaut conviennent à la plupart.</string>
     <string name="advanced_chat_settings">Paramètres avancés des chats</string>

@@ -1089,7 +1089,6 @@
     <string name="category_chats">المحادثات</string>
     <string name="category_privacy_data">الخصوصية والبيانات</string>
     <string name="category_administration">الإدارة</string>
-    <string name="settings_home_chats_summary">الرسائل والعناصر واستخدام السياق</string>
     <string name="settings_home_admin_summary">أذونات المهارات والذاكرة</string>
     <string name="settings_home_offline_reading">القراءة دون اتصال: %1$s</string>
     <string name="settings_home_about_summary">%1$s · الخادم %2$s</string>
@@ -1115,8 +1114,13 @@
     <string name="category_voice">الصوت</string>
     <string name="category_models_keys">النماذج والمفاتيح</string>
     <string name="category_advanced">متقدم</string>
-    <string name="settings_home_voice_summary">الإملاء وقراءة الردود بصوت عالٍ</string>
     <string name="settings_home_models_summary">المفضلة ومفاتيح المزوّدين والنماذج المميزة بنجمة</string>
+    <string name="settings_home_thinking_open">التفكير مفتوح</string>
+    <string name="settings_home_thinking_closed">التفكير مطوي</string>
+    <string name="settings_home_artifacts">العناصر: %1$s</string>
+    <string name="settings_home_read_aloud_on">قراءة الردود بصوت عالٍ: تشغيل</string>
+    <string name="settings_home_read_aloud_off">قراءة الردود بصوت عالٍ: متوقف</string>
+    <string name="settings_home_provider_keys">مفاتيح المزوّدين: %1$s</string>
     <string name="settings_home_advanced_summary">العرض والرفع والخادم والسجلات</string>
     <string name="advanced_intro">للمستخدمين المتقدمين. الإعدادات الافتراضية تناسب معظم الناس.</string>
     <string name="advanced_chat_settings">إعدادات المحادثة المتقدمة</string>

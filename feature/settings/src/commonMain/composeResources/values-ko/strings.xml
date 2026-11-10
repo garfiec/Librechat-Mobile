@@ -1009,7 +1009,6 @@
     <string name="category_chats">채팅</string>
     <string name="category_privacy_data">개인정보 및 데이터</string>
     <string name="category_administration">관리</string>
-    <string name="settings_home_chats_summary">메시지, 아티팩트, 컨텍스트 사용량</string>
     <string name="settings_home_admin_summary">스킬 및 메모리 권한</string>
     <string name="settings_home_offline_reading">오프라인 읽기: %1$s</string>
     <string name="settings_home_about_summary">%1$s · 서버 %2$s</string>
@@ -1035,8 +1034,13 @@
     <string name="category_voice">음성</string>
     <string name="category_models_keys">모델 및 키</string>
     <string name="category_advanced">고급</string>
-    <string name="settings_home_voice_summary">받아쓰기 및 답변 소리 내어 읽기</string>
     <string name="settings_home_models_summary">즐겨찾기, 제공자 키, 별표한 모델</string>
+    <string name="settings_home_thinking_open">사고 과정 펼침</string>
+    <string name="settings_home_thinking_closed">사고 과정 접힘</string>
+    <string name="settings_home_artifacts">아티팩트: %1$s</string>
+    <string name="settings_home_read_aloud_on">답변 소리 내어 읽기: 켜짐</string>
+    <string name="settings_home_read_aloud_off">답변 소리 내어 읽기: 꺼짐</string>
+    <string name="settings_home_provider_keys">제공자 키: %1$s</string>
     <string name="settings_home_advanced_summary">렌더링, 업로드, 서버, 로그</string>
     <string name="advanced_intro">고급 사용자용입니다. 대부분은 기본값으로 충분합니다.</string>
     <string name="advanced_chat_settings">고급 채팅 설정</string>

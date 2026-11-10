@@ -1009,7 +1009,6 @@
     <string name="category_chats">聊天</string>
     <string name="category_privacy_data">隐私与数据</string>
     <string name="category_administration">管理</string>
-    <string name="settings_home_chats_summary">消息、工件、上下文用量</string>
     <string name="settings_home_admin_summary">技能和记忆权限</string>
     <string name="settings_home_offline_reading">离线阅读：%1$s</string>
     <string name="settings_home_about_summary">%1$s · 服务器 %2$s</string>
@@ -1035,8 +1034,13 @@
     <string name="category_voice">语音</string>
     <string name="category_models_keys">模型和密钥</string>
     <string name="category_advanced">高级</string>
-    <string name="settings_home_voice_summary">语音输入和朗读回复</string>
     <string name="settings_home_models_summary">收藏、提供商密钥、星标模型</string>
+    <string name="settings_home_thinking_open">思考已展开</string>
+    <string name="settings_home_thinking_closed">思考已折叠</string>
+    <string name="settings_home_artifacts">工件：%1$s</string>
+    <string name="settings_home_read_aloud_on">朗读回复：开</string>
+    <string name="settings_home_read_aloud_off">朗读回复：关</string>
+    <string name="settings_home_provider_keys">提供商密钥：%1$s</string>
     <string name="settings_home_advanced_summary">渲染、上传、服务器、日志</string>
     <string name="advanced_intro">供高级用户使用。默认设置适合大多数人。</string>
     <string name="advanced_chat_settings">高级聊天设置</string>

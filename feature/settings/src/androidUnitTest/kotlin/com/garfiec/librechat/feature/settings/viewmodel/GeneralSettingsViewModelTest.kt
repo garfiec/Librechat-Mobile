@@ -7,6 +7,8 @@ import com.garfiec.librechat.core.common.datetime.DateFormatStyle
 import com.garfiec.librechat.core.common.datetime.DateTimeFormatPrefs
 import com.garfiec.librechat.core.common.datetime.TimestampStyle
 import com.garfiec.librechat.core.data.datastore.AppPreferences
+import com.garfiec.librechat.core.data.datastore.ArtifactDisplayMode
+import com.garfiec.librechat.core.data.datastore.ArtifactDisplayPrefs
 import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
 import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
@@ -44,6 +46,9 @@ class GeneralSettingsViewModelTest {
     private val dateTimePrefsFlow = MutableStateFlow(DateTimeFormatPrefs())
     private val version = MutableStateFlow<String?>(null)
     private val startupConfig = MutableStateFlow<StartupConfig?>(null)
+    private val thinkingOpenFlow = MutableStateFlow(false)
+    private val artifactDisplayFlow = MutableStateFlow(ArtifactDisplayPrefs())
+    private val autoReadFlow = MutableStateFlow(false)
     private val certificateTrust = CertificateTrustRegistry()
     private val preferenceStore = mockk<PreferenceStore>(relaxed = true) {
         every { observe(AppPreferences.AdvancedSearch) } returns MutableStateFlow(false)
@@ -55,6 +60,9 @@ class GeneralSettingsViewModelTest {
         every { settingsDataStore.selectedLanguage } returns selectedLanguageFlow
         coEvery { settingsDataStore.setSelectedLanguage(any()) } answers { selectedLanguageFlow.value = firstArg() }
         every { settingsDataStore.tabletSidebarGestureEnabled } returns MutableStateFlow(true)
+        every { settingsDataStore.thinkingOpenByDefault } returns thinkingOpenFlow
+        every { settingsDataStore.artifactDisplayPrefs } returns artifactDisplayFlow
+        every { settingsDataStore.autoReadEnabled } returns autoReadFlow
         every { dateTimePrefsStore.prefs } returns dateTimePrefsFlow
         coEvery { dateTimePrefsStore.set(any()) } answers { dateTimePrefsFlow.value = firstArg() }
         every { serverDataStore.currentUrlFlow } returns MutableStateFlow("https://chat.example.com")
@@ -81,6 +89,25 @@ class GeneralSettingsViewModelTest {
         preferenceStore = preferenceStore,
         certificateTrust = certificateTrust,
     )
+
+    @Test
+    fun `home chat summaries follow the thinking, artifact and read-aloud prefs`() = runTest {
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.homeChats).isEqualTo(HomeChatPrefs())
+
+        thinkingOpenFlow.value = true
+        artifactDisplayFlow.value = ArtifactDisplayPrefs(mode = ArtifactDisplayMode.FULLSCREEN)
+        autoReadFlow.value = true
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.homeChats).isEqualTo(
+            HomeChatPrefs(
+                thinkingOpenByDefault = true,
+                artifactDisplayMode = ArtifactDisplayMode.FULLSCREEN,
+                autoReadEnabled = true,
+            ),
+        )
+    }
 
     @Test
     fun `About notes a server trusted through a user-installed CA`() = runTest {

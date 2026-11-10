@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.garfiec.librechat.core.common.AppInfo
 import com.garfiec.librechat.core.common.datetime.DateTimeFormatPrefs
 import com.garfiec.librechat.core.data.datastore.AppPreferences
+import com.garfiec.librechat.core.data.datastore.ArtifactDisplayMode
 import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
 import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
@@ -54,6 +55,15 @@ data class GeneralSettingsUiState(
     val serverVersion: String? = null,
     /** `StartupConfig.adminPanelURL` when the server sets one: Administration's Admin panel row. */
     val adminPanelUrl: String? = null,
+    /** The Settings home's Chats and Voice summaries. */
+    val homeChats: HomeChatPrefs = HomeChatPrefs(),
+)
+
+/** The chat and voice preferences the Settings home summarizes. */
+data class HomeChatPrefs(
+    val thinkingOpenByDefault: Boolean = false,
+    val artifactDisplayMode: ArtifactDisplayMode = ArtifactDisplayMode.BOTTOM_SHEET,
+    val autoReadEnabled: Boolean = false,
 )
 
 /** Dialog flags held apart from the observed preferences they are merged with. */
@@ -68,6 +78,7 @@ private data class GeneralPrefs(
     val dateTime: DateTimeFormatPrefs,
     val tabletGesture: Boolean,
     val advancedSearch: Boolean,
+    val homeChats: HomeChatPrefs,
 )
 
 /** Backs Language & region, About, Administration's admin panel link and the sidebar gesture. No network loads. */
@@ -88,6 +99,11 @@ class GeneralSettingsViewModel(
         dateTimePrefsStore.prefs,
         settingsDataStore.tabletSidebarGestureEnabled,
         preferenceStore.observe(AppPreferences.AdvancedSearch),
+        combine(
+            settingsDataStore.thinkingOpenByDefault,
+            settingsDataStore.artifactDisplayPrefs,
+            settingsDataStore.autoReadEnabled,
+        ) { thinkingOpen, artifacts, autoRead -> HomeChatPrefs(thinkingOpen, artifacts.mode, autoRead) },
         ::GeneralPrefs,
     )
 
@@ -117,6 +133,7 @@ class GeneralSettingsViewModel(
             buildInfo = config?.buildInfo,
             serverVersion = version,
             adminPanelUrl = config?.adminPanelURL?.takeIf { it.isNotBlank() },
+            homeChats = prefs.homeChats,
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, initial)
 
