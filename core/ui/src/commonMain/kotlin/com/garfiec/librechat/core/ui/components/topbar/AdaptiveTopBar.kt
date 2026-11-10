@@ -385,6 +385,8 @@ internal fun BarActionButton(action: BarAction, colors: BarActionColors) {
                 BarMenu(action, expanded, onDismiss = { expanded = false }, drag, colors)
             }
         }
+
+        is BarAction.Custom -> action.content()
     }
 }
 

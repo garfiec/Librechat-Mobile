@@ -6,6 +6,7 @@ import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
+import androidx.compose.material.icons.filled.AddComment
 import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkBorder
@@ -22,6 +23,7 @@ import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.HourglassTop
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
@@ -59,6 +61,8 @@ object BarIcons {
     val Close = BarIcon(Icons.Default.Close, "xmark")
     val More = BarIcon(Icons.Default.MoreVert, "ellipsis")
     val Search = BarIcon(Icons.Default.Search, "magnifyingglass")
+    val NewChat = BarIcon(Icons.Default.AddComment, "plus.bubble")
+    val BackgroundTasks = BarIcon(Icons.Default.HourglassTop, "hourglass")
     val Apps = BarIcon(Icons.Outlined.Apps, "rectangle.stack")
     val Visible = BarIcon(Icons.Default.Visibility, "eye")
     val Hidden = BarIcon(Icons.Default.VisibilityOff, "eye.slash")
@@ -131,6 +135,6 @@ object BarIcons {
         EditFilled, DuplicateFilled, DeleteFilled, ShareFilled, History, Sort, NewFolder, Tools, Import,
         SelectAll, GridView, ListView, Filter, Source, Rendered, Link, Star, StarFilled, OpenInBrowser,
         Bookmark, BookmarkFilled, Confirm, Attach, ClearAll, PullRequest, PullRequestMerged,
-        PullRequestDraft, PullRequestClosed,
+        PullRequestDraft, PullRequestClosed, NewChat, BackgroundTasks,
     )
 }

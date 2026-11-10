@@ -1,5 +1,6 @@
 package com.garfiec.librechat.core.ui.components.topbar
 
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
@@ -100,6 +101,18 @@ sealed interface BarAction {
         override val label: String,
         val sections: List<BarMenuSection>,
         val dragToSelect: Boolean = true,
+    ) : BarAction
+
+    /**
+     * A live control that can't be bar data (a usage gauge), drawn by [content] in an item's place and
+     * describing itself to screen readers. The Compose renderers only: the native iOS bar leaves it
+     * out, and the side rail's ⋯ can't hold it, so keep it in [AdaptiveTopBarSpec.bottomActions].
+     */
+    @Immutable
+    data class Custom(
+        override val id: String,
+        override val label: String,
+        val content: @Composable () -> Unit,
     ) : BarAction
 }
 

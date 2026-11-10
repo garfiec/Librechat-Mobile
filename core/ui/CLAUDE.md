@@ -132,7 +132,8 @@ Rules — follow these when writing or reviewing UI:
    is `BarAction.Text(...)`; the native bar draws no dot, so its `accessibilityLabel` must carry the
    state. While `LocalWindowFeatures` has vertical bars (iPhone Duo), an `AdaptiveTopBar` in an
    `AdaptiveScaffold`'s `topBar` draws its controls as an `AdaptiveSideRail` in the bar column and its
-   title as a heading; one outside a scaffold stays horizontal. Key Duo layout on `LocalWindowFeatures`,
+   title as a heading, as does one in an `AdaptiveRailBox`'s `RailTopBar` (a bar overlaid on its body);
+   any other stays horizontal. Key Duo layout on `LocalWindowFeatures`,
    never on a device model, and use absolute left/right for the column's side. Content that skips the
    horizontal safe-drawing inset (a raw `Scaffold` body, the bar slots, a status-bar-only overlay) pads
    `windowInsetsPadding(WindowInsets.verticalBarColumn)`, never an `AdaptiveScaffold` body, whose

@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -36,12 +37,15 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.takeOrElse
+import androidx.compose.ui.layout.findRootCoordinates
 import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
@@ -49,6 +53,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.ui.components.LocalInSeparateWindow
 import com.garfiec.librechat.core.ui.components.consumeUnhandledTouches
 import com.garfiec.librechat.core.ui.glass.GlassBackdrop
 import com.garfiec.librechat.core.ui.glass.GlassStyle
@@ -56,6 +61,7 @@ import com.garfiec.librechat.core.ui.glass.LocalGlassBackdrop
 import com.garfiec.librechat.core.ui.glass.glassSurface
 import com.garfiec.librechat.core.ui.glass.rememberGlassStyle
 import com.garfiec.librechat.core.ui.platform.BarSide
+import com.garfiec.librechat.core.ui.platform.LocalWindowFeatures
 import com.garfiec.librechat.core.ui.platform.VerticalBars
 import com.garfiec.librechat.core.ui.resources.Res
 import com.garfiec.librechat.core.ui.resources.topbar_more_options
@@ -245,6 +251,8 @@ private fun List<BarAction>.asMenuSections(): List<BarMenuSection> {
                 onClick = { action.onCheckedChange(!action.checked) },
                 checked = action.checked,
             )
+            // A live control has no menu form.
+            is BarAction.Custom -> Unit
         }
     }
     flush()
@@ -267,6 +275,85 @@ internal fun reachesBarSide(side: BarSide, left: Float, width: Float, windowWidt
 }
 
 private const val EDGE_SLOP = 1f
+
+/**
+ * Where a layout stands against the window's vertical bars, measured by [modifier] on that layout:
+ * [bars] while it reaches their side (and isn't in a dialog or sheet window of its own), else null.
+ */
+internal class RailPlacement(val bars: VerticalBars?, val modifier: Modifier)
+
+@Composable
+internal fun rememberRailPlacement(): RailPlacement {
+    val bars = LocalWindowFeatures.current.verticalBars
+    // Unknown until placed; assumed, so a full-width screen doesn't open with a horizontal bar first.
+    var atBarSide by remember { mutableStateOf(true) }
+    val currentBars by rememberUpdatedState(bars)
+    val modifier = if (bars != null) {
+        remember {
+            Modifier.onPlaced { coordinates ->
+                val side = currentBars?.side ?: return@onPlaced
+                val windowWidth = coordinates.findRootCoordinates().size.width.toFloat()
+                atBarSide = reachesBarSide(side, coordinates.positionInRoot().x, coordinates.size.width.toFloat(), windowWidth)
+            }
+        }
+    } else {
+        Modifier
+    }
+    return RailPlacement(bars?.takeIf { atBarSide && !LocalInSeparateWindow.current }, modifier)
+}
+
+/** Draws the rail for the bar in [slot] while there are [bars], unless a layout nested in this one draws its own. */
+@Composable
+internal fun BoxScope.SlotRail(slot: RailSlot, bars: VerticalBars?) {
+    val spec = slot.spec
+    val drawing = bars != null && spec != null && !slot.superseded
+    val parent = slot.parent
+    if (parent != null) {
+        DisposableEffect(parent, drawing) {
+            if (drawing) parent.addChildClaim()
+            onDispose { if (drawing) parent.removeChildClaim() }
+        }
+    }
+    if (drawing) {
+        AdaptiveSideRail(
+            spec = spec,
+            bars = bars,
+            modifier = Modifier.align(if (bars.side == BarSide.RIGHT) AbsoluteAlignment.TopRight else AbsoluteAlignment.TopLeft),
+        )
+    }
+}
+
+/**
+ * A Box for a screen whose top bar is an overlay in its body rather than an `AdaptiveScaffold` top bar.
+ * While the window has vertical bars and the box reaches their side, an [AdaptiveTopBar] inside
+ * [RailTopBar] draws only its title and hands its controls to an [AdaptiveSideRail] drawn over
+ * [content]; [RailBoxScope.inRail] says so to the rest of the screen. Elsewhere it is a plain Box.
+ */
+@Composable
+fun AdaptiveRailBox(modifier: Modifier = Modifier, content: @Composable RailBoxScope.() -> Unit) {
+    val parent = LocalRailParent.current
+    val slot = remember(parent) { RailSlot(parent) }
+    val placement = rememberRailPlacement()
+    Box(modifier.then(placement.modifier)) {
+        val scope = RailBoxScope(this, slot, inRail = placement.bars != null && !slot.superseded)
+        CompositionLocalProvider(LocalRailParent provides slot) { scope.content() }
+        SlotRail(slot, placement.bars)
+    }
+}
+
+@Stable
+class RailBoxScope internal constructor(
+    box: BoxScope,
+    internal val slot: RailSlot,
+    /** The box draws a rail: its top bar is a heading, and what the bar holds is in the rail. */
+    val inRail: Boolean,
+) : BoxScope by box
+
+/** Hands the [AdaptiveTopBar] in [bar] to this box's rail while [RailBoxScope.inRail]; else it draws as usual. */
+@Composable
+fun RailBoxScope.RailTopBar(bar: @Composable () -> Unit) {
+    CompositionLocalProvider(LocalRailSlot provides slot.takeIf { inRail }, content = bar)
+}
 
 /**
  * One `AdaptiveScaffold`'s hold on the side rail: its top bar hands its spec here and draws a
