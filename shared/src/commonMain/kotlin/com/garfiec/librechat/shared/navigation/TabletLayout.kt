@@ -39,11 +39,11 @@ import com.garfiec.librechat.core.ui.components.BannerDisplay
 import com.garfiec.librechat.core.ui.components.PlatformBackHandler
 import com.garfiec.librechat.core.ui.components.SidebarWidth
 import com.garfiec.librechat.core.ui.glass.rememberGlassStyle
+import com.garfiec.librechat.core.ui.navigation.FullWidthRoute
 import com.garfiec.librechat.feature.auth.navigation.AddAccountServerUrl
 import com.garfiec.librechat.feature.chat.navigation.NewChat
 import com.garfiec.librechat.feature.chat.navigation.isPlainLanding
 import com.garfiec.librechat.feature.conversations.navigation.Projects
-import com.garfiec.librechat.feature.conversations.navigation.Search
 import com.garfiec.librechat.feature.settings.navigation.SettingsTabbed
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
@@ -65,10 +65,9 @@ fun TabletLayout(
     // The sidebar is an authenticated surface, same rule as PhoneLayout's drawer gestures: a
     // logged-out deep link (artifact viewer atop the auth base) is not in the auth flow either.
     val showSidebar = isLoggedIn && !navigator.isInAuthFlow
-    // Search's list and preview pane, and the Settings home's list and page, need the whole width (an
-    // unfolded Fold leaves them under the two-pane threshold beside the sidebar), so the sidebar steps
-    // aside while either is on top. Nothing is persisted: leaving brings it back as it was.
-    val sidebarAside = navigator.currentRoute.let { it is Search || it is SettingsTabbed }
+    // An unfolded Fold leaves a two-pane screen under its threshold beside the sidebar. Nothing is
+    // persisted: leaving brings the sidebar back as it was.
+    val sidebarAside = navigator.currentRoute is FullWidthRoute
     val sidebarReveal by animateFloatAsState(
         targetValue = if (sidebarAside) 0f else 1f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow),

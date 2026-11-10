@@ -2,6 +2,7 @@ package com.garfiec.librechat.feature.conversations.navigation
 
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
+import com.garfiec.librechat.core.ui.navigation.FullWidthRoute
 import com.garfiec.librechat.feature.conversations.screen.ArchivedConversationsScreen
 import com.garfiec.librechat.feature.conversations.screen.BookmarkChatsScreen
 import com.garfiec.librechat.feature.conversations.screen.BookmarksScreen
@@ -35,7 +36,7 @@ import kotlinx.serialization.modules.subclass
 /** Full message search, opened from the drawer with its query (or empty). */
 @Serializable data class Search(
     val query: String = "",
-) : ConversationsRoute
+) : ConversationsRoute, FullWidthRoute
 
 /** Per-project filtered conversation list ("Show all" / folder tap) — v0.8.7. */
 @Serializable data class ProjectChats(

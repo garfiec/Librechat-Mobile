@@ -2,6 +2,7 @@ package com.garfiec.librechat.feature.settings.navigation
 
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
+import com.garfiec.librechat.core.ui.navigation.FullWidthRoute
 import com.garfiec.librechat.feature.settings.screen.ApiKeysScreen
 import com.garfiec.librechat.feature.settings.screen.PresetManagerScreen
 import com.garfiec.librechat.feature.settings.screen.SettingsHomeScreen
@@ -19,7 +20,7 @@ import org.jetbrains.compose.resources.StringResource
 @Serializable sealed interface SettingsPaneRoute : SettingsRoute
 
 /** The Settings home (profile card and categories). The name stays: saved back stacks restore by it. */
-@Serializable data object SettingsTabbed : SettingsRoute
+@Serializable data object SettingsTabbed : SettingsRoute, FullWidthRoute
 
 @Serializable data object SharedLinks : SettingsRoute
 
