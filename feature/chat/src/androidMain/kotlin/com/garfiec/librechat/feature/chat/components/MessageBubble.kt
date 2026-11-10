@@ -14,10 +14,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,10 +36,7 @@ import com.garfiec.librechat.feature.chat.components.sendflight.sendFlightBubble
 import com.garfiec.librechat.feature.chat.components.sendflight.sendFlightHeader
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
-import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
-
-private const val ACTION_AUTO_HIDE_MILLIS = 30_000L
 
 @Composable
 actual fun MessageBubble(
@@ -180,14 +174,7 @@ private fun ThreadMessageBubble(
     modifier: Modifier = Modifier,
 ) {
     val isUser = message.isCreatedByUser
-    var showActions by remember(message.messageId) { mutableStateOf(showActionsInitially) }
-    // Auto-hide actions after timeout
-    LaunchedEffect(showActions) {
-        if (showActions) {
-            delay(ACTION_AUTO_HIDE_MILLIS)
-            showActions = false
-        }
-    }
+    var showActions by rememberActionRowShown(message.messageId, showActionsInitially, isReading)
 
     // Determine background color for search state
     val searchBackground = when {
@@ -370,14 +357,7 @@ private fun TwoSidedMessageBubble(
     modifier: Modifier = Modifier,
 ) {
     val isUser = message.isCreatedByUser
-    var showActions by remember(message.messageId) { mutableStateOf(showActionsInitially) }
-    // Auto-hide actions after timeout
-    LaunchedEffect(showActions) {
-        if (showActions) {
-            delay(ACTION_AUTO_HIDE_MILLIS)
-            showActions = false
-        }
-    }
+    var showActions by rememberActionRowShown(message.messageId, showActionsInitially, isReading)
 
     // Determine background color for search state
     val searchBackground = when {

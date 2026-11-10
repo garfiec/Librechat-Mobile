@@ -31,7 +31,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -86,10 +85,7 @@ import com.garfiec.librechat.feature.chat.resources.sender_assistant
 import com.garfiec.librechat.feature.chat.resources.sender_you
 import com.mikepenz.markdown.m3.markdownColor
 import com.mikepenz.markdown.m3.markdownTypography
-import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
-
-private const val ACTION_AUTO_HIDE_MILLIS = 30_000L
 
 // ─── MessageBubble ───────────────────────────────────────────────────
 
@@ -227,8 +223,7 @@ private fun ThreadBubble(
     modifier: Modifier = Modifier,
 ) {
     val isUser = message.isCreatedByUser
-    var showActions by remember(message.messageId) { mutableStateOf(showActionsInitially) }
-    LaunchedEffect(showActions) { if (showActions) { delay(ACTION_AUTO_HIDE_MILLIS); showActions = false } }
+    var showActions by rememberActionRowShown(message.messageId, showActionsInitially, isReading)
 
     val searchBg = when {
         isCurrentSearchMatch -> SearchHighlightOrange.copy(alpha = 0.18f)
@@ -362,8 +357,7 @@ private fun TwoSidedBubble(
     modifier: Modifier = Modifier,
 ) {
     val isUser = message.isCreatedByUser
-    var showActions by remember(message.messageId) { mutableStateOf(showActionsInitially) }
-    LaunchedEffect(showActions) { if (showActions) { delay(ACTION_AUTO_HIDE_MILLIS); showActions = false } }
+    var showActions by rememberActionRowShown(message.messageId, showActionsInitially, isReading)
 
     val searchBg = when {
         isCurrentSearchMatch -> SearchHighlightOrange.copy(alpha = 0.18f)

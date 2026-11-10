@@ -4,6 +4,7 @@ package com.garfiec.librechat.feature.chat.viewmodel.delegate
 interface PlatformTts {
     fun readAloud(messageId: String)
     fun stopReading()
+
     /** Reads a completed reply aloud under [messageId] when auto-read is on. */
     fun maybeAutoReadResponse(messageId: String, responseText: String)
     fun release()
