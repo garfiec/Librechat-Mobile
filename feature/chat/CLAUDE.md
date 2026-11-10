@@ -71,7 +71,8 @@ mirrored port of web's `getDefaultModelSpec` + `useNewConvo`.
   `prioritize: false` and `modelSelect: true`.
 - **Last spec**: a picked spec is stored with last-used (`LastUsedSelection.spec`; a raw pick clears
   it). Unless some spec is `default`, new chats reopen on it, under `prioritize` too. It reopens on
-  the spec's *current* pair (`reopenedPick`); only a spec the server dropped falls back to the raw pair.
+  the spec's *current* pair (`reopenedPick`); a spec the list doesn't serve (dropped or hidden) falls
+  back to the raw pair, as web's `getDefaultModelSpec` treats it as absent.
   Divergence: web also rewrites this when a conversation is opened; mobile writes it only on a pick.
 - **Soft default** applies only when last-used can't.
 - **"Start new chats on: My last-used model"** (`AppPreferences.PreferLastUsedModel`, mobile-only)
@@ -198,6 +199,8 @@ Compare's picked lane B. The preflight accepts any kept name; the three spec ref
   served there re-seeds through the tiers.
 - A stored *pick* (last-used restore, model shortcut) follows the spec to its current pair
   (`reopenedPick`).
+- The header chip shows a kept spec the list doesn't serve by its model name, where web shows its
+  "Select a model" placeholder (and still sends the spec). Neither has a picker row for it.
 - The header chip shows a kept spec the list doesn't serve by its model name; no picker row for it.
 
 **Model shortcuts** (mobile-only) count usage per pair and spec and carry the spec in the link
