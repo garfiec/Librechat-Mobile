@@ -98,7 +98,7 @@ class TextToSpeechDelegate(
         readJob = handle.scope.launch {
             val source = settingsDataStore.ttsSource.first()
             if (source == "server") {
-                readAloudViaServer(text)
+                readAloudViaServer(text, settingsDataStore.selectedVoiceId.first())
             } else {
                 val rate = settingsDataStore.ttsSpeechRate.first()
                 val pitch = settingsDataStore.ttsPitch.first()
@@ -143,11 +143,12 @@ class TextToSpeechDelegate(
      * Reads [text] through the server, one segment per request, each played to its end before the
      * next is asked for. v0.8.9-rc1 synthesizes only the first `speech.tts.maxInputChars` (default
      * 20,000) characters of a request and drops the rest silently, so a long reply sent whole
-     * stops partway. Older servers take the segments the same way.
+     * stops partway. Older servers take the segments the same way. Every segment names [serverVoice]: a
+     * request without one gets a random voice from the server, so a reply would change voice mid-read.
      */
-    internal suspend fun readAloudViaServer(text: String) {
+    internal suspend fun readAloudViaServer(text: String, serverVoice: String?) {
         for (segment in splitForSpeech(text, SERVER_TTS_SEGMENT_CHARS)) {
-            when (val result = speechRepository.synthesizeSpeech(segment)) {
+            when (val result = speechRepository.synthesizeSpeech(segment, voice = serverVoice)) {
                 is Result.Success -> {
                     val played = suspendRunCatching { playServerAudio(result.data) }
                         .onFailure { e ->
@@ -250,7 +251,7 @@ class TextToSpeechDelegate(
 
             val source = settingsDataStore.ttsSource.first()
             if (source == "server") {
-                readAloudViaServer(responseText)
+                readAloudViaServer(responseText, settingsDataStore.selectedVoiceId.first())
             } else {
                 val rate = settingsDataStore.ttsSpeechRate.first()
                 val pitch = settingsDataStore.ttsPitch.first()

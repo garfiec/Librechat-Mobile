@@ -21,6 +21,9 @@ private const val DEFAULT_SPEECH_RATE = 0.5f
 private const val MIN_SPEECH_RATE = 0.0f
 private const val MAX_SPEECH_RATE = 1.0f
 
+/** How the device voice speaks a read: Settings' speed, pitch and voice. */
+private class DeviceSpeech(val rate: Float, val pitch: Float, val voice: AVSpeechSynthesisVoice?)
+
 class IosTts(
     private val handle: TtsHandle,
     private val speechRepository: SpeechRepository,
@@ -89,28 +92,39 @@ class IosTts(
 
         readJob = handle.scope.launch {
             val source = settingsDataStore.ttsSource.first()
-            val rate = settingsDataStore.ttsSpeechRate.first()
-            val pitch = settingsDataStore.ttsPitch.first()
+            val speech = DeviceSpeech(
+                rate = settingsDataStore.ttsSpeechRate.first(),
+                pitch = settingsDataStore.ttsPitch.first(),
+                voice = deviceVoice(settingsDataStore.ttsVoiceName.first()),
+            )
             if (source == "server") {
-                readAloudViaServer(text, rate, pitch)
+                readAloudViaServer(text, settingsDataStore.selectedVoiceId.first(), speech)
             } else {
                 moreSegmentsPending = false
-                queueUtterance(text, rate, pitch)
+                queueUtterance(text, speech)
             }
         }
     }
 
-    private fun queueUtterance(text: String, speechRate: Float, pitch: Float) {
+    private fun queueUtterance(text: String, speech: DeviceSpeech) {
         val utterance = AVSpeechUtterance.speechUtteranceWithString(text)
         // AVSpeechUtterance rate: 0.0-1.0, default ~0.5
         // Android TTS rate: 0.1-4.0, default 1.0. Scale proportionally.
-        utterance.rate = (speechRate * DEFAULT_SPEECH_RATE).coerceIn(MIN_SPEECH_RATE, MAX_SPEECH_RATE)
+        utterance.rate = (speech.rate * DEFAULT_SPEECH_RATE).coerceIn(MIN_SPEECH_RATE, MAX_SPEECH_RATE)
         // AVSpeechUtterance pitch: 0.5-2.0, default 1.0 (same as Android)
-        utterance.pitchMultiplier = pitch.coerceIn(0.5f, 2.0f)
-        utterance.voice = AVSpeechSynthesisVoice.voiceWithLanguage(null)
+        utterance.pitchMultiplier = speech.pitch.coerceIn(0.5f, 2.0f)
+        utterance.voice = speech.voice
         finalUtterance = utterance
         synthesizer.speakUtterance(utterance)
     }
+
+    /** The device voice Settings stored by name, or the default voice when it is unset or gone. */
+    private fun deviceVoice(name: String): AVSpeechSynthesisVoice? =
+        name.takeIf { it.isNotBlank() }?.let { stored ->
+            AVSpeechSynthesisVoice.speechVoices()
+                .filterIsInstance<AVSpeechSynthesisVoice>()
+                .find { it.name == stored }
+        } ?: AVSpeechSynthesisVoice.voiceWithLanguage(null)
 
     /**
      * Requests [text] from the server in the same capped segments as Android (the server drops
@@ -118,10 +132,13 @@ class IosTts(
      * request succeeds. The audio itself is not played: AVAudioPlayer needs platform plumbing this
      * path does not have yet, so each confirmed segment is spoken by the device voice.
      */
-    private suspend fun readAloudViaServer(text: String, speechRate: Float, pitch: Float) {
-        val failure = synthesizeInSegments(text, speechRepository::synthesizeSpeech) { segment, _, isLast ->
+    private suspend fun readAloudViaServer(text: String, serverVoice: String?, speech: DeviceSpeech) {
+        val failure = synthesizeInSegments(
+            text,
+            synthesize = { segment -> speechRepository.synthesizeSpeech(segment, voice = serverVoice) },
+        ) { segment, _, isLast ->
             moreSegmentsPending = !isLast
-            queueUtterance(segment, speechRate, pitch)
+            queueUtterance(segment, speech)
             true
         }
         if (failure != null) {
