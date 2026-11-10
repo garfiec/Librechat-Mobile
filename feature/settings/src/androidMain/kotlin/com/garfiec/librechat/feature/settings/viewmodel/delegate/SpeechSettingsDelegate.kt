@@ -40,6 +40,8 @@ class SpeechSettingsDelegate(
     private val serverSttGate = ServerSttGate(speechRepository)
     private var speechConfigJob: Job? = null
 
+    override val speechConfigLoaded: Boolean get() = serverSttGate.loaded
+
     override fun loadVoices() {
         stateHandle.scope.launch {
             when (val result = speechRepository.getVoices()) {
@@ -142,14 +144,6 @@ class SpeechSettingsDelegate(
                 }
                 is Result.Loading -> { /* no-op */ }
             }
-        }
-    }
-
-    override fun retrySpeechConfig() {
-        if (!serverSttGate.loaded) {
-            loadSpeechConfig()
-        } else if (stateHandle.state.serverTtsEnabled && stateHandle.state.availableVoices.isEmpty()) {
-            loadVoices()
         }
     }
 

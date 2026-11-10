@@ -235,6 +235,25 @@ class ChatSettingsViewModelTest {
     }
 
     @Test
+    fun `opening the Voice page retries a config that failed, else voices a TTS server didn't list`() = runTest {
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        every { speechSettingsContract.speechConfigLoaded } returns false
+        viewModel.retrySpeechConfig()
+        verify(exactly = 2) { speechSettingsContract.loadSpeechConfig() }
+
+        every { speechSettingsContract.speechConfigLoaded } returns true
+        viewModel.retrySpeechConfig()
+        verify(exactly = 2) { speechSettingsContract.loadSpeechConfig() }
+        verify(exactly = 0) { speechSettingsContract.loadVoices() }
+
+        speechStateHandle!!.update { copy(serverTtsEnabled = true) }
+        viewModel.retrySpeechConfig()
+        verify(exactly = 1) { speechSettingsContract.loadVoices() }
+    }
+
+    @Test
     fun `a device preview speaks with the saved speed, pitch and voice`() = runTest {
         viewModel = createViewModel()
         advanceUntilIdle()

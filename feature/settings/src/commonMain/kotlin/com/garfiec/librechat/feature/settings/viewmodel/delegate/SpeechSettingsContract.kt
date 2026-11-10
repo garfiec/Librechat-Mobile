@@ -6,8 +6,8 @@ interface SpeechSettingsContract {
     fun loadDeviceVoices()
     fun loadSpeechConfig()
 
-    /** Retries what failed at launch: the speech config, or the voices once the config says the server has TTS. */
-    fun retrySpeechConfig()
+    /** Whether a speech config read has answered; a failed read leaves it false. */
+    val speechConfigLoaded: Boolean
     fun previewDeviceTts(text: String, rate: Float, pitch: Float, voiceName: String?)
     fun previewServerTts(text: String, voice: String?)
     fun stopTtsPreview()

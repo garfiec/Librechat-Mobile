@@ -248,7 +248,17 @@ class ChatSettingsViewModel(
     fun selectDeviceVoice(voiceName: String) = prefsController.setDeviceVoice(voiceName)
     fun setTtsSpeechRate(rate: Float) = prefsController.setTtsSpeechRate(rate)
     fun setTtsPitch(pitch: Float) = prefsController.setTtsPitch(pitch)
-    fun retrySpeechConfig() = speechDelegate.retrySpeechConfig()
+
+    /** Retries what failed at launch: the speech config, or the voices once the config says the server has TTS. */
+    fun retrySpeechConfig() {
+        val state = _uiState.value
+        if (!speechDelegate.speechConfigLoaded) {
+            speechDelegate.loadSpeechConfig()
+        } else if (state.serverTtsEnabled && state.availableVoices.isEmpty()) {
+            speechDelegate.loadVoices()
+        }
+    }
+
     fun stopTtsPreview() = speechDelegate.stopTtsPreview()
 
     /** Speaks [text] the way chat playback would, from the saved source, voice, speed and pitch. */

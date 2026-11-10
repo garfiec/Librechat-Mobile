@@ -65,7 +65,7 @@ class SpeechSettingsDelegateConfigTest {
     }
 
     @Test
-    fun `a failed config fetch asks for no voices and is retried when the Voice page opens`() = runTest(dispatcher) {
+    fun `a failed config fetch asks for no voices and reads as not loaded`() = runTest(dispatcher) {
         coEvery { speechRepository.getSpeechConfig() } returns Result.Error(RuntimeException("offline"))
         val delegate = delegate()
 
@@ -73,26 +73,14 @@ class SpeechSettingsDelegateConfigTest {
         advanceUntilIdle()
         coVerify(exactly = 0) { speechRepository.getVoices() }
         assertThat(state.value.serverTtsEnabled).isFalse()
+        assertThat(delegate.speechConfigLoaded).isFalse()
 
         coEvery { speechRepository.getSpeechConfig() } returns Result.Success(SpeechConfig(ttsExternal = true))
         coEvery { speechRepository.getVoices() } returns Result.Success(emptyList())
-        delegate.retrySpeechConfig()
-        advanceUntilIdle()
-
-        coVerify(exactly = 2) { speechRepository.getSpeechConfig() }
-        assertThat(state.value.serverTtsEnabled).isTrue()
-    }
-
-    @Test
-    fun `opening the Voice page after a successful load does not refetch the config`() = runTest(dispatcher) {
-        coEvery { speechRepository.getSpeechConfig() } returns Result.Success(SpeechConfig())
-        val delegate = delegate()
-
         delegate.loadSpeechConfig()
         advanceUntilIdle()
-        delegate.retrySpeechConfig()
-        advanceUntilIdle()
 
-        coVerify(exactly = 1) { speechRepository.getSpeechConfig() }
+        assertThat(delegate.speechConfigLoaded).isTrue()
+        assertThat(state.value.serverTtsEnabled).isTrue()
     }
 }

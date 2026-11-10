@@ -36,6 +36,8 @@ class IosSpeechSettingsDelegate(
     private val speechConfigGate = ServerSttGate(speechRepository)
     private var speechConfigJob: Job? = null
 
+    override val speechConfigLoaded: Boolean get() = speechConfigGate.loaded
+
     private val synthesizerDelegate = object : NSObject(), AVSpeechSynthesizerDelegateProtocol {
         @ObjCSignatureOverride
         override fun speechSynthesizer(
@@ -140,14 +142,6 @@ class IosSpeechSettingsDelegate(
                 }
                 is Result.Loading -> { /* no-op */ }
             }
-        }
-    }
-
-    override fun retrySpeechConfig() {
-        if (!speechConfigGate.loaded) {
-            loadSpeechConfig()
-        } else if (stateHandle.state.serverTtsEnabled && stateHandle.state.availableVoices.isEmpty()) {
-            loadVoices()
         }
     }
 
