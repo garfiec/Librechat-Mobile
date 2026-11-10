@@ -15,6 +15,9 @@ import org.jetbrains.compose.resources.StringResource
 
 @Serializable sealed interface SettingsRoute : NavKey
 
+/** A page the wide Settings home shows beside its list: Appearance, a category or Advanced. */
+@Serializable sealed interface SettingsPaneRoute : SettingsRoute
+
 /** The Settings home (profile card and categories). The name stays: saved back stacks restore by it. */
 @Serializable data object SettingsTabbed : SettingsRoute
 
@@ -53,10 +56,18 @@ fun EntryProviderScope<NavKey>.settingsEntries(
     entry<SettingsTabbed> {
         SettingsHomeScreen(
             onNavigateBack = onBack,
-            onOpenAppearance = { onNavigate(AppearanceSettings) },
-            onOpenCategory = { onNavigate(SettingsCategory(it)) },
-            onOpenAdvancedSettings = { onNavigate(AdvancedSettings()) },
-        )
+            onOpenPage = onNavigate,
+        ) { page, onSelectPage, contentPadding, snackbarHostState ->
+            SettingsPaneContent(
+                page = page,
+                onNavigate = onNavigate,
+                onLogout = onLogout,
+                onNavigateToArchive = onNavigateToArchive,
+                onOpenAdvancedSettings = { onSelectPage(AdvancedSettings(it)) },
+                contentPadding = contentPadding,
+                snackbarHostState = snackbarHostState,
+            )
+        }
     }
     settingsCategoryEntry(
         onNavigate = onNavigate,

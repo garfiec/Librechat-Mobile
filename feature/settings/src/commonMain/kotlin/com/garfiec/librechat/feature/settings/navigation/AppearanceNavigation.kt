@@ -6,7 +6,7 @@ import com.garfiec.librechat.feature.settings.screen.AppearanceSettingsScreen
 import kotlinx.serialization.Serializable
 
 /** Settings › Appearance: theme, interface style, colour, chat appearance and the tablet sidebar. */
-@Serializable data object AppearanceSettings : SettingsRoute
+@Serializable data object AppearanceSettings : SettingsPaneRoute
 
 fun EntryProviderScope<NavKey>.appearanceSettingsEntry(onNavigate: (NavKey) -> Unit, onBack: () -> Unit) {
     entry<AppearanceSettings> {

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -31,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
 import com.garfiec.librechat.core.ui.components.AdaptiveSwitch
+import com.garfiec.librechat.core.ui.components.adaptiveSelectedRowColor
 
 /** The colour pair behind a row's icon tile, taken from the theme's container roles. */
 internal enum class SettingsTileTint { NEUTRAL, PRIMARY, SECONDARY, TERTIARY, ERROR }
@@ -41,7 +43,8 @@ internal val SettingsRowPadding = PaddingValues(horizontal = 16.dp, vertical = 1
 /**
  * A settings row: title with an optional summary below it, an optional icon tile, and a chevron
  * when it opens something ([trailingContent] replaces the chevron). Without [onClick] it is a plain
- * label. [destructive] paints the title and tile in the error colours.
+ * label. [destructive] paints the title and tile in the error colours. A non-null [selected] makes
+ * it one of a list whose open item it marks (filled, read as selected, no chevron).
  */
 @Composable
 internal fun SettingsRow(
@@ -53,17 +56,20 @@ internal fun SettingsRow(
     destructive: Boolean = false,
     tileTint: SettingsTileTint = if (destructive) SettingsTileTint.ERROR else SettingsTileTint.NEUTRAL,
     enabled: Boolean = true,
-    showChevron: Boolean = onClick != null && !destructive,
+    selected: Boolean? = null,
+    showChevron: Boolean = onClick != null && !destructive && selected == null,
     showDivider: Boolean = true,
     contentPadding: PaddingValues = SettingsRowPadding,
     trailingContent: (@Composable () -> Unit)? = null,
 ) {
-    val click = if (onClick != null) {
-        Modifier.clickable(enabled = enabled, role = Role.Button, onClick = onClick)
-    } else {
-        Modifier
+    val click = when {
+        onClick == null -> Modifier
+        selected != null ->
+            Modifier.selectable(selected = selected, enabled = enabled, role = Role.Tab, onClick = onClick)
+        else -> Modifier.clickable(enabled = enabled, role = Role.Button, onClick = onClick)
     }
-    Column(modifier = modifier) {
+    val fill = if (selected == true) Modifier.background(adaptiveSelectedRowColor) else Modifier
+    Column(modifier = modifier.then(fill)) {
         SettingsRowLayout(
             title = title,
             summary = summary,

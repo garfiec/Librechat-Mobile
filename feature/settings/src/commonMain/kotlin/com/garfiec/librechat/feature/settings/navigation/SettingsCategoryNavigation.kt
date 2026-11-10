@@ -1,5 +1,6 @@
 package com.garfiec.librechat.feature.settings.navigation
 
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -17,6 +18,7 @@ import com.garfiec.librechat.feature.settings.resources.section_language_region
 import com.garfiec.librechat.feature.settings.screen.AboutSettingsPage
 import com.garfiec.librechat.feature.settings.screen.AccountSettingsPage
 import com.garfiec.librechat.feature.settings.screen.AdministrationSettingsPage
+import com.garfiec.librechat.feature.settings.screen.AppearanceSettingsPage
 import com.garfiec.librechat.feature.settings.screen.ChatsSettingsPage
 import com.garfiec.librechat.feature.settings.screen.LanguageSettingsPage
 import com.garfiec.librechat.feature.settings.screen.ModelsSettingsPage
@@ -31,7 +33,7 @@ import org.jetbrains.compose.resources.stringResource
 enum class SettingsCategoryKey { ACCOUNT, CHATS, VOICE, MODELS, LANGUAGE, PRIVACY_DATA, ADMINISTRATION, ABOUT }
 
 /** One Settings category's page. */
-@Serializable data class SettingsCategory(val category: SettingsCategoryKey) : SettingsRoute
+@Serializable data class SettingsCategory(val category: SettingsCategoryKey) : SettingsPaneRoute
 
 fun EntryProviderScope<NavKey>.settingsCategoryEntry(
     onNavigate: (NavKey) -> Unit,
@@ -74,7 +76,39 @@ private fun SettingsCategoryScreen(
         onNavigateBack = onBack,
         snackbarHostState = snackbarHostState,
     ) { contentPadding ->
-        when (category) {
+        SettingsPaneContent(
+            page = SettingsCategory(category),
+            onNavigate = onNavigate,
+            onLogout = onLogout,
+            onNavigateToArchive = onNavigateToArchive,
+            onOpenAdvancedSettings = { onNavigate(AdvancedSettings(it)) },
+            contentPadding = contentPadding,
+            snackbarHostState = snackbarHostState,
+        )
+    }
+}
+
+/**
+ * [page] without a bar: in its own route's scaffold, or beside the list on the wide Settings home,
+ * where [onOpenAdvancedSettings] opens Advanced in the same pane. Sub-pages push through [onNavigate].
+ */
+@Composable
+internal fun SettingsPaneContent(
+    page: SettingsPaneRoute,
+    onNavigate: (NavKey) -> Unit,
+    onLogout: () -> Unit,
+    onNavigateToArchive: () -> Unit,
+    onOpenAdvancedSettings: (AdvancedSection) -> Unit,
+    contentPadding: PaddingValues,
+    snackbarHostState: SnackbarHostState,
+) {
+    when (page) {
+        AppearanceSettings -> AppearanceSettingsPage(
+            onNavigateToChatLayout = { onNavigate(ChatLayoutSettings) },
+            contentPadding = contentPadding,
+        )
+        is AdvancedSettings -> AdvancedSettingsPane(page.section, onNavigate, contentPadding, snackbarHostState)
+        is SettingsCategory -> when (page.category) {
             SettingsCategoryKey.ACCOUNT -> AccountSettingsPage(
                 onLogout = onLogout,
                 onNavigateToPasskeys = { onNavigate(Passkeys) },
@@ -84,7 +118,7 @@ private fun SettingsCategoryScreen(
             SettingsCategoryKey.CHATS -> ChatsSettingsPage(
                 onNavigateToContextUsage = { onNavigate(ContextUsageSettings) },
                 onNavigateToArtifactShortcuts = { onNavigate(ArtifactShortcuts) },
-                onOpenAdvancedSettings = { onNavigate(AdvancedSettings(it)) },
+                onOpenAdvancedSettings = onOpenAdvancedSettings,
                 contentPadding = contentPadding,
             )
             SettingsCategoryKey.VOICE -> VoiceSettingsPage(
@@ -100,7 +134,7 @@ private fun SettingsCategoryScreen(
                 onNavigateToArchive = onNavigateToArchive,
                 onNavigateToSharedLinks = { onNavigate(SharedLinks) },
                 onNavigateToPrefetchSettings = { onNavigate(PrefetchSettings) },
-                onOpenAdvancedSettings = { onNavigate(AdvancedSettings(it)) },
+                onOpenAdvancedSettings = onOpenAdvancedSettings,
                 contentPadding = contentPadding,
                 snackbarHostState = snackbarHostState,
             )
