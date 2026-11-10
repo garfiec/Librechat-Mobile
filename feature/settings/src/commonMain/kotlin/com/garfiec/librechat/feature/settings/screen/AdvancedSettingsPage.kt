@@ -1,5 +1,6 @@
 package com.garfiec.librechat.feature.settings.screen
 
+import androidx.compose.foundation.interaction.DragInteraction
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -472,15 +473,21 @@ internal fun AdvancedSettingsContent(
     ).filter { it.rows.isNotEmpty() }
 
     // Item 0 is the intro; each shown section is its header item followed by its rows.
-    val anchor = remember(section) {
-        var index = 1
-        sections.firstNotNullOfOrNull { shown ->
-            index.takeIf { shown.section == section }.also { index += 1 + shown.rows.size }
-        } ?: 0
-    }
-    // Saveable, so returning from a sub-page keeps the scroll; keys keep the anchor in place when
-    // a gated section above it appears once the config loads.
+    var index = 1
+    val anchor = sections.firstNotNullOfOrNull { shown ->
+        index.takeIf { shown.section == section }.also { index += 1 + shown.rows.size }
+    } ?: 0
+    // Saveable, so returning from a sub-page keeps the scroll.
     val listState = rememberLazyListState(initialFirstVisibleItemIndex = anchor)
+    // Gated rows above the section arrive after the first frame and push it down: follow it until
+    // the user drags the list.
+    var userScrolled by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(listState) {
+        listState.interactionSource.interactions.collect { if (it is DragInteraction.Start) userScrolled = true }
+    }
+    LaunchedEffect(anchor) {
+        if (section != null && !userScrolled) listState.scrollToItem(anchor)
+    }
 
     SettingsListPage(contentPadding = contentPadding, modifier = modifier, state = listState) {
         item(key = "intro") {
