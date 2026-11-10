@@ -120,6 +120,7 @@ internal fun ChatFloatingTopBar(
     onLoadPreset: () -> Unit,
     onSavePreset: () -> Unit,
     onRename: () -> Unit,
+    contextRingDialogs: ContextRingDialogs,
     modifier: Modifier = Modifier,
     onOpenDrawer: (() -> Unit)? = null,
     onShowAllMedia: (() -> Unit)? = null,
@@ -225,7 +226,12 @@ internal fun ChatFloatingTopBar(
         )
     }
     val contextRing = uiState.contextGaugeDetails?.let { details ->
-        ContextRingState(details, viewModel::compactConversation.takeIf { uiState.canCompactNow }, viewModel::snoozeCompactNudge)
+        ContextRingState(
+            details,
+            viewModel::compactConversation.takeIf { uiState.canCompactNow },
+            viewModel::snoozeCompactNudge,
+            contextRingDialogs,
+        )
     }
     // Temporary chats are never persisted, so they have no server-side task list.
     val backgroundTasks = if (uiState.isTemporaryChat) null else rememberBackgroundTasks(conversationId, uiState.isStreaming)
@@ -269,6 +275,8 @@ internal fun ChatFloatingTopBar(
         )
     }
     backgroundTasks?.let { BackgroundTasksSheetHost(it) }
+    // Every context ring's dialogs, the composer's included: here they outlive a ring moving to or from the rail.
+    contextRing?.let { ContextRingDialogsHost(it) }
 
     // The context-usage gauge's default home is just above the composer (Settings → Chat picks
     // its placement); see CommonChatInputCore. When the user routes it to the overflow menu, the

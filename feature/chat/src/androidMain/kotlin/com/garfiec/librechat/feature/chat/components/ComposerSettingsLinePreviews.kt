@@ -72,7 +72,12 @@ private fun ChatRailGlassPreview() = LineSurface(UiStyle.LIQUID_GLASS) { ChatRai
 
 @Composable
 private fun ChatRail() {
-    val ring = ContextRingState(gauge(used = 98_000, nudge = null), onCompact = {}, onSnoozeCompact = {})
+    val ring = ContextRingState(
+        details = gauge(used = 98_000, nudge = null),
+        onCompact = {},
+        onSnoozeCompact = {},
+        dialogs = ContextRingDialogs(),
+    )
     val spec = AdaptiveTopBarSpec(
         navigation = BarNavigation(BarIcons.Menu, "Open drawer") {},
         title = BarTitle("Trip planning for the Lisbon offsite"),
@@ -156,7 +161,12 @@ private fun SettingsLineStates() {
                 ),
             ),
             onChipTap = {},
-            ring = ContextRingState(gauge(used = 52_000, nudge = null), onCompact = {}, onSnoozeCompact = {}),
+            ring = ContextRingState(
+                details = gauge(used = 52_000, nudge = null),
+                onCompact = {},
+                onSnoozeCompact = {},
+                dialogs = ContextRingDialogs(),
+            ),
         )
         // Locked by a spec, with Thinking staged for the next message and a compact suggestion due.
         ComposerSettingsLine(
@@ -173,6 +183,7 @@ private fun SettingsLineStates() {
                 details = gauge(used = 117_000, nudge = CompactNudge(band = 1, percent = 91)),
                 onCompact = {},
                 onSnoozeCompact = {},
+                dialogs = ContextRingDialogs(),
             ),
         )
         ComposerSettingsLine(
@@ -194,7 +205,12 @@ private fun SettingsLineStates() {
         ComposerSettingsLine(
             chips = SettingChips.EMPTY,
             onChipTap = {},
-            ring = ContextRingState(gauge(used = 8_000, nudge = null), onCompact = null, onSnoozeCompact = {}),
+            ring = ContextRingState(
+                details = gauge(used = 8_000, nudge = null),
+                onCompact = null,
+                onSnoozeCompact = {},
+                dialogs = ContextRingDialogs(),
+            ),
         )
     }
 }

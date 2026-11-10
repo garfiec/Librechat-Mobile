@@ -195,6 +195,7 @@ private fun ContextRingComposerHost() {
             contextUsageEnabled = true,
             onCompact = {},
             contextBarPlacement = ContextBarPlacement.ABOVE_INPUT,
+            contextRingDialogs = ContextRingDialogs(),
         ),
     )
 }

@@ -62,6 +62,7 @@ import com.garfiec.librechat.feature.chat.components.CodeWorkspaceComposer
 import com.garfiec.librechat.feature.chat.components.ComposerChrome
 import com.garfiec.librechat.feature.chat.components.ComposerComparison
 import com.garfiec.librechat.feature.chat.components.ComposerComparisonHint
+import com.garfiec.librechat.feature.chat.components.ContextRingDialogs
 import com.garfiec.librechat.feature.chat.components.LandingStarters
 import com.garfiec.librechat.feature.chat.components.LocalCodeRunHost
 import com.garfiec.librechat.feature.chat.components.LocalCodeWorkspaceComposer
@@ -239,6 +240,8 @@ fun ChatScreen(
     var mcpVariablesServer by rememberSaveable { mutableStateOf<String?>(null) }
     var showSavePresetDialog by remember { mutableStateOf(false) }
     var showSecondaryModelSheet by remember { mutableStateOf(false) }
+    // Above both context rings (rail and composer), so a dialog stays up while the ring moves between them.
+    val contextRingDialogs = remember(uiState.conversationId) { ContextRingDialogs() }
     var activeComparisonTab by remember { mutableIntStateOf(0) }
     val compareSetupPick = rememberCompareSetupPick(uiState.comparisonState.isSettingUp)
     val compareSetupActions = remember(viewModel) { viewModel.compareSetupActions() }
@@ -666,6 +669,7 @@ fun ChatScreen(
                         contextBarPlacement = uiState.contextBarPlacement,
                         // A rail shortened by the keyboard drops the ring; the composer then draws it.
                         contextRingInRail = railShowsBottomAction(CONTEXT_RING_ACTION_ID),
+                        contextRingDialogs = contextRingDialogs,
                     )
                     Box(
                         modifier = Modifier
@@ -913,6 +917,7 @@ fun ChatScreen(
                             widePane = comparisonWide,
                             railMode = inRail,
                             onNewChat = onNewChat,
+                            contextRingDialogs = contextRingDialogs,
                             modifier = Modifier
                                 .align(Alignment.TopCenter)
                                 .onSizeChanged { topBarHeightPx = it.height }
