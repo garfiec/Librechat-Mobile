@@ -13,6 +13,7 @@ import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
 import com.garfiec.librechat.core.data.datastore.UploadRoutingMode
 import com.garfiec.librechat.core.data.datastore.WebSearchPreference
 import com.garfiec.librechat.core.model.ArtifactsMode
+import com.garfiec.librechat.core.model.speech.voiceFor
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -173,13 +174,10 @@ class ChatPreferencesController(
         deviceTtsPreferences,
         additionalPreferences,
     ) { state, thinkingOpen, extra, deviceTts, additional ->
-        // The voice chat reads with: the stored one while offered, else the server's first.
-        val selectedVoice = state.availableVoices.find { it.id == extra.selectedVoiceId }
-            ?: state.availableVoices.firstOrNull()
         state.copy(
             thinkingOpenByDefault = thinkingOpen,
             autoReadEnabled = extra.autoRead,
-            selectedVoice = selectedVoice,
+            selectedVoice = state.availableVoices.voiceFor(extra.selectedVoiceId),
             showImageDescriptions = extra.showImageDescriptions,
             dismissKeyboardOnSend = extra.dismissKeyboardOnSend,
             ttsSource = extra.ttsSource,

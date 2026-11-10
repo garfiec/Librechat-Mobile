@@ -34,6 +34,12 @@ data class TtsVoice(
 )
 
 /**
+ * The voice to read with: the one [storedId] names while it is offered, else the first, as web picks.
+ * The server answers an unknown voice with a random one per request.
+ */
+fun List<TtsVoice>.voiceFor(storedId: String?): TtsVoice? = firstOrNull { it.id == storedId } ?: firstOrNull()
+
+/**
  * Handles both string arrays `["alloy","echo"]` and object arrays
  * `[{"id":"alloy","name":"Alloy"}]` from the server.
  */

@@ -2,6 +2,7 @@ package com.garfiec.librechat.feature.chat.util
 
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.model.speech.TtsVoice
+import com.garfiec.librechat.core.model.speech.voiceFor
 
 /**
  * Upstream's default `speech.tts.maxInputChars` (`DEFAULT_TTS_MAX_INPUT_CHARS`,
@@ -85,12 +86,11 @@ internal suspend fun <T> synthesizeInSegments(
 }
 
 /**
- * The server voice to request: the stored one while the server still offers it, else the server's
- * first, as web picks. The server answers an unknown voice with a random one per request, so a long
- * reply would change voice between segments. A failed voices read keeps the stored one.
+ * The server voice to request, [voiceFor] the offered list, so a long reply keeps one voice across
+ * segments. A failed voices read keeps the stored one.
  */
 internal suspend fun serverVoiceToUse(stored: String?, voices: suspend () -> Result<List<TtsVoice>>): String? =
     when (val result = voices()) {
-        is Result.Success -> (result.data.firstOrNull { it.id == stored } ?: result.data.firstOrNull())?.id
+        is Result.Success -> result.data.voiceFor(stored)?.id
         else -> stored
     }
