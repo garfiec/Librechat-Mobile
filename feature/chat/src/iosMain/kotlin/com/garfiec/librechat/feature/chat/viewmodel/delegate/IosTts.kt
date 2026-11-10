@@ -5,6 +5,8 @@ import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.repository.SpeechRepository
 import com.garfiec.librechat.core.model.speech.TtsVoice
 import com.garfiec.librechat.core.ui.media.AudioClipPlayer
+import com.garfiec.librechat.core.ui.media.deviceUtterance
+import com.garfiec.librechat.core.ui.media.resolveDeviceVoice
 import com.garfiec.librechat.feature.chat.util.serverVoiceToUse
 import com.garfiec.librechat.feature.chat.util.synthesizeInSegments
 import com.garfiec.librechat.feature.chat.viewmodel.TtsHandle
@@ -16,20 +18,12 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import platform.AVFAudio.AVSpeechBoundary
-import platform.AVFAudio.AVSpeechSynthesisVoice
 import platform.AVFAudio.AVSpeechSynthesizer
 import platform.AVFAudio.AVSpeechSynthesizerDelegateProtocol
 import platform.AVFAudio.AVSpeechUtterance
 import platform.Foundation.NSDate
 import platform.Foundation.timeIntervalSince1970
 import platform.darwin.NSObject
-
-private const val DEFAULT_SPEECH_RATE = 0.5f
-private const val MIN_SPEECH_RATE = 0.0f
-private const val MAX_SPEECH_RATE = 1.0f
-
-/** How the device voice speaks a read: Settings' speed, pitch and voice. */
-private class DeviceSpeech(val rate: Float, val pitch: Float, val voice: AVSpeechSynthesisVoice?)
 
 class IosTts(
     private val handle: TtsHandle,
@@ -107,39 +101,22 @@ class IosTts(
             if (settingsDataStore.ttsSource.first() == SettingsDataStore.TTS_SOURCE_SERVER) {
                 readAloudViaServer(text)
             } else {
-                val speech = DeviceSpeech(
-                    rate = settingsDataStore.ttsSpeechRate.first(),
-                    pitch = settingsDataStore.ttsPitch.first(),
-                    voice = deviceVoice(settingsDataStore.ttsVoiceName.first()),
+                queueUtterance(
+                    deviceUtterance(
+                        text,
+                        rate = settingsDataStore.ttsSpeechRate.first(),
+                        pitch = settingsDataStore.ttsPitch.first(),
+                        voice = resolveDeviceVoice(settingsDataStore.ttsVoiceName.first()),
+                    ),
                 )
-                queueUtterance(text, speech)
             }
         }
     }
 
-    private fun queueUtterance(text: String, speech: DeviceSpeech) {
-        val utterance = AVSpeechUtterance.speechUtteranceWithString(text)
-        // AVSpeechUtterance rate: 0.0-1.0, default ~0.5
-        // Android TTS rate: 0.1-4.0, default 1.0. Scale proportionally.
-        utterance.rate = (speech.rate * DEFAULT_SPEECH_RATE).coerceIn(MIN_SPEECH_RATE, MAX_SPEECH_RATE)
-        // AVSpeechUtterance pitch: 0.5-2.0, default 1.0 (same as Android)
-        utterance.pitchMultiplier = speech.pitch.coerceIn(0.5f, 2.0f)
-        utterance.voice = speech.voice
+    private fun queueUtterance(utterance: AVSpeechUtterance) {
         finalUtterance = utterance
         synthesizer.speakUtterance(utterance)
     }
-
-    /**
-     * The device voice Settings stored by identifier (a name stored by an older build still resolves),
-     * or the default voice when it is unset or gone.
-     */
-    private fun deviceVoice(stored: String): AVSpeechSynthesisVoice? =
-        stored.takeIf { it.isNotBlank() }?.let { id ->
-            AVSpeechSynthesisVoice.voiceWithIdentifier(id)
-                ?: AVSpeechSynthesisVoice.speechVoices()
-                    .filterIsInstance<AVSpeechSynthesisVoice>()
-                    .find { it.name == id }
-        } ?: AVSpeechSynthesisVoice.voiceWithLanguage(null)
 
     /**
      * Requests [text] from the server in the same capped segments as Android (the server drops

@@ -5,6 +5,9 @@ import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.ServerSttGate
 import com.garfiec.librechat.core.data.repository.SpeechRepository
 import com.garfiec.librechat.core.ui.media.AudioClipPlayer
+import com.garfiec.librechat.core.ui.media.deviceUtterance
+import com.garfiec.librechat.core.ui.media.findDeviceVoice
+import com.garfiec.librechat.core.ui.media.resolveDeviceVoice
 import com.garfiec.librechat.feature.settings.viewmodel.ChatSettingsUiState
 import com.garfiec.librechat.feature.settings.viewmodel.DeviceVoiceInfo
 import com.garfiec.librechat.feature.settings.viewmodel.SettingsStateHandle
@@ -18,10 +21,6 @@ import platform.AVFAudio.AVSpeechSynthesizer
 import platform.AVFAudio.AVSpeechSynthesizerDelegateProtocol
 import platform.AVFAudio.AVSpeechUtterance
 import platform.darwin.NSObject
-
-private const val DEFAULT_SPEECH_RATE = 0.5f
-private const val MIN_SPEECH_RATE = 0.0f
-private const val MAX_SPEECH_RATE = 1.0f
 
 class IosSpeechSettingsDelegate(
     private val stateHandle: SettingsStateHandle<ChatSettingsUiState>,
@@ -108,24 +107,9 @@ class IosSpeechSettingsDelegate(
         stopTtsPreview()
         stateHandle.update { copy(isTtsPreviewPlaying = true) }
 
-        val utterance = AVSpeechUtterance.speechUtteranceWithString(text)
-        utterance.rate = (rate * DEFAULT_SPEECH_RATE).coerceIn(MIN_SPEECH_RATE, MAX_SPEECH_RATE)
-        utterance.pitchMultiplier = pitch.coerceIn(0.5f, 2.0f)
-
-        if (!voiceName.isNullOrBlank()) {
-            // Settings stores the voice's identifier; a name stored by an older build still resolves.
-            val targetVoice = AVSpeechSynthesisVoice.voiceWithIdentifier(voiceName)
-                ?: AVSpeechSynthesisVoice.speechVoices()
-                    .filterIsInstance<AVSpeechSynthesisVoice>()
-                    .find { it.name == voiceName }
-            if (targetVoice != null) {
-                utterance.voice = targetVoice
-            }
-        } else {
-            utterance.voice = AVSpeechSynthesisVoice.voiceWithLanguage(null)
-        }
-
-        synthesizer.speakUtterance(utterance)
+        // A stored voice that's gone leaves the utterance's voice unset.
+        val voice = if (voiceName.isNullOrBlank()) resolveDeviceVoice(null) else findDeviceVoice(voiceName)
+        synthesizer.speakUtterance(deviceUtterance(text, rate, pitch, voice))
     }
 
     override fun previewServerTts(text: String, voice: String?) {
