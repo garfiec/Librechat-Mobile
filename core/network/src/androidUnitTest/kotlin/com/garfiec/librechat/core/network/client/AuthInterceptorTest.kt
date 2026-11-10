@@ -5,16 +5,22 @@ import com.garfiec.librechat.core.common.identity.AccountState
 import com.garfiec.librechat.core.common.identity.InMemoryActiveAccountProvider
 import com.garfiec.librechat.core.common.identity.deriveAccountId
 import com.garfiec.librechat.core.common.identity.deriveServerId
+import com.garfiec.librechat.core.network.api.AuthApi
+import com.garfiec.librechat.core.network.di.librechatJson
 import com.google.common.truth.Truth.assertThat
+import com.google.common.truth.Truth.assertWithMessage
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.request.get
 import io.ktor.client.request.post
 import io.ktor.client.statement.bodyAsText
+import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -100,6 +106,15 @@ class AuthInterceptorTest {
             this.serverUrlProvider = serverUrlProvider
         }
     }
+
+    private fun createAuthApi(tokenManager: FakeTokenManager, engine: MockEngine): AuthApi =
+        AuthApi(
+            HttpClient(engine) {
+                install(ContentNegotiation) { json(librechatJson) }
+                defaultRequest { contentType(ContentType.Application.Json) }
+                install(AuthInterceptorPlugin) { this.tokenManager = tokenManager }
+            },
+        )
 
     @Test
     fun `attaches Bearer token to requests`() = runTest {
@@ -332,6 +347,42 @@ class AuthInterceptorTest {
         assertThat(response.status).isEqualTo(HttpStatusCode.Unauthorized)
         assertThat(tokenManager.refreshCallCount).isEqualTo(1)
         assertThat(tokenManager.sessionExpiredCount).isEqualTo(0)
+    }
+
+    @Test
+    fun `a wrong 2FA code on the settings routes is sent once, with no refresh`() = runTest {
+        val calls: List<suspend AuthApi.() -> Unit> = listOf(
+            { disableTwoFactor(token = "123456") },
+            { disableTwoFactor(backupCode = "used-code") },
+            { regenerateBackupCodes(token = "123456") },
+            { enableTwoFactor(token = "123456") },
+        )
+        calls.forEachIndexed { index, call ->
+            val tokenManager = FakeTokenManager()
+            val engine = MockEngine {
+                respond("""{"message":"Invalid token or backup code"}""", HttpStatusCode.Unauthorized)
+            }
+            val api = createAuthApi(tokenManager, engine)
+
+            runCatching { api.call() }
+
+            assertWithMessage("call $index").that(engine.requestHistory).hasSize(1)
+            assertWithMessage("call $index").that(tokenManager.refreshCallCount).isEqualTo(0)
+            assertWithMessage("call $index").that(engine.requestHistory.single().headers[HttpHeaders.Authorization])
+                .isEqualTo("Bearer initial-token")
+        }
+    }
+
+    @Test
+    fun `a first-time 2FA enable without a code still refreshes on 401`() = runTest {
+        val tokenManager = FakeTokenManager()
+        val engine = MockEngine { respond("Unauthorized", HttpStatusCode.Unauthorized) }
+        val api = createAuthApi(tokenManager, engine)
+
+        runCatching { api.enableTwoFactor() }
+
+        assertThat(tokenManager.refreshCallCount).isEqualTo(1)
+        assertThat(engine.requestHistory).hasSize(2)
     }
 
     @Test

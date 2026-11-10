@@ -25,6 +25,7 @@ data class PendingVariablePrompt(
 @Immutable
 data class PresetPromptState(
     val presets: List<PresetDisplayData> = emptyList(),
+    val presetsLoadFailed: Boolean = false,
     val availablePrompts: List<PromptMentionDisplayData> = emptyList(),
     val pendingVariablePrompt: PendingVariablePrompt? = null,
     /**

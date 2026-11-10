@@ -319,6 +319,12 @@
     <string name="drawer_filter_no_match_body">Wähle einen längeren Zeitraum oder weniger Filter.</string>
     <string name="drawer_filter_clear">Filter löschen</string>
     <string name="drawer_filter_load_failed">Gefilterte Chats konnten nicht geladen werden. Zum erneuten Versuchen nach unten ziehen.</string>
+    <string name="projects_load_failed">Deine Projekte konnten nicht geladen werden. Prüfe deine Verbindung und versuche es erneut.</string>
+    <string name="project_chats_load_failed">Die Chats dieses Projekts konnten nicht geladen werden</string>
+    <string name="drawer_load_failed">Deine Chats konnten nicht geladen werden.</string>
+    <string name="drawer_projects_load_failed">Projekte konnten nicht geladen werden</string>
+    <string name="drawer_folder_load_failed">Chats konnten nicht geladen werden</string>
+    <string name="drawer_load_retry">Erneut versuchen</string>
     <string name="drawer_filter_messages_note">Nachrichtenergebnisse werden nicht gefiltert.</string>
     <string name="cd_remove_named_filter">Filter %1$s entfernen</string>
     <!-- Project errors -->

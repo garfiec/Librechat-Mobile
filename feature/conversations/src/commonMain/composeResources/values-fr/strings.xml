@@ -323,6 +323,12 @@
     <string name="drawer_filter_no_match_body">Essayez une période plus longue ou moins de filtres.</string>
     <string name="drawer_filter_clear">Effacer les filtres</string>
     <string name="drawer_filter_load_failed">Impossible de charger les discussions filtrées. Tirez vers le bas pour réessayer.</string>
+    <string name="projects_load_failed">Impossible de charger vos projets. Vérifiez votre connexion et réessayez.</string>
+    <string name="project_chats_load_failed">Impossible de charger les discussions de ce projet</string>
+    <string name="drawer_load_failed">Impossible de charger vos discussions.</string>
+    <string name="drawer_projects_load_failed">Impossible de charger les projets</string>
+    <string name="drawer_folder_load_failed">Impossible de charger les discussions</string>
+    <string name="drawer_load_retry">Réessayer</string>
     <string name="drawer_filter_messages_note">Les résultats de messages ne sont pas filtrés.</string>
     <string name="cd_remove_named_filter">Retirer le filtre %1$s</string>
     <!-- Project errors -->

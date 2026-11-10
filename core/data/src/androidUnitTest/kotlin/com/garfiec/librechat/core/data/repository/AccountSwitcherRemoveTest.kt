@@ -202,6 +202,23 @@ class AccountSwitcherRemoveTest {
     }
 
     @Test
+    fun `failing over skips an account whose stored session has lapsed`() = runTest(testDispatcher) {
+        val h = harness()
+        val accountC = deriveAccountId(deriveServerId(serverB), "user-c")
+        h.roster.upsertAndActivate(entry(accountC, serverB, lastActiveAt = 5L))
+        h.roster.upsertAndActivate(entry(accountB, serverB, lastActiveAt = 10L))
+        h.roster.upsertAndActivate(entry(accountA, serverA, lastActiveAt = 20L))
+        h.tokenManager.expiredAccounts += accountA.value
+        h.tokenManager.lapsedAccounts += accountB.value
+
+        val result = h.switcher.failOverFromActive()
+
+        assertThat((result as FailoverResult.Switched).entry.accountId).isEqualTo(accountC.value)
+        assertThat(h.switcher.hasSession(accountB.value)).isFalse()
+        assertThat(h.switcher.switch(accountB.value)).isFalse()
+    }
+
+    @Test
     fun `removing the last account tears down to logged-out and signals session expiry`() =
         runTest(testDispatcher) {
             val h = harness()

@@ -314,6 +314,12 @@
     <string name="drawer_filter_no_match_body">期間を長くするか、フィルターを減らしてみてください。</string>
     <string name="drawer_filter_clear">フィルターをクリア</string>
     <string name="drawer_filter_load_failed">絞り込んだチャットを読み込めませんでした。下に引いて再試行してください。</string>
+    <string name="projects_load_failed">プロジェクトを読み込めませんでした。接続を確認して、もう一度お試しください。</string>
+    <string name="project_chats_load_failed">このプロジェクトのチャットを読み込めませんでした</string>
+    <string name="drawer_load_failed">チャットを読み込めませんでした。</string>
+    <string name="drawer_projects_load_failed">プロジェクトを読み込めませんでした</string>
+    <string name="drawer_folder_load_failed">チャットを読み込めませんでした</string>
+    <string name="drawer_load_retry">再試行</string>
     <string name="drawer_filter_messages_note">メッセージの検索結果は絞り込まれません。</string>
     <string name="cd_remove_named_filter">フィルター %1$s を削除</string>
     <!-- Project errors -->

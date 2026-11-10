@@ -124,7 +124,7 @@ fun AccountSettingsPage(
                     AccountInfoSection(
                         user = uiState.user,
                         profileLoadError = uiState.profileLoadError,
-                        onAvatarClick = viewModel::showAvatarDialog.takeIf { avatarUploadSupported },
+                        onAvatarClick = viewModel::showAvatarDialog,
                         onRetry = viewModel::retry,
                     )
                 }

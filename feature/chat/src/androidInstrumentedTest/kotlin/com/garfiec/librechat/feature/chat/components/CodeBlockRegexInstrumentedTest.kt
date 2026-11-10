@@ -17,14 +17,16 @@ class CodeBlockRegexInstrumentedTest {
     @Test
     fun every_string_rule_compiles_and_matches_on_icu() {
         val body = "a".repeat(LONG)
+        val palette = SyntaxPalette.DARK
+        val stringStyle = palette.styleOf(TokenKind.STRING)
         for (language in LANGUAGES) {
             val code = "x = \"say \\\"hi\\\"\" + '$body'"
-            val highlighted = highlightSyntax(code, language)
+            val highlighted = highlightSyntax(code, language, palette)
             assertEquals(language, code, highlighted.text)
             assertTrue(language, highlighted.spanStyles.any { it.item == stringStyle })
         }
         val json = "{\"k\": \"$body\"}"
-        assertTrue(highlightSyntax(json, "json").spanStyles.any { it.item == stringStyle })
+        assertTrue(highlightSyntax(json, "json", palette).spanStyles.any { it.item == stringStyle })
     }
 
     @Test

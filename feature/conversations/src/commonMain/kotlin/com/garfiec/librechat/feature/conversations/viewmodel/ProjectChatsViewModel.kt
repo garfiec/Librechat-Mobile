@@ -56,7 +56,8 @@ data class ProjectChatsUiState(
     val conversationCount: Int = 0,
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
-    val error: String? = null,
+    /** The last first page failed: with no chats held, the error state stands in for the list. */
+    val loadFailed: Boolean = false,
     val nextCursor: String? = null,
     val hasMore: Boolean = true,
     val sort: ProjectChatsSort = ProjectChatsSort.UPDATED,
@@ -106,7 +107,6 @@ class ProjectChatsViewModel(
     private val pager = CursorPager(
         scope = viewModelScope,
         idOf = { it.conversationId.orEmpty() },
-        onError = { message -> _uiState.value = _uiState.value.copy(error = message) },
     ) { cursor, limit ->
         when (
             val result = conversationRepository.getConversationsForProject(
@@ -272,7 +272,8 @@ class ProjectChatsViewModel(
         if (state.project == null && !state.projectDeleted && projectJob?.isActive != true) loadProject()
     }
 
-    fun editProject(name: String, description: String) = projectActions.edit(projectId, name, description)
+    fun editProject(name: String, description: String, onResult: (saved: Boolean) -> Unit) =
+        projectActions.edit(projectId, name, description, onResult)
 
     private fun observeGrouped() {
         viewModelScope.launch {
@@ -315,6 +316,7 @@ class ProjectChatsViewModel(
                 _uiState.value = _uiState.value.copy(
                     isLoading = paging.isLoading,
                     isRefreshing = paging.isRefreshing,
+                    loadFailed = paging.firstPageFailed,
                     nextCursor = paging.nextCursor,
                     hasMore = paging.nextCursor != null,
                 )
@@ -364,8 +366,4 @@ class ProjectChatsViewModel(
 
     fun exportConversation(conversationId: String, title: String?, format: ExportFormat) =
         actions.exportConversation(conversationId, title, format)
-
-    fun dismissError() {
-        _uiState.value = _uiState.value.copy(error = null)
-    }
 }

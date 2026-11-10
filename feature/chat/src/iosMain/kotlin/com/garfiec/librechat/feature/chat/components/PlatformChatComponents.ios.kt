@@ -3,7 +3,6 @@ package com.garfiec.librechat.feature.chat.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -76,6 +75,7 @@ import com.garfiec.librechat.core.ui.components.topbar.BarIcons
 import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
 import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.core.ui.components.topbar.MaterialBarStyle
+import com.garfiec.librechat.core.ui.theme.isSurfaceDark
 import com.garfiec.librechat.feature.chat.components.sendflight.sendFlightBubble
 import com.garfiec.librechat.feature.chat.components.sendflight.sendFlightHeader
 import com.garfiec.librechat.feature.chat.resources.Res
@@ -923,7 +923,7 @@ private fun TableCell(
     searchFocusedOccurrence: Int = -1,
     onFocusedMatchPosition: ((LayoutCoordinates, Rect) -> Unit)? = null,
 ) {
-    val isDarkTheme = isSystemInDarkTheme()
+    val isDarkTheme = isSurfaceDark()
     val display = remember(text, searchQuery, searchFocusedOccurrence, isDarkTheme) {
         if (searchQuery.isNullOrBlank()) {
             text

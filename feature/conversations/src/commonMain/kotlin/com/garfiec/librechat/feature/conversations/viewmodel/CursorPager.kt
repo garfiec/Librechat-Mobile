@@ -16,6 +16,7 @@ internal data class CursorPagerState(
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
     val nextCursor: String? = null,
+    val firstPageFailed: Boolean = false,
 )
 
 /**
@@ -35,7 +36,7 @@ internal data class CursorPagerState(
 internal class CursorPager<T>(
     private val scope: CoroutineScope,
     private val idOf: (T) -> String,
-    private val onError: (String?) -> Unit,
+    private val onError: (String?) -> Unit = {},
     private val fetch: suspend (cursor: String?, limit: Int?) -> Result<CursorPage<T>>,
 ) {
     private val _items = MutableStateFlow<List<T>>(emptyList())
@@ -124,9 +125,12 @@ internal class CursorPager<T>(
             when (page) {
                 is Result.Success -> {
                     _items.value = page.data.items
-                    _state.update { it.copy(nextCursor = page.data.nextCursor) }
+                    _state.update { it.copy(nextCursor = page.data.nextCursor, firstPageFailed = false) }
                 }
-                is Result.Error -> onError(page.message)
+                is Result.Error -> {
+                    _state.update { it.copy(firstPageFailed = true) }
+                    onError(page.message)
+                }
                 is Result.Loading -> Unit
             }
             _state.update { it.copy(isLoading = false, isRefreshing = false) }

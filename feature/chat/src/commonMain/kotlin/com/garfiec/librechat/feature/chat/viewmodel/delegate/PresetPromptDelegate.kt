@@ -48,16 +48,23 @@ class PresetPromptDelegate(
                 is Result.Success -> {
                     cachedPresets = result.data
                     handle.update {
-                        presetPrompts = presetPrompts.copy(presets = result.data.map { it.toDisplayData() })
+                        presetPrompts = presetPrompts.copy(
+                            presets = result.data.map { it.toDisplayData() },
+                            presetsLoadFailed = false,
+                        )
                     }
                 }
                 is Result.Error -> {
-                    // Presets are non-critical; don't block the user
                     Logger.d(result.exception) { "Failed to load presets: ${result.message}" }
+                    handle.update { presetPrompts = presetPrompts.copy(presetsLoadFailed = true) }
                 }
                 is Result.Loading -> { /* no-op */ }
             }
         }
+    }
+
+    fun reloadPresetsIfFailed() {
+        if (handle.state.presetPrompts.presetsLoadFailed) loadPresets()
     }
 
     /**

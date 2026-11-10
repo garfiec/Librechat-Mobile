@@ -391,6 +391,7 @@
     <!-- Preset picker -->
     <string name="select_preset">Select Preset</string>
     <string name="no_presets_saved">No presets saved yet</string>
+    <string name="presets_load_failed">Couldn't load your presets.</string>
     <string name="cd_edit_preset">Edit %1$s</string>
     <string name="cd_delete_preset">Delete %1$s</string>
     <string name="preset_endpoint">Endpoint: %1$s</string>

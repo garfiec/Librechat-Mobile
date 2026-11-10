@@ -339,6 +339,12 @@
     <string name="drawer_filter_no_match_body">جرّب نطاقًا زمنيًا أطول أو عوامل تصفية أقل.</string>
     <string name="drawer_filter_clear">مسح عوامل التصفية</string>
     <string name="drawer_filter_load_failed">تعذّر تحميل المحادثات المصفّاة. اسحب للأسفل لإعادة المحاولة.</string>
+    <string name="projects_load_failed">تعذّر تحميل مشاريعك. تحقّق من اتصالك وحاول مرة أخرى.</string>
+    <string name="project_chats_load_failed">تعذّر تحميل محادثات هذا المشروع</string>
+    <string name="drawer_load_failed">تعذّر تحميل محادثاتك.</string>
+    <string name="drawer_projects_load_failed">تعذّر تحميل المشاريع</string>
+    <string name="drawer_folder_load_failed">تعذّر تحميل المحادثات</string>
+    <string name="drawer_load_retry">إعادة المحاولة</string>
     <string name="drawer_filter_messages_note">لا تتم تصفية نتائج الرسائل.</string>
     <string name="cd_remove_named_filter">إزالة عامل التصفية %1$s</string>
     <!-- Project errors -->

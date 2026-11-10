@@ -399,6 +399,7 @@
     <!-- Preset picker -->
     <string name="select_preset">اختيار إعداد مسبق</string>
     <string name="no_presets_saved">لا توجد إعدادات مسبقة محفوظة بعد</string>
+    <string name="presets_load_failed">تعذّر تحميل إعداداتك المسبقة.</string>
     <string name="cd_edit_preset">تعديل %1$s</string>
     <string name="cd_delete_preset">حذف %1$s</string>
     <string name="preset_endpoint">نقطة النهاية: %1$s</string>

@@ -374,6 +374,7 @@
     <!-- Preset picker -->
     <string name="select_preset">选择预设</string>
     <string name="no_presets_saved">尚未保存任何预设</string>
+    <string name="presets_load_failed">无法加载你的预设。</string>
     <string name="cd_edit_preset">编辑 %1$s</string>
     <string name="cd_delete_preset">删除 %1$s</string>
     <string name="preset_endpoint">端点：%1$s</string>

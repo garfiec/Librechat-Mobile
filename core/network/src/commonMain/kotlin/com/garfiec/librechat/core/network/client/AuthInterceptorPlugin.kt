@@ -5,6 +5,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.plugins.HttpClientPlugin
 import io.ktor.client.plugins.HttpSend
 import io.ktor.client.plugins.plugin
+import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.HttpRequestPipeline
 import io.ktor.client.request.headers
 import io.ktor.http.HttpHeaders
@@ -126,6 +127,10 @@ class AuthInterceptorPlugin private constructor(
                     return@intercept originalCall
                 }
 
+                if (UnauthorizedIsVerdict in request.attributes) {
+                    return@intercept originalCall
+                }
+
                 // A pending-identity request (add-account flow) has no keyed account to refresh, and
                 // its auth failures belong to the add flow's UI: pass the 401 through without a
                 // refresh and without the global session-expired signal, which would tear down the
@@ -177,4 +182,16 @@ class AuthInterceptorPlugin private constructor(
             }
         }
     }
+}
+
+/**
+ * Marks a request whose `401` is the endpoint's verdict on what it was sent (a wrong 2FA code),
+ * not an expired session: [AuthInterceptorPlugin] passes it through without refreshing and
+ * resending. A resend repeats the same wrong code and spends the server's 2FA attempt limit twice.
+ */
+internal val UnauthorizedIsVerdict = AttributeKey<Unit>("UnauthorizedIsVerdict")
+
+/** See [UnauthorizedIsVerdict]. */
+internal fun HttpRequestBuilder.unauthorizedIsVerdict() {
+    attributes.put(UnauthorizedIsVerdict, Unit)
 }

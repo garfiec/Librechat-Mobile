@@ -24,6 +24,7 @@ import com.garfiec.librechat.core.network.api.dto.TwoFactorSetupFinalizeRequest
 import com.garfiec.librechat.core.network.api.dto.TwoFactorSetupRequest
 import com.garfiec.librechat.core.network.client.CookieHelper
 import com.garfiec.librechat.core.network.client.attachAuthCookies
+import com.garfiec.librechat.core.network.client.unauthorizedIsVerdict
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.post
@@ -127,8 +128,11 @@ class AuthApi constructor(
     suspend fun enableTwoFactor(token: String? = null, backupCode: String? = null): TwoFactorSetupResponse =
         client.post {
             url { path("api/auth/2fa/enable") }
+            // Only a request that carries a code can be refused for it; without one (first
+            // enrolment) a 401 is an expired session and must still refresh.
             if (token != null || backupCode != null) {
                 setBody(OtpVerificationRequest(token = token, backupCode = backupCode))
+                unauthorizedIsVerdict()
             }
         }.body()
 
@@ -204,6 +208,7 @@ class AuthApi constructor(
             url { path("api/auth/2fa/backup/regenerate") }
             if (token != null || backupCode != null) {
                 setBody(OtpVerificationRequest(token = token, backupCode = backupCode))
+                unauthorizedIsVerdict()
             }
         }.body()
 
@@ -212,6 +217,7 @@ class AuthApi constructor(
         client.post {
             url { path("api/auth/2fa/disable") }
             setBody(TwoFactorDisableRequest(token = token, backupCode = backupCode))
+            if (token != null || backupCode != null) unauthorizedIsVerdict()
         }
     }
 }

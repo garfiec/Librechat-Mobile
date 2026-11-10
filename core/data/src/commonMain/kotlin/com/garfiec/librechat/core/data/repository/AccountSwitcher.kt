@@ -424,15 +424,17 @@ class AccountSwitcher(
     suspend fun failOverFromActive(): FailoverResult = switchGate.withSwitch {
         val active = activeAccountProvider.currentAccountId()?.value
             ?: return@withSwitch FailoverResult.NoLiveAccount
-        if (hasSession(active)) return@withSwitch FailoverResult.ActiveStillLive
+        // Slot presence, not [hasSession]: a hard expiry empties the slot, and a clock-judged check would
+        // fail over from a working account on a device clock that runs ahead.
+        if (tokenManager.getAccessTokenFor(active) != null) return@withSwitch FailoverResult.ActiveStillLive
         val successor = liveSuccessor(roster.snapshot().entries, excluding = active)
             ?: return@withSwitch FailoverResult.NoLiveAccount
         flipTo(successor)
         FailoverResult.Switched(successor)
     }
 
-    /** Whether [accountId]'s keyed slot still holds a session. A hard expiry empties it. */
-    suspend fun hasSession(accountId: String): Boolean = tokenManager.getAccessTokenFor(accountId) != null
+    /** Whether [accountId]'s keyed slot still holds a live session ([TokenManager.hasLiveSession]). */
+    suspend fun hasSession(accountId: String): Boolean = tokenManager.hasLiveSession(accountId)
 
     /**
      * True when [accountId] lost its session because its server now requires 2FA setup (see

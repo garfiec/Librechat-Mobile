@@ -314,6 +314,12 @@
     <string name="drawer_filter_no_match_body">기간을 늘리거나 필터를 줄여 보세요.</string>
     <string name="drawer_filter_clear">필터 지우기</string>
     <string name="drawer_filter_load_failed">필터링된 채팅을 불러오지 못했습니다. 아래로 당겨 다시 시도하세요.</string>
+    <string name="projects_load_failed">프로젝트를 불러오지 못했습니다. 연결을 확인하고 다시 시도하세요.</string>
+    <string name="project_chats_load_failed">이 프로젝트의 채팅을 불러오지 못했습니다</string>
+    <string name="drawer_load_failed">채팅을 불러오지 못했습니다.</string>
+    <string name="drawer_projects_load_failed">프로젝트를 불러오지 못했습니다</string>
+    <string name="drawer_folder_load_failed">채팅을 불러오지 못했습니다</string>
+    <string name="drawer_load_retry">다시 시도</string>
     <string name="drawer_filter_messages_note">메시지 결과는 필터링되지 않습니다.</string>
     <string name="cd_remove_named_filter">%1$s 필터 제거</string>
     <!-- Project errors -->

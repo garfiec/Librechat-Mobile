@@ -1,7 +1,6 @@
 package com.garfiec.librechat.feature.settings.di
 
 import co.touchlab.kermit.Logger
-import com.garfiec.librechat.core.common.toByteArray
 import com.garfiec.librechat.feature.settings.util.ContentReader
 import com.garfiec.librechat.feature.settings.util.PlatformCacheCleaner
 import com.garfiec.librechat.feature.settings.viewmodel.delegate.IosSpeechSettingsDelegate
@@ -13,31 +12,18 @@ import org.koin.core.module.Module
 import org.koin.dsl.bind
 import org.koin.dsl.module
 import platform.Foundation.NSCachesDirectory
-import platform.Foundation.NSData
 import platform.Foundation.NSFileManager
 import platform.Foundation.NSFileSize
 import platform.Foundation.NSNumber
 import platform.Foundation.NSSearchPathForDirectoriesInDomains
-import platform.Foundation.NSURL
 import platform.Foundation.NSUserDomainMask
-import platform.Foundation.dataWithContentsOfURL
 
 actual val settingsPlatformModule: Module = module {
     single {
-        @OptIn(ExperimentalForeignApi::class)
         object : ContentReader {
-            override fun readBytes(uri: Any): ByteArray? {
-                val nsUrl = uri as? NSURL
-                if (nsUrl == null) {
-                    Logger.w("SettingsContentReader") { "readBytes called with non-NSURL: ${uri::class}" }
-                    return null
-                }
-                val data = NSData.dataWithContentsOfURL(nsUrl)
-                if (data == null) {
-                    Logger.w("SettingsContentReader") { "Failed to read data from: $nsUrl" }
-                    return null
-                }
-                return data.toByteArray()
+            // The avatar picker hands over the bytes it read in its own callback (rememberAvatarPicker).
+            override fun readBytes(uri: Any): ByteArray? = (uri as? ByteArray).also {
+                if (it == null) Logger.w("SettingsContentReader") { "readBytes called with ${uri::class}" }
             }
         }
     } bind ContentReader::class

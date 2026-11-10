@@ -219,7 +219,7 @@ class ProjectsViewModelTest {
         val events = mutableListOf<ProjectsEvent>()
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.events.collect { events += it } }
 
-        viewModel.createProject("Thesis", "  ")
+        viewModel.createProject("Thesis", "  ") {}
         advanceUntilIdle()
 
         coVerify(exactly = 1) { projectRepository.createProject("Thesis", null) }
@@ -233,7 +233,7 @@ class ProjectsViewModelTest {
         val viewModel = ProjectsViewModel(projectRepository, mockk(relaxed = true))
         advanceUntilIdle()
 
-        viewModel.editProject("id-1", "Thesis", "")
+        viewModel.editProject("id-1", "Thesis", "") {}
         advanceUntilIdle()
 
         coVerify(exactly = 1) { projectRepository.updateProject("id-1", name = "Thesis", description = "") }
@@ -303,5 +303,51 @@ class ProjectsViewModelTest {
         advanceUntilIdle()
 
         coVerify(exactly = 1) { projectRepository.listProjects(null, "lastConversationAt", "desc", null, 30) }
+    }
+
+    @Test
+    fun `a failed first load is a failure, not an empty list, until a retry lands`() = runTest(testDispatcher) {
+        coEvery { projectRepository.listProjects(any(), any(), any(), any()) } returns Result.Error(message = "offline")
+        val viewModel = ProjectsViewModel(projectRepository, mockk(relaxed = true))
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.loadFailed).isTrue()
+        assertThat(viewModel.uiState.value.projects).isEmpty()
+
+        coEvery { projectRepository.listProjects(any(), any(), any(), any()) } returns page()
+        viewModel.load()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.loadFailed).isFalse()
+    }
+
+    @Test
+    fun `a failed create answers the sheet and leaves the snackbar to it`() = runTest(testDispatcher) {
+        coEvery { projectRepository.createProject("Thesis", null) } returns Result.Error(message = "offline")
+        val viewModel = ProjectsViewModel(projectRepository, mockk(relaxed = true))
+        advanceUntilIdle()
+        val events = mutableListOf<ProjectsEvent>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.events.collect { events += it } }
+        val answers = mutableListOf<Boolean>()
+
+        viewModel.createProject("Thesis", "") { answers += it }
+        advanceUntilIdle()
+
+        assertThat(answers).containsExactly(false)
+        assertThat(events).isEmpty()
+    }
+
+    @Test
+    fun `a saved edit answers the sheet`() = runTest(testDispatcher) {
+        coEvery { projectRepository.updateProject(any(), any(), any()) } returns
+            Result.Success(ChatProject(id = "id-1", name = "Thesis"))
+        val viewModel = ProjectsViewModel(projectRepository, mockk(relaxed = true))
+        advanceUntilIdle()
+        val answers = mutableListOf<Boolean>()
+
+        viewModel.editProject("id-1", "Thesis", "") { answers += it }
+        advanceUntilIdle()
+
+        assertThat(answers).containsExactly(true)
     }
 }

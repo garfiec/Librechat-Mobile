@@ -175,6 +175,9 @@ class DrawerViewModel(
     private val _projects = MutableStateFlow<List<ChatProject>>(emptyList())
     val projects: StateFlow<List<ChatProject>> = _projects.asStateFlow()
 
+    private val _projectsLoadFailed = MutableStateFlow(false)
+    val projectsLoadFailed: StateFlow<Boolean> = _projectsLoadFailed.asStateFlow()
+
     private var projectsLoadJob: Job? = null
     private var projectOrderSaveJob: Job? = null
     private var expandedChatsJob: Job? = null
@@ -193,6 +196,7 @@ class DrawerViewModel(
     private val _expandedProjectId = MutableStateFlow<String?>(null)
     private val _expandedProjectChats = MutableStateFlow<List<Conversation>>(emptyList())
     private val _expandedProjectLoading = MutableStateFlow(false)
+    private val _expandedProjectFailed = MutableStateFlow(false)
 
     // This transport snapshot needs no structural equality. A concrete type also keeps the
     // native optimizer from joining this configuration to unrelated generic Pair payloads.
@@ -220,14 +224,15 @@ class DrawerViewModel(
     val inlineProjectChats: StateFlow<InlineProjectChatsState> = combine(
         _expandedProjectId,
         _expandedProjectChats,
-        _expandedProjectLoading,
+        combine(_expandedProjectLoading, _expandedProjectFailed, ::Pair),
         conversationListStateHolder.activeConversationId,
         drawerModelConfig,
-    ) { expandedId, convos, loading, activeId, modelConfig ->
+    ) { expandedId, convos, (loading, failed), activeId, modelConfig ->
         InlineProjectChatsState(
             expandedProjectId = expandedId,
             conversations = convos.map { modelConfig.display(it, activeId) },
             isLoading = loading,
+            loadFailed = failed,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), InlineProjectChatsState())
 
@@ -401,24 +406,25 @@ class DrawerViewModel(
         conversationListStateHolder.searchQuery,
         combine(
             conversationListStateHolder.isRefreshing,
+            conversationListStateHolder.listLoad,
             conversationListStateHolder.isLoadingMore,
             conversationListStateHolder.hasMore,
-        ) { refreshing, loadingMore, hasMore ->
-            Triple(refreshing, loadingMore, hasMore)
+        ) { refreshing, listLoad, loadingMore, hasMore ->
+            ListProgress(refreshing, listLoad, loadingMore, hasMore)
         },
         drawerPermissionFlags,
         drawerActionMenuState,
     ) { (display, messages, filter), query, refreshState, perms, actionMenu ->
-        val (refreshing, loadingMore, hasMore) = refreshState
         DrawerUiState(
             messageSearch = if (query.isBlank()) DrawerMessageSearch.Idle else messages,
             groupedConversations = display.grouped,
             favoriteConversations = display.favorites,
             pinnedConversations = display.pinned,
             searchQuery = query,
-            isRefreshing = refreshing,
-            isLoadingMore = loadingMore,
-            hasMore = hasMore,
+            isRefreshing = refreshState.refreshing,
+            listLoad = refreshState.listLoad,
+            isLoadingMore = refreshState.loadingMore,
+            hasMore = refreshState.hasMore,
             agentsEnabled = perms.agentsEnabled,
             marketplaceEnabled = perms.marketplaceEnabled,
             bookmarksEnabled = actionMenu.bookmarksEnabled,
@@ -440,6 +446,8 @@ class DrawerViewModel(
     }.stateIn(viewModelScope, SharingStarted.Eagerly, DrawerUiState())
 
     private class FilterState(val filters: DrawerFilters, val failed: Boolean, val options: DrawerFilterOptions)
+
+    private class ListProgress(val refreshing: Boolean, val listLoad: ListLoad, val loadingMore: Boolean, val hasMore: Boolean)
 
     /** The footer's Workspace row and tray: what the gates allow, split into pinned and the rest. */
     val workspace: StateFlow<WorkspaceUiState> =
@@ -587,6 +595,7 @@ class DrawerViewModel(
                 projectOrderSaveJob?.cancel()
                 lastProjectsReload = null
                 _projects.value = emptyList()
+                _projectsLoadFailed.value = false
                 closeExpandedProject()
                 conversationListStateHolder.reset()
                 // No tagRepository.clearCache() here: observeTags() is account-scoped, so the
@@ -803,6 +812,7 @@ class DrawerViewModel(
         _expandedProjectId.value = projectId
         _expandedProjectChats.value = emptyList()
         _expandedProjectLoading.value = true
+        _expandedProjectFailed.value = false
         loadExpandedChats(projectId)
     }
 
@@ -812,6 +822,7 @@ class DrawerViewModel(
         _expandedProjectId.value = null
         _expandedProjectChats.value = emptyList()
         _expandedProjectLoading.value = false
+        _expandedProjectFailed.value = false
     }
 
     /**
@@ -820,6 +831,8 @@ class DrawerViewModel(
      */
     private fun loadExpandedChats(projectId: String) {
         expandedChatsJob?.cancel()
+        // A retry after a failure has no rows to keep on screen, so it shows the spinner.
+        if (_expandedProjectFailed.value) _expandedProjectLoading.value = true
         expandedChatsJob = viewModelScope.launch {
             val result = conversationRepository.getConversationsForProject(projectId = projectId)
             // The user may have collapsed or opened another folder while this was in flight.
@@ -829,6 +842,8 @@ class DrawerViewModel(
                 is Result.Error -> Logger.w(result.exception) { "Failed to load project chats" }
                 is Result.Loading -> Unit
             }
+            // Failed only with nothing held: a failed reload keeps the folder's rows.
+            _expandedProjectFailed.value = result is Result.Error && _expandedProjectChats.value.isEmpty()
             _expandedProjectLoading.value = false
         }
     }
@@ -858,7 +873,8 @@ class DrawerViewModel(
         projectsLoadJob = viewModelScope.launch {
             // Arranged against the saved order, so a drop still being written would be undone.
             pendingSave?.join()
-            when (val result = projectRepository.listAllProjectsInCustomOrder()) {
+            val result = projectRepository.listAllProjectsInCustomOrder()
+            when (result) {
                 is Result.Success -> {
                     _projects.value = result.data.projects
                     // The open folder was deleted (here or on the Projects index): close it, which
@@ -875,6 +891,7 @@ class DrawerViewModel(
                 is Result.Error -> Logger.w(result.exception) { "Failed to load projects" }
                 is Result.Loading -> Unit
             }
+            _projectsLoadFailed.value = result is Result.Error
         }
     }
 
@@ -941,10 +958,11 @@ class DrawerViewModel(
         }
     }
 
-    fun createProject(name: String, description: String) = projectActions.create(name, description)
+    fun createProject(name: String, description: String, onResult: (saved: Boolean) -> Unit) =
+        projectActions.create(name, description, onResult)
 
-    fun editProject(projectId: String, name: String, description: String) =
-        projectActions.edit(projectId, name, description)
+    fun editProject(projectId: String, name: String, description: String, onResult: (saved: Boolean) -> Unit) =
+        projectActions.edit(projectId, name, description, onResult)
 
     fun deleteProject(projectId: String) {
         // Collapse the inline accordion if the deleted project was open, so its stale chats clear.

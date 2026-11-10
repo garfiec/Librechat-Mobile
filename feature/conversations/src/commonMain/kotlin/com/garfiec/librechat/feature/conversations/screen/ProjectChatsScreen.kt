@@ -60,6 +60,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
 import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
 import com.garfiec.librechat.core.ui.components.EmptyState
+import com.garfiec.librechat.core.ui.components.ErrorBanner
 import com.garfiec.librechat.core.ui.components.LoadingIndicator
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
@@ -91,6 +92,7 @@ import com.garfiec.librechat.feature.conversations.resources.back
 import com.garfiec.librechat.feature.conversations.resources.conversation_exported
 import com.garfiec.librechat.feature.conversations.resources.copy_of
 import com.garfiec.librechat.feature.conversations.resources.new_chat
+import com.garfiec.librechat.feature.conversations.resources.project_chats_load_failed
 import com.garfiec.librechat.feature.conversations.resources.project_edit
 import com.garfiec.librechat.feature.conversations.resources.project_empty_chats
 import com.garfiec.librechat.feature.conversations.resources.project_files_at_limit
@@ -99,6 +101,7 @@ import com.garfiec.librechat.feature.conversations.resources.project_new_chat_in
 import com.garfiec.librechat.feature.conversations.resources.project_sort_created
 import com.garfiec.librechat.feature.conversations.resources.project_sort_label
 import com.garfiec.librechat.feature.conversations.resources.project_sort_updated
+import com.garfiec.librechat.feature.conversations.resources.project_update_failed
 import com.garfiec.librechat.feature.conversations.resources.save
 import com.garfiec.librechat.feature.conversations.viewmodel.ConversationListEvent
 import com.garfiec.librechat.feature.conversations.viewmodel.ProjectChatsSort
@@ -309,6 +312,12 @@ fun ProjectChatsScreen(
                     ) {
                         LoadingIndicator(modifier = Modifier.fillMaxWidth().padding(vertical = 48.dp))
                     }
+                    uiState.loadFailed && uiState.conversationCount == 0 -> item(key = "error", contentType = "error") {
+                        ErrorBanner(
+                            message = stringResource(Res.string.project_chats_load_failed),
+                            onRetry = viewModel::refresh,
+                        )
+                    }
                     uiState.conversationCount == 0 -> item(key = "empty", contentType = "empty") {
                         EmptyState(
                             title = stringResource(Res.string.project_empty_chats),
@@ -361,11 +370,9 @@ fun ProjectChatsScreen(
                 confirmLabel = stringResource(Res.string.save),
                 initialName = project.name,
                 initialDescription = project.description.orEmpty(),
+                failureMessage = stringResource(Res.string.project_update_failed),
                 maxDescriptionLength = uiState.descriptionLimit,
-                onConfirm = { name, description ->
-                    viewModel.editProject(name, description)
-                    showEditSheet = false
-                },
+                onConfirm = viewModel::editProject,
                 onDismiss = { showEditSheet = false },
             )
         }

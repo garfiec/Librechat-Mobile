@@ -61,6 +61,7 @@ data class InlineProjectChatsState(
     val expandedProjectId: String? = null,
     val conversations: List<DrawerConversationDisplayData> = emptyList(),
     val isLoading: Boolean = false,
+    val loadFailed: Boolean = false,
 )
 
 /**
@@ -93,6 +94,7 @@ data class DrawerUiState(
     val pinnedConversations: List<DrawerConversationDisplayData> = emptyList(),
     val searchQuery: String = "",
     val isRefreshing: Boolean = false,
+    val listLoad: ListLoad = ListLoad.PENDING,
     val isLoadingMore: Boolean = false,
     val hasMore: Boolean = true,
     // Role-permission gates — default permissive.
@@ -135,6 +137,10 @@ data class DrawerUiState(
 ) {
     /** Filters narrow the list only where the server takes them. */
     val filtersApplied: Boolean get() = filtersEnabled && filters.isActive
+
+    val showsEmptyList: Boolean
+        get() = !filtersApplied && searchQuery.isBlank() && !isRefreshing && listLoad != ListLoad.PENDING &&
+            groupedConversations.isEmpty() && pinnedConversations.isEmpty() && favoriteConversations.isEmpty()
 
     /**
      * The Agents entry (phone drawer and tablet sidebar): AGENTS.USE and MARKETPLACE.USE, as the web

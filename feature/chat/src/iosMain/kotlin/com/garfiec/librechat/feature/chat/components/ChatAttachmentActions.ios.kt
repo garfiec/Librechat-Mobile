@@ -4,9 +4,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import com.garfiec.librechat.core.ui.media.openPhotoPicker
 import com.garfiec.librechat.feature.chat.util.openCamera
 import com.garfiec.librechat.feature.chat.util.openDocumentPicker
-import com.garfiec.librechat.feature.chat.util.openPhotoPicker
+import com.garfiec.librechat.feature.chat.util.photoPickerAttachment
 
 /** The native iOS pickers. [filePickerMimeTypes] is not applied: the document picker shows every type. */
 @Composable
@@ -23,7 +24,7 @@ actual fun rememberChatAttachmentActions(
         ChatAttachmentActions(
             onAttachFiles = { openDocumentPicker(deliver) },
             onTakePhoto = { openCamera(deliver) },
-            onPickPhotos = { openPhotoPicker(deliver) },
+            onPickPhotos = { openPhotoPicker(selectionLimit = 10, decode = ::photoPickerAttachment, onResult = deliver) },
             onAttachToCode = { openDocumentPicker(deliverToCode) },
         )
     }
