@@ -4,6 +4,7 @@ import android.content.ActivityNotFoundException
 import android.content.ClipData
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ActivityInfo
 import android.net.Uri
 import android.widget.Toast
 import androidx.compose.runtime.Composable
@@ -30,15 +31,16 @@ actual fun rememberEmailComposer(): (draft: EmailDraft, onResult: (EmailComposeR
 }
 
 /**
- * Mail apps are the ones that take `mailto:`; each gets an `ACTION_SEND` addressed to its package,
- * which carries the file. A `mailto:` selector on the send doesn't work: since Android 13 the send
- * must also match the filters of the activity the selector picked, and Gmail's doesn't.
+ * Mail apps are the ones that take `mailto:`; each gets an `ACTION_SEND`, which carries the file,
+ * aimed at its `mailto:` activity when that activity takes the send too (so Gmail opens its composer,
+ * not a picker that also offers Chat). A `mailto:` selector on the send doesn't work: since
+ * Android 13 the send must also match the filters of the activity the selector picked.
  */
 private suspend fun composeEmail(context: Context, draft: EmailDraft): EmailComposeResult {
-    val mailApps = mailAppPackages(context)
-    if (mailApps.isEmpty()) return EmailComposeResult.NoMailApp
+    val mailActivities = mailActivities(context)
+    if (mailActivities.isEmpty()) return EmailComposeResult.NoMailApp
     val uri = draft.attachment?.let { writeMailAttachmentOrToast(context, it) ?: return EmailComposeResult.Cancelled }
-    val sends = mailApps.map { buildEmailIntent(draft, uri).setPackage(it) }
+    val sends = mailActivities.map { mail -> mailSend(context, buildEmailIntent(draft, uri), mail) }
     val launch = sends.singleOrNull()
         ?: Intent.createChooser(sends.first(), null).putExtra(Intent.EXTRA_INITIAL_INTENTS, sends.drop(1).toTypedArray())
     return try {
@@ -49,12 +51,18 @@ private suspend fun composeEmail(context: Context, draft: EmailDraft): EmailComp
     }
 }
 
-/** Needs the `SENDTO mailto:` entry in `<queries>` (feature/settings' manifest) to see them. */
-private fun mailAppPackages(context: Context): List<String> =
+/** One `mailto:` activity per app. Needs the `SENDTO mailto:` entry in `<queries>` (feature/settings). */
+private fun mailActivities(context: Context): List<ActivityInfo> =
     context.packageManager
         .queryIntentActivities(Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:")), 0)
-        .map { it.activityInfo.packageName }
-        .distinct()
+        .map { it.activityInfo }
+        .distinctBy { it.packageName }
+
+private fun mailSend(context: Context, send: Intent, mail: ActivityInfo): Intent {
+    send.setPackage(mail.packageName)
+    val takesSend = context.packageManager.queryIntentActivities(send, 0).any { it.activityInfo.name == mail.name }
+    return if (takesSend) send.setClassName(mail.packageName, mail.name) else send
+}
 
 internal fun buildEmailIntent(draft: EmailDraft, attachmentUri: Uri?): Intent =
     Intent(Intent.ACTION_SEND).apply {
