@@ -33,12 +33,12 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.AbsoluteAlignment
@@ -46,8 +46,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.takeOrElse
-import androidx.compose.ui.layout.findRootCoordinates
-import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
@@ -369,33 +367,23 @@ internal fun reachesBarSide(side: BarSide, left: Float, width: Float, windowWidt
     }
 }
 
-private const val EDGE_SLOP = 1f
+internal const val EDGE_SLOP = 1f
 
 /**
  * Where a layout stands against the window's vertical bars, measured by [modifier] on that layout:
  * [bars] while it reaches their side (and isn't in a dialog or sheet window of its own), else null.
  * Measured on every global move, not only on placement: a transition that offsets an ancestor's layer
- * (the page a back swipe reveals) moves the layout without placing it again.
+ * moves the layout without placing it again.
  */
 internal class RailPlacement(val bars: VerticalBars?, val modifier: Modifier)
 
 @Composable
 internal fun rememberRailPlacement(): RailPlacement {
     val bars = LocalWindowFeatures.current.verticalBars
-    // Unknown until placed; assumed, so a full-width screen doesn't open with a horizontal bar first.
-    var atBarSide by remember { mutableStateOf(true) }
-    val currentBars by rememberUpdatedState(bars)
-    val modifier = if (bars != null) {
-        remember {
-            Modifier.onGloballyPositioned { coordinates ->
-                val side = currentBars?.side ?: return@onGloballyPositioned
-                val windowWidth = coordinates.findRootCoordinates().size.width.toFloat()
-                atBarSide = reachesBarSide(side, coordinates.positionInRoot().x, coordinates.size.width.toFloat(), windowWidth)
-            }
-        }
-    } else {
-        Modifier
-    }
+    val (reach, modifier) = rememberBarSideReach(bars)
+    val pane = LocalRailPane.current
+    // Read through derivedStateOf: the widths change on every frame of a sidebar slide, the answer rarely.
+    val atBarSide by remember(pane) { derivedStateOf { reachesBarSide(reach.value, pane?.value) } }
     return RailPlacement(bars?.takeIf { atBarSide && !LocalInSeparateWindow.current }, modifier)
 }
 

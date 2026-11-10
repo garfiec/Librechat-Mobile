@@ -208,4 +208,24 @@ class AdaptiveSideRailTest {
         // Coming in from the right with the bars on the left.
         assertTrue(reachesBarSide(BarSide.LEFT, left = 700f, width = 400f, windowWidth = 951f))
     }
+
+    @Test
+    fun aPageRevealedByABackSwipeBesideTheSidebarKeepsItsRail() {
+        // The 320..951 pane beside the open sidebar, measured where it is laid out.
+        val pane = BarSideReach(631f, reachesBarSide(BarSide.RIGHT, left = 320f, width = 631f, windowWidth = 951f))
+        // The page behind, drawn at scale 0.8 and 96 to the left: 320 + 0.1 * 631 - 96.
+        val drawn = BarSideReach(631f, reachesBarSide(BarSide.RIGHT, left = 287f, width = 631f, windowWidth = 951f))
+        assertFalse(drawn.reaches)
+        assertTrue(reachesBarSide(drawn, pane))
+        // The same pane with the bars on the left: off them, scaled or not.
+        assertFalse(reachesBarSide(drawn.copy(reaches = true), pane.copy(reaches = false)))
+    }
+
+    @Test
+    fun aPaneNarrowerThanTheNavigationPaneMeasuresItself() {
+        val pane = BarSideReach(631f, reaches = true)
+        assertFalse(reachesBarSide(BarSideReach(300f, reaches = false), pane))
+        assertTrue(reachesBarSide(BarSideReach(300f, reaches = true), pane))
+        assertFalse(reachesBarSide(BarSideReach(631f, reaches = false), pane = null))
+    }
 }

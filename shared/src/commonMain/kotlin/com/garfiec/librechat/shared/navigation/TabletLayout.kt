@@ -49,6 +49,7 @@ import com.garfiec.librechat.core.ui.components.BannerDisplay
 import com.garfiec.librechat.core.ui.components.MinContentWidth
 import com.garfiec.librechat.core.ui.components.PlatformBackHandler
 import com.garfiec.librechat.core.ui.components.SidebarWidth
+import com.garfiec.librechat.core.ui.components.topbar.AdaptiveRailPane
 import com.garfiec.librechat.core.ui.components.topbar.LocalSidebarOpen
 import com.garfiec.librechat.core.ui.glass.rememberGlassStyle
 import com.garfiec.librechat.core.ui.navigation.FullWidthRoute
@@ -384,7 +385,9 @@ private fun MainContent(
             LocalSidebarAsideRequests provides asideRequests,
             LocalSidebarOpen provides sidebarOpen,
         ) {
-            navDisplay(onToggleDrawer, Modifier.fillMaxSize())
+            AdaptiveRailPane(Modifier.fillMaxSize()) {
+                navDisplay(onToggleDrawer, Modifier.fillMaxSize())
+            }
         }
     }
 }
