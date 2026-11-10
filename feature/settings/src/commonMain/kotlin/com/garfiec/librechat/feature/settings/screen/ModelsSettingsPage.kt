@@ -12,16 +12,12 @@ import androidx.compose.material.icons.filled.VpnKey
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.ui.components.AdaptiveGroupedPage
 import com.garfiec.librechat.core.ui.components.AdaptiveSectionHeader
@@ -52,17 +48,10 @@ fun ModelsSettingsPage(
     // The Provider Keys row's summary loads the first time this page is composed resumed (a
     // recomposed page replays ON_RESUME to its new observer), and re-reads on each resume the entry
     // itself goes through: back from Provider Keys, or from another app.
-    val lifecycleOwner = LocalLifecycleOwner.current
-    DisposableEffect(lifecycleOwner, accountViewModel) {
-        var replaying = true
-        val observer = LifecycleEventObserver { _, event ->
-            if (event != Lifecycle.Event.ON_RESUME) return@LifecycleEventObserver
-            if (replaying) accountViewModel.loadProviderKeysSummary() else accountViewModel.refreshProviderKeysSummary()
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        replaying = false
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
-    }
+    OnResume(
+        onFirst = accountViewModel::loadProviderKeysSummary,
+        onReturn = accountViewModel::refreshProviderKeysSummary,
+    )
 
     AdaptiveGroupedPage(modifier = modifier.fillMaxSize()) {
         LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = contentPadding) {

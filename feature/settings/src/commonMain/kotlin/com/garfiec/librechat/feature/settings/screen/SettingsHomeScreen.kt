@@ -34,7 +34,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -51,9 +50,6 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.coerceAtMost
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.ui.components.AdaptiveGroupedPage
 import com.garfiec.librechat.core.ui.components.AdaptiveSectionScope
@@ -129,21 +125,9 @@ fun SettingsHomeScreen(
 
     // Back from Account or Provider keys (or the web, via another app) the card and the Models & keys
     // row show a changed name, avatar or key count.
-    val lifecycleOwner = LocalLifecycleOwner.current
-    DisposableEffect(lifecycleOwner, accountViewModel) {
-        var replaying = true
-        val observer = LifecycleEventObserver { _, event ->
-            if (event != Lifecycle.Event.ON_RESUME) return@LifecycleEventObserver
-            if (replaying) {
-                accountViewModel.loadProviderKeysSummary()
-            } else {
-                accountViewModel.refreshOnReturn()
-                accountViewModel.refreshProviderKeysSummary()
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        replaying = false
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    OnResume(onFirst = accountViewModel::loadProviderKeysSummary) {
+        accountViewModel.refreshOnReturn()
+        accountViewModel.refreshProviderKeysSummary()
     }
 
     val user = account.user

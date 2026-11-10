@@ -27,7 +27,6 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -59,9 +58,6 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withLink
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.model.auth.MAX_PASSKEY_NAME_LENGTH
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
@@ -113,16 +109,7 @@ fun PasskeysScreen(
     val snackbarHostState = remember { SnackbarHostState() }
 
     // Re-read on every return after the first, so a passkey added or removed on the web shows up.
-    val lifecycleOwner = LocalLifecycleOwner.current
-    DisposableEffect(lifecycleOwner, viewModel) {
-        var replaying = true
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME && !replaying) viewModel.refreshOnReturn()
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        replaying = false
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
-    }
+    OnResume(onReturn = viewModel::refreshOnReturn)
 
     val alreadyRemoved = stringResource(Res.string.passkeys_already_removed)
     LaunchedEffect(uiState.notice) {

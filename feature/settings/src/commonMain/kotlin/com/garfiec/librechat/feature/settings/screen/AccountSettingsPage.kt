@@ -16,7 +16,6 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -25,9 +24,6 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveGroupedPage
@@ -69,18 +65,10 @@ fun AccountSettingsPage(
     // Each resume after the first (back from a sub-page, or from another app) re-reads the profile,
     // so an email confirmed in the browser (or an avatar or name changed on the web) shows up, along
     // with the passkey count.
-    val lifecycleOwner = LocalLifecycleOwner.current
-    DisposableEffect(lifecycleOwner, viewModel) {
-        var replaying = true
-        val observer = LifecycleEventObserver { _, event ->
-            if (event != Lifecycle.Event.ON_RESUME || replaying) return@LifecycleEventObserver
-            viewModel.refreshOnReturn()
-            // A connect made on the web, or one whose page was closed, shows on return.
-            pullRequestAccountViewModel.refresh()
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        replaying = false
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    OnResume {
+        viewModel.refreshOnReturn()
+        // A connect made on the web, or one whose page was closed, shows on return.
+        pullRequestAccountViewModel.refresh()
     }
 
     LaunchedEffect(uiState.error) {
