@@ -60,6 +60,13 @@ interface TokenManager : AuthGateHolder {
     suspend fun getAccessTokenFor(accountId: String): String?
 
     /**
+     * Whether [accountId]'s keyed slot holds a session the server may still accept: stored, and not
+     * past an end date the stored tokens carry. Read-only, so a wrong device clock mislabels an
+     * account without signing it out.
+     */
+    suspend fun hasLiveSession(accountId: String): Boolean = getAccessTokenFor(accountId) != null
+
+    /**
      * The access token currently **staged** under the bare keys by an interactive sign-in
      * ([setTokens]) that has not yet been re-homed by [onAccountResolved] — i.e. the token of an
      * account mid-authentication. Null outside that window. The add-account flow's pending request

@@ -355,8 +355,22 @@ abstract class CommonTokenDataStore(
         // Serve the active account from the in-memory cache (the per-request hot path via the switch
         // barrier's keyed bearer read); fall to storage only for a non-active account's slot. Under
         // stateMutex so the account check and the cache read can't interleave with a select/teardown.
-        val token = if (accountId == activeAccountKey) cachedAuth.bearer else sessions.readAccess(accountId)
-        token.nonBlankOrNull()
+        accessForLocked(accountId)
+    }
+
+    /** Caller holds [stateMutex]. */
+    private fun accessForLocked(accountId: String): String? =
+        (if (accountId == activeAccountKey) cachedAuth.bearer else sessions.readAccess(accountId)).nonBlankOrNull()
+
+    override suspend fun hasLiveSession(accountId: String): Boolean = stateMutex.withLock {
+        val access = accessForLocked(accountId) ?: return@withLock false
+        val cookies = sessions.readCookies(accountId) ?: return@withLock true
+        // An OpenID-reuse refresh token is the provider's, and the server can renew without it, so its
+        // exp says nothing about the LibreChat session.
+        if (cookies.openId != null) return@withLock true
+        // LibreChat signs the refresh token with the session's fixed end, which refreshes never extend.
+        val refreshEnds = expiresAtEpochMillisOrNull(cookies.refreshToken) ?: return@withLock true
+        maxOf(refreshEnds, expiresAtEpochMillisOrNull(access) ?: 0L) > nowEpochMillis()
     }
 
     override suspend fun getStagedAccessToken(): String? = stateMutex.withLock {
