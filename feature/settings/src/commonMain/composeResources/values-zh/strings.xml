@@ -1081,7 +1081,7 @@
     <string name="report_log_description">诊断日志是一个文件，记录过去 7 天内应用的事件，例如失败的请求、崩溃和应用启动。消息、对话和服务器回复从不写入其中，电子邮件地址、服务器名称和 ID 会被替换为代码。</string>
     <string name="report_save_copy">保存日志副本</string>
     <string name="report_another_way_title">通过其他方式发送</string>
-    <string name="report_another_way_body">此设备上未设置电子邮件应用。请从任意账号将报告发送到此地址，或通过其他应用分享。</string>
+    <string name="report_another_way_body">无法从这里打开你的电子邮件应用。请从任意账号将报告发送到此地址，或通过其他应用分享。</string>
     <string name="report_tap_to_copy">点按即可复制</string>
     <string name="report_share_with_log">分享报告和日志</string>
     <string name="report_share_text">分享报告</string>

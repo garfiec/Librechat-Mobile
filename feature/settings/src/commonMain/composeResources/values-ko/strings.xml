@@ -1081,7 +1081,7 @@
     <string name="report_log_description">진단 로그는 실패한 요청, 비정상 종료, 앱 시작 등 최근 7일간의 앱 이벤트를 담은 파일입니다. 메시지, 대화, 서버 응답은 절대 기록되지 않으며, 이메일 주소, 서버 이름, ID는 코드로 바뀝니다.</string>
     <string name="report_save_copy">로그 사본 저장</string>
     <string name="report_another_way_title">다른 방법으로 보내기</string>
-    <string name="report_another_way_body">이 기기에 설정된 이메일 앱이 없습니다. 아무 계정에서나 이 주소로 신고를 보내거나 다른 앱으로 공유하세요.</string>
+    <string name="report_another_way_body">여기에서 이메일 앱을 열 수 없습니다. 아무 계정에서나 이 주소로 신고를 보내거나 다른 앱으로 공유하세요.</string>
     <string name="report_tap_to_copy">탭하여 복사</string>
     <string name="report_share_with_log">신고와 로그 공유</string>
     <string name="report_share_text">신고 공유</string>

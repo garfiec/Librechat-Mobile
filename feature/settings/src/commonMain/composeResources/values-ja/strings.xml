@@ -1081,7 +1081,7 @@
     <string name="report_log_description">診断ログは、失敗したリクエスト、クラッシュ、アプリの起動など、過去 7 日間のアプリのイベントを記録したファイルです。メッセージ、会話、サーバーの応答は書き込まれず、メールアドレス、サーバー名、ID はコードに置き換えられます。</string>
     <string name="report_save_copy">ログのコピーを保存</string>
     <string name="report_another_way_title">別の方法で送信</string>
-    <string name="report_another_way_body">この端末にはメールアプリが設定されていません。任意のアカウントからこのアドレスにレポートを送るか、別のアプリで共有してください。</string>
+    <string name="report_another_way_body">ここからメールアプリを開けませんでした。任意のアカウントからこのアドレスにレポートを送るか、別のアプリで共有してください。</string>
     <string name="report_tap_to_copy">タップしてコピー</string>
     <string name="report_share_with_log">レポートとログを共有</string>
     <string name="report_share_text">レポートを共有</string>

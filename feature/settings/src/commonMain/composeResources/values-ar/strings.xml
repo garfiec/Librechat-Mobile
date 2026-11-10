@@ -1161,7 +1161,7 @@
     <string name="report_log_description">سجل التشخيص ملف يضم أحداث التطبيق خلال آخر 7 أيام، مثل الطلبات الفاشلة والأعطال وبدء تشغيل التطبيق. لا تُكتب فيه الرسائل أو المحادثات أو ردود الخادم أبدًا، وتُستبدل عناوين البريد الإلكتروني وأسماء الخوادم والمعرّفات برموز.</string>
     <string name="report_save_copy">حفظ نسخة من السجل</string>
     <string name="report_another_way_title">الإرسال بطريقة أخرى</string>
-    <string name="report_another_way_body">لا يوجد تطبيق بريد إلكتروني مُعدّ على هذا الجهاز. أرسل بلاغك إلى هذا العنوان من أي حساب، أو شاركه عبر تطبيق آخر.</string>
+    <string name="report_another_way_body">تعذّر فتح تطبيق البريد الإلكتروني من هنا. أرسل بلاغك إلى هذا العنوان من أي حساب، أو شاركه عبر تطبيق آخر.</string>
     <string name="report_tap_to_copy">انقر للنسخ</string>
     <string name="report_share_with_log">مشاركة البلاغ والسجل</string>
     <string name="report_share_text">مشاركة البلاغ</string>

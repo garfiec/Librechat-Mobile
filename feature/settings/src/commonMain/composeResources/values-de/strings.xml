@@ -1097,7 +1097,7 @@
     <string name="report_log_description">Das Diagnoseprotokoll ist eine Datei mit App-Ereignissen der letzten 7 Tage, etwa fehlgeschlagene Anfragen, Abstürze und App-Starts. Nachrichten, Unterhaltungen und Serverantworten werden nie darin gespeichert, und E-Mail-Adressen, Servernamen und IDs werden durch Codes ersetzt.</string>
     <string name="report_save_copy">Kopie des Protokolls speichern</string>
     <string name="report_another_way_title">Auf anderem Weg senden</string>
-    <string name="report_another_way_body">Auf diesem Gerät ist keine E-Mail-App eingerichtet. Schick deinen Bericht von einem beliebigen Konto an diese Adresse oder teile ihn mit einer anderen App.</string>
+    <string name="report_another_way_body">Deine E-Mail-App ließ sich von hier aus nicht öffnen. Schick deinen Bericht von einem beliebigen Konto an diese Adresse oder teile ihn mit einer anderen App.</string>
     <string name="report_tap_to_copy">Zum Kopieren tippen</string>
     <string name="report_share_with_log">Bericht und Protokoll teilen</string>
     <string name="report_share_text">Bericht teilen</string>

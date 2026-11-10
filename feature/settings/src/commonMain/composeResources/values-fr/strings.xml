@@ -1098,7 +1098,7 @@
     <string name="report_log_description">Le journal de diagnostic est un fichier des événements récents de l’app sur les 7 derniers jours, comme les requêtes échouées, les plantages et les démarrages. Les messages, les conversations et les réponses du serveur n’y sont jamais écrits, et les adresses e-mail, les noms de serveur et les identifiants sont remplacés par des codes.</string>
     <string name="report_save_copy">Enregistrer une copie du journal</string>
     <string name="report_another_way_title">Envoyer autrement</string>
-    <string name="report_another_way_body">Aucune app de messagerie n’est configurée sur cet appareil. Envoyez votre rapport à cette adresse depuis n’importe quel compte, ou partagez-le avec une autre app.</string>
+    <string name="report_another_way_body">Impossible d’ouvrir votre app de messagerie depuis ici. Envoyez votre rapport à cette adresse depuis n’importe quel compte, ou partagez-le avec une autre app.</string>
     <string name="report_tap_to_copy">Appuyez pour copier</string>
     <string name="report_share_with_log">Partager le rapport et le journal</string>
     <string name="report_share_text">Partager le rapport</string>

@@ -1111,7 +1111,7 @@
     <string name="report_log_description">The diagnostic log is a file of recent app events, such as failed requests, crashes and app start-ups, from the last 7 days. Messages, conversations and server replies are never written to it, and email addresses, server names and IDs are replaced with codes.</string>
     <string name="report_save_copy">Save a copy of the log</string>
     <string name="report_another_way_title">Send another way</string>
-    <string name="report_another_way_body">No email app is set up on this device. Email your report to this address from any account, or share it with another app.</string>
+    <string name="report_another_way_body">Your email app couldn't be opened from here. Email your report to this address from any account, or share it with another app.</string>
     <string name="report_tap_to_copy">Tap to copy</string>
     <string name="report_share_with_log">Share report and log</string>
     <string name="report_share_text">Share report</string>

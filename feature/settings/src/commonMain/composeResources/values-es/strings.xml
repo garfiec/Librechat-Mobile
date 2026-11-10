@@ -1098,7 +1098,7 @@
     <string name="report_log_description">El registro de diagnóstico es un archivo con eventos recientes de la app de los últimos 7 días, como solicitudes fallidas, cierres inesperados e inicios de la app. Los mensajes, las conversaciones y las respuestas del servidor nunca se guardan en él, y las direcciones de correo, los nombres de servidor y los ID se sustituyen por códigos.</string>
     <string name="report_save_copy">Guardar una copia del registro</string>
     <string name="report_another_way_title">Enviar de otra forma</string>
-    <string name="report_another_way_body">No hay ninguna app de correo configurada en este dispositivo. Envía tu informe a esta dirección desde cualquier cuenta o compártelo con otra app.</string>
+    <string name="report_another_way_body">No se pudo abrir tu app de correo desde aquí. Envía tu informe a esta dirección desde cualquier cuenta o compártelo con otra app.</string>
     <string name="report_tap_to_copy">Toca para copiar</string>
     <string name="report_share_with_log">Compartir informe y registro</string>
     <string name="report_share_text">Compartir informe</string>

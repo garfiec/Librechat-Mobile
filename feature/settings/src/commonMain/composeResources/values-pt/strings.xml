@@ -1098,7 +1098,7 @@
     <string name="report_log_description">O log de diagnóstico é um arquivo com eventos recentes do app dos últimos 7 dias, como solicitações com falha, travamentos e inicializações. Mensagens, conversas e respostas do servidor nunca são gravadas nele, e endereços de e-mail, nomes de servidor e IDs são substituídos por códigos.</string>
     <string name="report_save_copy">Salvar uma cópia do log</string>
     <string name="report_another_way_title">Enviar de outro jeito</string>
-    <string name="report_another_way_body">Nenhum app de e-mail está configurado neste dispositivo. Envie seu relato para este endereço de qualquer conta ou compartilhe com outro app.</string>
+    <string name="report_another_way_body">Não foi possível abrir seu app de e-mail daqui. Envie seu relato para este endereço de qualquer conta ou compartilhe com outro app.</string>
     <string name="report_tap_to_copy">Toque para copiar</string>
     <string name="report_share_with_log">Compartilhar relato e log</string>
     <string name="report_share_text">Compartilhar relato</string>
