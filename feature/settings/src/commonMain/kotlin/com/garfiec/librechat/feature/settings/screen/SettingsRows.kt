@@ -19,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -68,12 +69,7 @@ internal fun SettingsRow(
     contentPadding: PaddingValues = SettingsRowPadding,
     trailingContent: (@Composable () -> Unit)? = null,
 ) {
-    val click = when {
-        onClick == null -> Modifier
-        selected != null ->
-            Modifier.selectable(selected = selected, enabled = enabled, role = Role.Tab, onClick = onClick)
-        else -> Modifier.clickable(enabled = enabled, role = Role.Button, onClick = onClick)
-    }
+    val click = if (onClick == null) Modifier else Modifier.settingsRowClick(onClick, selected, enabled)
     val fill = if (selected == true) Modifier.background(adaptiveSelectedRowColor) else Modifier
     Column(modifier = modifier.then(fill)) {
         SettingsRowLayout(
@@ -88,16 +84,33 @@ internal fun SettingsRow(
         ) {
             when {
                 trailingContent != null -> trailingContent()
-                showChevron -> Icon(
-                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                showChevron -> SettingsChevron()
             }
         }
         if (showDivider) SettingsRowDivider(hasIcon = icon != null)
     }
+}
+
+/** A row's tap: a non-null [selected] makes it a tab of a list whose open item it marks, else a button. */
+internal fun Modifier.settingsRowClick(onClick: () -> Unit, selected: Boolean?, enabled: Boolean = true): Modifier =
+    if (selected != null) {
+        selectable(selected = selected, enabled = enabled, role = Role.Tab, onClick = onClick)
+    } else {
+        clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+    }
+
+/** The trailing arrow of a row that opens something. */
+@Composable
+internal fun SettingsChevron(
+    modifier: Modifier = Modifier,
+    tint: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+) {
+    Icon(
+        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+        contentDescription = null,
+        modifier = modifier.size(20.dp),
+        tint = tint,
+    )
 }
 
 /**
@@ -268,11 +281,7 @@ internal fun AdvancedSettingsLink(
             )
         }
         Spacer(modifier = Modifier.width(8.dp))
-        Icon(
-            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-            contentDescription = null,
-            modifier = Modifier.size(20.dp),
-        )
+        SettingsChevron(tint = LocalContentColor.current)
     }
 }
 

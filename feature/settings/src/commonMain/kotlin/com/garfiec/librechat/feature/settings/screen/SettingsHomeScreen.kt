@@ -1,7 +1,6 @@
 package com.garfiec.librechat.feature.settings.screen
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -17,9 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.Forum
 import androidx.compose.material.icons.filled.Info
@@ -29,7 +26,6 @@ import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.RecordVoiceOver
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Tune
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -46,7 +42,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.coerceAtMost
 import androidx.compose.ui.unit.dp
@@ -344,16 +339,11 @@ private fun AdaptiveSectionScope.homeRows(
 /** Opens Account; a non-null [selected] marks it as [SettingsRow] does. */
 @Composable
 private fun ProfileCard(profile: SettingsHomeProfile, selected: Boolean?, onClick: () -> Unit) {
-    val click = if (selected != null) {
-        Modifier.selectable(selected = selected, role = Role.Tab, onClick = onClick)
-    } else {
-        Modifier.clickable(role = Role.Button, onClick = onClick)
-    }
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .then(if (selected == true) Modifier.background(adaptiveSelectedRowColor) else Modifier)
-            .then(click)
+            .settingsRowClick(onClick, selected)
             .padding(horizontal = 16.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -390,13 +380,6 @@ private fun ProfileCard(profile: SettingsHomeProfile, selected: Boolean?, onClic
                 )
             }
         }
-        if (selected == null) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+        if (selected == null) SettingsChevron()
     }
 }
