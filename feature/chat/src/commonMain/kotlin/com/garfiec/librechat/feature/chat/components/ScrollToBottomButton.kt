@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.ui.components.AdaptiveFloatingActionButton
 import com.garfiec.librechat.core.ui.glass.GlassBackdrop
+import com.garfiec.librechat.core.ui.theme.chatColors
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_scroll_to_bottom
 import kotlinx.coroutines.launch
@@ -61,7 +62,7 @@ internal fun ScrollToBottomButton(
                 }
             },
             small = true,
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            containerColor = chatColors().jumpButton,
             contentColor = MaterialTheme.colorScheme.onSurface,
             elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp),
             backdrop = backdrop,

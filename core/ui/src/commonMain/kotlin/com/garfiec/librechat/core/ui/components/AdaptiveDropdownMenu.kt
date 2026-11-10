@@ -98,6 +98,9 @@ fun AdaptiveDropdownMenu(
 
 private val GlassMenuShadow = 12.dp
 
+/** A server theme's menu edge, as the web draws every menu (`border-menu`, 1px). */
+internal val MenuBorderWidth = 1.dp
+
 /**
  * Every menu's corners, in both styles (glass uses it as `GlassDefaults.MenuShape`): rounder than
  * M3's 4dp `MenuDefaults.shape`, so a menu matches the app's cards and sheets. Clipped, so a row's

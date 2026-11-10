@@ -10,6 +10,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
@@ -71,6 +72,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
 import com.garfiec.librechat.core.ui.glass.GlassPortal
 import com.garfiec.librechat.core.ui.glass.GlassSheetHostState
+import com.garfiec.librechat.core.ui.theme.chromeColors
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.math.max
 import kotlin.math.min
@@ -292,6 +294,7 @@ private fun MorphingMenu(
                                 alpha = (max(px, py) / PANEL_FADE_IN).coerceIn(0f, 1f) * (1f - BACK_FADE * back.value)
                             }
                             .background(containerColor)
+                            .border(MenuBorderWidth, chromeColors().menuBorder, shape)
                             .onPlaced { effects.inside = it }
                             .drawBehind { if (drag != null) drawHighlight(drag.highlight, effects.inside, highlightColor) }
                             // While closing, rows are on their way out: swallow taps so one can't fire twice.

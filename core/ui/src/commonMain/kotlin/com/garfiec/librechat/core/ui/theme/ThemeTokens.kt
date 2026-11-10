@@ -11,8 +11,9 @@ import com.garfiec.librechat.core.model.files.FileKind
 /**
  * The colour roles the app paints beyond the M3 [ColorScheme], for one light or dark mode. Every
  * theme fills all of them, so a reader never keeps a palette of its own: read them through
- * [statusColors], [SeriesColors] and [FileKindColors], which take them from [LocalThemeTokens].
- * Names follow the LibreChat web roles they correspond to (`status-*`, `series-1..8`, `file-*`).
+ * [statusColors], [SeriesColors], [FileKindColors], [chatColors] and [chromeColors], which take them
+ * from [LocalThemeTokens]. Names follow the LibreChat web roles they correspond to (`status-*`,
+ * `series-1..8`, `file-*`).
  */
 @Immutable
 data class ThemeTokens(
@@ -21,6 +22,8 @@ data class ThemeTokens(
     val series: List<Color>,
     /** A fill for every [FileKind], under a white glyph: Switchboard's at 4.5:1, a server's as it gives them, like the web. */
     val fileKinds: Map<FileKind, Color>,
+    val chat: ChatColors,
+    val chrome: ChromeColors,
 ) {
     init {
         require(series.size == SERIES_SLOTS) { "series needs $SERIES_SLOTS colours, got ${series.size}" }
@@ -43,6 +46,8 @@ data class ThemeTokens(
                 ),
                 series = series,
                 fileKinds = FileKind.entries.associateWith { FileKindColors.switchboard(it, dark) },
+                chat = ChatColors.switchboard(scheme, dark),
+                chrome = ChromeColors.switchboard(scheme),
             )
         }
 
@@ -62,6 +67,8 @@ data class ThemeTokens(
             fileKinds = FileKind.entries.associateWith { kind ->
                 SERVER_FILE_ROLES[kind]?.let(colors::color) ?: FileKindColors.switchboard(kind, dark)
             },
+            chat = ChatColors.server(colors),
+            chrome = ChromeColors.server(colors),
         )
 
         private val SERVER_SERIES = listOf(

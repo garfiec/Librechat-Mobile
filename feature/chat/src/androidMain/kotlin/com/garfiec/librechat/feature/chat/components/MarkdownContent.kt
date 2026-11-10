@@ -61,6 +61,7 @@ import com.garfiec.librechat.core.ui.components.topbar.BarIcons
 import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
 import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.core.ui.components.topbar.MaterialBarStyle
+import com.garfiec.librechat.core.ui.theme.chatColors
 import com.garfiec.librechat.core.ui.theme.isSurfaceDark
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
@@ -271,21 +272,22 @@ private fun MarkdownTextSegment(
     search: MarkdownSearch? = null,
 ) {
     val components = remember(search) { search?.let(::searchMarkdownComponents) ?: ChatMarkdownComponents }
+    val chat = chatColors()
     val colors = markdownColor(
-        text = MaterialTheme.colorScheme.onSurface,
-        codeBackground = MaterialTheme.colorScheme.surfaceContainerHigh,
-        inlineCodeBackground = MaterialTheme.colorScheme.surfaceContainerHigh,
-        dividerColor = MaterialTheme.colorScheme.outlineVariant,
+        text = chat.messageText,
+        codeBackground = chat.codeBody,
+        inlineCodeBackground = chat.inlineCode,
+        dividerColor = chat.rule,
     )
     val bodyLarge = MaterialTheme.typography.bodyLarge
     val bodyMedium = MaterialTheme.typography.bodyMedium
     val typography = markdownTypography(
-        h1 = MaterialTheme.typography.headlineLarge.scaleFontSize(fontSizeMultiplier),
-        h2 = MaterialTheme.typography.headlineMedium.scaleFontSize(fontSizeMultiplier),
-        h3 = MaterialTheme.typography.headlineSmall.scaleFontSize(fontSizeMultiplier),
-        h4 = MaterialTheme.typography.titleLarge.scaleFontSize(fontSizeMultiplier),
-        h5 = MaterialTheme.typography.titleMedium.scaleFontSize(fontSizeMultiplier),
-        h6 = MaterialTheme.typography.titleSmall.scaleFontSize(fontSizeMultiplier),
+        h1 = MaterialTheme.typography.headlineLarge.copy(color = chat.headingText).scaleFontSize(fontSizeMultiplier),
+        h2 = MaterialTheme.typography.headlineMedium.copy(color = chat.headingText).scaleFontSize(fontSizeMultiplier),
+        h3 = MaterialTheme.typography.headlineSmall.copy(color = chat.headingText).scaleFontSize(fontSizeMultiplier),
+        h4 = MaterialTheme.typography.titleLarge.copy(color = chat.headingText).scaleFontSize(fontSizeMultiplier),
+        h5 = MaterialTheme.typography.titleMedium.copy(color = chat.headingText).scaleFontSize(fontSizeMultiplier),
+        h6 = MaterialTheme.typography.titleSmall.copy(color = chat.headingText).scaleFontSize(fontSizeMultiplier),
         text = bodyLarge.scaleFontSize(fontSizeMultiplier),
         paragraph = bodyLarge.scaleFontSize(fontSizeMultiplier),
         quote = bodyLarge.copy(fontStyle = FontStyle.Italic).scaleFontSize(fontSizeMultiplier),
@@ -294,6 +296,7 @@ private fun MarkdownTextSegment(
         ordered = bodyLarge.scaleFontSize(fontSizeMultiplier),
         bullet = bodyLarge.scaleFontSize(fontSizeMultiplier),
         list = bodyLarge.scaleFontSize(fontSizeMultiplier),
+        textLink = proseLinkStyles(chat.linkInline),
     )
 
     // CachedMarkdown reads the ParsedMarkdownCache hoisted on ChatViewModel and
@@ -485,9 +488,11 @@ private fun MarkdownTableGrid(
     onFocusedMatchPosition: ((LayoutCoordinates, Rect) -> Unit)?,
 ) {
     val isSearchActive = !searchQuery.isNullOrBlank()
-    val textColor = MaterialTheme.colorScheme.onSurface
-    val headerBackground = MaterialTheme.colorScheme.surfaceContainerHigh
-    val dividerColor = MaterialTheme.colorScheme.outlineVariant
+    val chat = chatColors()
+    val textColor = chat.messageText
+    val headerTextColor = chat.onTableHeader
+    val headerBackground = chat.tableHeader
+    val dividerColor = chat.tableBorder
     val cellPaddingV = 8.dp
 
     Box(
@@ -534,7 +539,7 @@ private fun MarkdownTableGrid(
                     TableCell(
                         text = header,
                         style = headerStyle,
-                        color = textColor,
+                        color = headerTextColor,
                         alignment = alignments.getOrElse(colIndex) { TableCellAlignment.LEFT },
                         cellWidth = columnWidths[colIndex],
                         paddingH = cellPaddingH,

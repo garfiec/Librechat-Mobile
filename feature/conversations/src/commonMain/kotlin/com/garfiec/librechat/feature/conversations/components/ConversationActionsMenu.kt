@@ -29,6 +29,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveDropdownMenu
 import com.garfiec.librechat.core.ui.components.MenuDragSelection
 import com.garfiec.librechat.core.ui.components.dragSelectRowIcon
 import com.garfiec.librechat.core.ui.components.menuDragTarget
+import com.garfiec.librechat.core.ui.theme.chromeColors
 import com.garfiec.librechat.feature.conversations.resources.*
 import com.garfiec.librechat.feature.conversations.resources.Res
 import org.jetbrains.compose.resources.stringResource
@@ -91,7 +92,7 @@ fun ConversationActionsMenu(
         offset = offset,
         // A step above the drawer's surfaceContainerLow so the menu reads as a distinct surface
         // floating over it instead of blending into the panel.
-        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        containerColor = chromeColors().popover,
         modifier = modifier,
         dragSelection = dragSelection,
     ) {

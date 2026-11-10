@@ -45,6 +45,7 @@ import com.garfiec.librechat.core.ui.components.PdfPasswordDialog
 import com.garfiec.librechat.core.ui.glass.glassBackdropSource
 import com.garfiec.librechat.core.ui.mcp.McpVariablesSheet
 import com.garfiec.librechat.core.ui.platform.rememberReduceMotion
+import com.garfiec.librechat.core.ui.theme.chatColors
 import com.garfiec.librechat.core.ui.websearch.WebSearchKeysSheet
 import com.garfiec.librechat.feature.chat.components.AskUserQuestionPanel
 import com.garfiec.librechat.feature.chat.components.ChatComposer
@@ -470,6 +471,7 @@ fun ChatScreen(
         // must extend under the status bar — only reserve the navigation-bar inset here (for the
         // snackbar); the composer handles its own nav-bar padding.
         contentWindowInsets = WindowInsets.navigationBars,
+        containerColor = chatColors().canvas,
         snackbarHost = { AdaptiveSnackbarHost(snackbarHostState) },
     ) { _ ->
         // The composer overlays the message list at the bottom; the list reserves a scrollable

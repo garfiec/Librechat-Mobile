@@ -13,6 +13,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.padding
@@ -76,6 +77,7 @@ import androidx.compose.ui.util.lerp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.PopupProperties
+import com.garfiec.librechat.core.ui.theme.chromeColors
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -187,6 +189,7 @@ internal fun MaterialMenuPopup(
                         translationY = lean.value.y
                     }
                     .background(containerColor)
+                    .border(MenuBorderWidth, chromeColors().menuBorder, shape)
                     .onPlaced { effects.inside = it }
                     .drawBehind { if (drag != null) drawHighlight(drag.highlight, effects.inside, highlightColor) }
                     // While closing, rows are on their way out: swallow taps so one can't fire twice.

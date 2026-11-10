@@ -75,6 +75,7 @@ import com.garfiec.librechat.core.ui.components.topbar.BarIcons
 import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
 import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.core.ui.components.topbar.MaterialBarStyle
+import com.garfiec.librechat.core.ui.theme.chatColors
 import com.garfiec.librechat.core.ui.theme.isSurfaceDark
 import com.garfiec.librechat.feature.chat.components.sendflight.sendFlightBubble
 import com.garfiec.librechat.feature.chat.components.sendflight.sendFlightHeader
@@ -281,7 +282,7 @@ private fun ThreadBubble(
 
         val contentPad = if (showAvatars) 36.dp else 0.dp
         val bubbleBg = if (showBubbles) {
-            if (isUser) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceVariant
+            if (isUser) chatColors().userMessage else MaterialTheme.colorScheme.surfaceVariant
         } else {
             null
         }
@@ -371,7 +372,7 @@ private fun TwoSidedBubble(
         else -> null
     }
     val bubbleBg = if (showBubbles) {
-        if (isUser) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceVariant
+        if (isUser) chatColors().userMessage else MaterialTheme.colorScheme.surfaceVariant
     } else {
         null
     }
@@ -518,25 +519,28 @@ actual fun MarkdownContent(
 ) {
     val segments = rememberCitedMarkdownSegments(text, streaming, withoutCitations = !searchQuery.isNullOrBlank())
 
+    val chat = chatColors()
     val colors = markdownColor(
-        text = MaterialTheme.colorScheme.onSurface,
-        codeBackground = MaterialTheme.colorScheme.surfaceContainerHigh,
-        inlineCodeBackground = MaterialTheme.colorScheme.surfaceContainerHigh, dividerColor = MaterialTheme.colorScheme.outlineVariant,
+        text = chat.messageText,
+        codeBackground = chat.codeBody,
+        inlineCodeBackground = chat.inlineCode,
+        dividerColor = chat.rule,
     )
     val bl = MaterialTheme.typography.bodyLarge
     val bm = MaterialTheme.typography.bodyMedium
     val typography = markdownTypography(
-        h1 = MaterialTheme.typography.headlineLarge.scale(fontSizeMultiplier),
-        h2 = MaterialTheme.typography.headlineMedium.scale(fontSizeMultiplier),
-        h3 = MaterialTheme.typography.headlineSmall.scale(fontSizeMultiplier),
-        h4 = MaterialTheme.typography.titleLarge.scale(fontSizeMultiplier),
-        h5 = MaterialTheme.typography.titleMedium.scale(fontSizeMultiplier),
-        h6 = MaterialTheme.typography.titleSmall.scale(fontSizeMultiplier),
+        h1 = MaterialTheme.typography.headlineLarge.copy(color = chat.headingText).scale(fontSizeMultiplier),
+        h2 = MaterialTheme.typography.headlineMedium.copy(color = chat.headingText).scale(fontSizeMultiplier),
+        h3 = MaterialTheme.typography.headlineSmall.copy(color = chat.headingText).scale(fontSizeMultiplier),
+        h4 = MaterialTheme.typography.titleLarge.copy(color = chat.headingText).scale(fontSizeMultiplier),
+        h5 = MaterialTheme.typography.titleMedium.copy(color = chat.headingText).scale(fontSizeMultiplier),
+        h6 = MaterialTheme.typography.titleSmall.copy(color = chat.headingText).scale(fontSizeMultiplier),
         text = bl.scale(fontSizeMultiplier), paragraph = bl.scale(fontSizeMultiplier),
         quote = bl.copy(fontStyle = FontStyle.Italic).scale(fontSizeMultiplier),
         code = bm.copy(fontFamily = FontFamily.Monospace).scale(fontSizeMultiplier),
         inlineCode = bl.copy(fontFamily = FontFamily.Monospace).scale(fontSizeMultiplier),
         ordered = bl.scale(fontSizeMultiplier), bullet = bl.scale(fontSizeMultiplier), list = bl.scale(fontSizeMultiplier),
+        textLink = proseLinkStyles(chat.linkInline),
     )
 
     val isSearchActive = !searchQuery.isNullOrBlank()
@@ -854,9 +858,11 @@ private fun IosMarkdownTableGrid(
     onFocusedMatchPosition: ((LayoutCoordinates, Rect) -> Unit)?,
 ) {
     val isSearchActive = !searchQuery.isNullOrBlank()
-    val textColor = MaterialTheme.colorScheme.onSurface
-    val headerBackground = MaterialTheme.colorScheme.surfaceContainerHigh
-    val dividerColor = MaterialTheme.colorScheme.outlineVariant
+    val chat = chatColors()
+    val textColor = chat.messageText
+    val headerTextColor = chat.onTableHeader
+    val headerBackground = chat.tableHeader
+    val dividerColor = chat.tableBorder
     val cellPaddingV = 8.dp
 
     Box(
@@ -887,7 +893,7 @@ private fun IosMarkdownTableGrid(
                 headers.forEachIndexed { colIndex, header ->
                     if (colIndex > 0) VerticalDivider(color = dividerColor, modifier = Modifier.fillMaxHeight())
                     TableCell(
-                        header, headerStyle, textColor, alignments.getOrElse(colIndex) { TableCellAlignment.LEFT },
+                        header, headerStyle, headerTextColor, alignments.getOrElse(colIndex) { TableCellAlignment.LEFT },
                         columnWidths[colIndex], cellPaddingH, cellPaddingV,
                         searchQuery = searchQuery,
                         searchFocusedOccurrence = if (isSearchActive) searchFocusedOccurrence - headerOffsets[colIndex] else -1,

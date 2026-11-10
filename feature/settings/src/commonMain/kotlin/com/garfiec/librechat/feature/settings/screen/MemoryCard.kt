@@ -62,6 +62,7 @@ import com.garfiec.librechat.core.ui.components.rememberMenuDragSelection
 import com.garfiec.librechat.core.ui.datetime.LocalDateTimeFormat
 import com.garfiec.librechat.core.ui.datetime.LocalRelativeTimeReference
 import com.garfiec.librechat.core.ui.datetime.resolve
+import com.garfiec.librechat.core.ui.theme.chromeColors
 import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.resources.action_delete
 import com.garfiec.librechat.feature.settings.resources.cd_memory_options
@@ -282,7 +283,7 @@ internal fun MemoryMenuButton(
         AdaptiveDropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            containerColor = chromeColors().popover,
             // The same gap below the icon whatever the button's size.
             offset = DpOffset(0.dp, (MenuGapBelowIcon - (buttonSize - MenuIconSize) / 2).coerceAtLeast(0.dp)),
             dragSelection = drag,

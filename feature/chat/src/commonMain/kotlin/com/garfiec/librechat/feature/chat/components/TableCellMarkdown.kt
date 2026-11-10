@@ -3,6 +3,7 @@ package com.garfiec.librechat.feature.chat.components
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.LinkAnnotation
@@ -10,6 +11,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withLink
 import androidx.compose.ui.unit.em
@@ -17,6 +19,7 @@ import com.garfiec.librechat.core.model.content.CITATION_ANCHOR
 import com.garfiec.librechat.core.model.content.CitationIndex
 import com.garfiec.librechat.core.model.content.CitationPiece
 import com.garfiec.librechat.core.model.content.citationPieces
+import com.garfiec.librechat.core.ui.theme.chatColors
 import com.mikepenz.markdown.annotator.AnnotatorSettings
 import com.mikepenz.markdown.annotator.DefaultAnnotatorSettings
 import com.mikepenz.markdown.annotator.buildMarkdownAnnotatedString
@@ -125,7 +128,7 @@ private val PlainCellSettings = DefaultAnnotatorSettings(
 
 @Composable
 internal fun rememberTableCellAnnotatorSettings(): AnnotatorSettings {
-    val linkColor = MaterialTheme.colorScheme.primary
+    val linkColor = chatColors().linkProse
     val codeBackground = MaterialTheme.colorScheme.surfaceContainerHighest
     val highlightText = MaterialTheme.colorScheme.onSecondaryContainer
     val highlightBackground = MaterialTheme.colorScheme.secondaryContainer
@@ -178,3 +181,7 @@ private class TableCellCache(private val settings: AnnotatorSettings) {
         return rendered
     }
 }
+
+/** A link in running prose: bold and underlined, as the markdown library draws one, in [color]. */
+internal fun proseLinkStyles(color: Color): TextLinkStyles =
+    TextLinkStyles(SpanStyle(color = color, fontWeight = FontWeight.Bold, textDecoration = TextDecoration.Underline))

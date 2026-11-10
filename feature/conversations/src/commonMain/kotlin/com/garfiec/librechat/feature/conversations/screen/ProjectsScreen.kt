@@ -83,6 +83,7 @@ import com.garfiec.librechat.core.ui.components.topbar.MaterialBarStyle
 import com.garfiec.librechat.core.ui.datetime.LocalDateTimeFormat
 import com.garfiec.librechat.core.ui.datetime.LocalRelativeTimeReference
 import com.garfiec.librechat.core.ui.datetime.resolve
+import com.garfiec.librechat.core.ui.theme.chromeColors
 import com.garfiec.librechat.feature.conversations.components.ProjectDeleteDialog
 import com.garfiec.librechat.feature.conversations.components.ProjectEditorSheet
 import com.garfiec.librechat.feature.conversations.components.ProjectMenuButton
@@ -379,7 +380,7 @@ private fun SortRow(uiState: ProjectsUiState, onSortChange: (ProjectSort) -> Uni
             AdaptiveDropdownMenu(
                 expanded = menuOpen,
                 onDismissRequest = { menuOpen = false },
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                containerColor = chromeColors().popover,
             ) {
                 ProjectSort.entries.forEach { sort ->
                     DropdownMenuItem(

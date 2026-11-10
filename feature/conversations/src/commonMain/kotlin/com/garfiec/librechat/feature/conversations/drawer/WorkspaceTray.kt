@@ -91,6 +91,7 @@ import com.garfiec.librechat.core.ui.components.menuDragPressEffect
 import com.garfiec.librechat.core.ui.components.menuDragTarget
 import com.garfiec.librechat.core.ui.components.rememberMenuDragSelection
 import com.garfiec.librechat.core.ui.resources.bookmarks
+import com.garfiec.librechat.core.ui.theme.chromeColors
 import com.garfiec.librechat.core.ui.theme.isLiquidGlass
 import com.garfiec.librechat.feature.conversations.resources.Res
 import com.garfiec.librechat.feature.conversations.resources.agents
@@ -311,7 +312,7 @@ private fun WorkspaceRow(
                     .onPlaced { trayFrame.value = it },
                 offset = DpOffset(x = 0.dp, y = if (isLiquidGlass) TrayGap else -TrayGap),
                 scrollState = scroll,
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                containerColor = chromeColors().popover,
                 dragSelection = drag,
             ) {
                 val open: (WorkspaceDestination) -> Unit = { destination ->
