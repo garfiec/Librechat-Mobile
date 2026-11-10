@@ -10,7 +10,6 @@
     <string name="action_delete">削除</string>
     <string name="action_done">完了</string>
     <string name="action_retry">再試行</string>
-    <string name="action_revoke_all">すべて取り消す</string>
     <string name="action_save">保存</string>
     <string name="action_sign_out">サインアウト</string>
     <string name="action_upload">アップロード</string>
@@ -402,8 +401,6 @@
     <string name="dialog_clear_cache_message">キャッシュされた画像と一時データをクリアします。アカウントのデータには影響しません。</string>
 
     <!-- Revoke keys dialog -->
-    <string name="dialog_title_revoke_keys">すべてのAPIキーを取り消す</string>
-    <string name="dialog_revoke_keys_message">保存されているすべてのAPIキーを取り消します。外部サービスを引き続き使用するには再入力が必要になります。</string>
 
     <!-- Data settings -->
     <string name="clear_all_conversations">すべての会話をクリア</string>
@@ -419,8 +416,6 @@
     <string name="archived_conversations">アーカイブ済みの会話</string>
     <string name="clear_cache_with_size">キャッシュをクリア (%1$s)</string>
     <string name="clear_cache">キャッシュをクリア</string>
-    <string name="revoke_all_api_keys">すべてのAPIキーを取り消す</string>
-    <string name="revoking">取り消し中…</string>
     <string name="dialog_title_clear_conversations">すべての会話をクリア</string>
     <string name="dialog_clear_conversations_message">すべての会話を完全に削除します。この操作は取り消せません。</string>
     <string name="clear_all">すべてクリア</string>
@@ -675,7 +670,7 @@
     <string name="provider_keys_needs_access_keys">アクセスキー</string>
     <string name="provider_keys_needs_bearer_or_access_keys">ベアラートークンまたはアクセスキー</string>
     <string name="provider_keys_summary_note">キーはサーバーに保存され、有効期限が切れると削除されます。</string>
-    <string name="provider_keys_revoke_all_button">すべてのキーを取り消す</string>
+    <string name="provider_keys_revoke_all_button">すべてのキーを削除</string>
     <plurals name="provider_keys_status_expires_in_minutes">
         <item quantity="other">残り %1$d 分</item>
     </plurals>

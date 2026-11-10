@@ -10,7 +10,6 @@
     <string name="action_delete">Excluir</string>
     <string name="action_done">Concluído</string>
     <string name="action_retry">Tentar novamente</string>
-    <string name="action_revoke_all">Revogar tudo</string>
     <string name="action_save">Salvar</string>
     <string name="action_sign_out">Sair</string>
     <string name="action_upload">Enviar</string>
@@ -408,8 +407,6 @@
     <string name="dialog_clear_cache_message">Isso limpará as imagens em cache e os dados temporários. Os dados da sua conta não serão afetados.</string>
 
     <!-- Revoke keys dialog -->
-    <string name="dialog_title_revoke_keys">Revogar todas as chaves de API</string>
-    <string name="dialog_revoke_keys_message">Isso revogará todas as chaves de API armazenadas. Você precisará inseri-las novamente para continuar usando serviços externos.</string>
 
     <!-- Data settings -->
     <string name="clear_all_conversations">Limpar todas as conversas</string>
@@ -426,8 +423,6 @@
     <string name="archived_conversations">Conversas arquivadas</string>
     <string name="clear_cache_with_size">Limpar cache (%1$s)</string>
     <string name="clear_cache">Limpar cache</string>
-    <string name="revoke_all_api_keys">Revogar todas as chaves de API</string>
-    <string name="revoking">Revogando…</string>
     <string name="dialog_title_clear_conversations">Limpar todas as conversas</string>
     <string name="dialog_clear_conversations_message">Isso excluirá permanentemente todas as suas conversas. Esta ação não pode ser desfeita.</string>
     <string name="clear_all">Limpar tudo</string>
@@ -686,7 +681,7 @@
     <string name="provider_keys_needs_access_keys">chaves de acesso</string>
     <string name="provider_keys_needs_bearer_or_access_keys">token bearer ou chaves de acesso</string>
     <string name="provider_keys_summary_note">As chaves ficam armazenadas no seu servidor e são excluídas quando expiram.</string>
-    <string name="provider_keys_revoke_all_button">Revogar todas as chaves</string>
+    <string name="provider_keys_revoke_all_button">Remover todas as chaves</string>
     <plurals name="provider_keys_status_expires_in_minutes">
         <item quantity="one">Expira em %1$d min</item>
         <item quantity="other">Expira em %1$d min</item>

@@ -12,9 +12,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -61,7 +59,6 @@ fun DataSettingsContent(
     val prefetchState by prefetchViewModel.uiState.collectAsStateWithLifecycle()
 
     var showClearCacheDialog by remember { mutableStateOf(false) }
-    var showRevokeKeysDialog by remember { mutableStateOf(false) }
 
     // Diagnostic-log export → platform file saver (issue #96)
     var pendingLogsFileName by remember { mutableStateOf<String?>(null) }
@@ -153,8 +150,6 @@ fun DataSettingsContent(
                         onClearCacheClick = { showClearCacheDialog = true },
                         isCacheClearing = uiState.isCacheClearing,
                         cacheSizeBytes = uiState.cacheSizeBytes,
-                        onRevokeKeysClick = { showRevokeKeysDialog = true },
-                        isKeyRevoking = uiState.isKeyRevoking,
                     )
                 }
             }
@@ -215,33 +210,6 @@ fun DataSettingsContent(
                 },
             )
         }
-
-        // Revoke keys confirmation
-        if (showRevokeKeysDialog) {
-            AdaptiveAlertDialog(
-                onDismissRequest = { showRevokeKeysDialog = false },
-                title = { Text(stringResource(Res.string.dialog_title_revoke_keys)) },
-                text = { Text(stringResource(Res.string.dialog_revoke_keys_message)) },
-                confirmButton = {
-                    AdaptiveTextButton(
-                        onClick = {
-                            showRevokeKeysDialog = false
-                            viewModel.revokeAllKeys()
-                        },
-                        colors = ButtonDefaults.textButtonColors(
-                            contentColor = MaterialTheme.colorScheme.error,
-                        ),
-                    ) {
-                        Text(stringResource(Res.string.action_revoke_all))
-                    }
-                },
-                dismissButton = {
-                    AdaptiveTextButton(onClick = { showRevokeKeysDialog = false }) {
-                        Text(stringResource(Res.string.action_cancel))
-                    }
-                },
-            )
-        }
     }
 }
 
@@ -251,8 +219,6 @@ internal fun DataExtraActions(
     onClearCacheClick: () -> Unit,
     isCacheClearing: Boolean,
     cacheSizeBytes: Long?,
-    onRevokeKeysClick: () -> Unit,
-    isKeyRevoking: Boolean,
 ) {
     Column {
         Column(
@@ -295,18 +261,6 @@ internal fun DataExtraActions(
                         else -> stringResource(Res.string.clear_cache)
                     },
                 )
-            }
-
-            // Revoke API keys
-            AdaptiveOutlinedButton(
-                onClick = onRevokeKeysClick,
-                enabled = !isKeyRevoking,
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = MaterialTheme.colorScheme.error,
-                ),
-            ) {
-                Text(stringResource(if (isKeyRevoking) Res.string.revoking else Res.string.revoke_all_api_keys))
             }
         }
         AdaptiveDivider(modifier = Modifier.padding(top = 8.dp))

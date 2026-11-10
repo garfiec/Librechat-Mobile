@@ -10,7 +10,6 @@
     <string name="action_delete">حذف</string>
     <string name="action_done">تم</string>
     <string name="action_retry">إعادة المحاولة</string>
-    <string name="action_revoke_all">إبطال الكل</string>
     <string name="action_save">حفظ</string>
     <string name="action_sign_out">تسجيل الخروج</string>
     <string name="action_upload">رفع</string>
@@ -432,8 +431,6 @@
     <string name="dialog_clear_cache_message">سيؤدي هذا إلى مسح الصور المخزّنة مؤقتًا والبيانات المؤقتة. لن تتأثر بيانات حسابك.</string>
 
     <!-- Revoke keys dialog -->
-    <string name="dialog_title_revoke_keys">إبطال جميع مفاتيح API</string>
-    <string name="dialog_revoke_keys_message">سيؤدي هذا إلى إبطال جميع مفاتيح API المخزّنة لديك. ستحتاج إلى إعادة إدخالها لمتابعة استخدام الخدمات الخارجية.</string>
 
     <!-- Data settings -->
     <string name="clear_all_conversations">مسح جميع المحادثات</string>
@@ -454,8 +451,6 @@
     <string name="archived_conversations">المحادثات المؤرشفة</string>
     <string name="clear_cache_with_size">مسح ذاكرة التخزين المؤقت (%1$s)</string>
     <string name="clear_cache">مسح ذاكرة التخزين المؤقت</string>
-    <string name="revoke_all_api_keys">إبطال جميع مفاتيح API</string>
-    <string name="revoking">جارٍ الإبطال…</string>
     <string name="dialog_title_clear_conversations">مسح جميع المحادثات</string>
     <string name="dialog_clear_conversations_message">سيؤدي هذا إلى حذف جميع محادثاتك نهائيًا. لا يمكن التراجع عن هذا الإجراء.</string>
     <string name="clear_all">مسح الكل</string>
@@ -730,7 +725,7 @@
     <string name="provider_keys_needs_access_keys">مفاتيح الوصول</string>
     <string name="provider_keys_needs_bearer_or_access_keys">رمز Bearer أو مفاتيح الوصول</string>
     <string name="provider_keys_summary_note">تُخزَّن المفاتيح على خادمك وتُحذف عند انتهاء صلاحيتها.</string>
-    <string name="provider_keys_revoke_all_button">إبطال جميع المفاتيح</string>
+    <string name="provider_keys_revoke_all_button">إزالة جميع المفاتيح</string>
     <plurals name="provider_keys_status_expires_in_minutes">
         <item quantity="zero">ينتهي خلال %1$d دقيقة</item>
         <item quantity="one">ينتهي خلال دقيقة واحدة</item>

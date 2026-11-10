@@ -10,7 +10,6 @@
     <string name="action_delete">Eliminar</string>
     <string name="action_done">Hecho</string>
     <string name="action_retry">Reintentar</string>
-    <string name="action_revoke_all">Revocar todo</string>
     <string name="action_save">Guardar</string>
     <string name="action_sign_out">Cerrar sesión</string>
     <string name="action_upload">Subir</string>
@@ -408,8 +407,6 @@
     <string name="dialog_clear_cache_message">Esto borrará las imágenes en caché y los datos temporales. Los datos de tu cuenta no se verán afectados.</string>
 
     <!-- Revoke keys dialog -->
-    <string name="dialog_title_revoke_keys">Revocar todas las claves de API</string>
-    <string name="dialog_revoke_keys_message">Esto revocará todas las claves de API que tienes almacenadas. Tendrás que volver a introducirlas para seguir usando los servicios externos.</string>
 
     <!-- Data settings -->
     <string name="clear_all_conversations">Borrar todas las conversaciones</string>
@@ -426,8 +423,6 @@
     <string name="archived_conversations">Conversaciones archivadas</string>
     <string name="clear_cache_with_size">Borrar caché (%1$s)</string>
     <string name="clear_cache">Borrar caché</string>
-    <string name="revoke_all_api_keys">Revocar todas las claves de API</string>
-    <string name="revoking">Revocando…</string>
     <string name="dialog_title_clear_conversations">Borrar todas las conversaciones</string>
     <string name="dialog_clear_conversations_message">Esto eliminará permanentemente todas tus conversaciones. Esta acción no se puede deshacer.</string>
     <string name="clear_all">Borrar todo</string>
@@ -686,7 +681,7 @@
     <string name="provider_keys_needs_access_keys">claves de acceso</string>
     <string name="provider_keys_needs_bearer_or_access_keys">token bearer o claves de acceso</string>
     <string name="provider_keys_summary_note">Las claves se guardan en tu servidor y se eliminan cuando caducan.</string>
-    <string name="provider_keys_revoke_all_button">Revocar todas las claves</string>
+    <string name="provider_keys_revoke_all_button">Quitar todas las claves</string>
     <plurals name="provider_keys_status_expires_in_minutes">
         <item quantity="one">Caduca en %1$d min</item>
         <item quantity="other">Caduca en %1$d min</item>

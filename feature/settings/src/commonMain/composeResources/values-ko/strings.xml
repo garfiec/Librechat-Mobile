@@ -10,7 +10,6 @@
     <string name="action_delete">삭제</string>
     <string name="action_done">완료</string>
     <string name="action_retry">다시 시도</string>
-    <string name="action_revoke_all">모두 해제</string>
     <string name="action_save">저장</string>
     <string name="action_sign_out">로그아웃</string>
     <string name="action_upload">업로드</string>
@@ -402,8 +401,6 @@
     <string name="dialog_clear_cache_message">캐시된 이미지와 임시 데이터를 지웁니다. 계정 데이터에는 영향을 주지 않습니다.</string>
 
     <!-- Revoke keys dialog -->
-    <string name="dialog_title_revoke_keys">모든 API 키 해제</string>
-    <string name="dialog_revoke_keys_message">저장된 모든 API 키를 해제합니다. 외부 서비스를 계속 사용하려면 다시 입력해야 합니다.</string>
 
     <!-- Data settings -->
     <string name="clear_all_conversations">모든 대화 지우기</string>
@@ -419,8 +416,6 @@
     <string name="archived_conversations">보관된 대화</string>
     <string name="clear_cache_with_size">캐시 지우기 (%1$s)</string>
     <string name="clear_cache">캐시 지우기</string>
-    <string name="revoke_all_api_keys">모든 API 키 해제</string>
-    <string name="revoking">해제하는 중…</string>
     <string name="dialog_title_clear_conversations">모든 대화 지우기</string>
     <string name="dialog_clear_conversations_message">모든 대화를 영구적으로 삭제합니다. 이 작업은 되돌릴 수 없습니다.</string>
     <string name="clear_all">모두 지우기</string>
@@ -675,7 +670,7 @@
     <string name="provider_keys_needs_access_keys">액세스 키</string>
     <string name="provider_keys_needs_bearer_or_access_keys">베어러 토큰 또는 액세스 키</string>
     <string name="provider_keys_summary_note">키는 서버에 저장되며 만료되면 삭제됩니다.</string>
-    <string name="provider_keys_revoke_all_button">모든 키 해제</string>
+    <string name="provider_keys_revoke_all_button">모든 키 삭제</string>
     <plurals name="provider_keys_status_expires_in_minutes">
         <item quantity="other">%1$d분 후 만료</item>
     </plurals>

@@ -10,7 +10,6 @@
     <string name="action_delete">Delete</string>
     <string name="action_done">Done</string>
     <string name="action_retry">Retry</string>
-    <string name="action_revoke_all">Revoke all</string>
     <string name="action_save">Save</string>
     <string name="action_sign_out">Sign out</string>
     <string name="action_upload">Upload</string>
@@ -416,8 +415,6 @@
     <string name="dialog_clear_cache_message">This will clear cached images and temporary data. Your account data will not be affected.</string>
 
     <!-- Revoke keys dialog -->
-    <string name="dialog_title_revoke_keys">Revoke all API keys</string>
-    <string name="dialog_revoke_keys_message">This will revoke all your stored API keys. You will need to re-enter them to continue using external services.</string>
 
     <!-- Data settings -->
     <string name="clear_all_conversations">Clear all conversations</string>
@@ -434,8 +431,6 @@
     <string name="archived_conversations">Archived conversations</string>
     <string name="clear_cache_with_size">Clear cache (%1$s)</string>
     <string name="clear_cache">Clear cache</string>
-    <string name="revoke_all_api_keys">Revoke all API keys</string>
-    <string name="revoking">Revoking…</string>
     <string name="dialog_title_clear_conversations">Clear all conversations</string>
     <string name="dialog_clear_conversations_message">This will permanently delete all your conversations. This action cannot be undone.</string>
     <string name="clear_all">Clear all</string>
@@ -694,7 +689,7 @@
     <string name="provider_keys_needs_access_keys">access keys</string>
     <string name="provider_keys_needs_bearer_or_access_keys">bearer token or access keys</string>
     <string name="provider_keys_summary_note">Keys are stored on your server and deleted when they expire.</string>
-    <string name="provider_keys_revoke_all_button">Revoke all keys</string>
+    <string name="provider_keys_revoke_all_button">Remove all keys</string>
     <plurals name="provider_keys_status_expires_in_minutes">
         <item quantity="one">Expires in %1$d min</item>
         <item quantity="other">Expires in %1$d min</item>

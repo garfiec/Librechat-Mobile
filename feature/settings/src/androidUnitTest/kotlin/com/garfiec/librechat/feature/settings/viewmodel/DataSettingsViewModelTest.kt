@@ -4,7 +4,6 @@ import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.ConversationRepository
-import com.garfiec.librechat.core.data.repository.KeyRepository
 import com.garfiec.librechat.core.logging.DiagnosticLogRepository
 import com.garfiec.librechat.feature.settings.util.PlatformCacheCleaner
 import com.google.common.truth.Truth.assertThat
@@ -31,7 +30,6 @@ class DataSettingsViewModelTest {
 
     private val cacheCleaner = mockk<PlatformCacheCleaner>(relaxed = true)
     private val conversationRepository = mockk<ConversationRepository>(relaxed = true)
-    private val keyRepository = mockk<KeyRepository>(relaxed = true)
     private val configRepository = mockk<ConfigRepository>(relaxed = true)
     private val diagnosticLogRepository = mockk<DiagnosticLogRepository>(relaxed = true)
 
@@ -56,7 +54,6 @@ class DataSettingsViewModelTest {
     private fun createViewModel() = DataSettingsViewModel(
         cacheCleaner = cacheCleaner,
         conversationRepository = conversationRepository,
-        keyRepository = keyRepository,
         diagnosticLogRepository = diagnosticLogRepository,
         configRepository = configRepository,
     )
@@ -103,34 +100,6 @@ class DataSettingsViewModelTest {
         advanceUntilIdle()
 
         assertThat(viewModel.uiState.value.error).isNull()
-    }
-
-    @Test
-    fun `revokeAllKeys calls keyRepository`() = runTest {
-        coEvery { keyRepository.deleteAllKeys() } returns Result.Success(Unit)
-
-        viewModel = createViewModel()
-        advanceUntilIdle()
-
-        viewModel.revokeAllKeys()
-        advanceUntilIdle()
-
-        coVerify { keyRepository.deleteAllKeys() }
-        assertThat(viewModel.uiState.value.isKeyRevoking).isFalse()
-    }
-
-    @Test
-    fun `revokeAllKeys failure shows error`() = runTest {
-        coEvery { keyRepository.deleteAllKeys() } returns
-            Result.Error(message = "Failed to revoke")
-
-        viewModel = createViewModel()
-        advanceUntilIdle()
-
-        viewModel.revokeAllKeys()
-        advanceUntilIdle()
-
-        assertThat(viewModel.uiState.value.error).isEqualTo("Failed to revoke")
     }
 
     @Test

@@ -255,8 +255,6 @@ private fun DataButtonsHost() {
             onClearCacheClick = {},
             isCacheClearing = false,
             cacheSizeBytes = null,
-            onRevokeKeysClick = {},
-            isKeyRevoking = false,
         )
     }
 }

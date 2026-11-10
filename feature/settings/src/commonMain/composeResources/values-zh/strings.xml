@@ -10,7 +10,6 @@
     <string name="action_delete">删除</string>
     <string name="action_done">完成</string>
     <string name="action_retry">重试</string>
-    <string name="action_revoke_all">全部吊销</string>
     <string name="action_save">保存</string>
     <string name="action_sign_out">退出登录</string>
     <string name="action_upload">上传</string>
@@ -402,8 +401,6 @@
     <string name="dialog_clear_cache_message">这将清除已缓存的图片和临时数据。你的账户数据不会受到影响。</string>
 
     <!-- Revoke keys dialog -->
-    <string name="dialog_title_revoke_keys">吊销所有 API 密钥</string>
-    <string name="dialog_revoke_keys_message">这将吊销你所有已存储的 API 密钥。如需继续使用外部服务，你需要重新输入它们。</string>
 
     <!-- Data settings -->
     <string name="clear_all_conversations">清除所有对话</string>
@@ -419,8 +416,6 @@
     <string name="archived_conversations">已归档对话</string>
     <string name="clear_cache_with_size">清除缓存 (%1$s)</string>
     <string name="clear_cache">清除缓存</string>
-    <string name="revoke_all_api_keys">吊销所有 API 密钥</string>
-    <string name="revoking">吊销中…</string>
     <string name="dialog_title_clear_conversations">清除所有对话</string>
     <string name="dialog_clear_conversations_message">这将永久删除你的所有对话。此操作无法撤销。</string>
     <string name="clear_all">全部清除</string>
@@ -675,7 +670,7 @@
     <string name="provider_keys_needs_access_keys">访问密钥</string>
     <string name="provider_keys_needs_bearer_or_access_keys">Bearer 令牌或访问密钥</string>
     <string name="provider_keys_summary_note">密钥存储在你的服务器上，过期后会被删除。</string>
-    <string name="provider_keys_revoke_all_button">吊销所有密钥</string>
+    <string name="provider_keys_revoke_all_button">移除所有密钥</string>
     <plurals name="provider_keys_status_expires_in_minutes">
         <item quantity="other">%1$d 分钟后过期</item>
     </plurals>

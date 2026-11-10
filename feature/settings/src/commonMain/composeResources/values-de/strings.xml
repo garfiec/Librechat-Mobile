@@ -10,7 +10,6 @@
     <string name="action_delete">Löschen</string>
     <string name="action_done">Fertig</string>
     <string name="action_retry">Erneut versuchen</string>
-    <string name="action_revoke_all">Alle widerrufen</string>
     <string name="action_save">Speichern</string>
     <string name="action_sign_out">Abmelden</string>
     <string name="action_upload">Hochladen</string>
@@ -408,8 +407,6 @@
     <string name="dialog_clear_cache_message">Dies löscht zwischengespeicherte Bilder und temporäre Daten. Deine Kontodaten sind nicht betroffen.</string>
 
     <!-- Revoke keys dialog -->
-    <string name="dialog_title_revoke_keys">Alle API-Schlüssel widerrufen</string>
-    <string name="dialog_revoke_keys_message">Dies widerruft alle deine gespeicherten API-Schlüssel. Du musst sie erneut eingeben, um externe Dienste weiter zu nutzen.</string>
 
     <!-- Data settings -->
     <string name="clear_all_conversations">Alle Unterhaltungen löschen</string>
@@ -426,8 +423,6 @@
     <string name="archived_conversations">Archivierte Unterhaltungen</string>
     <string name="clear_cache_with_size">Cache leeren (%1$s)</string>
     <string name="clear_cache">Cache leeren</string>
-    <string name="revoke_all_api_keys">Alle API-Schlüssel widerrufen</string>
-    <string name="revoking">Wird widerrufen…</string>
     <string name="dialog_title_clear_conversations">Alle Unterhaltungen löschen</string>
     <string name="dialog_clear_conversations_message">Dies löscht alle deine Unterhaltungen dauerhaft. Diese Aktion kann nicht rückgängig gemacht werden.</string>
     <string name="clear_all">Alle löschen</string>
@@ -686,7 +681,7 @@
     <string name="provider_keys_needs_access_keys">Zugriffsschlüssel</string>
     <string name="provider_keys_needs_bearer_or_access_keys">Bearer-Token oder Zugriffsschlüssel</string>
     <string name="provider_keys_summary_note">Schlüssel werden auf deinem Server gespeichert und nach Ablauf gelöscht.</string>
-    <string name="provider_keys_revoke_all_button">Alle Schlüssel widerrufen</string>
+    <string name="provider_keys_revoke_all_button">Alle Schlüssel entfernen</string>
     <plurals name="provider_keys_status_expires_in_minutes">
         <item quantity="one">Läuft in %1$d Min. ab</item>
         <item quantity="other">Läuft in %1$d Min. ab</item>

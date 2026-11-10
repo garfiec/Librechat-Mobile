@@ -6,7 +6,6 @@ import androidx.lifecycle.viewModelScope
 import com.garfiec.librechat.core.common.BackendVersion
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.ConversationRepository
-import com.garfiec.librechat.core.data.repository.KeyRepository
 import com.garfiec.librechat.core.logging.DiagnosticLogRepository
 import com.garfiec.librechat.feature.settings.util.PlatformCacheCleaner
 import com.garfiec.librechat.feature.settings.viewmodel.delegate.DataManagementDelegate
@@ -38,12 +37,11 @@ data class DataSettingsUiState(
     val archiveAllSupported: Boolean = false,
     /** One-shot count from the last successful archive-all, for the confirmation snackbar. */
     val archivedAllCount: Int? = null,
-    // Cache / Keys
+    // Cache
     /** Cached images and files, in bytes; null until read. Excludes the database — see
      *  [com.garfiec.librechat.feature.settings.util.PlatformCacheCleaner.cacheSizeBytes]. */
     val cacheSizeBytes: Long? = null,
     val isCacheClearing: Boolean = false,
-    val isKeyRevoking: Boolean = false,
     // Diagnostic logs (issue #96)
     val isLogsExporting: Boolean = false,
     val isLogsClearing: Boolean = false,
@@ -60,13 +58,12 @@ data class DataSettingsUiState(
     val codeExecutionEnabled: Boolean = false,
 )
 
-/** Backs the Data tab: conversations, cache, keys and diagnostic logs. */
+/** Backs Privacy & data and Advanced's troubleshooting rows: conversations, cache and diagnostic logs. */
 // TooManyFunctions: one-line forwarders to the data delegate.
 @Suppress("TooManyFunctions")
 class DataSettingsViewModel(
     cacheCleaner: PlatformCacheCleaner,
     conversationRepository: ConversationRepository,
-    keyRepository: KeyRepository,
     diagnosticLogRepository: DiagnosticLogRepository,
     configRepository: ConfigRepository,
 ) : ViewModel() {
@@ -79,7 +76,6 @@ class DataSettingsViewModel(
         stateHandle,
         cacheCleaner,
         conversationRepository,
-        keyRepository,
         diagnosticLogRepository,
     )
 
@@ -114,7 +110,6 @@ class DataSettingsViewModel(
     fun archiveAllChats() = dataDelegate.archiveAllChats()
     fun consumeArchivedAllCount() = dataDelegate.consumeArchivedAllCount()
     fun clearCache() = dataDelegate.clearCache()
-    fun revokeAllKeys() = dataDelegate.revokeAllKeys()
 
     // Diagnostic logs (issue #96)
     fun exportLogs() = dataDelegate.exportLogs()

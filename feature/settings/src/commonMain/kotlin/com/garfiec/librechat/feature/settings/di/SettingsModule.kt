@@ -63,7 +63,6 @@ val settingsModule = module {
         DataSettingsViewModel(
             cacheCleaner = get(),
             conversationRepository = get(),
-            keyRepository = get(),
             diagnosticLogRepository = get(),
             configRepository = get(),
         )
