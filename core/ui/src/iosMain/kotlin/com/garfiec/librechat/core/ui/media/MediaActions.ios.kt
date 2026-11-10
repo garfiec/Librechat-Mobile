@@ -99,7 +99,7 @@ internal suspend fun writeTempFile(bytes: ByteArray, filename: String, mime: Str
 }
 
 /** Strips path separators so a server-supplied filename can't escape the temp dir. */
-private fun sanitizeFilename(filename: String): String =
+internal fun sanitizeFilename(filename: String): String =
     filename.substringAfterLast('/').substringAfterLast('\\').ifBlank { "file" }
 
 /**
