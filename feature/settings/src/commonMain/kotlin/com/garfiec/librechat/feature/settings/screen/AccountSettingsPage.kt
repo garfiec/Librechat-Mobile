@@ -10,8 +10,6 @@ import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Fingerprint
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
@@ -329,54 +327,24 @@ fun AccountSettingsPage(
 
         // Logout confirmation dialog
         if (showLogoutDialog) {
-            AdaptiveAlertDialog(
-                onDismissRequest = { showLogoutDialog = false },
-                title = { Text(stringResource(Res.string.dialog_title_sign_out)) },
-                text = { Text(stringResource(Res.string.dialog_sign_out_message)) },
-                confirmButton = {
-                    AdaptiveTextButton(
-                        onClick = {
-                            showLogoutDialog = false
-                            viewModel.logout()
-                        },
-                    ) {
-                        Text(stringResource(Res.string.action_sign_out))
-                    }
-                },
-                dismissButton = {
-                    AdaptiveTextButton(onClick = { showLogoutDialog = false }) {
-                        Text(stringResource(Res.string.action_cancel))
-                    }
-                },
+            ConfirmDialog(
+                title = Res.string.dialog_title_sign_out,
+                message = Res.string.dialog_sign_out_message,
+                confirmLabel = Res.string.action_sign_out,
+                destructive = false,
+                onConfirm = viewModel::logout,
+                onDismiss = { showLogoutDialog = false },
             )
         }
 
-        // Delete account confirmation dialog
         if (showDeleteDialog) {
-            AdaptiveAlertDialog(
-                onDismissRequest = { showDeleteDialog = false },
-                title = { Text(stringResource(Res.string.dialog_title_delete_account)) },
-                text = {
-                    Text(stringResource(Res.string.dialog_delete_account_message))
-                },
-                confirmButton = {
-                    AdaptiveTextButton(
-                        onClick = {
-                            showDeleteDialog = false
-                            viewModel.deleteAccount()
-                        },
-                        colors = ButtonDefaults.textButtonColors(
-                            contentColor = MaterialTheme.colorScheme.error,
-                        ),
-                    ) {
-                        Text(stringResource(Res.string.action_delete))
-                    }
-                },
-                dismissButton = {
-                    AdaptiveTextButton(onClick = { showDeleteDialog = false }) {
-                        Text(stringResource(Res.string.action_cancel))
-                    }
-                },
+            ConfirmDialog(
+                title = Res.string.dialog_title_delete_account,
+                message = Res.string.dialog_delete_account_message,
+                confirmLabel = Res.string.action_delete,
+                destructive = true,
+                onConfirm = { viewModel.deleteAccount() },
+                onDismiss = { showDeleteDialog = false },
             )
         }
 

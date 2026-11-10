@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -33,10 +32,8 @@ import com.garfiec.librechat.core.model.ArtifactsMode
 import com.garfiec.librechat.core.model.speech.SttEngine
 import com.garfiec.librechat.core.ui.artifacts.artifactsModeDescription
 import com.garfiec.librechat.core.ui.artifacts.artifactsModeName
-import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveGroupedPage
 import com.garfiec.librechat.core.ui.components.AdaptiveSectionHeader
-import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
 import com.garfiec.librechat.core.ui.components.adaptiveSection
 import com.garfiec.librechat.core.ui.platform.TextFileSaver
 import com.garfiec.librechat.core.ui.resources.artifacts_mode_intro
@@ -261,26 +258,13 @@ fun AdvancedSettingsPage(
     }
 
     if (showClearLogsDialog) {
-        AdaptiveAlertDialog(
-            onDismissRequest = { showClearLogsDialog = false },
-            title = { Text(stringResource(Res.string.dialog_title_clear_logs)) },
-            text = { Text(stringResource(Res.string.dialog_clear_logs_message)) },
-            confirmButton = {
-                AdaptiveTextButton(
-                    onClick = {
-                        showClearLogsDialog = false
-                        dataViewModel.clearLogs()
-                    },
-                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                ) {
-                    Text(stringResource(Res.string.clear_all))
-                }
-            },
-            dismissButton = {
-                AdaptiveTextButton(onClick = { showClearLogsDialog = false }) {
-                    Text(stringResource(Res.string.action_cancel))
-                }
-            },
+        ConfirmDialog(
+            title = Res.string.dialog_title_clear_logs,
+            message = Res.string.dialog_clear_logs_message,
+            confirmLabel = Res.string.clear_all,
+            destructive = true,
+            onConfirm = dataViewModel::clearLogs,
+            onDismiss = { showClearLogsDialog = false },
         )
     }
 
