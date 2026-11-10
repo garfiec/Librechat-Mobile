@@ -12,7 +12,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -26,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.ApiKey
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
+import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
 import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
@@ -91,7 +91,7 @@ private fun CreateKeyFormDialog(
             }
         },
         confirmButton = {
-            TextButton(
+            AdaptiveTextButton(
                 onClick = { onCreateKey(name.trim()) },
                 enabled = name.isNotBlank() && !isCreating,
             ) {
@@ -99,7 +99,7 @@ private fun CreateKeyFormDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            AdaptiveTextButton(onClick = onDismiss) {
                 Text(stringResource(Res.string.action_cancel))
             }
         },
@@ -173,7 +173,7 @@ private fun CreatedKeyDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) {
+            AdaptiveTextButton(onClick = onDismiss) {
                 Text(stringResource(Res.string.action_done))
             }
         },

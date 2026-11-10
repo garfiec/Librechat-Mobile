@@ -14,3 +14,9 @@ actual fun rememberDisableHomeScreenShortcut(): (id: String, message: String) ->
         }
     }
 }
+
+@Composable
+actual fun rememberHomeScreenShortcutsSupported(): Boolean {
+    val context = LocalContext.current
+    return remember(context) { ShortcutManagerCompat.isRequestPinShortcutSupported(context) }
+}

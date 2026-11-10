@@ -87,6 +87,7 @@ import com.garfiec.librechat.core.data.util.PermissionGate
 import com.garfiec.librechat.core.data.util.SessionTask
 import com.garfiec.librechat.core.data.util.SessionTaskRunner
 import com.garfiec.librechat.core.logging.DiagnosticLogRepository
+import com.garfiec.librechat.core.logging.PlatformInfo
 import com.garfiec.librechat.core.network.api.AgentToolsApi
 import com.garfiec.librechat.core.network.api.AgentsApi
 import com.garfiec.librechat.core.network.api.ApiKeysApi
@@ -182,6 +183,7 @@ class KoinGraphVerificationTest {
             ChannelPolicy::class,
             // core:logging provides
             DiagnosticLogRepository::class,
+            PlatformInfo::class,
             // core:network provides
             TokenManager::class,
             ServerUrlProvider::class,

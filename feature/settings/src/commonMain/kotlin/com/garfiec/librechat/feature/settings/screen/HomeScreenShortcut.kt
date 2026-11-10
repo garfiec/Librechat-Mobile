@@ -9,3 +9,7 @@ import androidx.compose.runtime.Composable
  */
 @Composable
 expect fun rememberDisableHomeScreenShortcut(): (id: String, message: String) -> Unit
+
+/** Whether the launcher can pin artifact shortcuts; the Chats page lists them only where it can. */
+@Composable
+expect fun rememberHomeScreenShortcutsSupported(): Boolean

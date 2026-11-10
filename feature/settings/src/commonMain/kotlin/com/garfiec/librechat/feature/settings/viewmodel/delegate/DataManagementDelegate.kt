@@ -5,7 +5,6 @@ import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.common.result.suspendRunCatching
 import com.garfiec.librechat.core.data.repository.ConversationRepository
-import com.garfiec.librechat.core.data.repository.KeyRepository
 import com.garfiec.librechat.core.logging.DiagnosticLogRepository
 import com.garfiec.librechat.core.logging.diagnosticLogFileName
 import com.garfiec.librechat.feature.settings.util.PlatformCacheCleaner
@@ -15,13 +14,12 @@ import com.garfiec.librechat.feature.settings.viewmodel.SettingsStateHandle
 import kotlinx.coroutines.launch
 
 /**
- * Handles clear conversations, export, cache clearing, and key revocation.
+ * Handles clear conversations, cache clearing and diagnostic logs.
  */
 class DataManagementDelegate(
     private val stateHandle: SettingsStateHandle<DataSettingsUiState>,
     private val cacheCleaner: PlatformCacheCleaner,
     private val conversationRepository: ConversationRepository,
-    private val keyRepository: KeyRepository,
     private val diagnosticLogRepository: DiagnosticLogRepository,
 ) {
 
@@ -81,14 +79,6 @@ class DataManagementDelegate(
     /** Clears the consumed count so a recomposition won't re-announce it. */
     fun consumeArchivedAllCount() {
         stateHandle.update { copy(archivedAllCount = null) }
-    }
-
-    fun exportAllData() {
-        stateHandle.update { copy(showExportComingSoon = true) }
-    }
-
-    fun dismissExportComingSoon() {
-        stateHandle.update { copy(showExportComingSoon = false) }
     }
 
     // ── Diagnostic logs (issue #96) ────────────────────────────────
@@ -181,26 +171,6 @@ class DataManagementDelegate(
                         error = e.message ?: "Failed to clear cache",
                     )
                 }
-            }
-        }
-    }
-
-    fun revokeAllKeys() {
-        stateHandle.scope.launch {
-            stateHandle.update { copy(isKeyRevoking = true) }
-            when (val result = keyRepository.deleteAllKeys()) {
-                is Result.Success -> {
-                    stateHandle.update { copy(isKeyRevoking = false) }
-                }
-                is Result.Error -> {
-                    stateHandle.update {
-                        copy(
-                            isKeyRevoking = false,
-                            error = result.message ?: "Failed to revoke API keys",
-                        )
-                    }
-                }
-                is Result.Loading -> { /* no-op */ }
             }
         }
     }

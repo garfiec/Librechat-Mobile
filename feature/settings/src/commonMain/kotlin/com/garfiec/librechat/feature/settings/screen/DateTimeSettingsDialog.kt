@@ -10,7 +10,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -26,7 +25,7 @@ import com.garfiec.librechat.core.common.datetime.TimestampStyle
 import com.garfiec.librechat.core.common.datetime.messageLabel
 import com.garfiec.librechat.core.common.extensions.RelativeTimeReference
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
-import com.garfiec.librechat.core.ui.components.AdaptiveSegmentedChoice
+import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
 import com.garfiec.librechat.core.ui.datetime.LocalDateTimeFormat
 import com.garfiec.librechat.core.ui.datetime.LocalRelativeTimeReference
 import com.garfiec.librechat.core.ui.datetime.rememberDateLocaleTag
@@ -96,21 +95,19 @@ internal fun DateTimeSettingsDialog(
                 DateTimePreview(pendingFormat)
 
                 SectionLabel(stringResource(Res.string.date_time_timestamps))
-                val styles = TimestampStyle.entries
-                AdaptiveSegmentedChoice(
-                    options = styles.map { timestampStyleLabel(it) },
-                    selectedIndex = styles.indexOf(pending.style),
-                    onSelect = { pending = pending.copy(style = styles[it]) },
-                    modifier = Modifier.fillMaxWidth(),
+                TimestampStyleOptions(
+                    pending = pending,
+                    systemIs24Hour = systemIs24Hour,
+                    localeTag = localeTag,
+                    onSelect = { pending = pending.copy(style = it) },
                 )
 
                 SectionLabel(stringResource(Res.string.date_time_clock))
-                val clocks = ClockFormat.entries
-                AdaptiveSegmentedChoice(
-                    options = clocks.map { clockFormatLabel(it) },
-                    selectedIndex = clocks.indexOf(pending.clock),
-                    onSelect = { pending = pending.copy(clock = clocks[it]) },
-                    modifier = Modifier.fillMaxWidth(),
+                ClockOptions(
+                    pending = pending,
+                    systemIs24Hour = systemIs24Hour,
+                    localeTag = localeTag,
+                    onSelect = { pending = pending.copy(clock = it) },
                 )
                 Text(
                     text = stringResource(
@@ -132,12 +129,12 @@ internal fun DateTimeSettingsDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = { onSave(pending) }) {
+            AdaptiveTextButton(onClick = { onSave(pending) }) {
                 Text(stringResource(Res.string.action_save))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            AdaptiveTextButton(onClick = onDismiss) {
                 Text(stringResource(Res.string.action_cancel))
             }
         },
@@ -168,6 +165,54 @@ private fun DateTimePreview(format: ResolvedDateTimeFormat) {
         )
         labels.forEach { Text(text = it.resolve(), style = MaterialTheme.typography.bodyMedium) }
     }
+}
+
+/** Each style is captioned with how it labels a message sent a day ago, so "Smart" explains itself. */
+@Composable
+private fun TimestampStyleOptions(
+    pending: DateTimeFormatPrefs,
+    systemIs24Hour: Boolean,
+    localeTag: String,
+    onSelect: (TimestampStyle) -> Unit,
+) {
+    val reference = LocalRelativeTimeReference.current
+    val samples = remember(pending.clock, pending.date, systemIs24Hour, localeTag, reference) {
+        val sent = reference.now - 1.days
+        TimestampStyle.entries.associateWith { style ->
+            sent.messageLabel(ResolvedDateTimeFormat.resolve(pending.copy(style = style), systemIs24Hour, localeTag), reference)
+        }
+    }
+    RadioGroup(
+        options = TimestampStyle.entries,
+        selected = pending.style,
+        onSelect = onSelect,
+        optionLabel = { timestampStyleLabel(it) },
+        optionDescription = { samples.getValue(it).resolve() },
+    )
+}
+
+/** Each clock is captioned with the time now in it. */
+@Composable
+private fun ClockOptions(
+    pending: DateTimeFormatPrefs,
+    systemIs24Hour: Boolean,
+    localeTag: String,
+    onSelect: (ClockFormat) -> Unit,
+) {
+    val reference = LocalRelativeTimeReference.current
+    val samples = remember(pending.date, systemIs24Hour, localeTag, reference) {
+        ClockFormat.entries.associateWith { clock ->
+            val format = ResolvedDateTimeFormat.resolve(pending.copy(clock = clock), systemIs24Hour, localeTag)
+            format.format(reference.now, format.patterns.time, reference.timeZone)
+        }
+    }
+    RadioGroup(
+        options = ClockFormat.entries,
+        selected = pending.clock,
+        onSelect = onSelect,
+        optionLabel = { clockFormatLabel(it) },
+        optionDescription = { samples[it] },
+    )
 }
 
 /** Each option is captioned with today's date in that format, so the choice is made by sight. */
@@ -234,9 +279,13 @@ private fun dateFormatStyleLabel(style: DateFormatStyle): String = when (style) 
 
 /** The settings-row subtitle: a live absolute sample plus the style name, e.g. "05.08.2026 20:58 · Relative". */
 @Composable
-internal fun dateTimeSummary(): String {
+internal fun dateTimeSummary(): String =
+    "${dateTimeSample()} · ${timestampStyleLabel(LocalDateTimeFormat.current.prefs.style)}"
+
+/** The current time in the chosen absolute format, e.g. "05.08.2026 20:58". */
+@Composable
+internal fun dateTimeSample(): String {
     val format = LocalDateTimeFormat.current
     val reference = LocalRelativeTimeReference.current
-    val sample = remember(format, reference) { format.formatAbsolute(reference.now, reference.timeZone) }
-    return "$sample · ${timestampStyleLabel(format.prefs.style)}"
+    return remember(format, reference) { format.formatAbsolute(reference.now, reference.timeZone) }
 }

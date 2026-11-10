@@ -4,14 +4,12 @@
     <string name="action_add">添加</string>
     <string name="action_cancel">取消</string>
     <string name="action_clear">清除</string>
-    <string name="action_confirm">确认</string>
     <string name="action_copy">复制</string>
     <string name="action_creating">创建中…</string>
     <string name="action_create">创建</string>
     <string name="action_delete">删除</string>
     <string name="action_done">完成</string>
     <string name="action_retry">重试</string>
-    <string name="action_revoke_all">全部吊销</string>
     <string name="action_save">保存</string>
     <string name="action_sign_out">退出登录</string>
     <string name="action_upload">上传</string>
@@ -28,7 +26,6 @@
     <string name="shared_chats_copy_link">复制链接</string>
     <string name="cd_create_api_key">创建 API 密钥</string>
     <string name="cd_current_avatar">当前头像</string>
-    <string name="cd_delete">删除</string>
     <string name="cd_delete_api_key">删除 API 密钥</string>
     <string name="cd_delete_preset">删除预设</string>
     <string name="memory_redacted_key">已隐藏的条目</string>
@@ -36,34 +33,24 @@
     <string name="memory_redacted_value_no_delete">此服务器的内容策略隐藏了此处存储的内容。</string>
     <string name="cd_loading_profile">正在加载个人资料</string>
     <string name="account_profile_load_failed">无法加载你的个人资料。</string>
-    <string name="cd_make_private">设为私有</string>
-    <string name="cd_make_public">设为公开</string>
     <string name="cd_preview_voice">试听语音</string>
     <string name="cd_avatar_preview">头像预览</string>
     <string name="cd_selected">已选择</string>
     <string name="cd_selected_avatar">已选头像</string>
     <string name="cd_stop_voice_preview">停止语音试听</string>
-    <string name="cd_test_tts_voice">测试所选 TTS 语音</string>
-    <string name="cd_toggle_auto_read">切换自动朗读回复</string>
-    <string name="cd_toggle_auto_send_stt">切换语音后自动发送</string>
-    <string name="cd_tts_voice_selector">选择 TTS 语音。当前为 %1$s</string>
     <string name="cd_user_avatar">用户头像</string>
     <string name="cd_view_all_tools">查看全部工具</string>
 
     <!-- Section headers -->
     <string name="section_about">关于</string>
     <string name="section_updates">更新</string>
-    <string name="section_advanced">高级</string>
     <string name="section_appearance">外观</string>
-    <string name="appearance_theme_and_style">主题与样式</string>
     <!-- The switch in the interface style previews: an in-joke, "go outside". -->
     <string name="ui_style_preview_switch">去摸摸草</string>
     <string name="section_balance">余额</string>
-    <string name="section_chat_preferences">聊天偏好</string>
     <string name="section_conversations">对话</string>
     <string name="section_danger_zone">危险操作区</string>
     <string name="section_language_region">语言和地区</string>
-    <string name="section_layout">布局</string>
     <string name="section_prefetch">后台预加载</string>
     <string name="prefetch_enabled">预加载对话</string>
     <string name="prefetch_enabled_desc">提前加载最近和已固定的对话，以便即时打开。在应用空闲时运行，充电时也会定期运行。</string>
@@ -129,26 +116,17 @@
     <string name="prefetch_cache_messages">已缓存消息</string>
     <string name="prefetch_cache_messages_value">%1$d 条消息</string>
     <string name="prefetch_cache_images">图片和文件</string>
-    <string name="section_presets">预设</string>
     <string name="section_profile">个人资料</string>
     <string name="section_security">安全</string>
-    <string name="section_speech">语音</string>
     <!-- Screen titles -->
-    <string name="title_account">账户</string>
     <string name="title_api_keys">API 密钥</string>
-    <string name="title_chat">聊天</string>
-    <string name="title_data">数据</string>
-    <string name="title_general">通用</string>
     <string name="title_memories">记忆</string>
     <string name="title_mcp_servers">MCP 服务器</string>
     <string name="title_presets">预设</string>
     <string name="title_settings">设置</string>
 
     <!-- Tabbed settings tabs -->
-    <string name="tab_general">通用</string>
-    <string name="tab_chat">聊天</string>
-    <string name="tab_account">账户</string>
-    <string name="tab_data">数据</string>
+    <string name="category_account">账户</string>
 
     <!-- Theme -->
     <string name="theme_system">跟随系统</string>
@@ -171,7 +149,6 @@
     <string name="language_system_default">跟随系统</string>
     <string name="status_enabled">已启用</string>
     <string name="status_disabled">已禁用</string>
-    <string name="fork_behavior">分叉行为</string>
     <string name="api_keys">API 密钥</string>
     <string name="api_keys_subtitle">管理用于程序化访问的 API 密钥</string>
     <string name="presets">预设</string>
@@ -270,21 +247,16 @@
     </plurals>
     <string name="cd_token_balance">Token 余额：%1$s 额度</string>
     <string name="chat_group_display">显示</string>
-    <string name="chat_group_behavior">行为</string>
-    <string name="chat_group_header_context">标题栏与上下文</string>
 
     <!-- Chat settings -->
-    <string name="chat_layout">聊天布局</string>
     <string name="chat_layout_thread">线程式</string>
-    <string name="chat_layout_two_sided">双侧聊天</string>
+    <string name="chat_layout_two_sided">双侧</string>
     <string name="chat_layout_thread_desc">所有消息左对齐，带头像和名称</string>
     <string name="chat_layout_two_sided_desc">用户消息靠右，智能体靠左</string>
     <string name="show_bubbles">显示气泡</string>
     <string name="show_bubbles_desc">为消息添加圆角气泡背景</string>
     <string name="show_avatars">显示头像</string>
     <string name="show_avatars_desc">在消息旁显示用户和智能体头像</string>
-    <string name="chat_layout_bubbles">气泡</string>
-    <string name="chat_layout_avatars">头像</string>
     <string name="starred_models_title">星标模型</string>
     <string name="starred_models_desc">在模型选择器顶部显示已固定的模型和智能体</string>
     <string name="starred_models_off">关闭</string>
@@ -300,27 +272,20 @@
     <string name="web_search_first_librechat_desc">你服务器的搜索,附带来源。服务器未设置搜索时,使用模型的内置搜索。</string>
     <string name="web_search_first_built_in">优先内置搜索</string>
     <string name="web_search_first_built_in_desc">模型提供商自己的搜索(OpenAI、Claude、Gemini、OpenRouter)。其他模型使用 LibreChat 搜索。</string>
-    <string name="chat_header_title">聊天标题栏</string>
-    <string name="chat_header_summary_format">%1$s · %2$s</string>
-    <string name="chat_header_content_label">内容</string>
-    <string name="chat_header_content_title_option">对话标题</string>
-    <string name="chat_header_content_model">所选模型</string>
+    <string name="chat_header_content_title_option">标题</string>
+    <string name="chat_header_content_model">模型</string>
     <string name="chat_header_content_none">无</string>
-    <string name="chat_header_alignment_label">对齐方式</string>
     <string name="chat_header_alignment_left">左对齐</string>
     <string name="chat_header_alignment_center">居中</string>
-    <string name="chat_header_alignment_fill">填满宽度</string>
-    <string name="font_size">字体大小</string>
+    <string name="chat_header_alignment_fill">全宽</string>
     <string name="font_size_small">小</string>
     <string name="font_size_medium">中</string>
     <string name="font_size_large">大</string>
-    <string name="latex_renderer">LaTeX 渲染器</string>
+    <string name="latex_renderer">数学公式渲染</string>
     <string name="latex_katex">KaTeX（渲染）</string>
     <string name="latex_katex_desc">通过 WebView 完整渲染 LaTeX</string>
     <string name="latex_native">纯文本（快速）</string>
     <string name="latex_native_desc">显示原始 LaTeX 源码以获得更流畅的滚动性能</string>
-    <string name="auto_scroll">流式输出时自动滚动</string>
-    <string name="auto_scroll_desc">在生成回复时自动滚动到新内容</string>
     <string name="thinking_open_by_default">默认展开思考</string>
     <string name="thinking_open_by_default_desc">回复的推理默认展开显示，而不是折叠</string>
     <string name="collapse_long_user_messages">折叠较长的用户消息</string>
@@ -329,7 +294,6 @@
     <string name="client_image_resize_desc">发送前缩小大图，上传更快且更省流量</string>
     <string name="client_image_resize_enforced">此设置由服务器管理员管理</string>
     <string name="context_bar_title">上下文用量</string>
-    <string name="context_bar_desc">上下文窗口用量指示器的显示位置</string>
     <string name="context_bar_hidden">隐藏</string>
     <string name="context_bar_above_input">消息框内</string>
     <string name="context_bar_options_sheet">聊天选项菜单</string>
@@ -341,12 +305,9 @@
 
     <!-- Artifacts -->
     <string name="section_artifacts">Artifacts</string>
-    <string name="artifact_viewer_title">Artifact 查看器</string>
-    <string name="artifact_viewer_desc">点按 artifact 时的打开方式。</string>
+    <string name="artifacts_open_in">Artifact 打开方式</string>
     <string name="artifact_mode_bottom_sheet">底部面板</string>
-    <string name="artifact_mode_bottom_sheet_desc">从底部滑出；向下滑动即可关闭。</string>
     <string name="artifact_mode_fullscreen">全屏</string>
-    <string name="artifact_mode_fullscreen_desc">以全屏页面打开，空间更大。</string>
     <string name="artifact_inline_title">内嵌渲染</string>
     <string name="artifact_inline_enabled_count">已启用 %1$d / %2$d</string>
     <string name="artifact_libraries_title">需留意的库</string>
@@ -422,8 +383,6 @@
     <string name="dialog_clear_cache_message">这将清除已缓存的图片和临时数据。你的账户数据不会受到影响。</string>
 
     <!-- Revoke keys dialog -->
-    <string name="dialog_title_revoke_keys">吊销所有 API 密钥</string>
-    <string name="dialog_revoke_keys_message">这将吊销你所有已存储的 API 密钥。如需继续使用外部服务，你需要重新输入它们。</string>
 
     <!-- Data settings -->
     <string name="clear_all_conversations">清除所有对话</string>
@@ -433,19 +392,16 @@
     <string name="dialog_title_archive_all">归档所有对话？</string>
     <string name="dialog_archive_all_message">所有对话都将移至已归档。你仍可在那里打开它们，也可以随时取消归档。</string>
     <string name="action_archive_all">全部归档</string>
-    <string name="archived_all_count">已归档 %1$d 个对话</string>
+    <plurals name="archived_all_count">
+        <item quantity="other">已归档 %1$d 个对话</item>
+    </plurals>
     <string name="archived_conversations">已归档对话</string>
-    <string name="export_all_data">导出全部数据</string>
-    <string name="clear_cache_with_size">清除缓存 (%1$s)</string>
     <string name="clear_cache">清除缓存</string>
-    <string name="revoke_all_api_keys">吊销所有 API 密钥</string>
-    <string name="revoking">吊销中…</string>
     <string name="dialog_title_clear_conversations">清除所有对话</string>
     <string name="dialog_clear_conversations_message">这将永久删除你的所有对话。此操作无法撤销。</string>
     <string name="clear_all">全部清除</string>
     <!-- Diagnostic logs (issue #96) -->
     <string name="export_diagnostic_logs">导出诊断日志</string>
-    <string name="export_diagnostic_logs_with_size">导出诊断日志（%1$s）</string>
     <string name="exporting_logs">导出中…</string>
     <string name="clear_diagnostic_logs">清除诊断日志</string>
     <string name="clearing_logs">清除中…</string>
@@ -454,21 +410,15 @@
     <string name="dialog_clear_logs_message">这将从本设备永久删除所有已存储的诊断日志。此操作无法撤销。</string>
 
     <!-- Speech settings -->
-    <string name="auto_send_after_speech">语音后自动发送</string>
-    <string name="auto_send_after_speech_desc">语音转文字完成后自动发送消息</string>
-    <string name="auto_read_responses">自动朗读回复</string>
-    <string name="auto_read_responses_desc">使用文字转语音自动朗读 AI 回复</string>
-    <string name="tts_voice">TTS 语音</string>
-    <string name="test_voice">测试语音</string>
+    <string name="auto_send_after_speech">说完后发送</string>
+    <string name="auto_send_after_speech_desc">听写结束后立即发送消息</string>
+    <string name="auto_read_responses">朗读回复</string>
+    <string name="auto_read_responses_desc">每条新回复完成后朗读出来</string>
     <string name="no_server_tts_voices">没有可用的服务器 TTS 语音。服务器上可能未配置语音功能。</string>
-    <string name="using_device_tts">正在使用设备的文字转语音引擎。请在下方的文字转语音设置中配置语音和语速。</string>
-    <string name="speech_to_text_settings">语音转文字设置</string>
-    <string name="text_to_speech_settings">文字转语音设置</string>
 
     <!-- STT detail dialog -->
-    <string name="stt_engine_label">引擎</string>
-    <string name="stt_language_label">语言</string>
-    <string name="stt_default">默认</string>
+    <string name="stt_engine_label">识别引擎</string>
+    <string name="stt_language_label">语音语言</string>
     <string name="stt_engine_browser">内置</string>
     <string name="stt_engine_external">服务器</string>
     <string name="stt_hint_browser">使用设备内置的语音识别进行实时转写。</string>
@@ -476,18 +426,17 @@
     <string name="stt_on_device_toggle">在设备上识别</string>
     <string name="stt_on_device_toggle_desc">在本设备而非云端进行转写。不可用时回退到云端识别。</string>
     <string name="stt_end_of_speech_toggle">停顿时停止</string>
-    <string name="stt_end_of_speech_toggle_desc">在你停止说话后自动结束听写，而不是持续到你点击停止。开启语音后自动发送时，将免提发送消息。</string>
+    <string name="stt_end_of_speech_toggle_desc">你停止说话后即结束听写，无需等你点按停止。开启“说完后发送”后即可免手动操作。</string>
     <string name="stt_auto_detect">自动检测</string>
 
     <!-- TTS detail dialog -->
-    <string name="tts_source_label">来源</string>
+    <string name="tts_source_label">语音来源</string>
     <string name="tts_source_device">设备（内置）</string>
     <string name="tts_source_server">服务器</string>
     <string name="tts_voice_label">语音</string>
     <string name="tts_system_default">跟随系统</string>
-    <string name="tts_speech_rate">语速：%1$sx</string>
+    <string name="tts_speech_rate">速度：%1$sx</string>
     <string name="tts_pitch">音调：%1$s</string>
-    <string name="tts_cache_audio">缓存音频</string>
     <string name="tts_preview_text">这是所选语音的试听。</string>
     <string name="tts_stop_preview">停止试听</string>
     <string name="tts_preview_voice">试听语音</string>
@@ -584,12 +533,6 @@
     <string name="error_failed_to_load_servers">加载服务器失败</string>
     <string name="no_tools_available">没有可用的工具</string>
     <!-- Fork settings -->
-    <string name="fork_mode_direct_path">可见消息</string>
-    <string name="fork_mode_direct_path_desc">仅包含到所选消息的直接消息路径</string>
-    <string name="fork_mode_include_branches">包含分支</string>
-    <string name="fork_mode_include_branches_desc">直接路径以及各层级的同级消息</string>
-    <string name="fork_mode_target_level">直到目标层级的全部</string>
-    <string name="fork_mode_target_level_desc">直到目标消息层级的所有消息和分支（默认）</string>
 
     <!-- Language selector -->
     <string name="hint_search_languages">搜索语言</string>
@@ -700,7 +643,7 @@
     <string name="provider_keys_needs_access_keys">访问密钥</string>
     <string name="provider_keys_needs_bearer_or_access_keys">Bearer 令牌或访问密钥</string>
     <string name="provider_keys_summary_note">密钥存储在你的服务器上，过期后会被删除。</string>
-    <string name="provider_keys_revoke_all_button">吊销所有密钥</string>
+    <string name="provider_keys_revoke_all_button">移除所有密钥</string>
     <plurals name="provider_keys_status_expires_in_minutes">
         <item quantity="other">%1$d 分钟后过期</item>
     </plurals>
@@ -773,7 +716,6 @@
     <string name="show_site_icons">显示网站图标</string>
     <string name="show_site_icons_desc">从 Google 和其他网站加载网页搜索结果的图标</string>
     <string name="context_settings_where">显示位置</string>
-    <string name="context_settings_placement">位置</string>
     <string name="context_settings_detail">详细程度</string>
     <string name="context_settings_compacting">压缩</string>
     <string name="context_settings_preview">预览</string>
@@ -829,7 +771,6 @@
     <string name="date_format_ymd_slash">年/月/日</string>
     <string name="date_format_long">长格式</string>
     <string name="date_time_preview">预览</string>
-    <string name="ui_style">界面风格</string>
     <string name="ui_style_material">Material</string>
     <string name="ui_style_liquid_glass">Liquid Glass</string>
     <string name="ui_style_note_simulated">此 iOS 版本上的 Liquid Glass 为模拟效果。iOS 26 或更高版本会原生绘制。</string>
@@ -840,10 +781,8 @@
     <string name="advanced_search">高级搜索</string>
     <string name="advanced_search_desc">面向高级用户。在搜索界面中添加区分大小写、全字匹配、正则表达式，以及角色、模型和日期筛选。</string>
     <string name="server_user_ca_notice">通过此设备上安装的证书颁发机构获得信任</string>
-    <string name="export_coming_soon">导出功能即将推出</string>
     <string name="mcp_tools_all">所有 MCP 工具</string>
     <string name="mcp_server_unknown">未知</string>
-    <string name="dialog_ok">确定</string>
     <plurals name="mcp_tool_count">
         <item quantity="other">%1$d 个工具</item>
     </plurals>
@@ -895,7 +834,7 @@
     <string name="shared_chats_refresh_failed">无法刷新已分享的对话</string>
     <string name="shared_chats_delete_failed">无法删除链接</string>
     <string name="passkeys_title">通行密钥</string>
-    <string name="passkeys_row_subtitle">使用屏幕锁定或安全密钥登录</string>
+    <string name="passkeys_row_subtitle">管理在网页上添加的通行密钥</string>
     <plurals name="passkeys_row_count">
         <item quantity="other">%1$d 个通行密钥</item>
     </plurals>
@@ -1053,4 +992,72 @@
     <string name="pr_account_disconnect_error">无法断开连接，请重试。</string>
     <string name="pr_account_connect_error">无法开始连接，请重试。</string>
     <string name="pr_account_not_available">此服务器不支持连接账号。</string>
+    <string name="speech_error_voice_preview">无法试听语音，请重试。</string>
+    <string name="speech_error_playback">无法播放音频。</string>
+    <string name="accent_name_blue">蓝色</string>
+    <string name="accent_name_indigo">靛蓝</string>
+    <string name="accent_name_lavender">薰衣草紫</string>
+    <string name="accent_name_cyan">青色</string>
+    <string name="accent_name_turquoise">绿松石色</string>
+    <string name="accent_name_green">绿色</string>
+    <string name="accent_name_amber">琥珀色</string>
+    <string name="accent_name_orange">橙色</string>
+    <string name="accent_name_red">红色</string>
+    <string name="accent_name_pink">粉色</string>
+    <string name="accent_name_slate">石板灰</string>
+    <string name="category_chats">聊天</string>
+    <string name="category_privacy_data">隐私与数据</string>
+    <string name="category_administration">管理</string>
+    <string name="settings_home_admin_summary">技能和记忆权限</string>
+    <string name="settings_home_offline_reading">离线阅读：%1$s</string>
+    <string name="settings_home_about_summary">%1$s · 服务器 %2$s</string>
+    <string name="appearance_section_theme">主题</string>
+    <string name="appearance_section_style">风格</string>
+    <string name="appearance_section_color">颜色</string>
+    <string name="appearance_chat_appearance">聊天外观</string>
+    <string name="chat_appearance_layout">布局</string>
+    <string name="chat_appearance_text_size">文字大小</string>
+    <string name="chat_appearance_title_bar">标题栏显示</string>
+    <string name="chat_appearance_title_position">标题位置</string>
+    <string name="chat_appearance_sample_title">里斯本一日游</string>
+    <string name="chat_appearance_sample_agent">旅行规划师</string>
+    <string name="chat_appearance_sample_you">你</string>
+    <string name="chat_appearance_sample_question">在里斯本待一天，应该去看什么？</string>
+    <string name="chat_appearance_sample_answer">先在贝伦尝一个葡式蛋挞，再乘 28 路电车上到阿尔法玛，最后在观景台看日落。</string>
+    <string name="chat_appearance_sample_thanks">太好了，谢谢！</string>
+    <string name="appearance_section_tablet_layout">平板布局</string>
+    <string name="accent_using_wallpaper">正在使用壁纸颜色</string>
+    <string name="admin_panel">管理面板</string>
+    <string name="admin_panel_desc">在浏览器中打开</string>
+    <string name="api_keys_load_failed">无法加载 API 密钥</string>
+    <string name="category_voice">语音</string>
+    <string name="category_models_keys">模型和密钥</string>
+    <string name="category_advanced">高级</string>
+    <string name="settings_home_models_summary">收藏、提供商密钥、星标模型</string>
+    <string name="settings_home_thinking_open">思考已展开</string>
+    <string name="settings_home_thinking_closed">思考已折叠</string>
+    <string name="settings_home_artifacts">工件：%1$s</string>
+    <string name="settings_home_read_aloud_on">朗读回复：开</string>
+    <string name="settings_home_read_aloud_off">朗读回复：关</string>
+    <string name="settings_home_provider_keys">提供商密钥：%1$s</string>
+    <string name="settings_home_advanced_summary">渲染、上传、服务器、日志</string>
+    <string name="advanced_intro">供高级用户使用。默认设置适合大多数人。</string>
+    <string name="advanced_chat_settings">高级聊天设置</string>
+    <string name="advanced_chat_settings_summary">生成期间、上传、预设</string>
+    <string name="advanced_data_settings">高级数据设置</string>
+    <string name="section_listening">听写</string>
+    <string name="section_speaking">朗读</string>
+    <string name="advanced_voice_settings">高级语音设置</string>
+    <string name="advanced_voice_settings_summary">识别引擎、在设备上识别</string>
+    <string name="section_messages">消息</string>
+    <string name="section_your_chats">你的聊天</string>
+    <string name="section_on_this_phone">此设备上</string>
+    <string name="section_privacy">隐私</string>
+    <string name="section_server">服务器</string>
+    <string name="section_developer">开发者</string>
+    <string name="section_troubleshooting">故障排除</string>
+    <string name="about_copy_diagnostics">复制诊断信息</string>
+    <string name="about_copy_diagnostics_desc">用于错误报告的应用、服务器和设备版本</string>
+    <string name="offline_reading">离线阅读</string>
+    <string name="clear_cache_summary">图片和临时文件 %1$s</string>
 </resources>

@@ -1,6 +1,7 @@
 package com.garfiec.librechat.core.ui.components
 
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -10,7 +11,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.ui.glass.LiquidSegmentedControl
+import com.garfiec.librechat.core.ui.glass.ThumbOverhangX
+import com.garfiec.librechat.core.ui.glass.ThumbOverhangY
 import com.garfiec.librechat.core.ui.theme.isLiquidGlass
+
+/**
+ * How far the Liquid Glass thumb swells past the control's edges while touched. A container that
+ * clips its content (a scrolling column, a cell) leaves this much room around the control.
+ */
+val AdaptiveSegmentedChoiceOverhang = PaddingValues(horizontal = ThumbOverhangX, vertical = ThumbOverhangY)
 
 /**
  * A single-choice row of text segments: an M3 segmented button row in Material, the iOS segmented

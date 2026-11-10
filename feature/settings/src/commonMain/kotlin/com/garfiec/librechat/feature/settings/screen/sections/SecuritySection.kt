@@ -20,7 +20,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -35,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveFilledTonalButton
+import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
 import com.garfiec.librechat.core.ui.components.OTP_LENGTH
 import com.garfiec.librechat.core.ui.components.OtpCodeInput
 import com.garfiec.librechat.core.ui.components.clearFocusOnTap
@@ -113,7 +113,7 @@ internal fun TwoFactorSetupDialog(
                             },
                         )
                     }
-                    TextButton(onClick = { showQr = !showQr }) {
+                    AdaptiveTextButton(onClick = { showQr = !showQr }) {
                         Text(
                             stringResource(
                                 if (showQr) Res.string.action_hide_qr else Res.string.action_show_qr,
@@ -161,7 +161,7 @@ internal fun TwoFactorSetupDialog(
         confirmButton = {
             // Auto-submit covers the happy path; the button is what lets a user retry the same
             // code after a failure without having to delete a digit first.
-            TextButton(
+            AdaptiveTextButton(
                 onClick = {
                     submitted = true
                     onConfirm(code)
@@ -172,7 +172,7 @@ internal fun TwoFactorSetupDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            AdaptiveTextButton(onClick = onDismiss) {
                 Text(stringResource(Res.string.action_cancel))
             }
         },
@@ -274,12 +274,12 @@ internal fun BackupCodesDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) {
+            AdaptiveTextButton(onClick = onDismiss) {
                 Text(stringResource(Res.string.backup_codes_saved_ack))
             }
         },
         dismissButton = {
-            TextButton(
+            AdaptiveTextButton(
                 onClick = {
                     clipboard.copy(backupCodes.joinToString("\n"), "Backup Codes")
                     copied = true

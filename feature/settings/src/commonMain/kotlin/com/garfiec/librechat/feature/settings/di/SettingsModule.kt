@@ -63,7 +63,6 @@ val settingsModule = module {
         DataSettingsViewModel(
             cacheCleaner = get(),
             conversationRepository = get(),
-            keyRepository = get(),
             diagnosticLogRepository = get(),
             configRepository = get(),
         )
@@ -75,6 +74,8 @@ val settingsModule = module {
             speechSettingsFactory = get(),
             libraryConsent = get(),
             fileRepository = get(),
+            configRepository = get(),
+            roleRepository = get(),
         )
     }
     viewModelOf(::ApiKeysViewModel)

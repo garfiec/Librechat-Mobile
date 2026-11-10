@@ -7,10 +7,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import co.touchlab.kermit.Logger
+import com.garfiec.librechat.core.ui.components.windowUsesSidebarLayout
 import com.garfiec.librechat.feature.chat.ShareIntentConsumer
 import com.garfiec.librechat.feature.chat.SharedContent
 import com.garfiec.librechat.feature.chat.navigation.Chat
@@ -23,7 +22,6 @@ import com.garfiec.librechat.shared.navigation.Navigator
 import com.garfiec.librechat.shared.navigation.PhoneLayout
 import com.garfiec.librechat.shared.navigation.SharedLinkRoute
 import com.garfiec.librechat.shared.navigation.TabletLayout
-import com.garfiec.librechat.shared.navigation.usesSidebarLayout
 import com.garfiec.librechat.shared.navigation.LibreChatNavHost as SharedLibreChatNavHost
 
 /**
@@ -115,9 +113,7 @@ fun LibreChatNavHost(
             ShareIntentConsumer.dispatchTo(target)
         }
 
-        val window = LocalWindowInfo.current.containerSize
-        val usesSidebar = with(LocalDensity.current) { usesSidebarLayout(window.width.toDp(), window.height.toDp()) }
-        if (usesSidebar) {
+        if (windowUsesSidebarLayout()) {
             TabletLayout(
                 navigator = navigator,
                 navHostViewModel = navHostViewModel,

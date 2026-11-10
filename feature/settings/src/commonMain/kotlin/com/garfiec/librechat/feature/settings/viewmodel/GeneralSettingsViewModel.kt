@@ -6,11 +6,13 @@ import androidx.lifecycle.viewModelScope
 import com.garfiec.librechat.core.common.AppInfo
 import com.garfiec.librechat.core.common.datetime.DateTimeFormatPrefs
 import com.garfiec.librechat.core.data.datastore.AppPreferences
+import com.garfiec.librechat.core.data.datastore.ArtifactDisplayMode
 import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
 import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.repository.ConfigRepository
+import com.garfiec.librechat.core.logging.PlatformInfo
 import com.garfiec.librechat.core.model.config.BuildInfo
 import com.garfiec.librechat.core.network.client.CertificateAuthority
 import com.garfiec.librechat.core.network.client.CertificateTrustRegistry
@@ -52,6 +54,41 @@ data class GeneralSettingsUiState(
      * The About section shows an explicit "Unknown" in that case rather than hiding the row.
      */
     val serverVersion: String? = null,
+    /** `StartupConfig.adminPanelURL` when the server sets one: Administration's Admin panel row. */
+    val adminPanelUrl: String? = null,
+    /** The Settings home's Chats and Voice summaries. */
+    val homeChats: HomeChatPrefs = HomeChatPrefs(),
+    /** About's Copy diagnostics text, for a bug report. */
+    val diagnostics: String = "",
+)
+
+/**
+ * The plain-English text About's Copy diagnostics puts on the clipboard, after web's About tab. It
+ * leaves out the server address, which can name a private host in a public bug report.
+ */
+internal fun aboutDiagnostics(
+    appVersion: String,
+    gitSha: String,
+    serverVersion: String?,
+    buildInfo: BuildInfo?,
+    device: String,
+): String = listOf(
+    "Switchboard version: $appVersion",
+    "Switchboard build: ${gitSha.ifBlank { DIAGNOSTICS_MISSING }}",
+    "LibreChat version: ${serverVersion ?: DIAGNOSTICS_MISSING}",
+    "Commit: ${buildInfo?.commit?.takeIf { it.isNotBlank() } ?: DIAGNOSTICS_MISSING}",
+    "Branch: ${buildInfo?.branch?.takeIf { it.isNotBlank() } ?: DIAGNOSTICS_MISSING}",
+    "Build date: ${buildInfo?.buildDate?.takeIf { it.isNotBlank() } ?: DIAGNOSTICS_MISSING}",
+    "Device: $device",
+).joinToString("\n")
+
+private const val DIAGNOSTICS_MISSING = "—"
+
+/** The chat and voice preferences the Settings home summarizes. */
+data class HomeChatPrefs(
+    val thinkingOpenByDefault: Boolean = false,
+    val artifactDisplayMode: ArtifactDisplayMode = ArtifactDisplayMode.BOTTOM_SHEET,
+    val autoReadEnabled: Boolean = false,
 )
 
 /** Dialog flags held apart from the observed preferences they are merged with. */
@@ -66,9 +103,10 @@ private data class GeneralPrefs(
     val dateTime: DateTimeFormatPrefs,
     val tabletGesture: Boolean,
     val advancedSearch: Boolean,
+    val homeChats: HomeChatPrefs,
 )
 
-/** Backs the General tab: language, date & time, tablet gesture, and About. No network loads. */
+/** Backs Language & region, About, Administration's admin panel link and the sidebar gesture. No network loads. */
 class GeneralSettingsViewModel(
     private val settingsDataStore: SettingsDataStore,
     private val dateTimePrefsStore: DateTimePrefsStore,
@@ -77,7 +115,10 @@ class GeneralSettingsViewModel(
     appInfo: AppInfo,
     private val preferenceStore: PreferenceStore,
     certificateTrust: CertificateTrustRegistry,
+    platformInfo: PlatformInfo,
 ) : ViewModel() {
+
+    private val device = "${platformInfo.osName} ${platformInfo.osVersion} · ${platformInfo.deviceModel}"
 
     private val dialogs = MutableStateFlow(GeneralDialogs())
 
@@ -86,6 +127,11 @@ class GeneralSettingsViewModel(
         dateTimePrefsStore.prefs,
         settingsDataStore.tabletSidebarGestureEnabled,
         preferenceStore.observe(AppPreferences.AdvancedSearch),
+        combine(
+            settingsDataStore.thinkingOpenByDefault,
+            settingsDataStore.artifactDisplayPrefs,
+            settingsDataStore.autoReadEnabled,
+        ) { thinkingOpen, artifacts, autoRead -> HomeChatPrefs(thinkingOpen, artifacts.mode, autoRead) },
         ::GeneralPrefs,
     )
 
@@ -114,6 +160,9 @@ class GeneralSettingsViewModel(
             serverTrustedViaUserCa = server.trustedViaUserCa,
             buildInfo = config?.buildInfo,
             serverVersion = version,
+            adminPanelUrl = config?.adminPanelURL?.takeIf { it.isNotBlank() },
+            homeChats = prefs.homeChats,
+            diagnostics = aboutDiagnostics(initial.appVersion, initial.gitSha, version, config?.buildInfo, device),
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, initial)
 

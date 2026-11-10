@@ -2,47 +2,34 @@ package com.garfiec.librechat.feature.settings.viewmodel
 
 import androidx.compose.runtime.Immutable
 import com.garfiec.librechat.core.data.datastore.ArtifactDisplayPrefs
-import com.garfiec.librechat.core.data.datastore.ChatFontSize
-import com.garfiec.librechat.core.data.datastore.ChatHeaderAlignment
-import com.garfiec.librechat.core.data.datastore.ChatHeaderContent
-import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.data.datastore.InlineArtifactPrefs
 import com.garfiec.librechat.core.data.datastore.LatexRenderer
+import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
 import com.garfiec.librechat.core.data.datastore.UploadRoutingMode
 import com.garfiec.librechat.core.data.datastore.WebSearchPreference
 import com.garfiec.librechat.core.model.ArtifactsMode
 import com.garfiec.librechat.core.model.speech.TtsVoice
-import com.garfiec.librechat.feature.settings.screen.DeviceVoiceInfo
 
 @Immutable
 data class ChatSettingsUiState(
-    /**
-     * Transient errors surfaced via snackbar; cleared by [ChatSettingsViewModel.dismissError]
-     * after the snackbar is shown/acted on.
-     */
-    val error: String? = null,
+    /** A voice preview or playback failure for the snackbar; cleared by [ChatSettingsViewModel.dismissError]. */
+    val error: SpeechFailure? = null,
     // Chat preferences
-    val chatFontSize: ChatFontSize = ChatFontSize.MEDIUM,
-    val autoScrollEnabled: Boolean = true,
     /** Whether a reply's reasoning block starts expanded; the block itself is always shown. */
     val thinkingOpenByDefault: Boolean = false,
-    val contextBarPlacement: ContextBarPlacement = ContextBarPlacement.OPTIONS_SHEET,
     /** What the composer's send does mid-run (v0.8.8 steering): inject into the running reply,
      *  or queue for after it. Honoured only where the server supports steering. */
     val duringRunAction: DuringRunAction = DuringRunAction.STEER,
     val uploadRoutingMode: UploadRoutingMode = UploadRoutingMode.AUTO,
     val showImageDescriptions: Boolean = false,
     val showSiteIcons: Boolean = false,
-    val dismissKeyboardOnSend: Boolean = false,
+    val dismissKeyboardOnSend: Boolean = true,
     // Speech settings
     val autoReadEnabled: Boolean = false,
     val selectedVoice: TtsVoice? = null,
     val availableVoices: List<TtsVoice> = emptyList(),
-    // Speech detail dialogs
-    val showSttDetailDialog: Boolean = false,
-    val showTtsDetailDialog: Boolean = false,
     val sttEngine: String = "",
     val sttLanguage: String = "",
     val sttAutoSend: Boolean = false,
@@ -57,19 +44,13 @@ data class ChatSettingsUiState(
      * voices fetch, which a server without TTS answers with a 500. False until the config loads.
      */
     val serverTtsEnabled: Boolean = false,
-    val ttsEngine: String = "",
-    val ttsVoice: String = "",
     val ttsSpeechRate: Float = 1.0f,
     val ttsPitch: Float = 1.0f,
     val ttsDeviceVoiceName: String = "",
-    val ttsCaching: Boolean = true,
-    val ttsSource: String = "device",
+    val ttsSource: String = SettingsDataStore.TTS_SOURCE_DEVICE,
     val availableDeviceVoices: List<DeviceVoiceInfo> = emptyList(),
     // TTS preview
     val isTtsPreviewPlaying: Boolean = false,
-    // Fork settings
-    val forkMode: String = "targetLevel",
-    val showForkSettingsDialog: Boolean = false,
     val latexRenderer: LatexRenderer = LatexRenderer.KATEX,
     // Mobile-only: how pinned models/agents surface in the model-selection sheet
     val starredModelsDisplay: StarredModelsDisplay = StarredModelsDisplay.GROUPED,
@@ -83,9 +64,6 @@ data class ChatSettingsUiState(
     val clientImageResizePreference: Boolean = true,
     /** The admin's `clientImageResize.enabled` when set (the user's choice is then ignored); null otherwise. */
     val clientImageResizeAdmin: Boolean? = null,
-    // Mobile-only: what the chat floating top bar shows + how its bubble is aligned
-    val chatHeaderContent: ChatHeaderContent = ChatHeaderContent.TITLE,
-    val chatHeaderAlignment: ChatHeaderAlignment = ChatHeaderAlignment.LEFT,
     // Inline artifact rendering (per-type toggles)
     val inlineArtifactPrefs: InlineArtifactPrefs = InlineArtifactPrefs(),
     // Artifact viewer presentation (bottom sheet vs full screen + selector visibility)
@@ -93,3 +71,16 @@ data class ChatSettingsUiState(
     // What the Artifacts tool is taught when on; app-wide, read by chat's request
     val artifactsMode: ArtifactsMode = ArtifactsMode.DEFAULT,
 )
+
+/**
+ * A device voice offered on the Voice page; [id] is what Settings stores and playback looks up. It must
+ * be unique per voice: iOS reuses a voice's [name] across locales.
+ */
+data class DeviceVoiceInfo(
+    val id: String,
+    val name: String,
+    val locale: String,
+)
+
+/** Speech failures the page shows; the screen maps each to its string. */
+enum class SpeechFailure { VOICE_PREVIEW, PLAYBACK }

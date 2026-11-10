@@ -4,14 +4,12 @@
     <string name="action_add">Добавить</string>
     <string name="action_cancel">Отмена</string>
     <string name="action_clear">Очистить</string>
-    <string name="action_confirm">Подтвердить</string>
     <string name="action_copy">Копировать</string>
     <string name="action_creating">Создание…</string>
     <string name="action_create">Создать</string>
     <string name="action_delete">Удалить</string>
     <string name="action_done">Готово</string>
     <string name="action_retry">Повторить</string>
-    <string name="action_revoke_all">Отозвать все</string>
     <string name="action_save">Сохранить</string>
     <string name="action_sign_out">Выйти</string>
     <string name="action_upload">Загрузить</string>
@@ -28,7 +26,6 @@
     <string name="shared_chats_copy_link">Скопировать ссылку</string>
     <string name="cd_create_api_key">Создать API-ключ</string>
     <string name="cd_current_avatar">Текущий аватар</string>
-    <string name="cd_delete">Удалить</string>
     <string name="cd_delete_api_key">Удалить API-ключ</string>
     <string name="cd_delete_preset">Удалить пресет</string>
     <string name="memory_redacted_key">Скрытая запись</string>
@@ -36,34 +33,24 @@
     <string name="memory_redacted_value_no_delete">Политика содержимого этого сервера скрывает сохранённые здесь данные.</string>
     <string name="cd_loading_profile">Загрузка профиля</string>
     <string name="account_profile_load_failed">Не удалось загрузить профиль.</string>
-    <string name="cd_make_private">Сделать приватным</string>
-    <string name="cd_make_public">Сделать публичным</string>
     <string name="cd_preview_voice">Прослушать голос</string>
     <string name="cd_avatar_preview">Предпросмотр аватара</string>
     <string name="cd_selected">Выбрано</string>
     <string name="cd_selected_avatar">Выбранный аватар</string>
     <string name="cd_stop_voice_preview">Остановить прослушивание голоса</string>
-    <string name="cd_test_tts_voice">Проверить выбранный голос TTS</string>
-    <string name="cd_toggle_auto_read">Переключить автоозвучивание ответов</string>
-    <string name="cd_toggle_auto_send_stt">Переключить автоотправку после речи</string>
-    <string name="cd_tts_voice_selector">Выберите голос TTS. Сейчас выбран %1$s</string>
     <string name="cd_user_avatar">Аватар пользователя</string>
     <string name="cd_view_all_tools">Показать все инструменты</string>
 
     <!-- Section headers -->
     <string name="section_about">О приложении</string>
     <string name="section_updates">Обновления</string>
-    <string name="section_advanced">Дополнительно</string>
     <string name="section_appearance">Внешний вид</string>
-    <string name="appearance_theme_and_style">Тема и стиль</string>
     <!-- The switch in the interface style previews: an in-joke, "go outside". -->
     <string name="ui_style_preview_switch">Потрогай траву</string>
     <string name="section_balance">Баланс</string>
-    <string name="section_chat_preferences">Настройки чата</string>
     <string name="section_conversations">Беседы</string>
     <string name="section_danger_zone">Опасная зона</string>
     <string name="section_language_region">Язык и регион</string>
-    <string name="section_layout">Макет</string>
     <string name="section_prefetch">Фоновая предзагрузка</string>
     <string name="prefetch_enabled">Предзагрузка бесед</string>
     <string name="prefetch_enabled_desc">Заранее загружать последние и закреплённые беседы, чтобы они открывались мгновенно. Работает, пока приложение не занято, и периодически во время зарядки.</string>
@@ -129,26 +116,17 @@
     <string name="prefetch_cache_messages">Сообщения в кэше</string>
     <string name="prefetch_cache_messages_value">Сообщений: %1$d</string>
     <string name="prefetch_cache_images">Изображения и файлы</string>
-    <string name="section_presets">Пресеты</string>
     <string name="section_profile">Профиль</string>
     <string name="section_security">Безопасность</string>
-    <string name="section_speech">Речь</string>
     <!-- Screen titles -->
-    <string name="title_account">Аккаунт</string>
     <string name="title_api_keys">API-ключи</string>
-    <string name="title_chat">Чат</string>
-    <string name="title_data">Данные</string>
-    <string name="title_general">Общие</string>
     <string name="title_memories">Память</string>
     <string name="title_mcp_servers">Серверы MCP</string>
     <string name="title_presets">Пресеты</string>
     <string name="title_settings">Настройки</string>
 
     <!-- Tabbed settings tabs -->
-    <string name="tab_general">Общие</string>
-    <string name="tab_chat">Чат</string>
-    <string name="tab_account">Аккаунт</string>
-    <string name="tab_data">Данные</string>
+    <string name="category_account">Аккаунт</string>
 
     <!-- Theme -->
     <string name="theme_system">Системная</string>
@@ -171,7 +149,6 @@
     <string name="language_system_default">Системный</string>
     <string name="status_enabled">Включено</string>
     <string name="status_disabled">Выключено</string>
-    <string name="fork_behavior">Поведение при ответвлении</string>
     <string name="api_keys">API-ключи</string>
     <string name="api_keys_subtitle">Управление API-ключами для программного доступа</string>
     <string name="presets">Пресеты</string>
@@ -288,21 +265,16 @@
     </plurals>
     <string name="cd_token_balance">Баланс токенов: %1$s кредитов</string>
     <string name="chat_group_display">Отображение</string>
-    <string name="chat_group_behavior">Поведение</string>
-    <string name="chat_group_header_context">Заголовок и контекст</string>
 
     <!-- Chat settings -->
-    <string name="chat_layout">Макет чата</string>
     <string name="chat_layout_thread">Лента</string>
-    <string name="chat_layout_two_sided">Двусторонний чат</string>
+    <string name="chat_layout_two_sided">Двусторонний</string>
     <string name="chat_layout_thread_desc">Все сообщения выровнены по левому краю с аватаром и именем</string>
     <string name="chat_layout_two_sided_desc">Сообщения пользователя справа, агента — слева</string>
     <string name="show_bubbles">Показывать пузырьки</string>
     <string name="show_bubbles_desc">Добавлять скруглённый фон-пузырёк к сообщениям</string>
     <string name="show_avatars">Показывать аватары</string>
     <string name="show_avatars_desc">Отображать аватары пользователя и агента рядом с сообщениями</string>
-    <string name="chat_layout_bubbles">Пузырьки</string>
-    <string name="chat_layout_avatars">Аватары</string>
     <string name="starred_models_title">Избранные модели</string>
     <string name="starred_models_desc">Показывать закреплённые модели и агентов в начале списка выбора модели</string>
     <string name="starred_models_off">Выключено</string>
@@ -318,27 +290,20 @@
     <string name="web_search_first_librechat_desc">Поиск вашего сервера, с источниками. Если на сервере поиск не настроен, используется встроенный поиск модели.</string>
     <string name="web_search_first_built_in">Сначала встроенный поиск</string>
     <string name="web_search_first_built_in_desc">Собственный поиск провайдера модели (OpenAI, Claude, Gemini, OpenRouter). Для других моделей используется поиск LibreChat.</string>
-    <string name="chat_header_title">Заголовок чата</string>
-    <string name="chat_header_summary_format">%1$s · %2$s</string>
-    <string name="chat_header_content_label">Содержимое</string>
-    <string name="chat_header_content_title_option">Название беседы</string>
-    <string name="chat_header_content_model">Выбранная модель</string>
+    <string name="chat_header_content_title_option">Название</string>
+    <string name="chat_header_content_model">Модель</string>
     <string name="chat_header_content_none">Ничего</string>
-    <string name="chat_header_alignment_label">Выравнивание</string>
     <string name="chat_header_alignment_left">Слева</string>
     <string name="chat_header_alignment_center">По центру</string>
     <string name="chat_header_alignment_fill">На всю ширину</string>
-    <string name="font_size">Размер шрифта</string>
     <string name="font_size_small">Мелкий</string>
     <string name="font_size_medium">Средний</string>
     <string name="font_size_large">Крупный</string>
-    <string name="latex_renderer">Отрисовщик LaTeX</string>
+    <string name="latex_renderer">Отображение формул</string>
     <string name="latex_katex">KaTeX (с отрисовкой)</string>
     <string name="latex_katex_desc">Полная отрисовка LaTeX через WebView</string>
     <string name="latex_native">Обычный текст (быстро)</string>
     <string name="latex_native_desc">Показывает исходный код LaTeX для более плавной прокрутки</string>
-    <string name="auto_scroll">Автопрокрутка во время потоковой передачи</string>
-    <string name="auto_scroll_desc">Автоматически прокручивать к новому содержимому во время генерации ответа</string>
     <string name="thinking_open_by_default">Открывать размышления по умолчанию</string>
     <string name="thinking_open_by_default_desc">Показывать ход рассуждений ответа развёрнутым, а не свёрнутым</string>
     <string name="collapse_long_user_messages">Сворачивать длинные сообщения пользователя</string>
@@ -347,7 +312,6 @@
     <string name="client_image_resize_desc">Уменьшать большие изображения перед отправкой: загрузка быстрее и расходует меньше трафика</string>
     <string name="client_image_resize_enforced">Этим параметром управляет администратор вашего сервера</string>
     <string name="context_bar_title">Использование контекста</string>
-    <string name="context_bar_desc">Где показывать индикатор заполнения контекстного окна</string>
     <string name="context_bar_hidden">Скрыт</string>
     <string name="context_bar_above_input">В поле сообщения</string>
     <string name="context_bar_options_sheet">Меню параметров чата</string>
@@ -359,12 +323,9 @@
 
     <!-- Artifacts -->
     <string name="section_artifacts">Артефакты</string>
-    <string name="artifact_viewer_title">Просмотр артефактов</string>
-    <string name="artifact_viewer_desc">Как открывается артефакт при нажатии.</string>
+    <string name="artifacts_open_in">Как открывать артефакты</string>
     <string name="artifact_mode_bottom_sheet">Нижняя панель</string>
-    <string name="artifact_mode_bottom_sheet_desc">Выдвигается снизу; смахните вниз, чтобы закрыть.</string>
     <string name="artifact_mode_fullscreen">Полный экран</string>
-    <string name="artifact_mode_fullscreen_desc">Открывается на полноэкранной странице с большим пространством.</string>
     <string name="artifact_inline_title">Встроенное отображение</string>
     <string name="artifact_inline_enabled_count">Включено %1$d из %2$d</string>
     <string name="artifact_libraries_title">Отмеченные библиотеки</string>
@@ -440,8 +401,6 @@
     <string name="dialog_clear_cache_message">Это очистит кэшированные изображения и временные данные. Данные вашего аккаунта не пострадают.</string>
 
     <!-- Revoke keys dialog -->
-    <string name="dialog_title_revoke_keys">Отозвать все API-ключи</string>
-    <string name="dialog_revoke_keys_message">Это отзовёт все сохранённые API-ключи. Чтобы продолжить пользоваться внешними сервисами, вам придётся ввести их заново.</string>
 
     <!-- Data settings -->
     <string name="clear_all_conversations">Очистить все беседы</string>
@@ -451,19 +410,19 @@
     <string name="dialog_title_archive_all">Архивировать все беседы?</string>
     <string name="dialog_archive_all_message">Все беседы будут перемещены в архив. Вы сможете открывать их там и в любой момент вернуть любую из них из архива.</string>
     <string name="action_archive_all">Архивировать все</string>
-    <string name="archived_all_count">Архивировано бесед: %1$d</string>
+    <plurals name="archived_all_count">
+        <item quantity="one">Архивирована %1$d беседа</item>
+        <item quantity="few">Архивировано %1$d беседы</item>
+        <item quantity="many">Архивировано %1$d бесед</item>
+        <item quantity="other">Архивировано %1$d беседы</item>
+    </plurals>
     <string name="archived_conversations">Архивированные беседы</string>
-    <string name="export_all_data">Экспортировать все данные</string>
-    <string name="clear_cache_with_size">Очистить кэш (%1$s)</string>
     <string name="clear_cache">Очистить кэш</string>
-    <string name="revoke_all_api_keys">Отозвать все API-ключи</string>
-    <string name="revoking">Отзыв…</string>
     <string name="dialog_title_clear_conversations">Очистить все беседы</string>
     <string name="dialog_clear_conversations_message">Это безвозвратно удалит все ваши беседы. Это действие нельзя отменить.</string>
     <string name="clear_all">Очистить все</string>
     <!-- Diagnostic logs (issue #96) -->
     <string name="export_diagnostic_logs">Экспортировать диагностические журналы</string>
-    <string name="export_diagnostic_logs_with_size">Экспортировать диагностические журналы (%1$s)</string>
     <string name="exporting_logs">Экспорт…</string>
     <string name="clear_diagnostic_logs">Очистить диагностические журналы</string>
     <string name="clearing_logs">Очистка…</string>
@@ -472,21 +431,15 @@
     <string name="dialog_clear_logs_message">Это безвозвратно удалит все сохранённые диагностические журналы с этого устройства. Это действие нельзя отменить.</string>
 
     <!-- Speech settings -->
-    <string name="auto_send_after_speech">Автоотправка после речи</string>
-    <string name="auto_send_after_speech_desc">Автоматически отправлять сообщение после завершения распознавания речи</string>
-    <string name="auto_read_responses">Автоозвучивание ответов</string>
-    <string name="auto_read_responses_desc">Автоматически озвучивать ответы ИИ с помощью синтеза речи</string>
-    <string name="tts_voice">Голос TTS</string>
-    <string name="test_voice">Проверить голос</string>
+    <string name="auto_send_after_speech">Отправлять, когда я замолчу</string>
+    <string name="auto_send_after_speech_desc">Отправлять сообщение сразу после окончания диктовки</string>
+    <string name="auto_read_responses">Читать ответы вслух</string>
+    <string name="auto_read_responses_desc">Читать вслух каждый новый ответ, когда он готов</string>
     <string name="no_server_tts_voices">Голоса TTS на сервере недоступны. Возможно, функции речи не настроены на сервере.</string>
-    <string name="using_device_tts">Используется встроенный синтез речи устройства. Настройте голос и скорость в разделе «Настройки синтеза речи» ниже.</string>
-    <string name="speech_to_text_settings">Настройки распознавания речи</string>
-    <string name="text_to_speech_settings">Настройки синтеза речи</string>
 
     <!-- STT detail dialog -->
-    <string name="stt_engine_label">Движок</string>
-    <string name="stt_language_label">Язык</string>
-    <string name="stt_default">По умолчанию</string>
+    <string name="stt_engine_label">Движок распознавания</string>
+    <string name="stt_language_label">Язык речи</string>
     <string name="stt_engine_browser">Встроенный</string>
     <string name="stt_engine_external">Сервер</string>
     <string name="stt_hint_browser">Использует встроенное распознавание речи вашего устройства для транскрипции в реальном времени.</string>
@@ -494,18 +447,17 @@
     <string name="stt_on_device_toggle">Распознавание на устройстве</string>
     <string name="stt_on_device_toggle_desc">Транскрибирует на этом устройстве, а не в облаке. При недоступности переключается на облачное распознавание.</string>
     <string name="stt_end_of_speech_toggle">Останавливать при паузе</string>
-    <string name="stt_end_of_speech_toggle_desc">Автоматически завершает диктовку, когда вы перестаёте говорить, вместо того чтобы продолжать до нажатия «Стоп». При включённой автоотправке после речи сообщение отправляется без помощи рук.</string>
+    <string name="stt_end_of_speech_toggle_desc">Завершает диктовку, как только вы замолкаете, а не ждёт нажатия «Стоп». Вместе с «Отправлять, когда я замолчу» всё работает без рук.</string>
     <string name="stt_auto_detect">Автоопределение</string>
 
     <!-- TTS detail dialog -->
-    <string name="tts_source_label">Источник</string>
+    <string name="tts_source_label">Источник голоса</string>
     <string name="tts_source_device">Устройство (встроенный)</string>
     <string name="tts_source_server">Сервер</string>
     <string name="tts_voice_label">Голос</string>
     <string name="tts_system_default">Системный</string>
-    <string name="tts_speech_rate">Скорость речи: %1$sx</string>
+    <string name="tts_speech_rate">Скорость: %1$sx</string>
     <string name="tts_pitch">Высота тона: %1$s</string>
-    <string name="tts_cache_audio">Кэшировать аудио</string>
     <string name="tts_preview_text">Это образец выбранного голоса.</string>
     <string name="tts_stop_preview">Остановить прослушивание</string>
     <string name="tts_preview_voice">Прослушать голос</string>
@@ -614,12 +566,6 @@
     <string name="error_failed_to_load_servers">Не удалось загрузить серверы</string>
     <string name="no_tools_available">Нет доступных инструментов</string>
     <!-- Fork settings -->
-    <string name="fork_mode_direct_path">Видимые сообщения</string>
-    <string name="fork_mode_direct_path_desc">Только прямой путь сообщений до выбранного сообщения</string>
-    <string name="fork_mode_include_branches">Включить ветви</string>
-    <string name="fork_mode_include_branches_desc">Прямой путь плюс соседние сообщения на каждом уровне</string>
-    <string name="fork_mode_target_level">Все до уровня цели</string>
-    <string name="fork_mode_target_level_desc">Все сообщения и ветви до уровня целевого сообщения (по умолчанию)</string>
 
     <!-- Language selector -->
     <string name="hint_search_languages">Поиск языков</string>
@@ -730,7 +676,7 @@
     <string name="provider_keys_needs_access_keys">ключи доступа</string>
     <string name="provider_keys_needs_bearer_or_access_keys">bearer-токен или ключи доступа</string>
     <string name="provider_keys_summary_note">Ключи хранятся на вашем сервере и удаляются по истечении срока.</string>
-    <string name="provider_keys_revoke_all_button">Отозвать все ключи</string>
+    <string name="provider_keys_revoke_all_button">Удалить все ключи</string>
     <plurals name="provider_keys_status_expires_in_minutes">
         <item quantity="one">Истекает через %1$d мин</item>
         <item quantity="few">Истекает через %1$d мин</item>
@@ -812,7 +758,6 @@
     <string name="show_site_icons">Показывать значки сайтов</string>
     <string name="show_site_icons_desc">Загружать значки результатов веб-поиска с Google и других сайтов</string>
     <string name="context_settings_where">Где показывать</string>
-    <string name="context_settings_placement">Расположение</string>
     <string name="context_settings_detail">Подробность</string>
     <string name="context_settings_compacting">Сжатие</string>
     <string name="context_settings_preview">Предпросмотр</string>
@@ -868,7 +813,6 @@
     <string name="date_format_ymd_slash">Год/Месяц/День</string>
     <string name="date_format_long">Полный</string>
     <string name="date_time_preview">Предпросмотр</string>
-    <string name="ui_style">Стиль интерфейса</string>
     <string name="ui_style_material">Material</string>
     <string name="ui_style_liquid_glass">Liquid Glass</string>
     <string name="ui_style_note_simulated">В этой версии iOS эффект Liquid Glass имитируется. В iOS 26 и новее он отображается нативно.</string>
@@ -879,10 +823,8 @@
     <string name="advanced_search">Расширенный поиск</string>
     <string name="advanced_search_desc">Для опытных пользователей. Добавляет на экран поиска учёт регистра, поиск целых слов, регулярные выражения и фильтры по роли, модели и дате.</string>
     <string name="server_user_ca_notice">Доверие через центр сертификации, установленный на этом устройстве</string>
-    <string name="export_coming_soon">Экспорт скоро появится</string>
     <string name="mcp_tools_all">Все инструменты MCP</string>
     <string name="mcp_server_unknown">Неизвестный</string>
-    <string name="dialog_ok">ОК</string>
     <plurals name="mcp_tool_count">
         <item quantity="one">%1$d инструмент</item>
         <item quantity="few">%1$d инструмента</item>
@@ -937,7 +879,7 @@
     <string name="shared_chats_refresh_failed">Не удалось обновить общие чаты</string>
     <string name="shared_chats_delete_failed">Не удалось удалить ссылку</string>
     <string name="passkeys_title">Ключи доступа</string>
-    <string name="passkeys_row_subtitle">Вход с помощью блокировки экрана или ключа безопасности</string>
+    <string name="passkeys_row_subtitle">Управление ключами доступа, добавленными в веб-версии</string>
     <plurals name="passkeys_row_count">
         <item quantity="one">%1$d ключ доступа</item>
         <item quantity="few">%1$d ключа доступа</item>
@@ -1098,4 +1040,72 @@
     <string name="pr_account_disconnect_error">Не удалось отключить. Попробуйте ещё раз.</string>
     <string name="pr_account_connect_error">Не удалось начать подключение. Попробуйте ещё раз.</string>
     <string name="pr_account_not_available">На этом сервере нельзя подключить аккаунт.</string>
+    <string name="speech_error_voice_preview">Не удалось прослушать голос. Попробуйте ещё раз.</string>
+    <string name="speech_error_playback">Не удалось воспроизвести звук.</string>
+    <string name="accent_name_blue">Синий</string>
+    <string name="accent_name_indigo">Индиго</string>
+    <string name="accent_name_lavender">Лавандовый</string>
+    <string name="accent_name_cyan">Голубой</string>
+    <string name="accent_name_turquoise">Бирюзовый</string>
+    <string name="accent_name_green">Зелёный</string>
+    <string name="accent_name_amber">Янтарный</string>
+    <string name="accent_name_orange">Оранжевый</string>
+    <string name="accent_name_red">Красный</string>
+    <string name="accent_name_pink">Розовый</string>
+    <string name="accent_name_slate">Грифельный</string>
+    <string name="category_chats">Чаты</string>
+    <string name="category_privacy_data">Конфиденциальность и данные</string>
+    <string name="category_administration">Администрирование</string>
+    <string name="settings_home_admin_summary">Права на навыки и память</string>
+    <string name="settings_home_offline_reading">Чтение офлайн: %1$s</string>
+    <string name="settings_home_about_summary">%1$s · Сервер %2$s</string>
+    <string name="appearance_section_theme">Тема</string>
+    <string name="appearance_section_style">Стиль</string>
+    <string name="appearance_section_color">Цвет</string>
+    <string name="appearance_chat_appearance">Вид чата</string>
+    <string name="chat_appearance_layout">Макет</string>
+    <string name="chat_appearance_text_size">Размер текста</string>
+    <string name="chat_appearance_title_bar">В строке заголовка</string>
+    <string name="chat_appearance_title_position">Положение заголовка</string>
+    <string name="chat_appearance_sample_title">Один день в Лиссабоне</string>
+    <string name="chat_appearance_sample_agent">Планировщик поездок</string>
+    <string name="chat_appearance_sample_you">Вы</string>
+    <string name="chat_appearance_sample_question">Что посмотреть в Лиссабоне за один день?</string>
+    <string name="chat_appearance_sample_answer">Начните в Белене с пирожного паштел-де-ната, поднимитесь на трамвае 28 в Алфаму и встретьте закат на смотровой площадке.</string>
+    <string name="chat_appearance_sample_thanks">Отлично, спасибо!</string>
+    <string name="appearance_section_tablet_layout">Макет для планшета</string>
+    <string name="accent_using_wallpaper">Используются цвета обоев</string>
+    <string name="admin_panel">Панель администратора</string>
+    <string name="admin_panel_desc">Открывается в браузере</string>
+    <string name="api_keys_load_failed">Не удалось загрузить API-ключи</string>
+    <string name="category_voice">Голос</string>
+    <string name="category_models_keys">Модели и ключи</string>
+    <string name="category_advanced">Дополнительно</string>
+    <string name="settings_home_models_summary">Избранное, ключи провайдеров, отмеченные модели</string>
+    <string name="settings_home_thinking_open">Размышления открыты</string>
+    <string name="settings_home_thinking_closed">Размышления свёрнуты</string>
+    <string name="settings_home_artifacts">Артефакты: %1$s</string>
+    <string name="settings_home_read_aloud_on">Чтение ответов вслух: вкл.</string>
+    <string name="settings_home_read_aloud_off">Чтение ответов вслух: выкл.</string>
+    <string name="settings_home_provider_keys">Ключи провайдеров: %1$s</string>
+    <string name="settings_home_advanced_summary">Отображение, загрузки, сервер, журналы</string>
+    <string name="advanced_intro">Для опытных пользователей. Большинству подходят значения по умолчанию.</string>
+    <string name="advanced_chat_settings">Дополнительные настройки чатов</string>
+    <string name="advanced_chat_settings_summary">Во время ответа, загрузки, пресеты</string>
+    <string name="advanced_data_settings">Дополнительные настройки данных</string>
+    <string name="section_listening">Диктовка</string>
+    <string name="section_speaking">Чтение вслух</string>
+    <string name="advanced_voice_settings">Дополнительные настройки голоса</string>
+    <string name="advanced_voice_settings_summary">Движок распознавания, распознавание на устройстве</string>
+    <string name="section_messages">Сообщения</string>
+    <string name="section_your_chats">Ваши чаты</string>
+    <string name="section_on_this_phone">На этом устройстве</string>
+    <string name="section_privacy">Конфиденциальность</string>
+    <string name="section_server">Сервер</string>
+    <string name="section_developer">Для разработчиков</string>
+    <string name="section_troubleshooting">Устранение неполадок</string>
+    <string name="about_copy_diagnostics">Скопировать диагностику</string>
+    <string name="about_copy_diagnostics_desc">Версии приложения, сервера и устройства для отчёта об ошибке</string>
+    <string name="offline_reading">Чтение офлайн</string>
+    <string name="clear_cache_summary">%1$s изображений и временных файлов</string>
 </resources>

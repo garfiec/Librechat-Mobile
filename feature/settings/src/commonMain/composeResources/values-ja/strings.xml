@@ -4,14 +4,12 @@
     <string name="action_add">追加</string>
     <string name="action_cancel">キャンセル</string>
     <string name="action_clear">クリア</string>
-    <string name="action_confirm">確認</string>
     <string name="action_copy">コピー</string>
     <string name="action_creating">作成中…</string>
     <string name="action_create">作成</string>
     <string name="action_delete">削除</string>
     <string name="action_done">完了</string>
     <string name="action_retry">再試行</string>
-    <string name="action_revoke_all">すべて取り消す</string>
     <string name="action_save">保存</string>
     <string name="action_sign_out">サインアウト</string>
     <string name="action_upload">アップロード</string>
@@ -28,7 +26,6 @@
     <string name="shared_chats_copy_link">リンクをコピー</string>
     <string name="cd_create_api_key">APIキーを作成</string>
     <string name="cd_current_avatar">現在のアバター</string>
-    <string name="cd_delete">削除</string>
     <string name="cd_delete_api_key">APIキーを削除</string>
     <string name="cd_delete_preset">プリセットを削除</string>
     <string name="memory_redacted_key">非表示の項目</string>
@@ -36,34 +33,24 @@
     <string name="memory_redacted_value_no_delete">このサーバーのコンテンツポリシーにより、保存内容は非表示になっています。</string>
     <string name="cd_loading_profile">プロフィールを読み込み中</string>
     <string name="account_profile_load_failed">プロフィールを読み込めませんでした。</string>
-    <string name="cd_make_private">非公開にする</string>
-    <string name="cd_make_public">公開にする</string>
     <string name="cd_preview_voice">音声をプレビュー</string>
     <string name="cd_avatar_preview">アバターのプレビュー</string>
     <string name="cd_selected">選択済み</string>
     <string name="cd_selected_avatar">選択されたアバター</string>
     <string name="cd_stop_voice_preview">音声プレビューを停止</string>
-    <string name="cd_test_tts_voice">選択したTTS音声をテスト</string>
-    <string name="cd_toggle_auto_read">応答の自動読み上げを切り替え</string>
-    <string name="cd_toggle_auto_send_stt">音声入力後の自動送信を切り替え</string>
-    <string name="cd_tts_voice_selector">TTS音声を選択。現在は %1$s</string>
     <string name="cd_user_avatar">ユーザーのアバター</string>
     <string name="cd_view_all_tools">すべてのツールを表示</string>
 
     <!-- Section headers -->
     <string name="section_about">情報</string>
     <string name="section_updates">アップデート</string>
-    <string name="section_advanced">詳細設定</string>
     <string name="section_appearance">外観</string>
-    <string name="appearance_theme_and_style">テーマとスタイル</string>
     <!-- The switch in the interface style previews: an in-joke, "go outside". -->
     <string name="ui_style_preview_switch">草に触れよう</string>
     <string name="section_balance">残高</string>
-    <string name="section_chat_preferences">チャット設定</string>
     <string name="section_conversations">会話</string>
     <string name="section_danger_zone">危険な操作</string>
     <string name="section_language_region">言語と地域</string>
-    <string name="section_layout">レイアウト</string>
     <string name="section_prefetch">バックグラウンドでの事前読み込み</string>
     <string name="prefetch_enabled">会話を事前に読み込む</string>
     <string name="prefetch_enabled_desc">最近の会話とピン留めした会話を事前に読み込み、すぐに開けるようにします。アプリのアイドル中と、充電中に定期的に実行されます。</string>
@@ -129,26 +116,17 @@
     <string name="prefetch_cache_messages">キャッシュ済みのメッセージ</string>
     <string name="prefetch_cache_messages_value">%1$d 件のメッセージ</string>
     <string name="prefetch_cache_images">画像とファイル</string>
-    <string name="section_presets">プリセット</string>
     <string name="section_profile">プロフィール</string>
     <string name="section_security">セキュリティ</string>
-    <string name="section_speech">音声</string>
     <!-- Screen titles -->
-    <string name="title_account">アカウント</string>
     <string name="title_api_keys">APIキー</string>
-    <string name="title_chat">チャット</string>
-    <string name="title_data">データ</string>
-    <string name="title_general">一般</string>
     <string name="title_memories">メモリ</string>
     <string name="title_mcp_servers">MCPサーバー</string>
     <string name="title_presets">プリセット</string>
     <string name="title_settings">設定</string>
 
     <!-- Tabbed settings tabs -->
-    <string name="tab_general">一般</string>
-    <string name="tab_chat">チャット</string>
-    <string name="tab_account">アカウント</string>
-    <string name="tab_data">データ</string>
+    <string name="category_account">アカウント</string>
 
     <!-- Theme -->
     <string name="theme_system">システムのデフォルト</string>
@@ -171,7 +149,6 @@
     <string name="language_system_default">システムのデフォルト</string>
     <string name="status_enabled">有効</string>
     <string name="status_disabled">無効</string>
-    <string name="fork_behavior">フォークの動作</string>
     <string name="api_keys">APIキー</string>
     <string name="api_keys_subtitle">プログラムによるアクセス用のAPIキーを管理</string>
     <string name="presets">プリセット</string>
@@ -270,21 +247,16 @@
     </plurals>
     <string name="cd_token_balance">トークン残高: %1$s クレジット</string>
     <string name="chat_group_display">表示</string>
-    <string name="chat_group_behavior">動作</string>
-    <string name="chat_group_header_context">ヘッダーとコンテキスト</string>
 
     <!-- Chat settings -->
-    <string name="chat_layout">チャットレイアウト</string>
     <string name="chat_layout_thread">スレッド</string>
-    <string name="chat_layout_two_sided">左右に分かれたチャット</string>
+    <string name="chat_layout_two_sided">左右</string>
     <string name="chat_layout_thread_desc">すべてのメッセージをアバターと名前付きで左揃えに表示</string>
     <string name="chat_layout_two_sided_desc">ユーザーのメッセージを右、エージェントを左に表示</string>
     <string name="show_bubbles">吹き出しを表示</string>
     <string name="show_bubbles_desc">メッセージに角丸の吹き出し背景を追加します</string>
     <string name="show_avatars">アバターを表示</string>
     <string name="show_avatars_desc">メッセージの横にユーザーとエージェントのアバターを表示します</string>
-    <string name="chat_layout_bubbles">吹き出し</string>
-    <string name="chat_layout_avatars">アバター</string>
     <string name="starred_models_title">スター付きモデル</string>
     <string name="starred_models_desc">ピン留めしたモデルとエージェントをモデルピッカーの上部に表示します</string>
     <string name="starred_models_off">オフ</string>
@@ -300,27 +272,20 @@
     <string name="web_search_first_librechat_desc">サーバーの検索(出典付き)。サーバーに検索が設定されていない場合は、モデルの組み込み検索を使います。</string>
     <string name="web_search_first_built_in">組み込み検索を優先</string>
     <string name="web_search_first_built_in_desc">モデル提供元の検索(OpenAI、Claude、Gemini、OpenRouter)。その他のモデルでは LibreChat 検索を使います。</string>
-    <string name="chat_header_title">チャットヘッダー</string>
-    <string name="chat_header_summary_format">%1$s · %2$s</string>
-    <string name="chat_header_content_label">内容</string>
-    <string name="chat_header_content_title_option">会話のタイトル</string>
-    <string name="chat_header_content_model">選択中のモデル</string>
+    <string name="chat_header_content_title_option">タイトル</string>
+    <string name="chat_header_content_model">モデル</string>
     <string name="chat_header_content_none">なし</string>
-    <string name="chat_header_alignment_label">配置</string>
     <string name="chat_header_alignment_left">左</string>
     <string name="chat_header_alignment_center">中央</string>
     <string name="chat_header_alignment_fill">幅いっぱい</string>
-    <string name="font_size">フォントサイズ</string>
     <string name="font_size_small">小</string>
     <string name="font_size_medium">中</string>
     <string name="font_size_large">大</string>
-    <string name="latex_renderer">LaTeXレンダラー</string>
+    <string name="latex_renderer">数式の表示</string>
     <string name="latex_katex">KaTeX（レンダリング）</string>
     <string name="latex_katex_desc">WebView経由で完全なLaTeXをレンダリング</string>
     <string name="latex_native">プレーンテキスト（高速）</string>
     <string name="latex_native_desc">スクロール性能向上のため生のLaTeXソースを表示します</string>
-    <string name="auto_scroll">ストリーミング中に自動スクロール</string>
-    <string name="auto_scroll_desc">応答の生成中に新しいコンテンツへ自動でスクロールします</string>
     <string name="thinking_open_by_default">思考をデフォルトで開く</string>
     <string name="thinking_open_by_default_desc">返答の推論を折りたたまず展開した状態で表示します</string>
     <string name="collapse_long_user_messages">長いユーザーメッセージを折りたたむ</string>
@@ -329,7 +294,6 @@
     <string name="client_image_resize_desc">大きな画像を送信前に縮小し、アップロードを速くしてデータ使用量を減らします</string>
     <string name="client_image_resize_enforced">この設定はサーバーの管理者が管理しています</string>
     <string name="context_bar_title">コンテキスト使用量</string>
-    <string name="context_bar_desc">コンテキストウィンドウ使用量ゲージの表示場所</string>
     <string name="context_bar_hidden">非表示</string>
     <string name="context_bar_above_input">メッセージ入力欄内</string>
     <string name="context_bar_options_sheet">チャットオプションメニュー</string>
@@ -341,12 +305,9 @@
 
     <!-- Artifacts -->
     <string name="section_artifacts">アーティファクト</string>
-    <string name="artifact_viewer_title">アーティファクトビューアー</string>
-    <string name="artifact_viewer_desc">アーティファクトをタップしたときの開き方。</string>
+    <string name="artifacts_open_in">アーティファクトの開き方</string>
     <string name="artifact_mode_bottom_sheet">ボトムシート</string>
-    <string name="artifact_mode_bottom_sheet_desc">下からスライドして表示され、下にスワイプすると閉じます。</string>
     <string name="artifact_mode_fullscreen">全画面</string>
-    <string name="artifact_mode_fullscreen_desc">より広い全画面ページとして開きます。</string>
     <string name="artifact_inline_title">インラインで表示</string>
     <string name="artifact_inline_enabled_count">%2$d 件中 %1$d 件が有効</string>
     <string name="artifact_libraries_title">注意が必要なライブラリ</string>
@@ -422,8 +383,6 @@
     <string name="dialog_clear_cache_message">キャッシュされた画像と一時データをクリアします。アカウントのデータには影響しません。</string>
 
     <!-- Revoke keys dialog -->
-    <string name="dialog_title_revoke_keys">すべてのAPIキーを取り消す</string>
-    <string name="dialog_revoke_keys_message">保存されているすべてのAPIキーを取り消します。外部サービスを引き続き使用するには再入力が必要になります。</string>
 
     <!-- Data settings -->
     <string name="clear_all_conversations">すべての会話をクリア</string>
@@ -433,19 +392,16 @@
     <string name="dialog_title_archive_all">すべての会話をアーカイブしますか？</string>
     <string name="dialog_archive_all_message">すべての会話がアーカイブ済みに移動します。アーカイブ済みから引き続き開くことができ、後でいつでもアーカイブを解除できます。</string>
     <string name="action_archive_all">すべてアーカイブ</string>
-    <string name="archived_all_count">%1$d 件の会話をアーカイブしました</string>
+    <plurals name="archived_all_count">
+        <item quantity="other">%1$d 件の会話をアーカイブしました</item>
+    </plurals>
     <string name="archived_conversations">アーカイブ済みの会話</string>
-    <string name="export_all_data">すべてのデータをエクスポート</string>
-    <string name="clear_cache_with_size">キャッシュをクリア (%1$s)</string>
     <string name="clear_cache">キャッシュをクリア</string>
-    <string name="revoke_all_api_keys">すべてのAPIキーを取り消す</string>
-    <string name="revoking">取り消し中…</string>
     <string name="dialog_title_clear_conversations">すべての会話をクリア</string>
     <string name="dialog_clear_conversations_message">すべての会話を完全に削除します。この操作は取り消せません。</string>
     <string name="clear_all">すべてクリア</string>
     <!-- Diagnostic logs (issue #96) -->
     <string name="export_diagnostic_logs">診断ログをエクスポート</string>
-    <string name="export_diagnostic_logs_with_size">診断ログをエクスポート（%1$s）</string>
     <string name="exporting_logs">エクスポート中…</string>
     <string name="clear_diagnostic_logs">診断ログをクリア</string>
     <string name="clearing_logs">クリア中…</string>
@@ -454,21 +410,15 @@
     <string name="dialog_clear_logs_message">このデバイスに保存されているすべての診断ログを完全に削除します。この操作は取り消せません。</string>
 
     <!-- Speech settings -->
-    <string name="auto_send_after_speech">音声入力後に自動送信</string>
-    <string name="auto_send_after_speech_desc">音声からテキストへの変換が完了した後にメッセージを自動送信します</string>
-    <string name="auto_read_responses">応答を自動読み上げ</string>
-    <string name="auto_read_responses_desc">テキスト読み上げを使ってAIの応答を自動で読み上げます</string>
-    <string name="tts_voice">TTS音声</string>
-    <string name="test_voice">音声をテスト</string>
+    <string name="auto_send_after_speech">話し終えたら送信</string>
+    <string name="auto_send_after_speech_desc">音声入力が終わるとすぐにメッセージを送信します</string>
+    <string name="auto_read_responses">返信を読み上げる</string>
+    <string name="auto_read_responses_desc">新しい返信が完了したら読み上げます</string>
     <string name="no_server_tts_voices">利用可能なサーバーTTS音声がありません。サーバーで音声機能が設定されていない可能性があります。</string>
-    <string name="using_device_tts">デバイスのテキスト読み上げエンジンを使用しています。下の「テキスト読み上げ設定」で音声と速度を設定してください。</string>
-    <string name="speech_to_text_settings">音声入力の設定</string>
-    <string name="text_to_speech_settings">テキスト読み上げの設定</string>
 
     <!-- STT detail dialog -->
-    <string name="stt_engine_label">エンジン</string>
-    <string name="stt_language_label">言語</string>
-    <string name="stt_default">デフォルト</string>
+    <string name="stt_engine_label">認識エンジン</string>
+    <string name="stt_language_label">音声入力の言語</string>
     <string name="stt_engine_browser">内蔵</string>
     <string name="stt_engine_external">サーバー</string>
     <string name="stt_hint_browser">デバイス内蔵の音声認識を使用してリアルタイムで文字起こしします。</string>
@@ -476,18 +426,17 @@
     <string name="stt_on_device_toggle">デバイス上で認識</string>
     <string name="stt_on_device_toggle_desc">クラウドではなくこのデバイスで文字起こしします。利用できない場合はクラウド認識に切り替わります。</string>
     <string name="stt_end_of_speech_toggle">一時停止したら停止</string>
-    <string name="stt_end_of_speech_toggle_desc">停止をタップするまで続ける代わりに、話し終えると自動的に口述を終了します。音声後の自動送信をオンにすると、ハンズフリーでメッセージを送信します。</string>
+    <string name="stt_end_of_speech_toggle_desc">停止をタップするのを待たずに、話し終えると音声入力を終了します。「話し終えたら送信」をオンにすると、ハンズフリーで使えます。</string>
     <string name="stt_auto_detect">自動検出</string>
 
     <!-- TTS detail dialog -->
-    <string name="tts_source_label">ソース</string>
+    <string name="tts_source_label">音声のソース</string>
     <string name="tts_source_device">デバイス（内蔵）</string>
     <string name="tts_source_server">サーバー</string>
     <string name="tts_voice_label">音声</string>
     <string name="tts_system_default">システムのデフォルト</string>
-    <string name="tts_speech_rate">読み上げ速度: %1$sx</string>
+    <string name="tts_speech_rate">速度: %1$sx</string>
     <string name="tts_pitch">ピッチ: %1$s</string>
-    <string name="tts_cache_audio">音声をキャッシュ</string>
     <string name="tts_preview_text">これは選択した音声のプレビューです。</string>
     <string name="tts_stop_preview">プレビューを停止</string>
     <string name="tts_preview_voice">音声をプレビュー</string>
@@ -584,12 +533,6 @@
     <string name="error_failed_to_load_servers">サーバーの読み込みに失敗しました</string>
     <string name="no_tools_available">利用可能なツールがありません</string>
     <!-- Fork settings -->
-    <string name="fork_mode_direct_path">表示中のメッセージ</string>
-    <string name="fork_mode_direct_path_desc">選択したメッセージまでの直接の経路のみ</string>
-    <string name="fork_mode_include_branches">分岐を含める</string>
-    <string name="fork_mode_include_branches_desc">直接の経路に加え、各階層の兄弟メッセージ</string>
-    <string name="fork_mode_target_level">対象の階層まですべて</string>
-    <string name="fork_mode_target_level_desc">対象メッセージの階層までのすべてのメッセージと分岐（デフォルト）</string>
 
     <!-- Language selector -->
     <string name="hint_search_languages">言語を検索</string>
@@ -700,7 +643,7 @@
     <string name="provider_keys_needs_access_keys">アクセスキー</string>
     <string name="provider_keys_needs_bearer_or_access_keys">ベアラートークンまたはアクセスキー</string>
     <string name="provider_keys_summary_note">キーはサーバーに保存され、有効期限が切れると削除されます。</string>
-    <string name="provider_keys_revoke_all_button">すべてのキーを取り消す</string>
+    <string name="provider_keys_revoke_all_button">すべてのキーを削除</string>
     <plurals name="provider_keys_status_expires_in_minutes">
         <item quantity="other">残り %1$d 分</item>
     </plurals>
@@ -773,7 +716,6 @@
     <string name="show_site_icons">サイトのアイコンを表示</string>
     <string name="show_site_icons_desc">ウェブ検索結果のアイコンを Google などのサイトから読み込みます</string>
     <string name="context_settings_where">表示場所</string>
-    <string name="context_settings_placement">配置</string>
     <string name="context_settings_detail">詳細度</string>
     <string name="context_settings_compacting">圧縮</string>
     <string name="context_settings_preview">プレビュー</string>
@@ -829,7 +771,6 @@
     <string name="date_format_ymd_slash">年/月/日</string>
     <string name="date_format_long">長い形式</string>
     <string name="date_time_preview">プレビュー</string>
-    <string name="ui_style">インターフェースのスタイル</string>
     <string name="ui_style_material">Material</string>
     <string name="ui_style_liquid_glass">Liquid Glass</string>
     <string name="ui_style_note_simulated">このバージョンのiOSではLiquid Glassをシミュレートしています。iOS 26以降ではネイティブに描画されます。</string>
@@ -840,10 +781,8 @@
     <string name="advanced_search">高度な検索</string>
     <string name="advanced_search_desc">上級ユーザー向け。検索画面に大文字と小文字の区別、単語単位、正規表現、およびロール・モデル・日付のフィルターを追加します。</string>
     <string name="server_user_ca_notice">このデバイスにインストールされた認証局によって信頼されています</string>
-    <string name="export_coming_soon">エクスポートは近日対応予定です</string>
     <string name="mcp_tools_all">すべての MCP ツール</string>
     <string name="mcp_server_unknown">不明</string>
-    <string name="dialog_ok">OK</string>
     <plurals name="mcp_tool_count">
         <item quantity="other">ツール %1$d 個</item>
     </plurals>
@@ -895,7 +834,7 @@
     <string name="shared_chats_refresh_failed">共有したチャットを更新できませんでした</string>
     <string name="shared_chats_delete_failed">リンクを削除できませんでした</string>
     <string name="passkeys_title">パスキー</string>
-    <string name="passkeys_row_subtitle">画面ロックまたはセキュリティキーでサインイン</string>
+    <string name="passkeys_row_subtitle">ウェブで追加したパスキーを管理</string>
     <plurals name="passkeys_row_count">
         <item quantity="other">パスキー %1$d 件</item>
     </plurals>
@@ -1053,4 +992,72 @@
     <string name="pr_account_disconnect_error">連携を解除できませんでした。もう一度お試しください。</string>
     <string name="pr_account_connect_error">接続を開始できませんでした。もう一度お試しください。</string>
     <string name="pr_account_not_available">このサーバーではアカウントを接続できません。</string>
+    <string name="speech_error_voice_preview">音声をプレビューできませんでした。もう一度お試しください。</string>
+    <string name="speech_error_playback">音声を再生できませんでした。</string>
+    <string name="accent_name_blue">青</string>
+    <string name="accent_name_indigo">インディゴ</string>
+    <string name="accent_name_lavender">ラベンダー</string>
+    <string name="accent_name_cyan">シアン</string>
+    <string name="accent_name_turquoise">ターコイズ</string>
+    <string name="accent_name_green">緑</string>
+    <string name="accent_name_amber">アンバー</string>
+    <string name="accent_name_orange">オレンジ</string>
+    <string name="accent_name_red">赤</string>
+    <string name="accent_name_pink">ピンク</string>
+    <string name="accent_name_slate">スレート</string>
+    <string name="category_chats">チャット</string>
+    <string name="category_privacy_data">プライバシーとデータ</string>
+    <string name="category_administration">管理</string>
+    <string name="settings_home_admin_summary">スキルとメモリの権限</string>
+    <string name="settings_home_offline_reading">オフライン閲覧：%1$s</string>
+    <string name="settings_home_about_summary">%1$s · サーバー %2$s</string>
+    <string name="appearance_section_theme">テーマ</string>
+    <string name="appearance_section_style">スタイル</string>
+    <string name="appearance_section_color">カラー</string>
+    <string name="appearance_chat_appearance">チャットの外観</string>
+    <string name="chat_appearance_layout">レイアウト</string>
+    <string name="chat_appearance_text_size">文字サイズ</string>
+    <string name="chat_appearance_title_bar">タイトルバーの表示</string>
+    <string name="chat_appearance_title_position">タイトルの位置</string>
+    <string name="chat_appearance_sample_title">リスボンの1日</string>
+    <string name="chat_appearance_sample_agent">旅行プランナー</string>
+    <string name="chat_appearance_sample_you">あなた</string>
+    <string name="chat_appearance_sample_question">リスボンで1日過ごすなら、どこを見るべき？</string>
+    <string name="chat_appearance_sample_answer">まずベレンでエッグタルトを味わい、28番トラムでアルファマへ上って、最後は展望台で夕日を眺めましょう。</string>
+    <string name="chat_appearance_sample_thanks">完璧、ありがとう！</string>
+    <string name="appearance_section_tablet_layout">タブレットのレイアウト</string>
+    <string name="accent_using_wallpaper">壁紙の色を使用中</string>
+    <string name="admin_panel">管理パネル</string>
+    <string name="admin_panel_desc">ブラウザで開きます</string>
+    <string name="api_keys_load_failed">APIキーを読み込めませんでした</string>
+    <string name="category_voice">音声</string>
+    <string name="category_models_keys">モデルとキー</string>
+    <string name="category_advanced">詳細設定</string>
+    <string name="settings_home_models_summary">お気に入り、プロバイダーキー、スター付きモデル</string>
+    <string name="settings_home_thinking_open">思考を展開</string>
+    <string name="settings_home_thinking_closed">思考を折りたたみ</string>
+    <string name="settings_home_artifacts">アーティファクト：%1$s</string>
+    <string name="settings_home_read_aloud_on">返信の読み上げ：オン</string>
+    <string name="settings_home_read_aloud_off">返信の読み上げ：オフ</string>
+    <string name="settings_home_provider_keys">プロバイダーキー：%1$s</string>
+    <string name="settings_home_advanced_summary">表示、アップロード、サーバー、ログ</string>
+    <string name="advanced_intro">上級者向けです。ほとんどの方は初期設定のままで問題ありません。</string>
+    <string name="advanced_chat_settings">チャットの詳細設定</string>
+    <string name="advanced_chat_settings_summary">生成中の動作、アップロード、プリセット</string>
+    <string name="advanced_data_settings">データの詳細設定</string>
+    <string name="section_listening">音声入力</string>
+    <string name="section_speaking">読み上げ</string>
+    <string name="advanced_voice_settings">音声の詳細設定</string>
+    <string name="advanced_voice_settings_summary">認識エンジン、デバイス上での認識</string>
+    <string name="section_messages">メッセージ</string>
+    <string name="section_your_chats">自分のチャット</string>
+    <string name="section_on_this_phone">この端末</string>
+    <string name="section_privacy">プライバシー</string>
+    <string name="section_server">サーバー</string>
+    <string name="section_developer">開発者</string>
+    <string name="section_troubleshooting">トラブルシューティング</string>
+    <string name="about_copy_diagnostics">診断情報をコピー</string>
+    <string name="about_copy_diagnostics_desc">不具合報告用のアプリ、サーバー、端末のバージョン</string>
+    <string name="offline_reading">オフラインで読む</string>
+    <string name="clear_cache_summary">画像と一時ファイル %1$s</string>
 </resources>

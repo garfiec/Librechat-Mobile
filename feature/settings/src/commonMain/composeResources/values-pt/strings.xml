@@ -4,14 +4,12 @@
     <string name="action_add">Adicionar</string>
     <string name="action_cancel">Cancelar</string>
     <string name="action_clear">Limpar</string>
-    <string name="action_confirm">Confirmar</string>
     <string name="action_copy">Copiar</string>
     <string name="action_creating">Criando…</string>
     <string name="action_create">Criar</string>
     <string name="action_delete">Excluir</string>
     <string name="action_done">Concluído</string>
     <string name="action_retry">Tentar novamente</string>
-    <string name="action_revoke_all">Revogar tudo</string>
     <string name="action_save">Salvar</string>
     <string name="action_sign_out">Sair</string>
     <string name="action_upload">Enviar</string>
@@ -28,7 +26,6 @@
     <string name="shared_chats_copy_link">Copiar link</string>
     <string name="cd_create_api_key">Criar chave de API</string>
     <string name="cd_current_avatar">Avatar atual</string>
-    <string name="cd_delete">Excluir</string>
     <string name="cd_delete_api_key">Excluir chave de API</string>
     <string name="cd_delete_preset">Excluir predefinição</string>
     <string name="memory_redacted_key">Entrada oculta</string>
@@ -36,34 +33,24 @@
     <string name="memory_redacted_value_no_delete">A política de conteúdo deste servidor oculta o que está armazenado aqui.</string>
     <string name="cd_loading_profile">Carregando perfil</string>
     <string name="account_profile_load_failed">Não foi possível carregar seu perfil.</string>
-    <string name="cd_make_private">Tornar privado</string>
-    <string name="cd_make_public">Tornar público</string>
     <string name="cd_preview_voice">Pré-ouvir voz</string>
     <string name="cd_avatar_preview">Visualização do avatar</string>
     <string name="cd_selected">Selecionado</string>
     <string name="cd_selected_avatar">Avatar selecionado</string>
     <string name="cd_stop_voice_preview">Parar pré-audição de voz</string>
-    <string name="cd_test_tts_voice">Testar voz de TTS selecionada</string>
-    <string name="cd_toggle_auto_read">Alternar leitura automática das respostas</string>
-    <string name="cd_toggle_auto_send_stt">Alternar envio automático após a fala</string>
-    <string name="cd_tts_voice_selector">Selecionar voz de TTS. Atualmente %1$s</string>
     <string name="cd_user_avatar">Avatar do usuário</string>
     <string name="cd_view_all_tools">Ver todas as ferramentas</string>
 
     <!-- Section headers -->
     <string name="section_about">Sobre</string>
     <string name="section_updates">Atualizações</string>
-    <string name="section_advanced">Avançado</string>
     <string name="section_appearance">Aparência</string>
-    <string name="appearance_theme_and_style">Tema e estilo</string>
     <!-- The switch in the interface style previews: an in-joke, "go outside". -->
     <string name="ui_style_preview_switch">Vai tocar grama</string>
     <string name="section_balance">Saldo</string>
-    <string name="section_chat_preferences">Preferências de conversa</string>
     <string name="section_conversations">Conversas</string>
     <string name="section_danger_zone">Zona de perigo</string>
     <string name="section_language_region">Idioma e região</string>
-    <string name="section_layout">Layout</string>
     <string name="section_prefetch">Pré-carregamento em segundo plano</string>
     <string name="prefetch_enabled">Pré-carregar conversas</string>
     <string name="prefetch_enabled_desc">Carrega conversas recentes e fixadas com antecedência para que abram instantaneamente. Executa enquanto o app está ocioso e periodicamente durante o carregamento da bateria.</string>
@@ -129,26 +116,17 @@
     <string name="prefetch_cache_messages">Mensagens em cache</string>
     <string name="prefetch_cache_messages_value">%1$d mensagens</string>
     <string name="prefetch_cache_images">Imagens e arquivos</string>
-    <string name="section_presets">Predefinições</string>
     <string name="section_profile">Perfil</string>
     <string name="section_security">Segurança</string>
-    <string name="section_speech">Fala</string>
     <!-- Screen titles -->
-    <string name="title_account">Conta</string>
     <string name="title_api_keys">Chaves de API</string>
-    <string name="title_chat">Conversa</string>
-    <string name="title_data">Dados</string>
-    <string name="title_general">Geral</string>
     <string name="title_memories">Memórias</string>
     <string name="title_mcp_servers">Servidores MCP</string>
     <string name="title_presets">Predefinições</string>
     <string name="title_settings">Configurações</string>
 
     <!-- Tabbed settings tabs -->
-    <string name="tab_general">Geral</string>
-    <string name="tab_chat">Conversa</string>
-    <string name="tab_account">Conta</string>
-    <string name="tab_data">Dados</string>
+    <string name="category_account">Conta</string>
 
     <!-- Theme -->
     <string name="theme_system">Padrão do sistema</string>
@@ -171,7 +149,6 @@
     <string name="language_system_default">Padrão do sistema</string>
     <string name="status_enabled">Ativado</string>
     <string name="status_disabled">Desativado</string>
-    <string name="fork_behavior">Comportamento de bifurcação</string>
     <string name="api_keys">Chaves de API</string>
     <string name="api_keys_subtitle">Gerencie chaves de API para acesso programático</string>
     <string name="presets">Predefinições</string>
@@ -276,21 +253,16 @@
     </plurals>
     <string name="cd_token_balance">Saldo de tokens: %1$s créditos</string>
     <string name="chat_group_display">Exibição</string>
-    <string name="chat_group_behavior">Comportamento</string>
-    <string name="chat_group_header_context">Cabeçalho &amp; contexto</string>
 
     <!-- Chat settings -->
-    <string name="chat_layout">Layout da conversa</string>
     <string name="chat_layout_thread">Encadeado</string>
-    <string name="chat_layout_two_sided">Conversa em dois lados</string>
+    <string name="chat_layout_two_sided">Dois lados</string>
     <string name="chat_layout_thread_desc">Todas as mensagens alinhadas à esquerda com avatar e nome</string>
     <string name="chat_layout_two_sided_desc">Mensagens do usuário à direita, do agente à esquerda</string>
     <string name="show_bubbles">Mostrar balões</string>
     <string name="show_bubbles_desc">Adicionar fundos de balão arredondados às mensagens</string>
     <string name="show_avatars">Mostrar avatares</string>
     <string name="show_avatars_desc">Exibir avatares do usuário e do agente ao lado das mensagens</string>
-    <string name="chat_layout_bubbles">Balões</string>
-    <string name="chat_layout_avatars">Avatares</string>
     <string name="starred_models_title">Modelos favoritos</string>
     <string name="starred_models_desc">Mostrar seus modelos e agentes fixados no topo do seletor de modelos</string>
     <string name="starred_models_off">Desativado</string>
@@ -306,27 +278,20 @@
     <string name="web_search_first_librechat_desc">A pesquisa do seu servidor, com fontes. Usa a pesquisa integrada do modelo quando o servidor não tem nenhuma configurada.</string>
     <string name="web_search_first_built_in">Pesquisa integrada primeiro</string>
     <string name="web_search_first_built_in_desc">A pesquisa do próprio provedor do modelo (OpenAI, Claude, Gemini, OpenRouter). Usa a pesquisa do LibreChat em outros modelos.</string>
-    <string name="chat_header_title">Cabeçalho da conversa</string>
-    <string name="chat_header_summary_format">%1$s · %2$s</string>
-    <string name="chat_header_content_label">Conteúdo</string>
-    <string name="chat_header_content_title_option">Título da conversa</string>
-    <string name="chat_header_content_model">Modelo selecionado</string>
+    <string name="chat_header_content_title_option">Título</string>
+    <string name="chat_header_content_model">Modelo</string>
     <string name="chat_header_content_none">Nada</string>
-    <string name="chat_header_alignment_label">Alinhamento</string>
     <string name="chat_header_alignment_left">Esquerda</string>
     <string name="chat_header_alignment_center">Centro</string>
     <string name="chat_header_alignment_fill">Largura total</string>
-    <string name="font_size">Tamanho da fonte</string>
     <string name="font_size_small">Pequeno</string>
     <string name="font_size_medium">Médio</string>
     <string name="font_size_large">Grande</string>
-    <string name="latex_renderer">Renderizador LaTeX</string>
+    <string name="latex_renderer">Renderização de fórmulas</string>
     <string name="latex_katex">KaTeX (renderizado)</string>
     <string name="latex_katex_desc">Renderização completa de LaTeX via WebView</string>
     <string name="latex_native">Texto simples (rápido)</string>
     <string name="latex_native_desc">Mostra o código LaTeX bruto para melhor desempenho de rolagem</string>
-    <string name="auto_scroll">Rolagem automática durante o streaming</string>
-    <string name="auto_scroll_desc">Rolar automaticamente para o novo conteúdo enquanto uma resposta está sendo gerada</string>
     <string name="thinking_open_by_default">Abrir o raciocínio por padrão</string>
     <string name="thinking_open_by_default_desc">Mostrar o raciocínio da resposta expandido em vez de recolhido</string>
     <string name="collapse_long_user_messages">Recolher mensagens longas do usuário</string>
@@ -335,7 +300,6 @@
     <string name="client_image_resize_desc">Reduzir imagens grandes antes de enviá-las, para envios mais rápidos que usam menos dados</string>
     <string name="client_image_resize_enforced">O administrador do seu servidor gerencia esta configuração</string>
     <string name="context_bar_title">Uso do contexto</string>
-    <string name="context_bar_desc">Onde mostrar o indicador de uso da janela de contexto</string>
     <string name="context_bar_hidden">Oculto</string>
     <string name="context_bar_above_input">Na caixa de mensagem</string>
     <string name="context_bar_options_sheet">Menu de opções da conversa</string>
@@ -347,12 +311,9 @@
 
     <!-- Artifacts -->
     <string name="section_artifacts">Artefatos</string>
-    <string name="artifact_viewer_title">Visualizador de artefatos</string>
-    <string name="artifact_viewer_desc">Como um artefato abre quando você toca nele.</string>
+    <string name="artifacts_open_in">Abrir artefatos em</string>
     <string name="artifact_mode_bottom_sheet">Painel inferior</string>
-    <string name="artifact_mode_bottom_sheet_desc">Desliza a partir da parte inferior; deslize para baixo para fechar.</string>
     <string name="artifact_mode_fullscreen">Tela cheia</string>
-    <string name="artifact_mode_fullscreen_desc">Abre como uma página em tela cheia com mais espaço.</string>
     <string name="artifact_inline_title">Renderizar embutido</string>
     <string name="artifact_inline_enabled_count">%1$d de %2$d ativados</string>
     <string name="artifact_libraries_title">Bibliotecas sinalizadas</string>
@@ -428,8 +389,6 @@
     <string name="dialog_clear_cache_message">Isso limpará as imagens em cache e os dados temporários. Os dados da sua conta não serão afetados.</string>
 
     <!-- Revoke keys dialog -->
-    <string name="dialog_title_revoke_keys">Revogar todas as chaves de API</string>
-    <string name="dialog_revoke_keys_message">Isso revogará todas as chaves de API armazenadas. Você precisará inseri-las novamente para continuar usando serviços externos.</string>
 
     <!-- Data settings -->
     <string name="clear_all_conversations">Limpar todas as conversas</string>
@@ -439,19 +398,17 @@
     <string name="dialog_title_archive_all">Arquivar todas as conversas?</string>
     <string name="dialog_archive_all_message">Todas as conversas vão para Arquivadas. Você ainda pode abri-las lá e desarquivar qualquer uma delas depois.</string>
     <string name="action_archive_all">Arquivar tudo</string>
-    <string name="archived_all_count">%1$d conversas arquivadas</string>
+    <plurals name="archived_all_count">
+        <item quantity="one">%1$d conversa arquivada</item>
+        <item quantity="other">%1$d conversas arquivadas</item>
+    </plurals>
     <string name="archived_conversations">Conversas arquivadas</string>
-    <string name="export_all_data">Exportar todos os dados</string>
-    <string name="clear_cache_with_size">Limpar cache (%1$s)</string>
     <string name="clear_cache">Limpar cache</string>
-    <string name="revoke_all_api_keys">Revogar todas as chaves de API</string>
-    <string name="revoking">Revogando…</string>
     <string name="dialog_title_clear_conversations">Limpar todas as conversas</string>
     <string name="dialog_clear_conversations_message">Isso excluirá permanentemente todas as suas conversas. Esta ação não pode ser desfeita.</string>
     <string name="clear_all">Limpar tudo</string>
     <!-- Diagnostic logs (issue #96) -->
     <string name="export_diagnostic_logs">Exportar logs de diagnóstico</string>
-    <string name="export_diagnostic_logs_with_size">Exportar logs de diagnóstico (%1$s)</string>
     <string name="exporting_logs">Exportando…</string>
     <string name="clear_diagnostic_logs">Limpar logs de diagnóstico</string>
     <string name="clearing_logs">Limpando…</string>
@@ -460,21 +417,15 @@
     <string name="dialog_clear_logs_message">Isso excluirá permanentemente todos os logs de diagnóstico armazenados neste dispositivo. Esta ação não pode ser desfeita.</string>
 
     <!-- Speech settings -->
-    <string name="auto_send_after_speech">Enviar automaticamente após a fala</string>
-    <string name="auto_send_after_speech_desc">Enviar automaticamente a mensagem após o término da transcrição de fala</string>
-    <string name="auto_read_responses">Ler respostas automaticamente</string>
-    <string name="auto_read_responses_desc">Ler automaticamente as respostas da IA em voz alta usando texto para fala</string>
-    <string name="tts_voice">Voz de TTS</string>
-    <string name="test_voice">Testar voz</string>
+    <string name="auto_send_after_speech">Enviar quando eu parar de falar</string>
+    <string name="auto_send_after_speech_desc">Enviar a mensagem assim que o ditado terminar</string>
+    <string name="auto_read_responses">Ler as respostas em voz alta</string>
+    <string name="auto_read_responses_desc">Ler cada nova resposta em voz alta quando terminar</string>
     <string name="no_server_tts_voices">Nenhuma voz de TTS do servidor disponível. Os recursos de fala podem não estar configurados no servidor.</string>
-    <string name="using_device_tts">Usando o mecanismo de texto para fala do dispositivo. Configure a voz e a velocidade nas Configurações de texto para fala abaixo.</string>
-    <string name="speech_to_text_settings">Configurações de fala para texto</string>
-    <string name="text_to_speech_settings">Configurações de texto para fala</string>
 
     <!-- STT detail dialog -->
-    <string name="stt_engine_label">Mecanismo</string>
-    <string name="stt_language_label">Idioma</string>
-    <string name="stt_default">Padrão</string>
+    <string name="stt_engine_label">Mecanismo de reconhecimento</string>
+    <string name="stt_language_label">Idioma da fala</string>
     <string name="stt_engine_browser">Integrado</string>
     <string name="stt_engine_external">Servidor</string>
     <string name="stt_hint_browser">Usa o reconhecimento de voz integrado do seu dispositivo para transcrição ao vivo.</string>
@@ -482,18 +433,17 @@
     <string name="stt_on_device_toggle">Reconhecimento no dispositivo</string>
     <string name="stt_on_device_toggle_desc">Transcreve neste dispositivo em vez de na nuvem. Recorre ao reconhecimento na nuvem se não estiver disponível.</string>
     <string name="stt_end_of_speech_toggle">Parar quando eu pausar</string>
-    <string name="stt_end_of_speech_toggle_desc">Encerra o ditado automaticamente quando você para de falar, em vez de continuar até você tocar em parar. Com o envio automático após a fala ativado, envia a mensagem com as mãos livres.</string>
+    <string name="stt_end_of_speech_toggle_desc">Encerra o ditado quando você para de falar, em vez de esperar que toque em parar. Com “Enviar quando eu parar de falar” ativado, funciona sem as mãos.</string>
     <string name="stt_auto_detect">Detecção automática</string>
 
     <!-- TTS detail dialog -->
-    <string name="tts_source_label">Origem</string>
+    <string name="tts_source_label">Origem da voz</string>
     <string name="tts_source_device">Dispositivo (integrado)</string>
     <string name="tts_source_server">Servidor</string>
     <string name="tts_voice_label">Voz</string>
     <string name="tts_system_default">Padrão do sistema</string>
-    <string name="tts_speech_rate">Velocidade da fala: %1$sx</string>
+    <string name="tts_speech_rate">Velocidade: %1$sx</string>
     <string name="tts_pitch">Tom: %1$s</string>
-    <string name="tts_cache_audio">Armazenar áudio em cache</string>
     <string name="tts_preview_text">Esta é uma pré-audição da voz selecionada.</string>
     <string name="tts_stop_preview">Parar pré-audição</string>
     <string name="tts_preview_voice">Pré-ouvir voz</string>
@@ -594,12 +544,6 @@
     <string name="error_failed_to_load_servers">Falha ao carregar os servidores</string>
     <string name="no_tools_available">Nenhuma ferramenta disponível</string>
     <!-- Fork settings -->
-    <string name="fork_mode_direct_path">Mensagens visíveis</string>
-    <string name="fork_mode_direct_path_desc">Apenas o caminho direto de mensagens até a mensagem selecionada</string>
-    <string name="fork_mode_include_branches">Incluir ramificações</string>
-    <string name="fork_mode_include_branches_desc">Caminho direto mais mensagens irmãs em cada nível</string>
-    <string name="fork_mode_target_level">Tudo até o nível alvo</string>
-    <string name="fork_mode_target_level_desc">Todas as mensagens e ramificações até o nível da mensagem alvo (padrão)</string>
 
     <!-- Language selector -->
     <string name="hint_search_languages">Buscar idiomas</string>
@@ -710,7 +654,7 @@
     <string name="provider_keys_needs_access_keys">chaves de acesso</string>
     <string name="provider_keys_needs_bearer_or_access_keys">token bearer ou chaves de acesso</string>
     <string name="provider_keys_summary_note">As chaves ficam armazenadas no seu servidor e são excluídas quando expiram.</string>
-    <string name="provider_keys_revoke_all_button">Revogar todas as chaves</string>
+    <string name="provider_keys_revoke_all_button">Remover todas as chaves</string>
     <plurals name="provider_keys_status_expires_in_minutes">
         <item quantity="one">Expira em %1$d min</item>
         <item quantity="other">Expira em %1$d min</item>
@@ -786,7 +730,6 @@
     <string name="show_site_icons">Mostrar ícones dos sites</string>
     <string name="show_site_icons_desc">Carregar os ícones dos resultados da pesquisa na web do Google e de outros sites</string>
     <string name="context_settings_where">Onde aparece</string>
-    <string name="context_settings_placement">Posição</string>
     <string name="context_settings_detail">Detalhe</string>
     <string name="context_settings_compacting">Compactação</string>
     <string name="context_settings_preview">Prévia</string>
@@ -842,7 +785,6 @@
     <string name="date_format_ymd_slash">Ano/Mês/Dia</string>
     <string name="date_format_long">Longo</string>
     <string name="date_time_preview">Pré-visualização</string>
-    <string name="ui_style">Estilo da interface</string>
     <string name="ui_style_material">Material</string>
     <string name="ui_style_liquid_glass">Liquid Glass</string>
     <string name="ui_style_note_simulated">O Liquid Glass é simulado nesta versão do iOS. O iOS 26 ou posterior o exibe nativamente.</string>
@@ -853,10 +795,8 @@
     <string name="advanced_search">Pesquisa avançada</string>
     <string name="advanced_search_desc">Para usuários avançados. Adiciona diferenciar maiúsculas, palavra inteira, regex e filtros de função, modelo e data à tela de pesquisa.</string>
     <string name="server_user_ca_notice">Confiável por meio de uma autoridade certificadora instalada neste dispositivo</string>
-    <string name="export_coming_soon">A exportação chegará em breve</string>
     <string name="mcp_tools_all">Todas as ferramentas MCP</string>
     <string name="mcp_server_unknown">Desconhecido</string>
-    <string name="dialog_ok">OK</string>
     <plurals name="mcp_tool_count">
         <item quantity="one">%1$d ferramenta</item>
         <item quantity="other">%1$d ferramentas</item>
@@ -909,7 +849,7 @@
     <string name="shared_chats_refresh_failed">Não foi possível atualizar suas conversas compartilhadas</string>
     <string name="shared_chats_delete_failed">Não foi possível excluir o link</string>
     <string name="passkeys_title">Chaves de acesso</string>
-    <string name="passkeys_row_subtitle">Entre com o bloqueio de tela ou uma chave de segurança</string>
+    <string name="passkeys_row_subtitle">Gerencie as chaves de acesso adicionadas na web</string>
     <plurals name="passkeys_row_count">
         <item quantity="one">%1$d chave de acesso</item>
         <item quantity="many">%1$d de chaves de acesso</item>
@@ -1069,4 +1009,72 @@
     <string name="pr_account_disconnect_error">Não foi possível desconectar. Tente novamente.</string>
     <string name="pr_account_connect_error">Não foi possível iniciar a conexão. Tente novamente.</string>
     <string name="pr_account_not_available">Este servidor não permite conectar uma conta.</string>
+    <string name="speech_error_voice_preview">Não foi possível ouvir a prévia da voz. Tente novamente.</string>
+    <string name="speech_error_playback">Não foi possível reproduzir o áudio.</string>
+    <string name="accent_name_blue">Azul</string>
+    <string name="accent_name_indigo">Índigo</string>
+    <string name="accent_name_lavender">Lavanda</string>
+    <string name="accent_name_cyan">Ciano</string>
+    <string name="accent_name_turquoise">Turquesa</string>
+    <string name="accent_name_green">Verde</string>
+    <string name="accent_name_amber">Âmbar</string>
+    <string name="accent_name_orange">Laranja</string>
+    <string name="accent_name_red">Vermelho</string>
+    <string name="accent_name_pink">Rosa</string>
+    <string name="accent_name_slate">Ardósia</string>
+    <string name="category_chats">Conversas</string>
+    <string name="category_privacy_data">Privacidade e dados</string>
+    <string name="category_administration">Administração</string>
+    <string name="settings_home_admin_summary">Permissões de habilidades e memória</string>
+    <string name="settings_home_offline_reading">Leitura offline: %1$s</string>
+    <string name="settings_home_about_summary">%1$s · Servidor %2$s</string>
+    <string name="appearance_section_theme">Tema</string>
+    <string name="appearance_section_style">Estilo</string>
+    <string name="appearance_section_color">Cor</string>
+    <string name="appearance_chat_appearance">Aparência do chat</string>
+    <string name="chat_appearance_layout">Layout</string>
+    <string name="chat_appearance_text_size">Tamanho do texto</string>
+    <string name="chat_appearance_title_bar">A barra de título mostra</string>
+    <string name="chat_appearance_title_position">Posição do título</string>
+    <string name="chat_appearance_sample_title">Um dia em Lisboa</string>
+    <string name="chat_appearance_sample_agent">Planejador de viagens</string>
+    <string name="chat_appearance_sample_you">Você</string>
+    <string name="chat_appearance_sample_question">O que devo ver em Lisboa em um dia?</string>
+    <string name="chat_appearance_sample_answer">Comece em Belém com um pastel de nata, suba no bonde 28 até Alfama e termine em um mirante para ver o pôr do sol.</string>
+    <string name="chat_appearance_sample_thanks">Perfeito, obrigado!</string>
+    <string name="appearance_section_tablet_layout">Layout de tablet</string>
+    <string name="accent_using_wallpaper">Usando as cores do papel de parede</string>
+    <string name="admin_panel">Painel de administração</string>
+    <string name="admin_panel_desc">Abre no seu navegador</string>
+    <string name="api_keys_load_failed">Não foi possível carregar as chaves de API</string>
+    <string name="category_voice">Voz</string>
+    <string name="category_models_keys">Modelos e chaves</string>
+    <string name="category_advanced">Avançado</string>
+    <string name="settings_home_models_summary">Favoritos, chaves de provedores, modelos com estrela</string>
+    <string name="settings_home_thinking_open">Raciocínio aberto</string>
+    <string name="settings_home_thinking_closed">Raciocínio fechado</string>
+    <string name="settings_home_artifacts">Artefatos: %1$s</string>
+    <string name="settings_home_read_aloud_on">Ler as respostas em voz alta: ativado</string>
+    <string name="settings_home_read_aloud_off">Ler as respostas em voz alta: desativado</string>
+    <string name="settings_home_provider_keys">Chaves de provedores: %1$s</string>
+    <string name="settings_home_advanced_summary">Renderização, envios, servidor, registros</string>
+    <string name="advanced_intro">Para usuários avançados. Os padrões servem para a maioria.</string>
+    <string name="advanced_chat_settings">Configurações avançadas de chat</string>
+    <string name="advanced_chat_settings_summary">Durante a geração, envios, predefinições</string>
+    <string name="advanced_data_settings">Configurações avançadas de dados</string>
+    <string name="section_listening">Ditado</string>
+    <string name="section_speaking">Leitura em voz alta</string>
+    <string name="advanced_voice_settings">Configurações avançadas de voz</string>
+    <string name="advanced_voice_settings_summary">Mecanismo de reconhecimento, reconhecimento no dispositivo</string>
+    <string name="section_messages">Mensagens</string>
+    <string name="section_your_chats">Seus chats</string>
+    <string name="section_on_this_phone">Neste aparelho</string>
+    <string name="section_privacy">Privacidade</string>
+    <string name="section_server">Servidor</string>
+    <string name="section_developer">Desenvolvedor</string>
+    <string name="section_troubleshooting">Solução de problemas</string>
+    <string name="about_copy_diagnostics">Copiar diagnóstico</string>
+    <string name="about_copy_diagnostics_desc">Versões do app, do servidor e do dispositivo para um relato de erro</string>
+    <string name="offline_reading">Leitura offline</string>
+    <string name="clear_cache_summary">%1$s de imagens e arquivos temporários</string>
 </resources>

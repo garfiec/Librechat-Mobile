@@ -2,19 +2,24 @@ package com.garfiec.librechat.feature.settings.screen
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.data.datastore.ArtifactLibraryConsentStore.Decision
 import com.garfiec.librechat.core.data.datastore.ArtifactLibraryConsentStore.Subject
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveSegmentedChoice
+import com.garfiec.librechat.core.ui.components.AdaptiveSegmentedChoiceOverhang
+import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.viewmodel.ArtifactLibraryChoice
@@ -55,10 +60,18 @@ internal fun ArtifactLibrariesDialog(
         modifier = modifier,
         title = { Text(stringResource(Res.string.artifact_libraries_title)) },
         text = {
+            val direction = LocalLayoutDirection.current
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .verticalScroll(rememberScrollState()),
+                    .verticalScroll(rememberScrollState())
+                    // The scroll clips, so leave room for the glass thumb's swell past the sides and the
+                    // last row.
+                    .padding(
+                        start = AdaptiveSegmentedChoiceOverhang.calculateStartPadding(direction),
+                        end = AdaptiveSegmentedChoiceOverhang.calculateEndPadding(direction),
+                        bottom = AdaptiveSegmentedChoiceOverhang.calculateBottomPadding(),
+                    ),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 Text(
@@ -87,7 +100,7 @@ internal fun ArtifactLibrariesDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) {
+            AdaptiveTextButton(onClick = onDismiss) {
                 Text(stringResource(Res.string.action_done))
             }
         },

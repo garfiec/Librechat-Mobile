@@ -2,6 +2,7 @@ package com.garfiec.librechat.feature.settings.screen
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,9 +20,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -65,7 +63,6 @@ fun ContextUsageSettingsScreen(
     viewModel: ContextUsageSettingsViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    var choosingPlacement by remember { mutableStateOf(false) }
 
     AdaptiveScaffold(
         modifier = modifier,
@@ -86,12 +83,7 @@ fun ContextUsageSettingsScreen(
                 item(key = "where_header") { AdaptiveSectionHeader(stringResource(Res.string.context_settings_where)) }
                 adaptiveSection {
                     row(key = "placement") {
-                        SelectorRow(
-                            title = stringResource(Res.string.context_settings_placement),
-                            value = contextBarPlacementLabel(state.placement),
-                            onClick = { choosingPlacement = true },
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                        )
+                        ContextPlacementChoice(selected = state.placement, onSelect = viewModel::setPlacement)
                     }
                 }
 
@@ -117,21 +109,6 @@ fun ContextUsageSettingsScreen(
                 }
             }
         }
-    }
-
-    if (choosingPlacement) {
-        RadioSelectionDialog(
-            title = stringResource(Res.string.context_bar_title),
-            description = stringResource(Res.string.context_bar_desc),
-            options = ContextBarPlacement.entries,
-            selected = state.placement,
-            onSave = {
-                viewModel.setPlacement(it)
-                choosingPlacement = false
-            },
-            onDismiss = { choosingPlacement = false },
-            optionLabel = { contextBarPlacementLabel(it) },
-        )
     }
 }
 
@@ -182,11 +159,13 @@ private fun DetailControls(
             )
         }
 
-        ToggleRow(
+        SettingsSwitchRow(
             title = stringResource(Res.string.context_settings_advanced),
             description = stringResource(Res.string.context_settings_advanced_desc),
             checked = state.advanced,
-            onChange = onAdvancedChange,
+            onCheckedChange = onAdvancedChange,
+            showDivider = false,
+            contentPadding = PaddingValues(0.dp),
         )
         if (state.advanced) {
             CustomSections(state, onSections)
@@ -201,37 +180,47 @@ private fun CustomSections(
 ) {
     val sections = state.sections
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        ToggleRow(
+        SettingsSwitchRow(
             title = stringResource(Res.string.context_section_breakdown),
             description = stringResource(Res.string.context_section_breakdown_desc),
             checked = sections.breakdown,
-            onChange = { on -> onSections { it.copy(breakdown = on) } },
+            onCheckedChange = { on -> onSections { it.copy(breakdown = on) } },
+            showDivider = false,
+            contentPadding = PaddingValues(0.dp),
         )
-        ToggleRow(
+        SettingsSwitchRow(
             title = stringResource(Res.string.context_section_tool_types),
             description = stringResource(Res.string.context_section_tool_types_desc),
             checked = sections.toolTypes,
-            onChange = { on -> onSections { it.copy(toolTypes = on) } },
+            onCheckedChange = { on -> onSections { it.copy(toolTypes = on) } },
+            showDivider = false,
+            contentPadding = PaddingValues(0.dp),
             enabled = sections.breakdown,
         )
-        ToggleRow(
+        SettingsSwitchRow(
             title = stringResource(Res.string.context_section_cache),
             description = stringResource(Res.string.context_section_cache_desc),
             checked = sections.cacheDetail,
-            onChange = { on -> onSections { it.copy(cacheDetail = on) } },
+            onCheckedChange = { on -> onSections { it.copy(cacheDetail = on) } },
+            showDivider = false,
+            contentPadding = PaddingValues(0.dp),
             enabled = sections.breakdown,
         )
-        ToggleRow(
+        SettingsSwitchRow(
             title = stringResource(Res.string.context_section_insights),
             description = stringResource(Res.string.context_section_insights_desc),
             checked = sections.insights,
-            onChange = { on -> onSections { it.copy(insights = on) } },
+            onCheckedChange = { on -> onSections { it.copy(insights = on) } },
+            showDivider = false,
+            contentPadding = PaddingValues(0.dp),
         )
-        ToggleRow(
+        SettingsSwitchRow(
             title = stringResource(Res.string.context_section_totals),
             description = stringResource(Res.string.context_section_totals_desc),
             checked = sections.totals,
-            onChange = { on -> onSections { it.copy(totals = on) } },
+            onCheckedChange = { on -> onSections { it.copy(totals = on) } },
+            showDivider = false,
+            contentPadding = PaddingValues(0.dp),
         )
         Text(text = stringResource(Res.string.context_section_cost), style = MaterialTheme.typography.bodyLarge)
         AdaptivePillChoice(

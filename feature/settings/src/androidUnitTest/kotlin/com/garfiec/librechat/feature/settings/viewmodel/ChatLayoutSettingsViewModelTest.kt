@@ -1,6 +1,9 @@
 package com.garfiec.librechat.feature.settings.viewmodel
 
 import com.garfiec.librechat.core.common.ChatLayoutConstants
+import com.garfiec.librechat.core.data.datastore.ChatFontSize
+import com.garfiec.librechat.core.data.datastore.ChatHeaderAlignment
+import com.garfiec.librechat.core.data.datastore.ChatHeaderContent
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coVerify
@@ -26,6 +29,9 @@ class ChatLayoutSettingsViewModelTest {
     private val layoutStyle = MutableStateFlow(ChatLayoutConstants.THREAD)
     private val showBubbles = MutableStateFlow(false)
     private val showAvatars = MutableStateFlow(true)
+    private val fontSize = MutableStateFlow(ChatFontSize.MEDIUM)
+    private val headerContent = MutableStateFlow(ChatHeaderContent.TITLE)
+    private val headerAlignment = MutableStateFlow(ChatHeaderAlignment.LEFT)
 
     @Before
     fun setup() {
@@ -33,6 +39,9 @@ class ChatLayoutSettingsViewModelTest {
         every { settingsDataStore.chatLayoutStyle } returns layoutStyle
         every { settingsDataStore.showBubbles } returns showBubbles
         every { settingsDataStore.showAvatars } returns showAvatars
+        every { settingsDataStore.chatFontSize } returns fontSize
+        every { settingsDataStore.chatHeaderContent } returns headerContent
+        every { settingsDataStore.chatHeaderAlignment } returns headerAlignment
     }
 
     @After
@@ -49,10 +58,20 @@ class ChatLayoutSettingsViewModelTest {
         layoutStyle.value = ChatLayoutConstants.TWO_SIDED
         showBubbles.value = true
         showAvatars.value = false
+        fontSize.value = ChatFontSize.LARGE
+        headerContent.value = ChatHeaderContent.MODEL
+        headerAlignment.value = ChatHeaderAlignment.FILL
         advanceUntilIdle()
 
         assertThat(viewModel.uiState.value).isEqualTo(
-            ChatLayoutSettingsUiState(layoutStyle = ChatLayoutConstants.TWO_SIDED, showBubbles = true, showAvatars = false),
+            ChatLayoutSettingsUiState(
+                layoutStyle = ChatLayoutConstants.TWO_SIDED,
+                showBubbles = true,
+                showAvatars = false,
+                fontSize = ChatFontSize.LARGE,
+                headerContent = ChatHeaderContent.MODEL,
+                headerAlignment = ChatHeaderAlignment.FILL,
+            ),
         )
     }
 
@@ -63,10 +82,16 @@ class ChatLayoutSettingsViewModelTest {
         viewModel.setLayoutStyle(ChatLayoutConstants.TWO_SIDED)
         viewModel.setShowBubbles(true)
         viewModel.setShowAvatars(false)
+        viewModel.setFontSize(ChatFontSize.SMALL)
+        viewModel.setHeaderContent(ChatHeaderContent.NONE)
+        viewModel.setHeaderAlignment(ChatHeaderAlignment.CENTER)
         advanceUntilIdle()
 
         coVerify { settingsDataStore.setChatLayoutStyle(ChatLayoutConstants.TWO_SIDED) }
         coVerify { settingsDataStore.setShowBubbles(true) }
         coVerify { settingsDataStore.setShowAvatars(false) }
+        coVerify { settingsDataStore.setChatFontSize(ChatFontSize.SMALL) }
+        coVerify { settingsDataStore.setChatHeaderContent(ChatHeaderContent.NONE) }
+        coVerify { settingsDataStore.setChatHeaderAlignment(ChatHeaderAlignment.CENTER) }
     }
 }

@@ -4,14 +4,12 @@
     <string name="action_add">إضافة</string>
     <string name="action_cancel">إلغاء</string>
     <string name="action_clear">مسح</string>
-    <string name="action_confirm">تأكيد</string>
     <string name="action_copy">نسخ</string>
     <string name="action_creating">جارٍ الإنشاء…</string>
     <string name="action_create">إنشاء</string>
     <string name="action_delete">حذف</string>
     <string name="action_done">تم</string>
     <string name="action_retry">إعادة المحاولة</string>
-    <string name="action_revoke_all">إبطال الكل</string>
     <string name="action_save">حفظ</string>
     <string name="action_sign_out">تسجيل الخروج</string>
     <string name="action_upload">رفع</string>
@@ -28,7 +26,6 @@
     <string name="shared_chats_copy_link">نسخ الرابط</string>
     <string name="cd_create_api_key">إنشاء مفتاح API</string>
     <string name="cd_current_avatar">الصورة الرمزية الحالية</string>
-    <string name="cd_delete">حذف</string>
     <string name="cd_delete_api_key">حذف مفتاح API</string>
     <string name="cd_delete_preset">حذف الإعداد المسبق</string>
     <string name="memory_redacted_key">إدخال مخفي</string>
@@ -36,34 +33,24 @@
     <string name="memory_redacted_value_no_delete">تُخفي سياسة المحتوى في هذا الخادم ما هو مخزّن هنا.</string>
     <string name="cd_loading_profile">جارٍ تحميل الملف الشخصي</string>
     <string name="account_profile_load_failed">تعذّر تحميل ملفك الشخصي.</string>
-    <string name="cd_make_private">جعله خاصًا</string>
-    <string name="cd_make_public">جعله عامًا</string>
     <string name="cd_preview_voice">معاينة الصوت</string>
     <string name="cd_avatar_preview">معاينة الصورة الرمزية</string>
     <string name="cd_selected">محدد</string>
     <string name="cd_selected_avatar">الصورة الرمزية المحددة</string>
     <string name="cd_stop_voice_preview">إيقاف معاينة الصوت</string>
-    <string name="cd_test_tts_voice">اختبار صوت تحويل النص إلى كلام المحدد</string>
-    <string name="cd_toggle_auto_read">تبديل القراءة التلقائية للردود</string>
-    <string name="cd_toggle_auto_send_stt">تبديل الإرسال التلقائي بعد الكلام</string>
-    <string name="cd_tts_voice_selector">اختيار صوت تحويل النص إلى كلام. الحالي %1$s</string>
     <string name="cd_user_avatar">الصورة الرمزية للمستخدم</string>
     <string name="cd_view_all_tools">عرض جميع الأدوات</string>
 
     <!-- Section headers -->
     <string name="section_about">حول</string>
     <string name="section_updates">التحديثات</string>
-    <string name="section_advanced">متقدم</string>
     <string name="section_appearance">المظهر</string>
-    <string name="appearance_theme_and_style">السمة والنمط</string>
     <!-- The switch in the interface style previews: an in-joke, "go outside". -->
     <string name="ui_style_preview_switch">المس العشب</string>
     <string name="section_balance">الرصيد</string>
-    <string name="section_chat_preferences">تفضيلات المحادثة</string>
     <string name="section_conversations">المحادثات</string>
     <string name="section_danger_zone">منطقة الخطر</string>
     <string name="section_language_region">اللغة والمنطقة</string>
-    <string name="section_layout">التخطيط</string>
     <string name="section_prefetch">التحميل المسبق في الخلفية</string>
     <string name="prefetch_enabled">تحميل المحادثات مسبقًا</string>
     <string name="prefetch_enabled_desc">تحميل المحادثات الحديثة والمثبتة مسبقًا لتُفتح فورًا. يعمل عندما يكون التطبيق خاملًا، ودوريًا أثناء الشحن.</string>
@@ -129,26 +116,17 @@
     <string name="prefetch_cache_messages">الرسائل المخزّنة مؤقتًا</string>
     <string name="prefetch_cache_messages_value">%1$d رسالة</string>
     <string name="prefetch_cache_images">الصور والملفات</string>
-    <string name="section_presets">الإعدادات المسبقة</string>
     <string name="section_profile">الملف الشخصي</string>
     <string name="section_security">الأمان</string>
-    <string name="section_speech">الكلام</string>
     <!-- Screen titles -->
-    <string name="title_account">الحساب</string>
     <string name="title_api_keys">مفاتيح API</string>
-    <string name="title_chat">المحادثة</string>
-    <string name="title_data">البيانات</string>
-    <string name="title_general">عام</string>
     <string name="title_memories">الذكريات</string>
     <string name="title_mcp_servers">خوادم MCP</string>
     <string name="title_presets">الإعدادات المسبقة</string>
     <string name="title_settings">الإعدادات</string>
 
     <!-- Tabbed settings tabs -->
-    <string name="tab_general">عام</string>
-    <string name="tab_chat">المحادثة</string>
-    <string name="tab_account">الحساب</string>
-    <string name="tab_data">البيانات</string>
+    <string name="category_account">الحساب</string>
 
     <!-- Theme -->
     <string name="theme_system">افتراضي النظام</string>
@@ -171,7 +149,6 @@
     <string name="language_system_default">افتراضي النظام</string>
     <string name="status_enabled">مُفعّل</string>
     <string name="status_disabled">مُعطّل</string>
-    <string name="fork_behavior">سلوك التفريع</string>
     <string name="api_keys">مفاتيح API</string>
     <string name="api_keys_subtitle">إدارة مفاتيح API للوصول البرمجي</string>
     <string name="presets">الإعدادات المسبقة</string>
@@ -300,21 +277,16 @@
     </plurals>
     <string name="cd_token_balance">رصيد الرموز: %1$s رصيد</string>
     <string name="chat_group_display">العرض</string>
-    <string name="chat_group_behavior">السلوك</string>
-    <string name="chat_group_header_context">الترويسة والسياق</string>
 
     <!-- Chat settings -->
-    <string name="chat_layout">تخطيط المحادثة</string>
     <string name="chat_layout_thread">سلسلة</string>
-    <string name="chat_layout_two_sided">محادثة ثنائية الجانب</string>
+    <string name="chat_layout_two_sided">ثنائي الجانب</string>
     <string name="chat_layout_thread_desc">جميع الرسائل محاذاة لليسار مع الصورة الرمزية والاسم</string>
     <string name="chat_layout_two_sided_desc">رسائل المستخدم على اليمين والوكيل على اليسار</string>
     <string name="show_bubbles">إظهار الفقاعات</string>
     <string name="show_bubbles_desc">إضافة خلفيات فقاعية دائرية للرسائل</string>
     <string name="show_avatars">إظهار الصور الرمزية</string>
     <string name="show_avatars_desc">عرض الصور الرمزية للمستخدم والوكيل بجوار الرسائل</string>
-    <string name="chat_layout_bubbles">فقاعات</string>
-    <string name="chat_layout_avatars">صور رمزية</string>
     <string name="starred_models_title">النماذج المميزة بنجمة</string>
     <string name="starred_models_desc">إظهار نماذجك ووكلائك المثبتين في أعلى محدد النموذج</string>
     <string name="starred_models_off">إيقاف</string>
@@ -330,27 +302,20 @@
     <string name="web_search_first_librechat_desc">بحث خادمك، مع المصادر. يستخدم البحث المدمج في النموذج عندما لا يكون على الخادم بحث مُعدّ.</string>
     <string name="web_search_first_built_in">البحث المدمج أولًا</string>
     <string name="web_search_first_built_in_desc">بحث مزوّد النموذج نفسه (OpenAI وClaude وGemini وOpenRouter). يستخدم بحث LibreChat للنماذج الأخرى.</string>
-    <string name="chat_header_title">ترويسة المحادثة</string>
-    <string name="chat_header_summary_format">%1$s · %2$s</string>
-    <string name="chat_header_content_label">المحتوى</string>
-    <string name="chat_header_content_title_option">عنوان المحادثة</string>
-    <string name="chat_header_content_model">النموذج المحدد</string>
+    <string name="chat_header_content_title_option">العنوان</string>
+    <string name="chat_header_content_model">النموذج</string>
     <string name="chat_header_content_none">لا شيء</string>
-    <string name="chat_header_alignment_label">المحاذاة</string>
     <string name="chat_header_alignment_left">يسار</string>
     <string name="chat_header_alignment_center">وسط</string>
-    <string name="chat_header_alignment_fill">بعرض كامل</string>
-    <string name="font_size">حجم الخط</string>
+    <string name="chat_header_alignment_fill">عرض كامل</string>
     <string name="font_size_small">صغير</string>
     <string name="font_size_medium">متوسط</string>
     <string name="font_size_large">كبير</string>
-    <string name="latex_renderer">عارض LaTeX</string>
+    <string name="latex_renderer">عرض المعادلات الرياضية</string>
     <string name="latex_katex">KaTeX (معروض)</string>
     <string name="latex_katex_desc">عرض LaTeX كامل عبر WebView</string>
     <string name="latex_native">نص عادي (سريع)</string>
     <string name="latex_native_desc">يعرض مصدر LaTeX الخام لأداء تمرير أفضل</string>
-    <string name="auto_scroll">التمرير التلقائي أثناء البث</string>
-    <string name="auto_scroll_desc">التمرير تلقائيًا إلى المحتوى الجديد أثناء إنشاء الرد</string>
     <string name="thinking_open_by_default">فتح التفكير افتراضيًا</string>
     <string name="thinking_open_by_default_desc">عرض استدلال الرد موسّعًا بدلًا من مطويًا</string>
     <string name="collapse_long_user_messages">طي رسائل المستخدم الطويلة</string>
@@ -359,7 +324,6 @@
     <string name="client_image_resize_desc">تصغير الصور الكبيرة قبل إرسالها لرفع أسرع يستهلك بيانات أقل</string>
     <string name="client_image_resize_enforced">يدير مسؤول الخادم هذا الإعداد</string>
     <string name="context_bar_title">استخدام السياق</string>
-    <string name="context_bar_desc">مكان عرض مؤشر استخدام نافذة السياق</string>
     <string name="context_bar_hidden">مخفي</string>
     <string name="context_bar_above_input">داخل مربع الرسالة</string>
     <string name="context_bar_options_sheet">قائمة خيارات المحادثة</string>
@@ -371,12 +335,9 @@
 
     <!-- Artifacts -->
     <string name="section_artifacts">العناصر التفاعلية</string>
-    <string name="artifact_viewer_title">عارض العناصر التفاعلية</string>
-    <string name="artifact_viewer_desc">كيف يُفتح العنصر التفاعلي عند النقر عليه.</string>
+    <string name="artifacts_open_in">طريقة فتح العناصر التفاعلية</string>
     <string name="artifact_mode_bottom_sheet">لوحة سفلية</string>
-    <string name="artifact_mode_bottom_sheet_desc">تنزلق من الأسفل؛ اسحب لأسفل للإغلاق.</string>
     <string name="artifact_mode_fullscreen">ملء الشاشة</string>
-    <string name="artifact_mode_fullscreen_desc">يُفتح كصفحة بملء الشاشة بمساحة أكبر.</string>
     <string name="artifact_inline_title">العرض المضمّن</string>
     <string name="artifact_inline_enabled_count">%1$d من %2$d مفعّلة</string>
     <string name="artifact_libraries_title">المكتبات المُعلَّمة</string>
@@ -452,8 +413,6 @@
     <string name="dialog_clear_cache_message">سيؤدي هذا إلى مسح الصور المخزّنة مؤقتًا والبيانات المؤقتة. لن تتأثر بيانات حسابك.</string>
 
     <!-- Revoke keys dialog -->
-    <string name="dialog_title_revoke_keys">إبطال جميع مفاتيح API</string>
-    <string name="dialog_revoke_keys_message">سيؤدي هذا إلى إبطال جميع مفاتيح API المخزّنة لديك. ستحتاج إلى إعادة إدخالها لمتابعة استخدام الخدمات الخارجية.</string>
 
     <!-- Data settings -->
     <string name="clear_all_conversations">مسح جميع المحادثات</string>
@@ -463,19 +422,21 @@
     <string name="dialog_title_archive_all">أرشفة جميع المحادثات؟</string>
     <string name="dialog_archive_all_message">ستنتقل كل المحادثات إلى المحادثات المؤرشفة. يمكنك فتحها من هناك، ويمكنك إلغاء أرشفة أي منها لاحقًا.</string>
     <string name="action_archive_all">أرشفة الكل</string>
-    <string name="archived_all_count">تمت أرشفة %1$d محادثة</string>
+    <plurals name="archived_all_count">
+        <item quantity="zero">تمت أرشفة %1$d محادثة</item>
+        <item quantity="one">تمت أرشفة محادثة واحدة</item>
+        <item quantity="two">تمت أرشفة محادثتين</item>
+        <item quantity="few">تمت أرشفة %1$d محادثات</item>
+        <item quantity="many">تمت أرشفة %1$d محادثة</item>
+        <item quantity="other">تمت أرشفة %1$d محادثة</item>
+    </plurals>
     <string name="archived_conversations">المحادثات المؤرشفة</string>
-    <string name="export_all_data">تصدير جميع البيانات</string>
-    <string name="clear_cache_with_size">مسح ذاكرة التخزين المؤقت (%1$s)</string>
     <string name="clear_cache">مسح ذاكرة التخزين المؤقت</string>
-    <string name="revoke_all_api_keys">إبطال جميع مفاتيح API</string>
-    <string name="revoking">جارٍ الإبطال…</string>
     <string name="dialog_title_clear_conversations">مسح جميع المحادثات</string>
     <string name="dialog_clear_conversations_message">سيؤدي هذا إلى حذف جميع محادثاتك نهائيًا. لا يمكن التراجع عن هذا الإجراء.</string>
     <string name="clear_all">مسح الكل</string>
     <!-- Diagnostic logs (issue #96) -->
     <string name="export_diagnostic_logs">تصدير سجلات التشخيص</string>
-    <string name="export_diagnostic_logs_with_size">تصدير سجلات التشخيص (%1$s)</string>
     <string name="exporting_logs">جارٍ التصدير…</string>
     <string name="clear_diagnostic_logs">مسح سجلات التشخيص</string>
     <string name="clearing_logs">جارٍ المسح…</string>
@@ -484,21 +445,15 @@
     <string name="dialog_clear_logs_message">سيؤدي هذا إلى حذف جميع سجلات التشخيص المخزّنة من هذا الجهاز نهائيًا. لا يمكن التراجع عن هذا الإجراء.</string>
 
     <!-- Speech settings -->
-    <string name="auto_send_after_speech">الإرسال التلقائي بعد الكلام</string>
-    <string name="auto_send_after_speech_desc">إرسال الرسالة تلقائيًا بعد انتهاء تحويل الكلام إلى نص</string>
-    <string name="auto_read_responses">القراءة التلقائية للردود</string>
-    <string name="auto_read_responses_desc">قراءة ردود الذكاء الاصطناعي بصوت عالٍ تلقائيًا باستخدام تحويل النص إلى كلام</string>
-    <string name="tts_voice">صوت تحويل النص إلى كلام</string>
-    <string name="test_voice">اختبار الصوت</string>
+    <string name="auto_send_after_speech">إرسال بعد أن أتوقف عن الكلام</string>
+    <string name="auto_send_after_speech_desc">إرسال الرسالة فور انتهاء الإملاء</string>
+    <string name="auto_read_responses">قراءة الردود بصوت عالٍ</string>
+    <string name="auto_read_responses_desc">قراءة كل رد جديد بصوت عالٍ عند اكتماله</string>
     <string name="no_server_tts_voices">لا تتوفر أصوات تحويل النص إلى كلام في الخادم. قد لا تكون ميزات الكلام مُهيأة على الخادم.</string>
-    <string name="using_device_tts">استخدام محرك تحويل النص إلى كلام في الجهاز. اضبط الصوت والسرعة في إعدادات تحويل النص إلى كلام أدناه.</string>
-    <string name="speech_to_text_settings">إعدادات تحويل الكلام إلى نص</string>
-    <string name="text_to_speech_settings">إعدادات تحويل النص إلى كلام</string>
 
     <!-- STT detail dialog -->
-    <string name="stt_engine_label">المحرك</string>
-    <string name="stt_language_label">اللغة</string>
-    <string name="stt_default">افتراضي</string>
+    <string name="stt_engine_label">محرك التعرف</string>
+    <string name="stt_language_label">لغة الكلام</string>
     <string name="stt_engine_browser">مدمج</string>
     <string name="stt_engine_external">الخادم</string>
     <string name="stt_hint_browser">يستخدم أداة التعرف على الكلام المدمجة في جهازك للنسخ المباشر.</string>
@@ -506,18 +461,17 @@
     <string name="stt_on_device_toggle">التعرف على الجهاز</string>
     <string name="stt_on_device_toggle_desc">النسخ على هذا الجهاز بدلاً من السحابة. يعود إلى أداة التعرف السحابية إذا لم تكن متوفرة.</string>
     <string name="stt_end_of_speech_toggle">التوقف عند التوقف مؤقتًا</string>
-    <string name="stt_end_of_speech_toggle_desc">ينهي الإملاء تلقائيًا بمجرد توقفك عن الكلام، بدلاً من الاستمرار حتى تنقر على إيقاف. مع تفعيل الإرسال التلقائي بعد الكلام، يتم إرسال الرسالة دون استخدام اليدين.</string>
+    <string name="stt_end_of_speech_toggle_desc">إنهاء الإملاء عند توقفك عن الكلام بدلًا من انتظار النقر على إيقاف. مع تشغيل «إرسال بعد أن أتوقف عن الكلام» يعمل دون استخدام اليدين.</string>
     <string name="stt_auto_detect">كشف تلقائي</string>
 
     <!-- TTS detail dialog -->
-    <string name="tts_source_label">المصدر</string>
+    <string name="tts_source_label">مصدر الصوت</string>
     <string name="tts_source_device">الجهاز (مدمج)</string>
     <string name="tts_source_server">الخادم</string>
     <string name="tts_voice_label">الصوت</string>
     <string name="tts_system_default">افتراضي النظام</string>
-    <string name="tts_speech_rate">سرعة الكلام: %1$sx</string>
+    <string name="tts_speech_rate">السرعة: %1$sx</string>
     <string name="tts_pitch">طبقة الصوت: %1$s</string>
-    <string name="tts_cache_audio">تخزين الصوت مؤقتًا</string>
     <string name="tts_preview_text">هذه معاينة للصوت المحدد.</string>
     <string name="tts_stop_preview">إيقاف المعاينة</string>
     <string name="tts_preview_voice">معاينة الصوت</string>
@@ -634,12 +588,6 @@
     <string name="error_failed_to_load_servers">فشل تحميل الخوادم</string>
     <string name="no_tools_available">لا توجد أدوات متاحة</string>
     <!-- Fork settings -->
-    <string name="fork_mode_direct_path">الرسائل المرئية</string>
-    <string name="fork_mode_direct_path_desc">المسار المباشر للرسائل إلى الرسالة المحددة فقط</string>
-    <string name="fork_mode_include_branches">تضمين الفروع</string>
-    <string name="fork_mode_include_branches_desc">المسار المباشر بالإضافة إلى الرسائل الشقيقة في كل مستوى</string>
-    <string name="fork_mode_target_level">الكل حتى المستوى المستهدف</string>
-    <string name="fork_mode_target_level_desc">جميع الرسائل والفروع حتى مستوى الرسالة المستهدفة (افتراضي)</string>
 
     <!-- Language selector -->
     <string name="hint_search_languages">البحث في اللغات</string>
@@ -750,7 +698,7 @@
     <string name="provider_keys_needs_access_keys">مفاتيح الوصول</string>
     <string name="provider_keys_needs_bearer_or_access_keys">رمز Bearer أو مفاتيح الوصول</string>
     <string name="provider_keys_summary_note">تُخزَّن المفاتيح على خادمك وتُحذف عند انتهاء صلاحيتها.</string>
-    <string name="provider_keys_revoke_all_button">إبطال جميع المفاتيح</string>
+    <string name="provider_keys_revoke_all_button">إزالة جميع المفاتيح</string>
     <plurals name="provider_keys_status_expires_in_minutes">
         <item quantity="zero">ينتهي خلال %1$d دقيقة</item>
         <item quantity="one">ينتهي خلال دقيقة واحدة</item>
@@ -838,7 +786,6 @@
     <string name="show_site_icons">إظهار أيقونات المواقع</string>
     <string name="show_site_icons_desc">تحميل أيقونات نتائج البحث على الويب من Google ومواقع أخرى</string>
     <string name="context_settings_where">مكان العرض</string>
-    <string name="context_settings_placement">الموضع</string>
     <string name="context_settings_detail">التفاصيل</string>
     <string name="context_settings_compacting">الضغط</string>
     <string name="context_settings_preview">معاينة</string>
@@ -894,7 +841,6 @@
     <string name="date_format_ymd_slash">سنة/شهر/يوم</string>
     <string name="date_format_long">طويل</string>
     <string name="date_time_preview">معاينة</string>
-    <string name="ui_style">نمط الواجهة</string>
     <string name="ui_style_material">Material</string>
     <string name="ui_style_liquid_glass">Liquid Glass</string>
     <string name="ui_style_note_simulated">تتم محاكاة Liquid Glass في إصدار iOS هذا. يعرضه iOS 26 أو الأحدث بشكل أصلي.</string>
@@ -905,10 +851,8 @@
     <string name="advanced_search">البحث المتقدم</string>
     <string name="advanced_search_desc">للمستخدمين المتقدمين. يضيف مطابقة حالة الأحرف والكلمة الكاملة والتعبيرات النمطية، وعوامل تصفية الدور والنموذج والتاريخ إلى شاشة البحث.</string>
     <string name="server_user_ca_notice">موثوق عبر جهة إصدار شهادات مثبّتة على هذا الجهاز</string>
-    <string name="export_coming_soon">التصدير قادم قريبًا</string>
     <string name="mcp_tools_all">كل أدوات MCP</string>
     <string name="mcp_server_unknown">غير معروف</string>
-    <string name="dialog_ok">حسنًا</string>
     <plurals name="mcp_tool_count">
         <item quantity="zero">%1$d أداة</item>
         <item quantity="one">أداة واحدة</item>
@@ -965,7 +909,7 @@
     <string name="shared_chats_refresh_failed">تعذّر تحديث محادثاتك المشتركة</string>
     <string name="shared_chats_delete_failed">تعذّر حذف الرابط</string>
     <string name="passkeys_title">مفاتيح المرور</string>
-    <string name="passkeys_row_subtitle">سجّل الدخول بقفل الشاشة أو بمفتاح أمان</string>
+    <string name="passkeys_row_subtitle">إدارة مفاتيح المرور المضافة على الويب</string>
     <plurals name="passkeys_row_count">
         <item quantity="zero">لا توجد مفاتيح مرور</item>
         <item quantity="one">مفتاح مرور واحد</item>
@@ -1128,4 +1072,72 @@
     <string name="pr_account_disconnect_error">تعذّر الفصل. حاول مرة أخرى.</string>
     <string name="pr_account_connect_error">تعذّر بدء الاتصال. حاول مرة أخرى.</string>
     <string name="pr_account_not_available">ربط حساب غير متاح على هذا الخادم.</string>
+    <string name="speech_error_voice_preview">تعذّرت معاينة الصوت. حاول مرة أخرى.</string>
+    <string name="speech_error_playback">تعذّر تشغيل الصوت.</string>
+    <string name="accent_name_blue">أزرق</string>
+    <string name="accent_name_indigo">نيلي</string>
+    <string name="accent_name_lavender">خزامى</string>
+    <string name="accent_name_cyan">سماوي</string>
+    <string name="accent_name_turquoise">فيروزي</string>
+    <string name="accent_name_green">أخضر</string>
+    <string name="accent_name_amber">كهرماني</string>
+    <string name="accent_name_orange">برتقالي</string>
+    <string name="accent_name_red">أحمر</string>
+    <string name="accent_name_pink">وردي</string>
+    <string name="accent_name_slate">رمادي أردوازي</string>
+    <string name="category_chats">المحادثات</string>
+    <string name="category_privacy_data">الخصوصية والبيانات</string>
+    <string name="category_administration">الإدارة</string>
+    <string name="settings_home_admin_summary">أذونات المهارات والذاكرة</string>
+    <string name="settings_home_offline_reading">القراءة دون اتصال: %1$s</string>
+    <string name="settings_home_about_summary">%1$s · الخادم %2$s</string>
+    <string name="appearance_section_theme">السمة</string>
+    <string name="appearance_section_style">النمط</string>
+    <string name="appearance_section_color">اللون</string>
+    <string name="appearance_chat_appearance">مظهر المحادثة</string>
+    <string name="chat_appearance_layout">التخطيط</string>
+    <string name="chat_appearance_text_size">حجم النص</string>
+    <string name="chat_appearance_title_bar">يعرض شريط العنوان</string>
+    <string name="chat_appearance_title_position">موضع العنوان</string>
+    <string name="chat_appearance_sample_title">يوم في لشبونة</string>
+    <string name="chat_appearance_sample_agent">مخطط الرحلات</string>
+    <string name="chat_appearance_sample_you">أنت</string>
+    <string name="chat_appearance_sample_question">ماذا أزور في لشبونة خلال يوم واحد؟</string>
+    <string name="chat_appearance_sample_answer">ابدأ في بيليم مع فطيرة كاسترد، ثم اركب الترام 28 صعودًا إلى ألفاما، واختم اليوم عند إحدى نقاط المشاهدة لرؤية الغروب.</string>
+    <string name="chat_appearance_sample_thanks">رائع، شكرًا!</string>
+    <string name="appearance_section_tablet_layout">تخطيط الجهاز اللوحي</string>
+    <string name="accent_using_wallpaper">تُستخدم ألوان الخلفية</string>
+    <string name="admin_panel">لوحة الإدارة</string>
+    <string name="admin_panel_desc">يُفتح في متصفحك</string>
+    <string name="api_keys_load_failed">تعذّر تحميل مفاتيح API</string>
+    <string name="category_voice">الصوت</string>
+    <string name="category_models_keys">النماذج والمفاتيح</string>
+    <string name="category_advanced">متقدم</string>
+    <string name="settings_home_models_summary">المفضلة ومفاتيح المزوّدين والنماذج المميزة بنجمة</string>
+    <string name="settings_home_thinking_open">التفكير مفتوح</string>
+    <string name="settings_home_thinking_closed">التفكير مطوي</string>
+    <string name="settings_home_artifacts">العناصر: %1$s</string>
+    <string name="settings_home_read_aloud_on">قراءة الردود بصوت عالٍ: تشغيل</string>
+    <string name="settings_home_read_aloud_off">قراءة الردود بصوت عالٍ: متوقف</string>
+    <string name="settings_home_provider_keys">مفاتيح المزوّدين: %1$s</string>
+    <string name="settings_home_advanced_summary">العرض والرفع والخادم والسجلات</string>
+    <string name="advanced_intro">للمستخدمين المتقدمين. الإعدادات الافتراضية تناسب معظم الناس.</string>
+    <string name="advanced_chat_settings">إعدادات المحادثة المتقدمة</string>
+    <string name="advanced_chat_settings_summary">أثناء الإنشاء، والرفع، والإعدادات المسبقة</string>
+    <string name="advanced_data_settings">إعدادات البيانات المتقدمة</string>
+    <string name="section_listening">الإملاء</string>
+    <string name="section_speaking">القراءة بصوت عالٍ</string>
+    <string name="advanced_voice_settings">إعدادات الصوت المتقدمة</string>
+    <string name="advanced_voice_settings_summary">محرك التعرف، التعرف على الجهاز</string>
+    <string name="section_messages">الرسائل</string>
+    <string name="section_your_chats">محادثاتك</string>
+    <string name="section_on_this_phone">على هذا الهاتف</string>
+    <string name="section_privacy">الخصوصية</string>
+    <string name="section_server">الخادم</string>
+    <string name="section_developer">المطوّر</string>
+    <string name="section_troubleshooting">استكشاف الأخطاء وإصلاحها</string>
+    <string name="about_copy_diagnostics">نسخ معلومات التشخيص</string>
+    <string name="about_copy_diagnostics_desc">إصدارات التطبيق والخادم والجهاز لإرفاقها ببلاغ خطأ</string>
+    <string name="offline_reading">القراءة دون اتصال</string>
+    <string name="clear_cache_summary">%1$s من الصور والملفات المؤقتة</string>
 </resources>

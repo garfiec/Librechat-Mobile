@@ -107,10 +107,6 @@ class SettingsDataStore(
         ChatHeaderAlignment.fromString(prefs[KEY_CHAT_HEADER_ALIGNMENT])
     }
 
-    val autoScrollEnabled: Flow<Boolean> = dataStore.data.map { prefs ->
-        prefs[KEY_AUTO_SCROLL_ENABLED] ?: true
-    }
-
     /**
      * Whether a reply's reasoning block starts expanded. The web's "Open Thinking Dropdowns by
      * Default", and like it off by default: hiding reasoning outright was never an option here,
@@ -248,7 +244,7 @@ class SettingsDataStore(
     }
 
     val ttsSource: Flow<String> = dataStore.data.map { prefs ->
-        prefs[KEY_TTS_SOURCE] ?: "device"
+        prefs[KEY_TTS_SOURCE] ?: TTS_SOURCE_DEVICE
     }
 
     val ttsSpeechRate: Flow<Float> = dataStore.data.map { prefs ->
@@ -302,18 +298,6 @@ class SettingsDataStore(
      */
     val sttEndOfSpeech: Flow<Boolean> = dataStore.data.map { prefs ->
         prefs[KEY_STT_END_OF_SPEECH] ?: false
-    }
-
-    val ttsEngine: Flow<String> = dataStore.data.map { prefs ->
-        prefs[KEY_TTS_ENGINE] ?: ""
-    }
-
-    val ttsVoice: Flow<String> = dataStore.data.map { prefs ->
-        prefs[KEY_TTS_VOICE] ?: ""
-    }
-
-    val ttsCaching: Flow<Boolean> = dataStore.data.map { prefs ->
-        prefs[KEY_TTS_CACHING] ?: true
     }
 
     val chatLayoutStyle: Flow<String> = dataStore.data.map { prefs ->
@@ -423,12 +407,6 @@ class SettingsDataStore(
     suspend fun setChatHeaderAlignment(alignment: ChatHeaderAlignment) {
         dataStore.edit { prefs ->
             prefs[KEY_CHAT_HEADER_ALIGNMENT] = alignment.toStorageString()
-        }
-    }
-
-    suspend fun setAutoScrollEnabled(enabled: Boolean) {
-        dataStore.edit { prefs ->
-            prefs[KEY_AUTO_SCROLL_ENABLED] = enabled
         }
     }
 
@@ -792,24 +770,6 @@ class SettingsDataStore(
         }
     }
 
-    suspend fun setTtsEngine(engine: String) {
-        dataStore.edit { prefs ->
-            prefs[KEY_TTS_ENGINE] = engine
-        }
-    }
-
-    suspend fun setTtsVoice(voice: String) {
-        dataStore.edit { prefs ->
-            prefs[KEY_TTS_VOICE] = voice
-        }
-    }
-
-    suspend fun setTtsCaching(enabled: Boolean) {
-        dataStore.edit { prefs ->
-            prefs[KEY_TTS_CACHING] = enabled
-        }
-    }
-
     suspend fun setChatLayoutStyle(style: String) {
         dataStore.edit { prefs ->
             prefs[KEY_CHAT_LAYOUT_STYLE] = style
@@ -922,13 +882,16 @@ class SettingsDataStore(
          */
         const val SKILLS_TOGGLE_SPEC_DEFAULTS_SLOT = "__defaults__"
 
+        /** The stored [ttsSource] values: the device's own engine, or the server's TTS route. */
+        const val TTS_SOURCE_DEVICE = "device"
+        const val TTS_SOURCE_SERVER = "server"
+
         private val KEY_SELECTED_LANGUAGE = stringPreferencesKey("selected_language")
         private val KEY_LATEX_RENDERER = stringPreferencesKey("latex_renderer")
         private val KEY_CHAT_FONT_SIZE = stringPreferencesKey("chat_font_size")
         private val KEY_STARRED_MODELS_DISPLAY = stringPreferencesKey("starred_models_display")
         private val KEY_CHAT_HEADER_CONTENT = stringPreferencesKey("chat_header_content")
         private val KEY_CHAT_HEADER_ALIGNMENT = stringPreferencesKey("chat_header_alignment")
-        private val KEY_AUTO_SCROLL_ENABLED = booleanPreferencesKey("auto_scroll_enabled")
         private val KEY_SHOW_THINKING_BLOCKS = booleanPreferencesKey("show_thinking_blocks")
         private val KEY_CONTEXT_BAR_PLACEMENT = stringPreferencesKey("context_bar_placement")
         private val KEY_DURING_RUN_ACTION = stringPreferencesKey("during_run_action")
@@ -965,9 +928,6 @@ class SettingsDataStore(
         private val KEY_STT_LANGUAGE = stringPreferencesKey("stt_language")
         private val KEY_STT_ON_DEVICE = booleanPreferencesKey("stt_on_device")
         private val KEY_STT_END_OF_SPEECH = booleanPreferencesKey("stt_end_of_speech")
-        private val KEY_TTS_ENGINE = stringPreferencesKey("tts_engine")
-        private val KEY_TTS_VOICE = stringPreferencesKey("tts_voice")
-        private val KEY_TTS_CACHING = booleanPreferencesKey("tts_caching")
         private val KEY_CHAT_LAYOUT_STYLE = stringPreferencesKey("chat_layout_style")
         private val KEY_FILES_VIEW_MODE = stringPreferencesKey("files_view_mode")
         private val KEY_FILES_SORT_FIELD = stringPreferencesKey("files_sort_field")

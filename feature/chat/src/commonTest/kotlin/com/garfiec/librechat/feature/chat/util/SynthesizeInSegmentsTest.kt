@@ -1,6 +1,7 @@
 package com.garfiec.librechat.feature.chat.util
 
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.model.speech.TtsVoice
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.coroutines.startCoroutine
@@ -83,6 +84,17 @@ class SynthesizeInSegmentsTest {
 
         assertNull(failure)
         assertEquals(1, calls)
+    }
+
+    @Test
+    fun serverVoiceKeepsAnOfferedVoiceElseTakesTheFirst() {
+        val voices = listOf(TtsVoice(id = "alloy", name = "Alloy"), TtsVoice(id = "echo", name = "Echo"))
+        val offered: suspend () -> Result<List<TtsVoice>> = { Result.Success(voices) }
+
+        assertEquals("echo", runSuspend { serverVoiceToUse("echo", offered) })
+        assertEquals("alloy", runSuspend { serverVoiceToUse(null, offered) })
+        assertEquals("alloy", runSuspend { serverVoiceToUse("removed", offered) })
+        assertEquals("echo", runSuspend { serverVoiceToUse("echo") { Result.Error(Exception("offline")) } })
     }
 
     /** Runs a block whose fakes never suspend, without a coroutines-test dependency in commonTest. */

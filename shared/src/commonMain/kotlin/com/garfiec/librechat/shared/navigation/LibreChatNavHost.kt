@@ -43,11 +43,9 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalUriHandler
-import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -77,6 +75,7 @@ import com.garfiec.librechat.core.ui.components.LocalServerUrl
 import com.garfiec.librechat.core.ui.components.share.LocalExternalUriHandler
 import com.garfiec.librechat.core.ui.components.share.LocalOpenSharedChat
 import com.garfiec.librechat.core.ui.components.topbar.CoversNativeBars
+import com.garfiec.librechat.core.ui.components.windowUsesSidebarLayout
 import com.garfiec.librechat.core.ui.datetime.ProvideDateTimeFormat
 import com.garfiec.librechat.core.ui.glass.GlassBackdrop
 import com.garfiec.librechat.core.ui.glass.GlassSheetHost
@@ -149,7 +148,7 @@ private const val HYGIENE_UNRECORDED = "__unrecorded__"
  * Shared root composable for LibreChat navigation.
  *
  * With no [content], picks [TabletLayout] or [PhoneLayout] from the window (iOS). Android passes
- * [content] to add deep links and share intents, and makes the same [usesSidebarLayout] choice there.
+ * [content] to add deep links and share intents, and makes the same [windowUsesSidebarLayout] choice there.
  */
 @Composable
 fun LibreChatNavHost(
@@ -405,16 +404,10 @@ fun LibreChatNavHost(
                         if (content != null) {
                             content(navigator, navHostViewModel, Modifier)
                         } else {
-                            // Read from the window rather than a size class so iPad Split View / Slide
-                            // Over, which resize the window without a rotation, flip the layout too. iOS
-                            // resizes in place, so both layouts share one movable NavDisplay; see
+                            // iOS resizes in place, so both layouts share one movable NavDisplay; see
                             // rememberMovableNavDisplay.
                             val navDisplay = rememberMovableNavDisplay(navigator)
-                            val window = LocalWindowInfo.current.containerSize
-                            val usesSidebar = with(LocalDensity.current) {
-                                usesSidebarLayout(window.width.toDp(), window.height.toDp())
-                            }
-                            if (usesSidebar) {
+                            if (windowUsesSidebarLayout()) {
                                 TabletLayout(navigator = navigator, navDisplay = navDisplay)
                             } else {
                                 PhoneLayout(navigator = navigator, navDisplay = navDisplay)
@@ -533,7 +526,7 @@ internal fun VersionMismatchDialog(
     )
 }
 
-/** Phone layout with a modal drawer sidebar: the path on both platforms when [usesSidebarLayout] is false. */
+/** Phone layout with a modal drawer sidebar: the path on both platforms when [windowUsesSidebarLayout] is false. */
 @Composable
 fun PhoneLayout(
     navigator: Navigator,

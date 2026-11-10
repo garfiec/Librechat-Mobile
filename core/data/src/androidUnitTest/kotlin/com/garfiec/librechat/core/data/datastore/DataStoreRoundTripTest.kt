@@ -155,7 +155,6 @@ class DataStoreRoundTripTest {
         val ds = createDataStore("settings")
         val store = settingsStore(ds)
 
-        assertThat(store.autoScrollEnabled.first()).isTrue()
         assertThat(store.thinkingOpenByDefault.first()).isFalse()
         assertThat(store.autoReadEnabled.first()).isFalse()
         assertThat(store.dismissKeyboardOnSend.first()).isTrue()
@@ -174,7 +173,6 @@ class DataStoreRoundTripTest {
         val ds = createDataStore("settings-bool")
         val store = settingsStore(ds)
 
-        store.setAutoScrollEnabled(false)
         store.setThinkingOpenByDefault(true)
         store.setAutoReadEnabled(true)
         store.setDismissKeyboardOnSend(false)
@@ -182,7 +180,6 @@ class DataStoreRoundTripTest {
         store.setSttOnDevice(false)
         store.setSttEndOfSpeech(true)
 
-        assertThat(store.autoScrollEnabled.first()).isFalse()
         assertThat(store.thinkingOpenByDefault.first()).isTrue()
         assertThat(store.autoReadEnabled.first()).isTrue()
         assertThat(store.dismissKeyboardOnSend.first()).isFalse()

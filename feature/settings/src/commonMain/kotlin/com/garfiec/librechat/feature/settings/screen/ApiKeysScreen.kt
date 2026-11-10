@@ -27,7 +27,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -45,8 +44,11 @@ import com.garfiec.librechat.core.model.ApiKey
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
 import com.garfiec.librechat.core.ui.components.AdaptiveFloatingActionButton
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
 import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
 import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
+import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
+import com.garfiec.librechat.core.ui.components.EmptyState
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
 import com.garfiec.librechat.core.ui.components.topbar.BarIcons
@@ -54,6 +56,7 @@ import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
 import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
+import com.garfiec.librechat.feature.settings.viewmodel.ApiKeysLoadFailure
 import com.garfiec.librechat.feature.settings.viewmodel.ApiKeysViewModel
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -89,7 +92,7 @@ fun ApiKeysScreen(
             )
         },
         floatingActionButton = {
-            if (uiState.error == null || uiState.keys.isNotEmpty()) {
+            if (uiState.loadFailure == null || uiState.keys.isNotEmpty()) {
                 AdaptiveFloatingActionButton(onClick = viewModel::showCreateDialog) {
                     Icon(
                         imageVector = Icons.Default.Add,
@@ -106,6 +109,7 @@ fun ApiKeysScreen(
                 .fillMaxSize()
                 .padding(innerPadding),
         ) {
+            val loadFailure = uiState.loadFailure
             when {
                 uiState.isLoading && uiState.keys.isEmpty() -> {
                     Box(
@@ -115,36 +119,8 @@ fun ApiKeysScreen(
                         AdaptiveCircularProgressIndicator()
                     }
                 }
-                !uiState.isLoading && uiState.error != null && uiState.keys.isEmpty() -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.padding(horizontal = 32.dp),
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Key,
-                                contentDescription = null,
-                                modifier = Modifier.size(48.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Text(
-                                text = stringResource(Res.string.api_keys_not_available),
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                textAlign = TextAlign.Center,
-                            )
-                            Text(
-                                text = stringResource(Res.string.api_keys_not_supported),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                textAlign = TextAlign.Center,
-                            )
-                        }
-                    }
+                !uiState.isLoading && loadFailure != null && uiState.keys.isEmpty() -> {
+                    ApiKeysLoadFailureState(failure = loadFailure, onRetry = viewModel::loadKeys)
                 }
                 !uiState.isLoading && uiState.keys.isEmpty() -> {
                     Box(
@@ -209,7 +185,7 @@ fun ApiKeysScreen(
                 Text(stringResource(Res.string.dialog_delete_api_key_message, key.name))
             },
             confirmButton = {
-                TextButton(
+                AdaptiveTextButton(
                     onClick = {
                         val id = key.id
                         keyToDelete = null
@@ -225,7 +201,7 @@ fun ApiKeysScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { keyToDelete = null }) {
+                AdaptiveTextButton(onClick = { keyToDelete = null }) {
                     Text(stringResource(Res.string.action_cancel))
                 }
             },
@@ -322,4 +298,24 @@ internal fun ApiKeyCard(
 private fun formatDate(dateString: String): String {
     // Simple date formatting - show the date portion
     return dateString.substringBefore("T").ifBlank { dateString }
+}
+
+/** The list couldn't load: "not available" for a server without the route, else the error and Retry. */
+@Composable
+private fun ApiKeysLoadFailureState(failure: ApiKeysLoadFailure, onRetry: () -> Unit) {
+    when (failure) {
+        ApiKeysLoadFailure.NotSupported -> EmptyState(
+            title = stringResource(Res.string.api_keys_not_available),
+            description = stringResource(Res.string.api_keys_not_supported),
+            icon = Icons.Default.Key,
+        )
+        is ApiKeysLoadFailure.Failed -> EmptyState(
+            title = stringResource(Res.string.api_keys_load_failed),
+            description = failure.message,
+            icon = Icons.Default.Key,
+            action = {
+                AdaptiveOutlinedButton(onClick = onRetry) { Text(stringResource(Res.string.action_retry)) }
+            },
+        )
+    }
 }

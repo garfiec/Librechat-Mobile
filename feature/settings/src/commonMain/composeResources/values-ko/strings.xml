@@ -4,14 +4,12 @@
     <string name="action_add">추가</string>
     <string name="action_cancel">취소</string>
     <string name="action_clear">지우기</string>
-    <string name="action_confirm">확인</string>
     <string name="action_copy">복사</string>
     <string name="action_creating">생성 중…</string>
     <string name="action_create">생성</string>
     <string name="action_delete">삭제</string>
     <string name="action_done">완료</string>
     <string name="action_retry">다시 시도</string>
-    <string name="action_revoke_all">모두 해제</string>
     <string name="action_save">저장</string>
     <string name="action_sign_out">로그아웃</string>
     <string name="action_upload">업로드</string>
@@ -28,7 +26,6 @@
     <string name="shared_chats_copy_link">링크 복사</string>
     <string name="cd_create_api_key">API 키 생성</string>
     <string name="cd_current_avatar">현재 아바타</string>
-    <string name="cd_delete">삭제</string>
     <string name="cd_delete_api_key">API 키 삭제</string>
     <string name="cd_delete_preset">프리셋 삭제</string>
     <string name="memory_redacted_key">숨겨진 항목</string>
@@ -36,34 +33,24 @@
     <string name="memory_redacted_value_no_delete">이 서버의 콘텐츠 정책에 따라 저장된 내용이 숨겨져 있습니다.</string>
     <string name="cd_loading_profile">프로필 불러오는 중</string>
     <string name="account_profile_load_failed">프로필을 불러올 수 없습니다.</string>
-    <string name="cd_make_private">비공개로 전환</string>
-    <string name="cd_make_public">공개로 전환</string>
     <string name="cd_preview_voice">음성 미리듣기</string>
     <string name="cd_avatar_preview">아바타 미리보기</string>
     <string name="cd_selected">선택됨</string>
     <string name="cd_selected_avatar">선택된 아바타</string>
     <string name="cd_stop_voice_preview">음성 미리듣기 중지</string>
-    <string name="cd_test_tts_voice">선택한 TTS 음성 테스트</string>
-    <string name="cd_toggle_auto_read">응답 자동 읽기 전환</string>
-    <string name="cd_toggle_auto_send_stt">음성 입력 후 자동 전송 전환</string>
-    <string name="cd_tts_voice_selector">TTS 음성 선택. 현재 %1$s</string>
     <string name="cd_user_avatar">사용자 아바타</string>
     <string name="cd_view_all_tools">모든 도구 보기</string>
 
     <!-- Section headers -->
     <string name="section_about">정보</string>
     <string name="section_updates">업데이트</string>
-    <string name="section_advanced">고급</string>
     <string name="section_appearance">화면 설정</string>
-    <string name="appearance_theme_and_style">테마 및 스타일</string>
     <!-- The switch in the interface style previews: an in-joke, "go outside". -->
     <string name="ui_style_preview_switch">잔디 좀 만지기</string>
     <string name="section_balance">잔액</string>
-    <string name="section_chat_preferences">채팅 환경설정</string>
     <string name="section_conversations">대화</string>
     <string name="section_danger_zone">위험 구역</string>
     <string name="section_language_region">언어 및 지역</string>
-    <string name="section_layout">레이아웃</string>
     <string name="section_prefetch">백그라운드 미리 불러오기</string>
     <string name="prefetch_enabled">대화 미리 불러오기</string>
     <string name="prefetch_enabled_desc">최근 대화와 고정된 대화를 미리 불러와 바로 열리게 합니다. 앱이 유휴 상태일 때, 그리고 충전 중에 주기적으로 실행됩니다.</string>
@@ -129,26 +116,17 @@
     <string name="prefetch_cache_messages">캐시된 메시지</string>
     <string name="prefetch_cache_messages_value">메시지 %1$d개</string>
     <string name="prefetch_cache_images">이미지 및 파일</string>
-    <string name="section_presets">프리셋</string>
     <string name="section_profile">프로필</string>
     <string name="section_security">보안</string>
-    <string name="section_speech">음성</string>
     <!-- Screen titles -->
-    <string name="title_account">계정</string>
     <string name="title_api_keys">API 키</string>
-    <string name="title_chat">채팅</string>
-    <string name="title_data">데이터</string>
-    <string name="title_general">일반</string>
     <string name="title_memories">메모리</string>
     <string name="title_mcp_servers">MCP 서버</string>
     <string name="title_presets">프리셋</string>
     <string name="title_settings">설정</string>
 
     <!-- Tabbed settings tabs -->
-    <string name="tab_general">일반</string>
-    <string name="tab_chat">채팅</string>
-    <string name="tab_account">계정</string>
-    <string name="tab_data">데이터</string>
+    <string name="category_account">계정</string>
 
     <!-- Theme -->
     <string name="theme_system">시스템 기본값</string>
@@ -171,7 +149,6 @@
     <string name="language_system_default">시스템 기본값</string>
     <string name="status_enabled">사용</string>
     <string name="status_disabled">사용 안 함</string>
-    <string name="fork_behavior">분기 동작</string>
     <string name="api_keys">API 키</string>
     <string name="api_keys_subtitle">프로그래밍 방식 접근을 위한 API 키 관리</string>
     <string name="presets">프리셋</string>
@@ -270,21 +247,16 @@
     </plurals>
     <string name="cd_token_balance">토큰 잔액: %1$s 크레딧</string>
     <string name="chat_group_display">표시</string>
-    <string name="chat_group_behavior">동작</string>
-    <string name="chat_group_header_context">헤더 &amp; 컨텍스트</string>
 
     <!-- Chat settings -->
-    <string name="chat_layout">채팅 레이아웃</string>
     <string name="chat_layout_thread">스레드</string>
-    <string name="chat_layout_two_sided">양방향 채팅</string>
+    <string name="chat_layout_two_sided">양방향</string>
     <string name="chat_layout_thread_desc">모든 메시지가 아바타와 이름과 함께 왼쪽에 정렬됩니다</string>
     <string name="chat_layout_two_sided_desc">사용자 메시지는 오른쪽, 에이전트는 왼쪽에 표시</string>
     <string name="show_bubbles">말풍선 표시</string>
     <string name="show_bubbles_desc">메시지에 둥근 말풍선 배경 추가</string>
     <string name="show_avatars">아바타 표시</string>
     <string name="show_avatars_desc">메시지 옆에 사용자와 에이전트 아바타 표시</string>
-    <string name="chat_layout_bubbles">말풍선</string>
-    <string name="chat_layout_avatars">아바타</string>
     <string name="starred_models_title">즐겨찾기한 모델</string>
     <string name="starred_models_desc">고정한 모델과 에이전트를 모델 선택기 상단에 표시</string>
     <string name="starred_models_off">끔</string>
@@ -300,27 +272,20 @@
     <string name="web_search_first_librechat_desc">서버의 검색으로, 출처를 함께 보여 줍니다. 서버에 설정된 검색이 없으면 모델의 기본 제공 검색을 사용합니다.</string>
     <string name="web_search_first_built_in">기본 제공 검색 우선</string>
     <string name="web_search_first_built_in_desc">모델 제공업체의 자체 검색(OpenAI, Claude, Gemini, OpenRouter)입니다. 다른 모델에서는 LibreChat 검색을 사용합니다.</string>
-    <string name="chat_header_title">채팅 헤더</string>
-    <string name="chat_header_summary_format">%1$s · %2$s</string>
-    <string name="chat_header_content_label">내용</string>
-    <string name="chat_header_content_title_option">대화 제목</string>
-    <string name="chat_header_content_model">선택한 모델</string>
+    <string name="chat_header_content_title_option">제목</string>
+    <string name="chat_header_content_model">모델</string>
     <string name="chat_header_content_none">없음</string>
-    <string name="chat_header_alignment_label">정렬</string>
     <string name="chat_header_alignment_left">왼쪽</string>
     <string name="chat_header_alignment_center">가운데</string>
     <string name="chat_header_alignment_fill">전체 너비</string>
-    <string name="font_size">글자 크기</string>
     <string name="font_size_small">작게</string>
     <string name="font_size_medium">보통</string>
     <string name="font_size_large">크게</string>
-    <string name="latex_renderer">LaTeX 렌더러</string>
+    <string name="latex_renderer">수식 렌더링</string>
     <string name="latex_katex">KaTeX (렌더링)</string>
     <string name="latex_katex_desc">WebView를 통한 완전한 LaTeX 렌더링</string>
     <string name="latex_native">일반 텍스트 (빠름)</string>
     <string name="latex_native_desc">스크롤 성능 향상을 위해 LaTeX 원본을 그대로 표시</string>
-    <string name="auto_scroll">스트리밍 중 자동 스크롤</string>
-    <string name="auto_scroll_desc">응답이 생성되는 동안 새 콘텐츠로 자동 스크롤</string>
     <string name="thinking_open_by_default">사고 과정을 기본으로 펼치기</string>
     <string name="thinking_open_by_default_desc">답변의 추론을 접힌 상태 대신 펼친 상태로 표시</string>
     <string name="collapse_long_user_messages">긴 사용자 메시지 접기</string>
@@ -329,7 +294,6 @@
     <string name="client_image_resize_desc">큰 이미지를 보내기 전에 줄여 업로드를 빠르게 하고 데이터를 절약합니다</string>
     <string name="client_image_resize_enforced">서버 관리자가 이 설정을 관리합니다</string>
     <string name="context_bar_title">컨텍스트 사용량</string>
-    <string name="context_bar_desc">컨텍스트 창 사용량 게이지를 표시할 위치</string>
     <string name="context_bar_hidden">숨김</string>
     <string name="context_bar_above_input">메시지 입력란 안</string>
     <string name="context_bar_options_sheet">채팅 옵션 메뉴</string>
@@ -341,12 +305,9 @@
 
     <!-- Artifacts -->
     <string name="section_artifacts">아티팩트</string>
-    <string name="artifact_viewer_title">아티팩트 뷰어</string>
-    <string name="artifact_viewer_desc">아티팩트를 탭했을 때 여는 방식입니다.</string>
+    <string name="artifacts_open_in">아티팩트 여는 방식</string>
     <string name="artifact_mode_bottom_sheet">하단 시트</string>
-    <string name="artifact_mode_bottom_sheet_desc">아래에서 위로 열리며, 아래로 스와이프하면 닫힙니다.</string>
     <string name="artifact_mode_fullscreen">전체 화면</string>
-    <string name="artifact_mode_fullscreen_desc">더 넓은 전체 화면 페이지로 열립니다.</string>
     <string name="artifact_inline_title">인라인으로 렌더링</string>
     <string name="artifact_inline_enabled_count">%2$d개 중 %1$d개 사용</string>
     <string name="artifact_libraries_title">주의가 필요한 라이브러리</string>
@@ -422,8 +383,6 @@
     <string name="dialog_clear_cache_message">캐시된 이미지와 임시 데이터를 지웁니다. 계정 데이터에는 영향을 주지 않습니다.</string>
 
     <!-- Revoke keys dialog -->
-    <string name="dialog_title_revoke_keys">모든 API 키 해제</string>
-    <string name="dialog_revoke_keys_message">저장된 모든 API 키를 해제합니다. 외부 서비스를 계속 사용하려면 다시 입력해야 합니다.</string>
 
     <!-- Data settings -->
     <string name="clear_all_conversations">모든 대화 지우기</string>
@@ -433,19 +392,16 @@
     <string name="dialog_title_archive_all">모든 대화를 보관할까요?</string>
     <string name="dialog_archive_all_message">모든 대화가 보관된 대화로 이동합니다. 그곳에서 계속 열 수 있으며, 언제든 보관을 해제할 수 있습니다.</string>
     <string name="action_archive_all">모두 보관</string>
-    <string name="archived_all_count">대화 %1$d개를 보관했습니다</string>
+    <plurals name="archived_all_count">
+        <item quantity="other">대화 %1$d개를 보관했습니다</item>
+    </plurals>
     <string name="archived_conversations">보관된 대화</string>
-    <string name="export_all_data">모든 데이터 내보내기</string>
-    <string name="clear_cache_with_size">캐시 지우기 (%1$s)</string>
     <string name="clear_cache">캐시 지우기</string>
-    <string name="revoke_all_api_keys">모든 API 키 해제</string>
-    <string name="revoking">해제하는 중…</string>
     <string name="dialog_title_clear_conversations">모든 대화 지우기</string>
     <string name="dialog_clear_conversations_message">모든 대화를 영구적으로 삭제합니다. 이 작업은 되돌릴 수 없습니다.</string>
     <string name="clear_all">모두 지우기</string>
     <!-- Diagnostic logs (issue #96) -->
     <string name="export_diagnostic_logs">진단 로그 내보내기</string>
-    <string name="export_diagnostic_logs_with_size">진단 로그 내보내기 (%1$s)</string>
     <string name="exporting_logs">내보내는 중…</string>
     <string name="clear_diagnostic_logs">진단 로그 지우기</string>
     <string name="clearing_logs">지우는 중…</string>
@@ -454,21 +410,15 @@
     <string name="dialog_clear_logs_message">이 기기에 저장된 모든 진단 로그를 영구적으로 삭제합니다. 이 작업은 되돌릴 수 없습니다.</string>
 
     <!-- Speech settings -->
-    <string name="auto_send_after_speech">음성 입력 후 자동 전송</string>
-    <string name="auto_send_after_speech_desc">음성-텍스트 변환이 끝나면 메시지를 자동으로 전송합니다</string>
-    <string name="auto_read_responses">응답 자동 읽기</string>
-    <string name="auto_read_responses_desc">텍스트-음성 변환으로 AI 응답을 자동으로 읽어줍니다</string>
-    <string name="tts_voice">TTS 음성</string>
-    <string name="test_voice">음성 테스트</string>
+    <string name="auto_send_after_speech">말을 마치면 보내기</string>
+    <string name="auto_send_after_speech_desc">받아쓰기가 끝나면 바로 메시지를 보냅니다</string>
+    <string name="auto_read_responses">답변 소리 내어 읽기</string>
+    <string name="auto_read_responses_desc">새 답변이 완료되면 소리 내어 읽습니다</string>
     <string name="no_server_tts_voices">사용 가능한 서버 TTS 음성이 없습니다. 서버에 음성 기능이 구성되지 않았을 수 있습니다.</string>
-    <string name="using_device_tts">기기의 텍스트-음성 변환 엔진을 사용 중입니다. 아래 텍스트-음성 변환 설정에서 음성과 속도를 구성하세요.</string>
-    <string name="speech_to_text_settings">음성-텍스트 변환 설정</string>
-    <string name="text_to_speech_settings">텍스트-음성 변환 설정</string>
 
     <!-- STT detail dialog -->
-    <string name="stt_engine_label">엔진</string>
-    <string name="stt_language_label">언어</string>
-    <string name="stt_default">기본값</string>
+    <string name="stt_engine_label">인식 엔진</string>
+    <string name="stt_language_label">음성 언어</string>
     <string name="stt_engine_browser">내장</string>
     <string name="stt_engine_external">서버</string>
     <string name="stt_hint_browser">기기에 내장된 음성 인식을 사용하여 실시간으로 받아씁니다.</string>
@@ -476,18 +426,17 @@
     <string name="stt_on_device_toggle">기기에서 인식</string>
     <string name="stt_on_device_toggle_desc">클라우드 대신 이 기기에서 받아씁니다. 사용할 수 없으면 클라우드 인식으로 전환됩니다.</string>
     <string name="stt_end_of_speech_toggle">멈추면 중지</string>
-    <string name="stt_end_of_speech_toggle_desc">중지를 누를 때까지 계속하는 대신, 말을 멈추면 자동으로 받아쓰기를 종료합니다. 음성 후 자동 전송이 켜져 있으면 핸즈프리로 메시지를 보냅니다.</string>
+    <string name="stt_end_of_speech_toggle_desc">정지를 탭할 때까지 기다리지 않고 말을 멈추면 받아쓰기를 끝냅니다. ‘말을 마치면 보내기’를 켜면 손을 쓰지 않아도 됩니다.</string>
     <string name="stt_auto_detect">자동 감지</string>
 
     <!-- TTS detail dialog -->
-    <string name="tts_source_label">소스</string>
+    <string name="tts_source_label">음성 소스</string>
     <string name="tts_source_device">기기 (내장)</string>
     <string name="tts_source_server">서버</string>
     <string name="tts_voice_label">음성</string>
     <string name="tts_system_default">시스템 기본값</string>
-    <string name="tts_speech_rate">말하기 속도: %1$sx</string>
+    <string name="tts_speech_rate">속도: %1$sx</string>
     <string name="tts_pitch">음높이: %1$s</string>
-    <string name="tts_cache_audio">오디오 캐시</string>
     <string name="tts_preview_text">선택한 음성의 미리듣기입니다.</string>
     <string name="tts_stop_preview">미리듣기 중지</string>
     <string name="tts_preview_voice">음성 미리듣기</string>
@@ -584,12 +533,6 @@
     <string name="error_failed_to_load_servers">서버를 불러오지 못했습니다</string>
     <string name="no_tools_available">사용 가능한 도구가 없습니다</string>
     <!-- Fork settings -->
-    <string name="fork_mode_direct_path">표시된 메시지</string>
-    <string name="fork_mode_direct_path_desc">선택한 메시지까지의 직접 경로 메시지만</string>
-    <string name="fork_mode_include_branches">분기 포함</string>
-    <string name="fork_mode_include_branches_desc">직접 경로와 각 단계의 형제 메시지</string>
-    <string name="fork_mode_target_level">대상 단계까지 전체</string>
-    <string name="fork_mode_target_level_desc">대상 메시지 단계까지의 모든 메시지와 분기 (기본값)</string>
 
     <!-- Language selector -->
     <string name="hint_search_languages">언어 검색</string>
@@ -700,7 +643,7 @@
     <string name="provider_keys_needs_access_keys">액세스 키</string>
     <string name="provider_keys_needs_bearer_or_access_keys">베어러 토큰 또는 액세스 키</string>
     <string name="provider_keys_summary_note">키는 서버에 저장되며 만료되면 삭제됩니다.</string>
-    <string name="provider_keys_revoke_all_button">모든 키 해제</string>
+    <string name="provider_keys_revoke_all_button">모든 키 삭제</string>
     <plurals name="provider_keys_status_expires_in_minutes">
         <item quantity="other">%1$d분 후 만료</item>
     </plurals>
@@ -773,7 +716,6 @@
     <string name="show_site_icons">웹사이트 아이콘 표시</string>
     <string name="show_site_icons_desc">웹 검색 결과의 아이콘을 Google 및 기타 웹사이트에서 불러옵니다</string>
     <string name="context_settings_where">표시 위치</string>
-    <string name="context_settings_placement">위치</string>
     <string name="context_settings_detail">세부 정보</string>
     <string name="context_settings_compacting">압축</string>
     <string name="context_settings_preview">미리보기</string>
@@ -829,7 +771,6 @@
     <string name="date_format_ymd_slash">년/월/일</string>
     <string name="date_format_long">긴 형식</string>
     <string name="date_time_preview">미리보기</string>
-    <string name="ui_style">인터페이스 스타일</string>
     <string name="ui_style_material">Material</string>
     <string name="ui_style_liquid_glass">Liquid Glass</string>
     <string name="ui_style_note_simulated">이 iOS 버전에서는 Liquid Glass를 시뮬레이션합니다. iOS 26 이상에서는 기본으로 렌더링됩니다.</string>
@@ -840,10 +781,8 @@
     <string name="advanced_search">고급 검색</string>
     <string name="advanced_search_desc">고급 사용자용. 검색 화면에 대소문자 구분, 단어 단위, 정규식과 역할·모델·날짜 필터를 추가합니다.</string>
     <string name="server_user_ca_notice">이 기기에 설치된 인증 기관을 통해 신뢰됨</string>
-    <string name="export_coming_soon">내보내기는 곧 지원됩니다</string>
     <string name="mcp_tools_all">모든 MCP 도구</string>
     <string name="mcp_server_unknown">알 수 없음</string>
-    <string name="dialog_ok">확인</string>
     <plurals name="mcp_tool_count">
         <item quantity="other">도구 %1$d개</item>
     </plurals>
@@ -895,7 +834,7 @@
     <string name="shared_chats_refresh_failed">공유한 채팅을 새로고침하지 못했습니다</string>
     <string name="shared_chats_delete_failed">링크를 삭제하지 못했습니다</string>
     <string name="passkeys_title">패스키</string>
-    <string name="passkeys_row_subtitle">화면 잠금 또는 보안 키로 로그인</string>
+    <string name="passkeys_row_subtitle">웹에서 추가한 패스키 관리</string>
     <plurals name="passkeys_row_count">
         <item quantity="other">패스키 %1$d개</item>
     </plurals>
@@ -1053,4 +992,72 @@
     <string name="pr_account_disconnect_error">연결을 해제할 수 없습니다. 다시 시도하세요.</string>
     <string name="pr_account_connect_error">연결을 시작할 수 없습니다. 다시 시도하세요.</string>
     <string name="pr_account_not_available">이 서버에서는 계정을 연결할 수 없습니다.</string>
+    <string name="speech_error_voice_preview">음성을 미리 들을 수 없습니다. 다시 시도하세요.</string>
+    <string name="speech_error_playback">오디오를 재생할 수 없습니다.</string>
+    <string name="accent_name_blue">파랑</string>
+    <string name="accent_name_indigo">남색</string>
+    <string name="accent_name_lavender">라벤더</string>
+    <string name="accent_name_cyan">청록</string>
+    <string name="accent_name_turquoise">터키석</string>
+    <string name="accent_name_green">초록</string>
+    <string name="accent_name_amber">호박색</string>
+    <string name="accent_name_orange">주황</string>
+    <string name="accent_name_red">빨강</string>
+    <string name="accent_name_pink">분홍</string>
+    <string name="accent_name_slate">슬레이트</string>
+    <string name="category_chats">채팅</string>
+    <string name="category_privacy_data">개인정보 및 데이터</string>
+    <string name="category_administration">관리</string>
+    <string name="settings_home_admin_summary">스킬 및 메모리 권한</string>
+    <string name="settings_home_offline_reading">오프라인 읽기: %1$s</string>
+    <string name="settings_home_about_summary">%1$s · 서버 %2$s</string>
+    <string name="appearance_section_theme">테마</string>
+    <string name="appearance_section_style">스타일</string>
+    <string name="appearance_section_color">색상</string>
+    <string name="appearance_chat_appearance">채팅 모양</string>
+    <string name="chat_appearance_layout">레이아웃</string>
+    <string name="chat_appearance_text_size">글자 크기</string>
+    <string name="chat_appearance_title_bar">제목 표시줄 내용</string>
+    <string name="chat_appearance_title_position">제목 위치</string>
+    <string name="chat_appearance_sample_title">리스본에서의 하루</string>
+    <string name="chat_appearance_sample_agent">여행 플래너</string>
+    <string name="chat_appearance_sample_you">나</string>
+    <string name="chat_appearance_sample_question">리스본에서 하루 동안 무엇을 봐야 할까요?</string>
+    <string name="chat_appearance_sample_answer">벨렝에서 에그타르트로 시작해 28번 트램을 타고 알파마로 올라간 뒤, 전망대에서 노을을 보며 마무리하세요.</string>
+    <string name="chat_appearance_sample_thanks">완벽해요, 고마워요!</string>
+    <string name="appearance_section_tablet_layout">태블릿 레이아웃</string>
+    <string name="accent_using_wallpaper">배경화면 색상 사용 중</string>
+    <string name="admin_panel">관리자 패널</string>
+    <string name="admin_panel_desc">브라우저에서 열립니다</string>
+    <string name="api_keys_load_failed">API 키를 불러오지 못했습니다</string>
+    <string name="category_voice">음성</string>
+    <string name="category_models_keys">모델 및 키</string>
+    <string name="category_advanced">고급</string>
+    <string name="settings_home_models_summary">즐겨찾기, 제공자 키, 별표한 모델</string>
+    <string name="settings_home_thinking_open">사고 과정 펼침</string>
+    <string name="settings_home_thinking_closed">사고 과정 접힘</string>
+    <string name="settings_home_artifacts">아티팩트: %1$s</string>
+    <string name="settings_home_read_aloud_on">답변 소리 내어 읽기: 켜짐</string>
+    <string name="settings_home_read_aloud_off">답변 소리 내어 읽기: 꺼짐</string>
+    <string name="settings_home_provider_keys">제공자 키: %1$s</string>
+    <string name="settings_home_advanced_summary">렌더링, 업로드, 서버, 로그</string>
+    <string name="advanced_intro">고급 사용자용입니다. 대부분은 기본값으로 충분합니다.</string>
+    <string name="advanced_chat_settings">고급 채팅 설정</string>
+    <string name="advanced_chat_settings_summary">생성 중 동작, 업로드, 프리셋</string>
+    <string name="advanced_data_settings">고급 데이터 설정</string>
+    <string name="section_listening">음성 입력</string>
+    <string name="section_speaking">읽어 주기</string>
+    <string name="advanced_voice_settings">고급 음성 설정</string>
+    <string name="advanced_voice_settings_summary">인식 엔진, 기기에서 인식</string>
+    <string name="section_messages">메시지</string>
+    <string name="section_your_chats">내 채팅</string>
+    <string name="section_on_this_phone">이 기기</string>
+    <string name="section_privacy">개인정보 보호</string>
+    <string name="section_server">서버</string>
+    <string name="section_developer">개발자</string>
+    <string name="section_troubleshooting">문제 해결</string>
+    <string name="about_copy_diagnostics">진단 정보 복사</string>
+    <string name="about_copy_diagnostics_desc">버그 신고용 앱, 서버, 기기 버전</string>
+    <string name="offline_reading">오프라인 읽기</string>
+    <string name="clear_cache_summary">이미지 및 임시 파일 %1$s</string>
 </resources>

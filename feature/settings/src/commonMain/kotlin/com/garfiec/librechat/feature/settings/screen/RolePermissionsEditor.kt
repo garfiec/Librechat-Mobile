@@ -21,7 +21,6 @@ import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
@@ -45,6 +44,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveExposedDropdownMenuBox
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
 import com.garfiec.librechat.core.ui.components.AdaptiveSwitch
+import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
 import com.garfiec.librechat.core.ui.components.DiscardChangesDialog
 import com.garfiec.librechat.core.ui.components.ErrorBanner
 import com.garfiec.librechat.core.ui.components.PlatformBackHandler
@@ -287,7 +287,7 @@ private fun AdminAccessWarning() {
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.error,
         )
-        TextButton(
+        AdaptiveTextButton(
             // Android throws when no browser is installed (de-Googled ROMs, work profiles).
             onClick = { linkUnopened = runCatching { uriHandler.openUri(ADMIN_ACCESS_DOCS_URL) }.isFailure },
             contentPadding = PaddingValues(horizontal = 0.dp, vertical = 8.dp),

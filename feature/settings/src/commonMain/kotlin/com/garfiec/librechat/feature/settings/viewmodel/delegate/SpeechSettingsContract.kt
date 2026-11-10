@@ -1,31 +1,15 @@
 package com.garfiec.librechat.feature.settings.viewmodel.delegate
 
-import com.garfiec.librechat.core.model.speech.TtsVoice
-
+/** The platform half of the Voice page: server voices, device voices and the voice preview. */
 interface SpeechSettingsContract {
     fun loadVoices()
     fun loadDeviceVoices()
     fun loadSpeechConfig()
-    fun setAutoSendAfterStt(enabled: Boolean)
-    fun setAutoReadEnabled(enabled: Boolean)
-    fun selectVoice(voice: TtsVoice)
-    fun testVoice()
+
+    /** Whether a speech config read has answered; a failed read leaves it false. */
+    val speechConfigLoaded: Boolean
     fun previewDeviceTts(text: String, rate: Float, pitch: Float, voiceName: String?)
-    fun previewServerTts(text: String, voice: String?, model: String?)
+    fun previewServerTts(text: String, voice: String?)
     fun stopTtsPreview()
-    fun showSttDetailDialog()
-    fun dismissSttDetailDialog()
-    fun saveSttSettings(engine: String, language: String, onDevice: Boolean, endOfSpeech: Boolean)
-    fun showTtsDetailDialog()
-    fun dismissTtsDetailDialog()
-    fun saveTtsSettings(
-        engine: String,
-        voice: String,
-        rate: Float,
-        pitch: Float,
-        deviceVoiceName: String,
-        caching: Boolean,
-        source: String,
-    )
     fun release()
 }

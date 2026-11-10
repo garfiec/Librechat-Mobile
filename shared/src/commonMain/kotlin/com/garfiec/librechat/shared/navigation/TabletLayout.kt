@@ -32,40 +32,21 @@ import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.model.Banner
 import com.garfiec.librechat.core.ui.components.BannerDisplay
 import com.garfiec.librechat.core.ui.components.PlatformBackHandler
+import com.garfiec.librechat.core.ui.components.SidebarWidth
 import com.garfiec.librechat.core.ui.glass.rememberGlassStyle
+import com.garfiec.librechat.core.ui.navigation.FullWidthRoute
 import com.garfiec.librechat.feature.auth.navigation.AddAccountServerUrl
 import com.garfiec.librechat.feature.chat.navigation.NewChat
 import com.garfiec.librechat.feature.chat.navigation.isPlainLanding
 import com.garfiec.librechat.feature.conversations.navigation.Projects
-import com.garfiec.librechat.feature.conversations.navigation.Search
 import com.garfiec.librechat.feature.settings.navigation.SettingsTabbed
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
-
-private val SidebarWidth = 320.dp
-
-/**
- * Whether a window this size gets [TabletLayout], whose sidebar pushes the content aside, rather than
- * [PhoneLayout]'s drawer over it. Both platform hosts decide with this, so they can't diverge.
- *
- * The sidebar has to leave the content a phone's width, or every screen beside it lays out narrower
- * than the smallest phone. A short window (a phone on its side) keeps the drawer: the sidebar's
- * header and footer would leave its list no room.
- */
-fun usesSidebarLayout(windowWidth: Dp, windowHeight: Dp): Boolean =
-    windowWidth - SidebarWidth >= MinContentWidth && windowHeight >= MinSidebarWindowHeight
-
-private val MinContentWidth = 360.dp
-
-// The compact-height window size class's upper bound.
-private val MinSidebarWindowHeight = 480.dp
 
 /** Velocity (px/s) above which a fling commits the gesture regardless of position. */
 private const val FLING_VELOCITY_THRESHOLD = 800f
@@ -84,12 +65,11 @@ fun TabletLayout(
     // The sidebar is an authenticated surface, same rule as PhoneLayout's drawer gestures: a
     // logged-out deep link (artifact viewer atop the auth base) is not in the auth flow either.
     val showSidebar = isLoggedIn && !navigator.isInAuthFlow
-    // Search's list and preview pane need the whole width (an unfolded Fold leaves it under the
-    // two-pane threshold beside the sidebar), so the sidebar steps aside while Search is on top.
-    // Nothing is persisted: closing Search brings it back as it was.
-    val searchOpen = navigator.currentRoute is Search
+    // An unfolded Fold leaves a two-pane screen under its threshold beside the sidebar. Nothing is
+    // persisted: leaving brings the sidebar back as it was.
+    val sidebarAside = navigator.currentRoute is FullWidthRoute
     val sidebarReveal by animateFloatAsState(
-        targetValue = if (searchOpen) 0f else 1f,
+        targetValue = if (sidebarAside) 0f else 1f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow),
         label = "sidebarReveal",
     )
@@ -125,7 +105,7 @@ fun TabletLayout(
 
     // Back press closes sidebar before navigating away. Gated on the sidebar being shown: armed while
     // hidden, it swallows back on the root auth screen and silently persists the sidebar closed.
-    PlatformBackHandler(enabled = showSidebar && isSidebarOpen && !searchOpen) {
+    PlatformBackHandler(enabled = showSidebar && isSidebarOpen && !sidebarAside) {
         navHostViewModel.setTabletSidebarOpen(false)
     }
 
@@ -150,7 +130,7 @@ fun TabletLayout(
     }
 
     if (showSidebar) {
-        val swipeModifier = if (gestureEnabled && !searchOpen) {
+        val swipeModifier = if (gestureEnabled && !sidebarAside) {
             Modifier.pointerInput(sidebarWidthPx, dragSign) {
                 val velocityTracker = VelocityTracker()
                 detectHorizontalDragGestures(

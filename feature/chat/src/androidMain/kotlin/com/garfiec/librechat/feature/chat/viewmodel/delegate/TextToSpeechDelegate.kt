@@ -9,7 +9,9 @@ import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.common.result.suspendRunCatching
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.repository.SpeechRepository
+import com.garfiec.librechat.core.model.speech.TtsVoice
 import com.garfiec.librechat.feature.chat.util.SERVER_TTS_SEGMENT_CHARS
+import com.garfiec.librechat.feature.chat.util.serverVoiceToUse
 import com.garfiec.librechat.feature.chat.util.splitForSpeech
 import com.garfiec.librechat.feature.chat.viewmodel.TtsHandle
 import kotlinx.coroutines.CoroutineDispatcher
@@ -45,6 +47,13 @@ class TextToSpeechDelegate(
      */
     @Volatile
     private var finalUtteranceId: String? = null
+
+    /** The server's voice list from the last successful read, so a read-aloud doesn't wait on it again. */
+    private var serverVoices: List<TtsVoice>? = null
+
+    private suspend fun offeredServerVoices(): Result<List<TtsVoice>> =
+        serverVoices?.let { Result.Success(it) }
+            ?: speechRepository.getVoices().also { if (it is Result.Success) serverVoices = it.data }
 
     private fun getOrInitTts(onReady: () -> Unit) {
         if (ttsReady && ttsEngine != null) {
@@ -97,7 +106,7 @@ class TextToSpeechDelegate(
 
         readJob = handle.scope.launch {
             val source = settingsDataStore.ttsSource.first()
-            if (source == "server") {
+            if (source == SettingsDataStore.TTS_SOURCE_SERVER) {
                 readAloudViaServer(text)
             } else {
                 val rate = settingsDataStore.ttsSpeechRate.first()
@@ -143,11 +152,13 @@ class TextToSpeechDelegate(
      * Reads [text] through the server, one segment per request, each played to its end before the
      * next is asked for. v0.8.9-rc1 synthesizes only the first `speech.tts.maxInputChars` (default
      * 20,000) characters of a request and drops the rest silently, so a long reply sent whole
-     * stops partway. Older servers take the segments the same way.
+     * stops partway. Older servers take the segments the same way. Every segment names one voice: a
+     * request without one gets a random voice from the server, so a reply would change voice mid-read.
      */
     internal suspend fun readAloudViaServer(text: String) {
+        val serverVoice = serverVoiceToUse(settingsDataStore.selectedVoiceId.first(), ::offeredServerVoices)
         for (segment in splitForSpeech(text, SERVER_TTS_SEGMENT_CHARS)) {
-            when (val result = speechRepository.synthesizeSpeech(segment)) {
+            when (val result = speechRepository.synthesizeSpeech(segment, voice = serverVoice)) {
                 is Result.Success -> {
                     val played = suspendRunCatching { playServerAudio(result.data) }
                         .onFailure { e ->
@@ -249,7 +260,7 @@ class TextToSpeechDelegate(
             handle.update { voice = voice.copy(currentlyReadingMessageId = syntheticId) }
 
             val source = settingsDataStore.ttsSource.first()
-            if (source == "server") {
+            if (source == SettingsDataStore.TTS_SOURCE_SERVER) {
                 readAloudViaServer(responseText)
             } else {
                 val rate = settingsDataStore.ttsSpeechRate.first()

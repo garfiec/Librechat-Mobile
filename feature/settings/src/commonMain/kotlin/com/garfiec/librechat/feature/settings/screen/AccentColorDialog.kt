@@ -2,7 +2,6 @@ package com.garfiec.librechat.feature.settings.screen
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,6 +14,8 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
@@ -29,6 +30,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
@@ -45,6 +49,17 @@ import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.resources.accent_color
 import com.garfiec.librechat.feature.settings.resources.accent_color_custom
 import com.garfiec.librechat.feature.settings.resources.accent_color_hex
+import com.garfiec.librechat.feature.settings.resources.accent_name_amber
+import com.garfiec.librechat.feature.settings.resources.accent_name_blue
+import com.garfiec.librechat.feature.settings.resources.accent_name_cyan
+import com.garfiec.librechat.feature.settings.resources.accent_name_green
+import com.garfiec.librechat.feature.settings.resources.accent_name_indigo
+import com.garfiec.librechat.feature.settings.resources.accent_name_lavender
+import com.garfiec.librechat.feature.settings.resources.accent_name_orange
+import com.garfiec.librechat.feature.settings.resources.accent_name_pink
+import com.garfiec.librechat.feature.settings.resources.accent_name_red
+import com.garfiec.librechat.feature.settings.resources.accent_name_slate
+import com.garfiec.librechat.feature.settings.resources.accent_name_turquoise
 import com.garfiec.librechat.feature.settings.resources.action_cancel
 import com.garfiec.librechat.feature.settings.resources.action_save
 import org.jetbrains.compose.resources.stringResource
@@ -101,15 +116,17 @@ internal fun AccentColorDialog(
                     )
                 }
                 FlowRow(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().selectableGroup(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    AccentColorPresets.forEach { preset ->
+                    AccentColorPresets.forEachIndexed { index, preset ->
                         val selected = preset.toArgb() == workingArgb
+                        val name = AccentPresetNames.getOrNull(index)?.let { stringResource(it) } ?: preset.toHexString()
                         Box(
                             modifier = Modifier
                                 .size(36.dp)
+                                .semantics { contentDescription = name }
                                 .clip(CircleShape)
                                 .background(preset)
                                 .border(
@@ -121,7 +138,7 @@ internal fun AccentColorDialog(
                                     },
                                     shape = CircleShape,
                                 )
-                                .clickable {
+                                .selectable(selected = selected, role = Role.RadioButton) {
                                     val hsv = preset.toHsv()
                                     applyHsv(hsv.first, hsv.second, hsv.third)
                                 },
@@ -178,3 +195,18 @@ internal fun AccentColorDialog(
         },
     )
 }
+
+/** Spoken names for [AccentColorPresets], in its order; a preset without one is read as its hex. */
+private val AccentPresetNames = listOf(
+    Res.string.accent_name_blue,
+    Res.string.accent_name_indigo,
+    Res.string.accent_name_lavender,
+    Res.string.accent_name_cyan,
+    Res.string.accent_name_turquoise,
+    Res.string.accent_name_green,
+    Res.string.accent_name_amber,
+    Res.string.accent_name_orange,
+    Res.string.accent_name_red,
+    Res.string.accent_name_pink,
+    Res.string.accent_name_slate,
+)
