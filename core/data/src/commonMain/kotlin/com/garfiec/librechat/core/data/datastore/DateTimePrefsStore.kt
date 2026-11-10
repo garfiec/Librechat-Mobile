@@ -62,9 +62,10 @@ class DateTimePrefsStore(
         .map { it.toDateTimePrefs() }
         .distinctUntilChanged()
 
-    /** Writes all three choices in one edit, so collectors never see a half-applied save. */
-    suspend fun set(value: DateTimeFormatPrefs) {
+    /** Changes the stored choices in one read-modify-write edit, so quick successive changes all land. */
+    suspend fun update(transform: (DateTimeFormatPrefs) -> DateTimeFormatPrefs) {
         dataStore.edit { prefs ->
+            val value = transform(prefs.toDateTimePrefs())
             prefs[KEY_TIMESTAMP_STYLE] = value.style.toStorageString()
             prefs[KEY_CLOCK_FORMAT] = value.clock.toStorageString()
             prefs[KEY_DATE_FORMAT] = value.date.toStorageString()

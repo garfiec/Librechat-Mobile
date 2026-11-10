@@ -784,7 +784,10 @@
     <string name="date_format_ymd_dash">Año-Mes-Día</string>
     <string name="date_format_ymd_slash">Año/Mes/Día</string>
     <string name="date_format_long">Largo</string>
-    <string name="date_time_preview">Vista previa</string>
+    <string name="date_time_style_relative_desc">«hace 3 horas» durante el primer mes, después la fecha. Toca una marca de tiempo para ver la hora exacta.</string>
+    <string name="date_time_style_smart_desc">La hora si es de hoy, luego Ayer o el día de la semana, después la fecha. Toca una marca de tiempo para ver la hora exacta.</string>
+    <string name="date_time_style_absolute_desc">Siempre la fecha y la hora completas.</string>
+    <string name="date_time_date_format_note">También se usa para las fechas de tu lista de chats y de las tarjetas.</string>
     <string name="ui_style_material">Material</string>
     <string name="ui_style_liquid_glass">Liquid Glass</string>
     <string name="ui_style_note_simulated">Liquid Glass se simula en esta versión de iOS. iOS 26 o posterior lo muestra de forma nativa.</string>

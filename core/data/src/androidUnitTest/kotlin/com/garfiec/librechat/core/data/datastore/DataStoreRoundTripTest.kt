@@ -275,7 +275,9 @@ class DataStoreRoundTripTest {
         assertThat(store.prefs.first()).isEqualTo(DateTimeFormatPrefs())
 
         val chosen = DateTimeFormatPrefs(TimestampStyle.SMART, ClockFormat.H24, DateFormatStyle.DMY_DOT)
-        store.set(chosen)
+        store.update { it.copy(style = TimestampStyle.SMART) }
+        store.update { it.copy(clock = ClockFormat.H24) }
+        store.update { it.copy(date = DateFormatStyle.DMY_DOT) }
         assertThat(store.prefs.first()).isEqualTo(chosen)
 
         // A fresh instance seeds the first frame from disk. The warm-up is real file IO, which

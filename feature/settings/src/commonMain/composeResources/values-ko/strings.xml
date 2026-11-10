@@ -770,7 +770,10 @@
     <string name="date_format_ymd_dash">년-월-일</string>
     <string name="date_format_ymd_slash">년/월/일</string>
     <string name="date_format_long">긴 형식</string>
-    <string name="date_time_preview">미리보기</string>
+    <string name="date_time_style_relative_desc">첫 한 달은 “3시간 전”처럼, 그 후에는 날짜로 표시합니다. 타임스탬프를 탭하면 정확한 시간이 표시됩니다.</string>
+    <string name="date_time_style_smart_desc">오늘은 시간, 그다음은 “어제” 또는 요일, 그 이후는 날짜로 표시합니다. 타임스탬프를 탭하면 정확한 시간이 표시됩니다.</string>
+    <string name="date_time_style_absolute_desc">항상 전체 날짜와 시간을 표시합니다.</string>
+    <string name="date_time_date_format_note">채팅 목록과 카드의 날짜에도 사용됩니다.</string>
     <string name="ui_style_material">Material</string>
     <string name="ui_style_liquid_glass">Liquid Glass</string>
     <string name="ui_style_note_simulated">이 iOS 버전에서는 Liquid Glass를 시뮬레이션합니다. iOS 26 이상에서는 기본으로 렌더링됩니다.</string>

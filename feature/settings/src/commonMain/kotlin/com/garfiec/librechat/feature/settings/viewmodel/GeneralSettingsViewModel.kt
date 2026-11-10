@@ -24,7 +24,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 @Immutable
@@ -32,7 +31,6 @@ data class GeneralSettingsUiState(
     val selectedLanguage: String = SettingsDataStore.DEFAULT_LANGUAGE,
     val showLanguageDialog: Boolean = false,
     val dateTimePrefs: DateTimeFormatPrefs = DateTimeFormatPrefs(),
-    val showDateTimeDialog: Boolean = false,
     val tabletSidebarGestureEnabled: Boolean = true,
     val advancedSearchEnabled: Boolean = false,
     val serverUrl: String = "",
@@ -91,9 +89,6 @@ data class HomeChatPrefs(
     val autoReadEnabled: Boolean = false,
 )
 
-/** Dialog flags held apart from the observed preferences they are merged with. */
-private data class GeneralDialogs(val language: Boolean = false, val dateTime: Boolean = false)
-
 /** The active server and how its certificate is trusted, combined first to stay within `combine`'s five-flow overload. */
 private data class GeneralServer(val url: String, val trustedViaUserCa: Boolean)
 
@@ -120,7 +115,7 @@ class GeneralSettingsViewModel(
 
     private val device = "${platformInfo.osName} ${platformInfo.osVersion} · ${platformInfo.deviceModel}"
 
-    private val dialogs = MutableStateFlow(GeneralDialogs())
+    private val showLanguageDialog = MutableStateFlow(false)
 
     private val prefs = combine(
         settingsDataStore.selectedLanguage,
@@ -143,17 +138,16 @@ class GeneralSettingsViewModel(
     private val initial = GeneralSettingsUiState(appVersion = appInfo.versionName, gitSha = appInfo.gitSha)
 
     val uiState: StateFlow<GeneralSettingsUiState> = combine(
-        dialogs,
+        showLanguageDialog,
         prefs,
         server,
         configRepository.startupConfig,
         configRepository.detectedBackendVersion,
-    ) { dialogs, prefs, server, config, version ->
+    ) { languageDialog, prefs, server, config, version ->
         initial.copy(
             selectedLanguage = prefs.language,
-            showLanguageDialog = dialogs.language,
+            showLanguageDialog = languageDialog,
             dateTimePrefs = prefs.dateTime,
-            showDateTimeDialog = dialogs.dateTime,
             tabletSidebarGestureEnabled = prefs.tabletGesture,
             advancedSearchEnabled = prefs.advancedSearch,
             serverUrl = server.url,
@@ -167,29 +161,20 @@ class GeneralSettingsViewModel(
     }.stateIn(viewModelScope, SharingStarted.Eagerly, initial)
 
     fun showLanguageDialog() {
-        dialogs.update { it.copy(language = true) }
+        showLanguageDialog.value = true
     }
 
     fun dismissLanguageDialog() {
-        dialogs.update { it.copy(language = false) }
+        showLanguageDialog.value = false
     }
 
     fun setLanguage(languageCode: String) {
         viewModelScope.launch { settingsDataStore.setSelectedLanguage(languageCode) }
-        dialogs.update { it.copy(language = false) }
+        showLanguageDialog.value = false
     }
 
-    fun showDateTimeDialog() {
-        dialogs.update { it.copy(dateTime = true) }
-    }
-
-    fun dismissDateTimeDialog() {
-        dialogs.update { it.copy(dateTime = false) }
-    }
-
-    fun saveDateTimePrefs(prefs: DateTimeFormatPrefs) {
-        viewModelScope.launch { dateTimePrefsStore.set(prefs) }
-        dialogs.update { it.copy(dateTime = false) }
+    fun updateDateTimePrefs(transform: (DateTimeFormatPrefs) -> DateTimeFormatPrefs) {
+        viewModelScope.launch { dateTimePrefsStore.update(transform) }
     }
 
     fun setTabletSidebarGestureEnabled(enabled: Boolean) {

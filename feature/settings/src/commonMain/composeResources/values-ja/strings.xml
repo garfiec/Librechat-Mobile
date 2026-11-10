@@ -770,7 +770,10 @@
     <string name="date_format_ymd_dash">年-月-日</string>
     <string name="date_format_ymd_slash">年/月/日</string>
     <string name="date_format_long">長い形式</string>
-    <string name="date_time_preview">プレビュー</string>
+    <string name="date_time_style_relative_desc">最初の1か月は「3時間前」のように、その後は日付で表示します。タイムスタンプをタップすると正確な時刻が表示されます。</string>
+    <string name="date_time_style_smart_desc">今日は時刻、その後は「昨日」または曜日、それ以降は日付で表示します。タイムスタンプをタップすると正確な時刻が表示されます。</string>
+    <string name="date_time_style_absolute_desc">常に日付と時刻をすべて表示します。</string>
+    <string name="date_time_date_format_note">チャット一覧やカードの日付にも使われます。</string>
     <string name="ui_style_material">Material</string>
     <string name="ui_style_liquid_glass">Liquid Glass</string>
     <string name="ui_style_note_simulated">このバージョンのiOSではLiquid Glassをシミュレートしています。iOS 26以降ではネイティブに描画されます。</string>
