@@ -1,8 +1,8 @@
 package com.garfiec.librechat.feature.chat.components.mcpapp
 
-import androidx.compose.material3.ColorScheme
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import com.garfiec.librechat.core.ui.theme.PageColors
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonArray
@@ -11,23 +11,23 @@ import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonObject
 
 /**
- * The spec's style variables, mapped onto the Material scheme: the same twelve keys upstream's
- * `HOST_STYLE_VAR_MAP` (`useAppBridge.ts`) sends, so an App themes the same subset it does on web.
- * M3 has no warning role; tertiary stands in.
+ * The spec's style variables: the same twelve keys upstream's `HOST_STYLE_VAR_MAP`
+ * (`useAppBridge.ts`) sends, each from the web role it reads, so an App themes the same subset it
+ * does on web.
  */
-internal fun hostStyleVariables(scheme: ColorScheme): Map<String, Color> = linkedMapOf(
-    "--color-background-primary" to scheme.surface,
-    "--color-background-secondary" to scheme.surfaceContainer,
-    "--color-background-tertiary" to scheme.surfaceContainerHigh,
-    "--color-background-danger" to scheme.errorContainer,
-    "--color-text-primary" to scheme.onSurface,
-    "--color-text-secondary" to scheme.onSurfaceVariant,
-    "--color-text-tertiary" to scheme.outline,
-    "--color-text-danger" to scheme.error,
-    "--color-text-warning" to scheme.tertiary,
-    "--color-border-primary" to scheme.outline,
-    "--color-border-secondary" to scheme.outlineVariant,
-    "--color-border-danger" to scheme.error,
+internal fun hostStyleVariables(page: PageColors): Map<String, Color> = linkedMapOf(
+    "--color-background-primary" to page.surfacePrimary,
+    "--color-background-secondary" to page.surfaceSecondary,
+    "--color-background-tertiary" to page.surfaceTertiary,
+    "--color-background-danger" to page.surfaceDestructive,
+    "--color-text-primary" to page.textPrimary,
+    "--color-text-secondary" to page.textSecondary,
+    "--color-text-tertiary" to page.textTertiary,
+    "--color-text-danger" to page.textDestructive,
+    "--color-text-warning" to page.textWarning,
+    "--color-border-primary" to page.borderMedium,
+    "--color-border-secondary" to page.borderLight,
+    "--color-border-danger" to page.borderDestructive,
 )
 
 /**

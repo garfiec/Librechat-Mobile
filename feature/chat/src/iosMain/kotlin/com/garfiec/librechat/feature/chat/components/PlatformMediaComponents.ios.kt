@@ -5,6 +5,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -48,6 +49,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
@@ -58,6 +61,7 @@ import androidx.compose.ui.window.DialogProperties
 import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.ui.components.AdaptiveDialog
 import com.garfiec.librechat.core.ui.platform.currentTopmostViewController
+import com.garfiec.librechat.core.ui.theme.chatColors
 import com.garfiec.librechat.feature.chat.components.web.loadVendoredHtml
 import com.garfiec.librechat.feature.chat.components.web.rememberWebAssetBaseUrl
 import com.garfiec.librechat.feature.chat.resources.*
@@ -323,9 +327,9 @@ private fun KatexWebView(
     initialHeight: Dp,
     modifier: Modifier = Modifier,
 ) {
-    val bgComposeColor = MaterialTheme.colorScheme.background
-    val isDarkTheme = (bgComposeColor.red * 0.299 + bgComposeColor.green * 0.587 + bgComposeColor.blue * 0.114) < 0.5
-    val textColor = if (isDarkTheme) "#e0e0e0" else "#1a1a1a"
+    val chat = chatColors()
+    val bgComposeColor = chat.canvas
+    val textColor = remember(chat.messageText) { colorToCssHex(chat.messageText) }
     val bgColor = remember(bgComposeColor) { colorToCssHex(bgComposeColor) }
     // Dynamic Type: the page's font is in CSS px, which the system text size doesn't reach.
     val fontScale = LocalDensity.current.fontScale
@@ -459,32 +463,32 @@ actual fun MermaidDiagram(
     var showCode by remember { mutableStateOf(false) }
     var showFullscreen by remember { mutableStateOf(false) }
 
-    val isDarkTheme = MaterialTheme.colorScheme.surface.let { color ->
-        val r = (color.red * 255).toInt()
-        val g = (color.green * 255).toInt()
-        val b = (color.blue * 255).toInt()
-        (r * 0.299 + g * 0.587 + b * 0.114) < 128
-    }
+    val diagram = chatColors().diagram
 
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+            .clip(MermaidShape)
+            .background(diagram.canvas)
+            .border(1.dp, diagram.border, MermaidShape),
     ) {
         // Header
         DisableSelection {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                    .background(diagram.header)
+                    .drawBehind {
+                        val y = size.height - 1.dp.toPx() / 2
+                        drawLine(diagram.border, Offset(0f, y), Offset(size.width, y), 1.dp.toPx())
+                    }
                     .padding(horizontal = 12.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
                     text = stringResource(Res.string.label_mermaid),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = diagram.label,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
@@ -506,7 +510,7 @@ actual fun MermaidDiagram(
                         imageVector = Icons.Default.Fullscreen,
                         contentDescription = stringResource(Res.string.cd_fullscreen),
                         modifier = Modifier.size(18.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        tint = diagram.label,
                     )
                 }
             }
@@ -527,7 +531,7 @@ actual fun MermaidDiagram(
             } else {
                 MermaidWKWebView(
                     code = code,
-                    isDarkTheme = isDarkTheme,
+                    theme = diagram.mermaidTheme,
                     onContentHeight = {
                         diagramHeight = it.toFloat()
                             .coerceIn(MERMAID_MIN_INLINE_HEIGHT.value, MERMAID_MAX_INLINE_HEIGHT.value)
@@ -553,7 +557,7 @@ actual fun MermaidDiagram(
             ) {
                 MermaidWKWebView(
                     code = code,
-                    isDarkTheme = isDarkTheme,
+                    theme = diagram.mermaidTheme,
                     modifier = Modifier.fillMaxSize().padding(16.dp),
                 )
                 IconButton(
@@ -575,7 +579,7 @@ actual fun MermaidDiagram(
 @Composable
 private fun MermaidWKWebView(
     code: String,
-    isDarkTheme: Boolean,
+    theme: String,
     modifier: Modifier = Modifier,
     onContentHeight: ((Int) -> Unit)? = null,
 ) {
@@ -588,7 +592,6 @@ private fun MermaidWKWebView(
             .replace("<", "\\u003c")
             .replace("\n", "\\n")
     }
-    val theme = if (isDarkTheme) "dark" else "default"
     val errorPrefix = stringResource(Res.string.diagram_error_prefix)
     val html = remember(escapedCode, theme, errorPrefix) { buildMermaidHtml(escapedCode, theme, errorPrefix) }
 
@@ -632,6 +635,8 @@ private fun MermaidWKWebView(
         },
     )
 }
+
+private val MermaidShape = RoundedCornerShape(8.dp)
 
 private const val MERMAID_HEIGHT_HANDLER = "mermaidHeight"
 

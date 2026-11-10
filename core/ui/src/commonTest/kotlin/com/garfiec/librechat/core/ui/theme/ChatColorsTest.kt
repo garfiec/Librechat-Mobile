@@ -38,6 +38,34 @@ class ChatColorsTest {
         assertEquals(scheme.surfaceContainerHigh, chat.inlineCode)
         assertEquals(scheme.onBackground, chat.syntax.text)
         assertEquals(
+            DiagramColors(
+                scheme.surfaceContainerHighest,
+                scheme.surfaceContainerHigh,
+                scheme.onSurfaceVariant,
+                Color.Transparent,
+                "default",
+            ),
+            chat.diagram,
+        )
+        assertEquals("dark", ChatColors.switchboard(darkColorScheme(), dark = true).diagram.mermaidTheme)
+        assertEquals(
+            PageColors(
+                surfacePrimary = scheme.surface,
+                surfaceSecondary = scheme.surfaceContainer,
+                surfaceTertiary = scheme.surfaceContainerHigh,
+                surfaceDestructive = scheme.errorContainer,
+                textPrimary = scheme.onSurface,
+                textSecondary = scheme.onSurfaceVariant,
+                textTertiary = scheme.outline,
+                textDestructive = scheme.error,
+                textWarning = scheme.tertiary,
+                borderMedium = scheme.outline,
+                borderLight = scheme.outlineVariant,
+                borderDestructive = scheme.error,
+            ),
+            PageColors.switchboard(scheme),
+        )
+        assertEquals(
             ChromeColors(scheme.surfaceContainerHigh, Color.Transparent, scheme.surfaceContainerHigh, scheme.onSurface),
             ChromeColors.switchboard(scheme),
         )
@@ -46,7 +74,7 @@ class ChatColorsTest {
     @Test
     fun serverPaintsTheRolesTheWebDoes() {
         val colors = ServerThemeDefinition("acme", light = ACME, dark = emptyMap()).resolve(dark = false)
-        val chat = ChatColors.server(colors)
+        val chat = ChatColors.server(colors, dark = false)
         assertEquals(Color(0xFFF0E8DA), chat.canvas)
         assertEquals(Color(0xFFD6ECE4), chat.userMessage)
         assertEquals(colors.color(ThemeRole.TEXT_SECONDARY), chat.messageText)
@@ -56,6 +84,41 @@ class ChatColorsTest {
         assertEquals(colors.color(ThemeRole.SURFACE_CODE_BODY), chat.codeBody)
         assertEquals(colors.color(ThemeRole.LINK_INLINE), chat.linkInline)
         assertEquals(colors.color(ThemeRole.SURFACE_DIALOG), ChromeColors.server(colors).dialog)
+    }
+
+    @Test
+    fun serverDiagramsKeepMermaidsPaletteInsideTheWebsFrame() {
+        val colors = ThemeRole.entries.associateWith { it.ordinal }
+        assertEquals(
+            DiagramColors(
+                colors.color(ThemeRole.SURFACE_PRIMARY_ALT),
+                colors.color(ThemeRole.SURFACE_SECONDARY),
+                colors.color(ThemeRole.TEXT_SECONDARY),
+                colors.color(ThemeRole.BORDER_LIGHT),
+                "neutral",
+            ),
+            ChatColors.server(colors, dark = false).diagram,
+        )
+        assertEquals("dark", ChatColors.server(colors, dark = true).diagram.mermaidTheme)
+    }
+
+    @Test
+    fun serverPagesGetTheRolesTheWebsAppBridgeReads() {
+        val colors = ThemeRole.entries.associateWith { it.ordinal }
+        val roles = with(PageColors.server(colors)) {
+            listOf(
+                surfacePrimary, surfaceSecondary, surfaceTertiary, surfaceDestructive,
+                textPrimary, textSecondary, textTertiary, textDestructive, textWarning,
+                borderMedium, borderLight, borderDestructive,
+            )
+        }
+        val expected = listOf(
+            ThemeRole.SURFACE_PRIMARY, ThemeRole.SURFACE_SECONDARY, ThemeRole.SURFACE_TERTIARY,
+            ThemeRole.SURFACE_DESTRUCTIVE, ThemeRole.TEXT_PRIMARY, ThemeRole.TEXT_SECONDARY,
+            ThemeRole.TEXT_TERTIARY, ThemeRole.TEXT_DESTRUCTIVE, ThemeRole.TEXT_WARNING,
+            ThemeRole.BORDER_MEDIUM, ThemeRole.BORDER_LIGHT, ThemeRole.BORDER_DESTRUCTIVE,
+        ).map(colors::color)
+        assertEquals(expected, roles)
     }
 
     @Test

@@ -2,7 +2,6 @@ package com.garfiec.librechat.feature.chat.components.mcpapp
 
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.Composable
@@ -22,6 +21,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.model.mcp.McpAppOccurrence
 import com.garfiec.librechat.core.model.mcp.UiResource
 import com.garfiec.librechat.core.ui.theme.isSurfaceDark
+import com.garfiec.librechat.core.ui.theme.pageColors
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.mcp_app_at_capacity
 import com.garfiec.librechat.feature.chat.resources.mcp_app_busy
@@ -199,12 +199,12 @@ internal fun McpAppHostContextReporter(
     heightDp: Int? = null,
 ) {
     val dark = isSurfaceDark()
-    val scheme = MaterialTheme.colorScheme
+    val page = pageColors()
     val locale = Locale.current.toLanguageTag()
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val width = maxWidth.value.toInt()
         val height = heightDp ?: maxHeight.value.toInt()
-        val context = remember(dark, scheme, locale, displayMode, width, height) {
+        val context = remember(dark, page, locale, displayMode, width, height) {
             buildHostContext(
                 dark = dark,
                 locale = locale,
@@ -212,7 +212,7 @@ internal fun McpAppHostContextReporter(
                 displayMode = displayMode,
                 widthDp = width,
                 heightDp = height,
-                styles = hostStyleVariables(scheme),
+                styles = hostStyleVariables(page),
             )
         }
         val report by rememberUpdatedState(onHostContext)

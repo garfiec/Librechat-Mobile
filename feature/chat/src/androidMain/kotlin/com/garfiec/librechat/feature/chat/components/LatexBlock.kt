@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import co.touchlab.kermit.Logger
+import com.garfiec.librechat.core.ui.theme.chatColors
 import com.garfiec.librechat.feature.chat.components.web.rememberWebAssetBaseUrl
 
 /**
@@ -126,12 +127,12 @@ private fun NativeLatexBlock(
             fontFamily = FontFamily.Monospace,
             fontSize = 16.sp,
         ),
-        color = MaterialTheme.colorScheme.onSurface,
+        color = chatColors().messageText,
         modifier = modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp)
             .background(
-                color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                color = chatColors().codeBody,
                 shape = RoundedCornerShape(6.dp),
             )
             .horizontalScroll(rememberScrollState())
@@ -149,10 +150,10 @@ private fun NativeLatexInline(
         style = MaterialTheme.typography.bodyMedium.copy(
             fontFamily = FontFamily.Monospace,
         ),
-        color = MaterialTheme.colorScheme.onSurface,
+        color = chatColors().messageText,
         modifier = modifier
             .background(
-                color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                color = chatColors().codeBody,
                 shape = RoundedCornerShape(4.dp),
             )
             .padding(horizontal = 4.dp, vertical = 2.dp),
@@ -167,7 +168,7 @@ private fun KatexLatexBlock(
     latex: String,
     modifier: Modifier = Modifier,
 ) {
-    val textColorArgb = MaterialTheme.colorScheme.onSurface.toArgb()
+    val textColorArgb = chatColors().messageText.toArgb()
     val textColorCss = remember(textColorArgb) { argbToCss(textColorArgb) }
     val escapedLatex = remember(latex) { escapeForJs(latex) }
     val html = remember(escapedLatex, textColorCss) {
@@ -243,7 +244,7 @@ private fun KatexLatexInline(
     latex: String,
     modifier: Modifier = Modifier,
 ) {
-    val textColorArgb = MaterialTheme.colorScheme.onSurface.toArgb()
+    val textColorArgb = chatColors().messageText.toArgb()
     val textColorCss = remember(textColorArgb) { argbToCss(textColorArgb) }
     val escapedLatex = remember(latex) { escapeForJs(latex) }
     val html = remember(escapedLatex, textColorCss) {
