@@ -9,7 +9,6 @@ import com.garfiec.librechat.core.data.datastore.ArtifactDisplayMode
 import com.garfiec.librechat.core.data.datastore.ArtifactLibraryConsentStore
 import com.garfiec.librechat.core.data.datastore.ArtifactLibraryConsentStore.Decision
 import com.garfiec.librechat.core.data.datastore.ArtifactLibraryConsentStore.Subject
-import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.data.datastore.FlaggedArtifactLibraries
 import com.garfiec.librechat.core.data.datastore.LatexRenderer
@@ -165,10 +164,6 @@ class ChatSettingsViewModel(
 
     fun setThinkingOpenByDefault(open: Boolean) {
         prefsController.setThinkingOpenByDefault(open)
-    }
-
-    fun setContextBarPlacement(placement: ContextBarPlacement) {
-        prefsController.setContextBarPlacement(placement)
     }
 
     fun setDuringRunAction(action: DuringRunAction) {

@@ -3,7 +3,6 @@ package com.garfiec.librechat.feature.settings.viewmodel
 import com.garfiec.librechat.core.data.datastore.AppPreferences
 import com.garfiec.librechat.core.data.datastore.ArtifactDisplayMode
 import com.garfiec.librechat.core.data.datastore.ArtifactDisplayPrefs
-import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.data.datastore.InlineArtifactPrefs
 import com.garfiec.librechat.core.data.datastore.LatexRenderer
@@ -49,7 +48,6 @@ private data class AdditionalPreferences(
     val artifactDisplayPrefs: ArtifactDisplayPrefs = ArtifactDisplayPrefs(),
     val artifactsMode: ArtifactsMode = ArtifactsMode.DEFAULT,
     val starredModelsDisplay: StarredModelsDisplay = StarredModelsDisplay.GROUPED,
-    val contextBarPlacement: ContextBarPlacement = ContextBarPlacement.OPTIONS_SHEET,
     val duringRunAction: DuringRunAction = DuringRunAction.STEER,
     val uploadRoutingMode: UploadRoutingMode = UploadRoutingMode.AUTO,
     val showSiteIcons: Boolean = false,
@@ -66,7 +64,7 @@ private data class AdditionalPreferences(
  * the matching write setters. The ViewModel keeps only imperative state and
  * forwards preference reads/writes here.
  */
-@Suppress("TooManyFunctions") // debt: 31 functions, one setter per setting
+@Suppress("TooManyFunctions") // debt: 30 functions, one setter per setting
 class ChatPreferencesController(
     private val settingsDataStore: SettingsDataStore,
     private val preferenceStore: PreferenceStore,
@@ -113,9 +111,6 @@ class ChatPreferencesController(
     private val starredModelsDisplayPref: StateFlow<StarredModelsDisplay> = settingsDataStore.starredModelsDisplay
         .stateIn(scope, SharingStarted.Eagerly, StarredModelsDisplay.GROUPED)
 
-    private val contextBarPlacementPref: StateFlow<ContextBarPlacement> = settingsDataStore.contextBarPlacement
-        .stateIn(scope, SharingStarted.Eagerly, ContextBarPlacement.OPTIONS_SHEET)
-
     private val duringRunActionPref: StateFlow<DuringRunAction> = settingsDataStore.duringRunAction
         .stateIn(scope, SharingStarted.Eagerly, DuringRunAction.STEER)
 
@@ -142,8 +137,6 @@ class ChatPreferencesController(
         additional.copy(artifactsMode = artifactsMode)
     }.combine(starredModelsDisplayPref) { additional, starredDisplay ->
         additional.copy(starredModelsDisplay = starredDisplay)
-    }.combine(contextBarPlacementPref) { additional, contextBarPlacement ->
-        additional.copy(contextBarPlacement = contextBarPlacement)
     }.combine(duringRunActionPref) { additional, duringRunAction ->
         additional.copy(duringRunAction = duringRunAction)
     }.combine(uploadRoutingModePref) { additional, uploadRoutingMode ->
@@ -198,7 +191,6 @@ class ChatPreferencesController(
             artifactDisplayPrefs = additional.artifactDisplayPrefs,
             artifactsMode = additional.artifactsMode,
             starredModelsDisplay = additional.starredModelsDisplay,
-            contextBarPlacement = additional.contextBarPlacement,
             duringRunAction = additional.duringRunAction,
             uploadRoutingMode = additional.uploadRoutingMode,
             showSiteIcons = additional.showSiteIcons,
@@ -217,10 +209,6 @@ class ChatPreferencesController(
 
     fun setThinkingOpenByDefault(open: Boolean) {
         scope.launch { settingsDataStore.setThinkingOpenByDefault(open) }
-    }
-
-    fun setContextBarPlacement(placement: ContextBarPlacement) {
-        scope.launch { settingsDataStore.setContextBarPlacement(placement) }
     }
 
     fun setDuringRunAction(action: DuringRunAction) {

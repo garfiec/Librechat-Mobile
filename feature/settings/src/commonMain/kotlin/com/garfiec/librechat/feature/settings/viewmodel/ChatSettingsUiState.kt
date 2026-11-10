@@ -2,7 +2,6 @@ package com.garfiec.librechat.feature.settings.viewmodel
 
 import androidx.compose.runtime.Immutable
 import com.garfiec.librechat.core.data.datastore.ArtifactDisplayPrefs
-import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.data.datastore.InlineArtifactPrefs
 import com.garfiec.librechat.core.data.datastore.LatexRenderer
@@ -20,7 +19,6 @@ data class ChatSettingsUiState(
     // Chat preferences
     /** Whether a reply's reasoning block starts expanded; the block itself is always shown. */
     val thinkingOpenByDefault: Boolean = false,
-    val contextBarPlacement: ContextBarPlacement = ContextBarPlacement.OPTIONS_SHEET,
     /** What the composer's send does mid-run (v0.8.8 steering): inject into the running reply,
      *  or queue for after it. Honoured only where the server supports steering. */
     val duringRunAction: DuringRunAction = DuringRunAction.STEER,
