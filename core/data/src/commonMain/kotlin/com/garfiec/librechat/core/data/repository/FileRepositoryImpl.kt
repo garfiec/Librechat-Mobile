@@ -17,6 +17,7 @@ import com.garfiec.librechat.core.data.pdf.PdfNormalizer
 import com.garfiec.librechat.core.data.pdf.PdfPasswordProtectedException
 import com.garfiec.librechat.core.data.pdf.hasEncryptKey
 import com.garfiec.librechat.core.data.pdf.isPdfUpload
+import com.garfiec.librechat.core.logging.redact.LogRedactor
 import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.core.model.FileObject
 import com.garfiec.librechat.core.model.files.codeDownloadUrl
@@ -137,14 +138,15 @@ class FileRepositoryImpl(
             PdfNormalizeResult.Failed(e)
         }
         val decryptedBytes = (result as? PdfNormalizeResult.Decrypted)?.bytes?.takeUnless(::hasEncryptKey)
+        val logName = LogRedactor.redactFileName(filename)
         return when {
             result == PdfNormalizeResult.Unchanged -> PreparedUpload.Send(bytes)
             decryptedBytes != null -> {
-                Logger.i { "Removed PDF encryption from $filename (${bytes.size} -> ${decryptedBytes.size} bytes)" }
+                Logger.i { "Removed PDF encryption from $logName (${bytes.size} -> ${decryptedBytes.size} bytes)" }
                 PreparedUpload.Send(decryptedBytes)
             }
             result == PdfNormalizeResult.PasswordUnsupported -> {
-                Logger.i { "PDF upload refused: $filename needs a password this device cannot decrypt with" }
+                Logger.i { "PDF upload refused: $logName needs a password this device cannot decrypt with" }
                 PreparedUpload.Refuse(
                     Result.Error(
                         exception = PdfDecryptionUnavailableException(cause = null),
@@ -153,7 +155,7 @@ class FileRepositoryImpl(
                 )
             }
             result == PdfNormalizeResult.NeedsPassword -> {
-                Logger.i { "PDF upload held: $filename needs a password (retry=${pdfPassword != null})" }
+                Logger.i { "PDF upload held: $logName needs a password (retry=${pdfPassword != null})" }
                 val incorrect = pdfPassword != null
                 PreparedUpload.Refuse(
                     Result.Error(
@@ -164,7 +166,7 @@ class FileRepositoryImpl(
             }
             pdfPassword != null -> {
                 val cause = (result as? PdfNormalizeResult.Failed)?.cause
-                Logger.w { "PDF could not be decrypted with its password: $filename ($cause)" }
+                Logger.w { "PDF could not be decrypted with its password: $logName ($cause)" }
                 PreparedUpload.Refuse(
                     Result.Error(
                         exception = PdfDecryptionUnavailableException(cause),
@@ -173,7 +175,7 @@ class FileRepositoryImpl(
                 )
             }
             else -> {
-                Logger.w { "PDF left encrypted for $filename (${(result as? PdfNormalizeResult.Failed)?.cause}); uploading original" }
+                Logger.w { "PDF left encrypted for $logName (${(result as? PdfNormalizeResult.Failed)?.cause}); uploading original" }
                 PreparedUpload.Send(bytes)
             }
         }

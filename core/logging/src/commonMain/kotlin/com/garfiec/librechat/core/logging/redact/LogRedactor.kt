@@ -74,18 +74,34 @@ class LogRedactor(private val salt: String = DEFAULT_SALT) {
         }
     }
 
-    /** 64-bit FNV-1a → first 8 hex chars. Dependency-free; for correlation, not cryptographic secrecy. */
-    private fun hash8(value: String): String {
-        var hash = FNV_OFFSET_BASIS
-        for (byte in (salt + value).encodeToByteArray()) {
-            hash = hash xor (byte.toLong() and 0xff)
-            hash *= FNV_PRIME
-        }
-        return hash.toULong().toString(16).padStart(8, '0').take(8)
-    }
+    private fun hash8(value: String): String = hash8(salt, value)
 
     companion object {
         const val DEFAULT_SALT: String = "librechat-diag"
+
+        /**
+         * A file name as a log line may carry it: `file:` + its salted hash, plus a short alphanumeric
+         * extension when it has one (`report.pdf` → `file:1a2b3c4d.pdf`). The sink can't recognise a
+         * file name by its shape, so a call site that logs one passes it through here.
+         */
+        fun redactFileName(name: String): String {
+            val dot = name.lastIndexOf('.')
+            val extension = if (dot > 0) name.substring(dot + 1) else ""
+            val suffix = if (fileExtensionRegex.matches(extension)) ".$extension" else ""
+            return "file:" + hash8(DEFAULT_SALT, name) + suffix
+        }
+
+        /** 64-bit FNV-1a → first 8 hex chars. Dependency-free; for correlation, not cryptographic secrecy. */
+        private fun hash8(salt: String, value: String): String {
+            var hash = FNV_OFFSET_BASIS
+            for (byte in (salt + value).encodeToByteArray()) {
+                hash = hash xor (byte.toLong() and 0xff)
+                hash *= FNV_PRIME
+            }
+            return hash.toULong().toString(16).padStart(8, '0').take(8)
+        }
+
+        private val fileExtensionRegex = Regex("[A-Za-z0-9]{1,5}")
 
         private const val FNV_OFFSET_BASIS: Long = -3750763034362895579L // 14695981039346656037 as Long
         private const val FNV_PRIME: Long = 1099511628211L

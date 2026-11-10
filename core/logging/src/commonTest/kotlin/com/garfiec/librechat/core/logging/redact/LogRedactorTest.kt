@@ -219,4 +219,23 @@ class LogRedactorTest {
         )
         for (input in untouched) assertEquals(input, redactor.redact(input))
     }
+
+    @Test
+    fun file_name_is_hashed_stably_and_keeps_a_short_extension() {
+        val redacted = LogRedactor.redactFileName("Tax return 2025.pdf")
+        assertEquals(redacted, LogRedactor.redactFileName("Tax return 2025.pdf"))
+        assertTrue(Regex("file:[0-9a-f]{8}\\.pdf").matches(redacted), redacted)
+        assertFalse(redacted.contains("Tax"))
+        assertTrue(LogRedactor.redactFileName("Tax return 2024.pdf") != redacted)
+        // The sink leaves an already-redacted name alone.
+        assertEquals("read $redacted", LogRedactor().redact("read $redacted"))
+    }
+
+    @Test
+    fun file_name_without_a_short_extension_is_hash_only() {
+        assertTrue(Regex("file:[0-9a-f]{8}").matches(LogRedactor.redactFileName("README")))
+        assertTrue(Regex("file:[0-9a-f]{8}").matches(LogRedactor.redactFileName(".bashrc")))
+        assertTrue(Regex("file:[0-9a-f]{8}").matches(LogRedactor.redactFileName("notes.my secret plan")))
+        assertTrue(Regex("file:[0-9a-f]{8}").matches(LogRedactor.redactFileName("trailing.")))
+    }
 }

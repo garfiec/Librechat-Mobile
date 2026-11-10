@@ -5,6 +5,7 @@ import com.garfiec.librechat.core.common.EndpointConstants
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.pdf.PdfPasswordProtectedException
 import com.garfiec.librechat.core.data.repository.FileRepository
+import com.garfiec.librechat.core.logging.redact.LogRedactor
 import com.garfiec.librechat.core.model.FileObject
 import com.garfiec.librechat.core.model.response.UploadRoute
 import com.garfiec.librechat.core.model.response.toolResource
@@ -139,7 +140,7 @@ class IosFileHandler(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                Logger.e(e) { "IosFileHandler: unexpected exception for $filename" }
+                Logger.e(e) { "IosFileHandler: unexpected exception for ${LogRedactor.redactFileName(filename)}" }
                 updateTrayEntry(key) { it.copy(uploadFailed = true, uploadProgress = null) }
                 handle.setError(ChatNotice.uploadFailed(filename, e.message))
             }

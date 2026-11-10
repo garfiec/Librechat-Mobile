@@ -12,6 +12,7 @@ import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.pdf.PdfPasswordProtectedException
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.FileRepository
+import com.garfiec.librechat.core.logging.redact.LogRedactor
 import com.garfiec.librechat.core.model.FileObject
 import com.garfiec.librechat.core.model.request.DeleteFileEntry
 import com.garfiec.librechat.core.model.response.FileUploadConfig
@@ -365,7 +366,10 @@ class FilesViewModel(
             }
 
             val fileId = Uuid.random().toString()
-            Logger.d { "uploadFile: filename=$filename, mimeType=$mimeType, size=${bytes.size}, fileId=$fileId" }
+            Logger.d {
+                "uploadFile: filename=${LogRedactor.redactFileName(filename)}, mimeType=$mimeType, " +
+                    "size=${bytes.size}, fileId=$fileId"
+            }
 
             when (val result = fileRepository.uploadFile(
                 bytes = bytes,
@@ -714,7 +718,7 @@ class FilesViewModel(
         } else {
             "$baseUrl/api/files/download/${user ?: ""}/$fileId"
         }
-        Logger.d { "File URL for $filename ($fileId): $url" }
+        Logger.d { "File URL built for ${LogRedactor.redactFileName(filename)} ($fileId)" }
         return url
     }
 
