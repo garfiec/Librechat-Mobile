@@ -1,12 +1,10 @@
 package com.garfiec.librechat.feature.settings.screen
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
@@ -18,7 +16,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -29,21 +26,17 @@ import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AdaptiveExposedDropdownMenu
 import com.garfiec.librechat.core.ui.components.AdaptiveExposedDropdownMenuBox
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
-import com.garfiec.librechat.core.ui.components.AdaptiveSwitch
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
 import org.jetbrains.compose.resources.stringResource
 
+/** The server voice picker and its test button, or a line saying which voice speaks. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun SpeechSettingsSection(
-    autoSendAfterSttEnabled: Boolean,
-    autoReadEnabled: Boolean,
+internal fun SpeechVoiceSection(
     selectedVoice: TtsVoice?,
     availableVoices: List<TtsVoice>,
     ttsSource: String,
-    onAutoSendAfterSttChange: (Boolean) -> Unit,
-    onAutoReadChange: (Boolean) -> Unit,
     onVoiceSelect: (TtsVoice) -> Unit,
     onTestVoice: () -> Unit,
     modifier: Modifier = Modifier,
@@ -54,64 +47,6 @@ internal fun SpeechSettingsSection(
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 8.dp),
         ) {
-            // Auto-send after speech toggle
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(Res.string.auto_send_after_speech),
-                        style = MaterialTheme.typography.bodyLarge,
-                    )
-                    Text(
-                        text = stringResource(Res.string.auto_send_after_speech_desc),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                Spacer(modifier = Modifier.width(16.dp))
-                val toggleAutoSendCd = stringResource(Res.string.cd_toggle_auto_send_stt)
-                AdaptiveSwitch(
-                    checked = autoSendAfterSttEnabled,
-                    onCheckedChange = onAutoSendAfterSttChange,
-                    modifier = Modifier.semantics {
-                        contentDescription = toggleAutoSendCd
-                    },
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Auto-read toggle
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(Res.string.auto_read_responses),
-                        style = MaterialTheme.typography.bodyLarge,
-                    )
-                    Text(
-                        text = stringResource(Res.string.auto_read_responses_desc),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                Spacer(modifier = Modifier.width(16.dp))
-                val toggleAutoReadCd = stringResource(Res.string.cd_toggle_auto_read)
-                AdaptiveSwitch(
-                    checked = autoReadEnabled,
-                    onCheckedChange = onAutoReadChange,
-                    modifier = Modifier.semantics {
-                        contentDescription = toggleAutoReadCd
-                    },
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
             // TTS Voice selector (only relevant for server TTS)
             if (ttsSource == "server") {
                 if (availableVoices.isNotEmpty()) {

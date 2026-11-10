@@ -15,7 +15,7 @@ import com.garfiec.librechat.feature.settings.viewmodel.SettingsStateHandle
 import kotlinx.coroutines.launch
 
 /**
- * Handles clear conversations, export, cache clearing, and key revocation.
+ * Handles clear conversations, cache clearing, key revocation and diagnostic logs.
  */
 class DataManagementDelegate(
     private val stateHandle: SettingsStateHandle<DataSettingsUiState>,
@@ -81,14 +81,6 @@ class DataManagementDelegate(
     /** Clears the consumed count so a recomposition won't re-announce it. */
     fun consumeArchivedAllCount() {
         stateHandle.update { copy(archivedAllCount = null) }
-    }
-
-    fun exportAllData() {
-        stateHandle.update { copy(showExportComingSoon = true) }
-    }
-
-    fun dismissExportComingSoon() {
-        stateHandle.update { copy(showExportComingSoon = false) }
     }
 
     // ── Diagnostic logs (issue #96) ────────────────────────────────

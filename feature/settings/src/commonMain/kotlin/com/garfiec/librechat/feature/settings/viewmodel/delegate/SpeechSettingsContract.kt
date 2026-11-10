@@ -9,7 +9,7 @@ interface SpeechSettingsContract {
     fun setAutoSendAfterStt(enabled: Boolean)
     fun setAutoReadEnabled(enabled: Boolean)
     fun selectVoice(voice: TtsVoice)
-    fun testVoice()
+    fun testVoice(text: String)
     fun previewDeviceTts(text: String, rate: Float, pitch: Float, voiceName: String?)
     fun previewServerTts(text: String, voice: String?, model: String?)
     fun stopTtsPreview()

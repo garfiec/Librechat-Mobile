@@ -3,6 +3,7 @@ package com.garfiec.librechat.feature.settings.screen
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -76,28 +77,34 @@ fun PrefetchSettingsSection(
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        ToggleRow(
+        SettingsSwitchRow(
             title = stringResource(Res.string.prefetch_enabled),
             description = stringResource(Res.string.prefetch_enabled_desc),
             checked = prefetchEnabled,
-            onChange = onPrefetchEnabledChange,
+            onCheckedChange = onPrefetchEnabledChange,
+            showDivider = false,
+            contentPadding = PaddingValues(0.dp),
         )
         // Hidden, not disabled, where there is no image cache to warm: a greyed row invites the user
         // to turn prefetching on to reach a switch that would still do nothing.
         if (prefetchAttachmentsSupported) {
-            ToggleRow(
+            SettingsSwitchRow(
                 title = stringResource(Res.string.prefetch_attachments),
                 description = stringResource(Res.string.prefetch_attachments_desc),
                 checked = prefetchAttachmentsEnabled,
-                onChange = onPrefetchAttachmentsChange,
+                onCheckedChange = onPrefetchAttachmentsChange,
+                showDivider = false,
+                contentPadding = PaddingValues(0.dp),
                 enabled = prefetchEnabled,
             )
         }
-        ToggleRow(
+        SettingsSwitchRow(
             title = stringResource(Res.string.prefetch_on_metered),
             description = stringResource(Res.string.prefetch_on_metered_desc),
             checked = prefetchOnMeteredEnabled,
-            onChange = onPrefetchOnMeteredChange,
+            onCheckedChange = onPrefetchOnMeteredChange,
+            showDivider = false,
+            contentPadding = PaddingValues(0.dp),
             enabled = prefetchEnabled,
         )
 

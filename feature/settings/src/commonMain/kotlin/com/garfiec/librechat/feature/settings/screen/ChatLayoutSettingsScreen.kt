@@ -113,24 +113,21 @@ fun ChatLayoutSettingsScreen(
                     }
                 }
                 adaptiveSection {
-                    row(key = "controls") {
-                        Column(
-                            modifier = Modifier.fillMaxWidth().padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp),
-                        ) {
-                            ToggleRow(
-                                title = stringResource(Res.string.show_bubbles),
-                                description = stringResource(Res.string.show_bubbles_desc),
-                                checked = state.showBubbles,
-                                onChange = viewModel::setShowBubbles,
-                            )
-                            ToggleRow(
-                                title = stringResource(Res.string.show_avatars),
-                                description = stringResource(Res.string.show_avatars_desc),
-                                checked = state.showAvatars,
-                                onChange = viewModel::setShowAvatars,
-                            )
-                        }
+                    row(key = "show_bubbles") {
+                        SettingsSwitchRow(
+                            title = stringResource(Res.string.show_bubbles),
+                            description = stringResource(Res.string.show_bubbles_desc),
+                            checked = state.showBubbles,
+                            onCheckedChange = viewModel::setShowBubbles,
+                        )
+                    }
+                    row(key = "show_avatars") {
+                        SettingsSwitchRow(
+                            title = stringResource(Res.string.show_avatars),
+                            description = stringResource(Res.string.show_avatars_desc),
+                            checked = state.showAvatars,
+                            onCheckedChange = viewModel::setShowAvatars,
+                        )
                     }
                 }
             }

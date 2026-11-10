@@ -4,7 +4,6 @@
     <string name="action_add">إضافة</string>
     <string name="action_cancel">إلغاء</string>
     <string name="action_clear">مسح</string>
-    <string name="action_confirm">تأكيد</string>
     <string name="action_copy">نسخ</string>
     <string name="action_creating">جارٍ الإنشاء…</string>
     <string name="action_create">إنشاء</string>
@@ -28,7 +27,6 @@
     <string name="shared_chats_copy_link">نسخ الرابط</string>
     <string name="cd_create_api_key">إنشاء مفتاح API</string>
     <string name="cd_current_avatar">الصورة الرمزية الحالية</string>
-    <string name="cd_delete">حذف</string>
     <string name="cd_delete_api_key">حذف مفتاح API</string>
     <string name="cd_delete_preset">حذف الإعداد المسبق</string>
     <string name="memory_redacted_key">إدخال مخفي</string>
@@ -36,16 +34,12 @@
     <string name="memory_redacted_value_no_delete">تُخفي سياسة المحتوى في هذا الخادم ما هو مخزّن هنا.</string>
     <string name="cd_loading_profile">جارٍ تحميل الملف الشخصي</string>
     <string name="account_profile_load_failed">تعذّر تحميل ملفك الشخصي.</string>
-    <string name="cd_make_private">جعله خاصًا</string>
-    <string name="cd_make_public">جعله عامًا</string>
     <string name="cd_preview_voice">معاينة الصوت</string>
     <string name="cd_avatar_preview">معاينة الصورة الرمزية</string>
     <string name="cd_selected">محدد</string>
     <string name="cd_selected_avatar">الصورة الرمزية المحددة</string>
     <string name="cd_stop_voice_preview">إيقاف معاينة الصوت</string>
     <string name="cd_test_tts_voice">اختبار صوت تحويل النص إلى كلام المحدد</string>
-    <string name="cd_toggle_auto_read">تبديل القراءة التلقائية للردود</string>
-    <string name="cd_toggle_auto_send_stt">تبديل الإرسال التلقائي بعد الكلام</string>
     <string name="cd_tts_voice_selector">اختيار صوت تحويل النص إلى كلام. الحالي %1$s</string>
     <string name="cd_user_avatar">الصورة الرمزية للمستخدم</string>
     <string name="cd_view_all_tools">عرض جميع الأدوات</string>
@@ -53,13 +47,11 @@
     <!-- Section headers -->
     <string name="section_about">حول</string>
     <string name="section_updates">التحديثات</string>
-    <string name="section_advanced">متقدم</string>
     <string name="section_appearance">المظهر</string>
     <string name="appearance_theme_and_style">السمة والنمط</string>
     <!-- The switch in the interface style previews: an in-joke, "go outside". -->
     <string name="ui_style_preview_switch">المس العشب</string>
     <string name="section_balance">الرصيد</string>
-    <string name="section_chat_preferences">تفضيلات المحادثة</string>
     <string name="section_conversations">المحادثات</string>
     <string name="section_danger_zone">منطقة الخطر</string>
     <string name="section_language_region">اللغة والمنطقة</string>
@@ -134,11 +126,7 @@
     <string name="section_security">الأمان</string>
     <string name="section_speech">الكلام</string>
     <!-- Screen titles -->
-    <string name="title_account">الحساب</string>
     <string name="title_api_keys">مفاتيح API</string>
-    <string name="title_chat">المحادثة</string>
-    <string name="title_data">البيانات</string>
-    <string name="title_general">عام</string>
     <string name="title_memories">الذكريات</string>
     <string name="title_mcp_servers">خوادم MCP</string>
     <string name="title_presets">الإعدادات المسبقة</string>
@@ -171,7 +159,6 @@
     <string name="language_system_default">افتراضي النظام</string>
     <string name="status_enabled">مُفعّل</string>
     <string name="status_disabled">مُعطّل</string>
-    <string name="fork_behavior">سلوك التفريع</string>
     <string name="api_keys">مفاتيح API</string>
     <string name="api_keys_subtitle">إدارة مفاتيح API للوصول البرمجي</string>
     <string name="presets">الإعدادات المسبقة</string>
@@ -349,8 +336,6 @@
     <string name="latex_katex_desc">عرض LaTeX كامل عبر WebView</string>
     <string name="latex_native">نص عادي (سريع)</string>
     <string name="latex_native_desc">يعرض مصدر LaTeX الخام لأداء تمرير أفضل</string>
-    <string name="auto_scroll">التمرير التلقائي أثناء البث</string>
-    <string name="auto_scroll_desc">التمرير تلقائيًا إلى المحتوى الجديد أثناء إنشاء الرد</string>
     <string name="thinking_open_by_default">فتح التفكير افتراضيًا</string>
     <string name="thinking_open_by_default_desc">عرض استدلال الرد موسّعًا بدلًا من مطويًا</string>
     <string name="collapse_long_user_messages">طي رسائل المستخدم الطويلة</string>
@@ -463,9 +448,15 @@
     <string name="dialog_title_archive_all">أرشفة جميع المحادثات؟</string>
     <string name="dialog_archive_all_message">ستنتقل كل المحادثات إلى المحادثات المؤرشفة. يمكنك فتحها من هناك، ويمكنك إلغاء أرشفة أي منها لاحقًا.</string>
     <string name="action_archive_all">أرشفة الكل</string>
-    <string name="archived_all_count">تمت أرشفة %1$d محادثة</string>
+    <plurals name="archived_all_count">
+        <item quantity="zero">تمت أرشفة %1$d محادثة</item>
+        <item quantity="one">تمت أرشفة محادثة واحدة</item>
+        <item quantity="two">تمت أرشفة محادثتين</item>
+        <item quantity="few">تمت أرشفة %1$d محادثات</item>
+        <item quantity="many">تمت أرشفة %1$d محادثة</item>
+        <item quantity="other">تمت أرشفة %1$d محادثة</item>
+    </plurals>
     <string name="archived_conversations">المحادثات المؤرشفة</string>
-    <string name="export_all_data">تصدير جميع البيانات</string>
     <string name="clear_cache_with_size">مسح ذاكرة التخزين المؤقت (%1$s)</string>
     <string name="clear_cache">مسح ذاكرة التخزين المؤقت</string>
     <string name="revoke_all_api_keys">إبطال جميع مفاتيح API</string>
@@ -634,12 +625,6 @@
     <string name="error_failed_to_load_servers">فشل تحميل الخوادم</string>
     <string name="no_tools_available">لا توجد أدوات متاحة</string>
     <!-- Fork settings -->
-    <string name="fork_mode_direct_path">الرسائل المرئية</string>
-    <string name="fork_mode_direct_path_desc">المسار المباشر للرسائل إلى الرسالة المحددة فقط</string>
-    <string name="fork_mode_include_branches">تضمين الفروع</string>
-    <string name="fork_mode_include_branches_desc">المسار المباشر بالإضافة إلى الرسائل الشقيقة في كل مستوى</string>
-    <string name="fork_mode_target_level">الكل حتى المستوى المستهدف</string>
-    <string name="fork_mode_target_level_desc">جميع الرسائل والفروع حتى مستوى الرسالة المستهدفة (افتراضي)</string>
 
     <!-- Language selector -->
     <string name="hint_search_languages">البحث في اللغات</string>
@@ -905,7 +890,6 @@
     <string name="advanced_search">البحث المتقدم</string>
     <string name="advanced_search_desc">للمستخدمين المتقدمين. يضيف مطابقة حالة الأحرف والكلمة الكاملة والتعبيرات النمطية، وعوامل تصفية الدور والنموذج والتاريخ إلى شاشة البحث.</string>
     <string name="server_user_ca_notice">موثوق عبر جهة إصدار شهادات مثبّتة على هذا الجهاز</string>
-    <string name="export_coming_soon">التصدير قادم قريبًا</string>
     <string name="mcp_tools_all">كل أدوات MCP</string>
     <string name="mcp_server_unknown">غير معروف</string>
     <string name="avatar_upload_unavailable_ios">رفع الصورة الرمزية غير متاح بعد على iOS.</string>
@@ -1129,4 +1113,18 @@
     <string name="pr_account_disconnect_error">تعذّر الفصل. حاول مرة أخرى.</string>
     <string name="pr_account_connect_error">تعذّر بدء الاتصال. حاول مرة أخرى.</string>
     <string name="pr_account_not_available">ربط حساب غير متاح على هذا الخادم.</string>
+    <string name="speech_error_voice_test">تعذّر اختبار الصوت. حاول مرة أخرى.</string>
+    <string name="speech_error_voice_preview">تعذّرت معاينة الصوت. حاول مرة أخرى.</string>
+    <string name="speech_error_playback">تعذّر تشغيل الصوت.</string>
+    <string name="accent_name_blue">أزرق</string>
+    <string name="accent_name_indigo">نيلي</string>
+    <string name="accent_name_lavender">خزامى</string>
+    <string name="accent_name_cyan">سماوي</string>
+    <string name="accent_name_turquoise">فيروزي</string>
+    <string name="accent_name_green">أخضر</string>
+    <string name="accent_name_amber">كهرماني</string>
+    <string name="accent_name_orange">برتقالي</string>
+    <string name="accent_name_red">أحمر</string>
+    <string name="accent_name_pink">وردي</string>
+    <string name="accent_name_slate">رمادي أردوازي</string>
 </resources>

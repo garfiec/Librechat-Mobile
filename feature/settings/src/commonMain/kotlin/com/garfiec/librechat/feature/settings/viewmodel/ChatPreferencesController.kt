@@ -26,7 +26,6 @@ import kotlinx.coroutines.launch
 /** Intermediate holder for the combined DataStore preferences. */
 private data class DataStorePreferences(
     val chatFontSize: ChatFontSize,
-    val autoScrollEnabled: Boolean,
     val thinkingOpenByDefault: Boolean,
 )
 
@@ -80,7 +79,7 @@ private data class AdditionalPreferences(
  * the matching write setters. The ViewModel keeps only imperative state and
  * forwards preference reads/writes here.
  */
-@Suppress("TooManyFunctions") // debt: 19 functions
+@Suppress("TooManyFunctions") // debt: 18 functions
 class ChatPreferencesController(
     private val settingsDataStore: SettingsDataStore,
     private val preferenceStore: PreferenceStore,
@@ -90,19 +89,10 @@ class ChatPreferencesController(
     /** Combined DataStore preferences flow. */
     private val dataStorePreferences: StateFlow<DataStorePreferences> = combine(
         settingsDataStore.chatFontSize,
-        settingsDataStore.autoScrollEnabled,
         settingsDataStore.thinkingOpenByDefault,
-    ) { fontSize, autoScroll, thinkingOpen ->
-        DataStorePreferences(
-            chatFontSize = fontSize,
-            autoScrollEnabled = autoScroll,
-            thinkingOpenByDefault = thinkingOpen,
-        )
-    }.stateIn(scope, SharingStarted.Eagerly, DataStorePreferences(
-        chatFontSize = ChatFontSize.MEDIUM,
-        autoScrollEnabled = true,
-        thinkingOpenByDefault = false,
-    ))
+    ) { fontSize, thinkingOpen ->
+        DataStorePreferences(chatFontSize = fontSize, thinkingOpenByDefault = thinkingOpen)
+    }.stateIn(scope, SharingStarted.Eagerly, DataStorePreferences(ChatFontSize.MEDIUM, thinkingOpenByDefault = false))
 
     private val extraPreferences: StateFlow<ExtraPreferences> = combine(
         settingsDataStore.autoReadEnabled,
@@ -112,7 +102,7 @@ class ChatPreferencesController(
         settingsDataStore.ttsSource,
     ) { autoRead, voiceId, showImgDesc, dismissKeyboard, ttsSource ->
         ExtraPreferences(autoRead, voiceId, showImgDesc, dismissKeyboard, ttsSource)
-    }.stateIn(scope, SharingStarted.Eagerly, ExtraPreferences(false, null, false, false, "device"))
+    }.stateIn(scope, SharingStarted.Eagerly, ExtraPreferences(false, null, false, true, "device"))
 
     private val deviceTtsPreferences: StateFlow<DeviceTtsPreferences> = combine(
         settingsDataStore.ttsSpeechRate,
@@ -222,7 +212,6 @@ class ChatPreferencesController(
         val selectedVoice = extra.selectedVoiceId?.let { id -> state.availableVoices.find { it.id == id } }
         state.copy(
             chatFontSize = prefs.chatFontSize,
-            autoScrollEnabled = prefs.autoScrollEnabled,
             thinkingOpenByDefault = prefs.thinkingOpenByDefault,
             autoReadEnabled = extra.autoRead,
             selectedVoice = selectedVoice,
@@ -274,10 +263,6 @@ class ChatPreferencesController(
 
     fun setChatHeaderAlignment(alignment: ChatHeaderAlignment) {
         scope.launch { settingsDataStore.setChatHeaderAlignment(alignment) }
-    }
-
-    fun setAutoScrollEnabled(enabled: Boolean) {
-        scope.launch { settingsDataStore.setAutoScrollEnabled(enabled) }
     }
 
     fun setThinkingOpenByDefault(open: Boolean) {

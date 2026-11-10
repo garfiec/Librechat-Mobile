@@ -28,7 +28,6 @@ import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Wallpaper
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -62,7 +61,6 @@ import com.garfiec.librechat.core.ui.components.AdaptiveRadioButton
 import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
 import com.garfiec.librechat.core.ui.components.AdaptiveSwitch
 import com.garfiec.librechat.core.ui.components.UiStylePreview
-import com.garfiec.librechat.core.ui.components.adaptiveRowColor
 import com.garfiec.librechat.core.ui.components.adaptiveSection
 import com.garfiec.librechat.core.ui.components.toHexString
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
@@ -455,49 +453,25 @@ private fun AccentColorRow(
     /** The server whose accent is in use; the row then reads as set by it and dims, but still opens the picker. */
     serverName: String? = null,
 ) {
-    Column(modifier = modifier) {
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            onClick = onClick,
-            color = adaptiveRowColor,
-            enabled = enabled,
-        ) {
-            Row(
+    SettingsRow(
+        title = stringResource(Res.string.accent_color),
+        summary = serverName?.let { stringResource(Res.string.accent_set_by_server, it) } ?: Color(color).toHexString(),
+        icon = Icons.Default.Palette,
+        onClick = onClick,
+        enabled = enabled,
+        showChevron = false,
+        modifier = modifier.alpha(if (serverName != null) DISABLED_ALPHA else 1f),
+        trailingContent = {
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .alpha(if (enabled && serverName == null) 1f else DISABLED_ALPHA)
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Palette,
-                    contentDescription = null,
-                    modifier = Modifier.size(24.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(modifier = Modifier.width(16.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(Res.string.accent_color),
-                        style = MaterialTheme.typography.bodyLarge,
-                    )
-                    Text(
-                        text = serverName?.let { stringResource(Res.string.accent_set_by_server, it) } ?: Color(color).toHexString(),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                Box(
-                    modifier = Modifier
-                        .size(28.dp)
-                        .clip(CircleShape)
-                        .background(Color(color))
-                        .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape),
-                )
-            }
-        }
-        AdaptiveDivider()
-    }
+                    .size(28.dp)
+                    .alpha(if (enabled) 1f else DISABLED_ALPHA)
+                    .clip(CircleShape)
+                    .background(Color(color))
+                    .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape),
+            )
+        },
+    )
 }
 
 @Composable
@@ -506,39 +480,14 @@ private fun ServerAccentToggle(
     onEnabledChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = Icons.Default.Dns,
-                contentDescription = null,
-                modifier = Modifier.size(24.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = stringResource(Res.string.use_server_accent),
-                    style = MaterialTheme.typography.bodyLarge,
-                )
-                Text(
-                    text = stringResource(Res.string.use_server_accent_desc),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Spacer(modifier = Modifier.width(16.dp))
-            AdaptiveSwitch(
-                checked = enabled,
-                onCheckedChange = onEnabledChange,
-            )
-        }
-        AdaptiveDivider(modifier = Modifier.padding(top = 8.dp))
-    }
+    SettingsSwitchRow(
+        title = stringResource(Res.string.use_server_accent),
+        description = stringResource(Res.string.use_server_accent_desc),
+        checked = enabled,
+        onCheckedChange = onEnabledChange,
+        icon = Icons.Default.Dns,
+        modifier = modifier,
+    )
 }
 
 @Composable
@@ -547,37 +496,12 @@ private fun DynamicColorToggle(
     onEnabledChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = Icons.Default.Wallpaper,
-                contentDescription = null,
-                modifier = Modifier.size(24.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = stringResource(Res.string.use_wallpaper_colors),
-                    style = MaterialTheme.typography.bodyLarge,
-                )
-                Text(
-                    text = stringResource(Res.string.use_wallpaper_colors_desc),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Spacer(modifier = Modifier.width(16.dp))
-            AdaptiveSwitch(
-                checked = enabled,
-                onCheckedChange = onEnabledChange,
-            )
-        }
-        AdaptiveDivider(modifier = Modifier.padding(top = 8.dp))
-    }
+    SettingsSwitchRow(
+        title = stringResource(Res.string.use_wallpaper_colors),
+        description = stringResource(Res.string.use_wallpaper_colors_desc),
+        checked = enabled,
+        onCheckedChange = onEnabledChange,
+        icon = Icons.Default.Wallpaper,
+        modifier = modifier,
+    )
 }

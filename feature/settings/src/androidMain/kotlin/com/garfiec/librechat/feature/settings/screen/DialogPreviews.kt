@@ -1,13 +1,13 @@
 package com.garfiec.librechat.feature.settings.screen
 
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.ApiKey
 import com.garfiec.librechat.core.model.ui.UiStyle
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
+import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
 import com.garfiec.librechat.core.ui.components.OtpVerificationDialog
 import com.garfiec.librechat.core.ui.preview.DialogPreviewHost
 import com.garfiec.librechat.core.ui.preview.PreviewNarrowScreens
@@ -43,10 +43,6 @@ private fun ApiKeyCreatedMaterialPreview() = ApiKeyCreatedHost(UiStyle.MATERIAL)
 
 @PreviewNarrowScreens
 @Composable
-private fun ForkSettingsMaterialPreview() = ForkSettingsHost(UiStyle.MATERIAL)
-
-@PreviewNarrowScreens
-@Composable
 private fun AvatarUploadMaterialPreview() = AvatarUploadHost(UiStyle.MATERIAL)
 
 /** The confirmation `ServerHeadersDialog` raises over itself on a dirty close, with its strings. */
@@ -56,8 +52,8 @@ private fun ServerHeadersDiscardHost(style: UiStyle, height: Dp = 640.dp) = Dial
         onDismissRequest = {},
         title = { Text(stringResource(Res.string.server_headers_discard_title)) },
         text = { Text(stringResource(Res.string.server_headers_discard_message)) },
-        confirmButton = { TextButton(onClick = {}) { Text(stringResource(Res.string.server_headers_discard_confirm)) } },
-        dismissButton = { TextButton(onClick = {}) { Text(stringResource(Res.string.server_headers_keep_editing)) } },
+        confirmButton = { AdaptiveTextButton(onClick = {}) { Text(stringResource(Res.string.server_headers_discard_confirm)) } },
+        dismissButton = { AdaptiveTextButton(onClick = {}) { Text(stringResource(Res.string.server_headers_keep_editing)) } },
     )
 }
 
@@ -89,11 +85,6 @@ private fun ApiKeyCreatedHost(style: UiStyle, height: Dp = 640.dp) = DialogPrevi
         onCreateKey = {},
         onDismiss = {},
     )
-}
-
-@Composable
-private fun ForkSettingsHost(style: UiStyle, height: Dp = 640.dp) = DialogPreviewHost(style, height = height) {
-    ForkSettingsDialog(selectedMode = ForkMode.entries.first(), onModeSelect = {}, onDismiss = {})
 }
 
 @Composable

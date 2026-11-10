@@ -22,7 +22,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -31,9 +30,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.data.update.UpdateCheckState
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
-import com.garfiec.librechat.core.ui.components.AdaptiveDivider
-import com.garfiec.librechat.core.ui.components.AdaptiveSwitch
-import com.garfiec.librechat.core.ui.components.adaptiveRowColor
+import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
 import org.jetbrains.compose.resources.stringResource
@@ -48,44 +45,22 @@ internal fun UpdateCheckRow(
 ) {
     val checking = state == UpdateCheckState.Checking
     Column(modifier = modifier) {
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            onClick = onCheck,
-            enabled = !checking,
-            color = adaptiveRowColor,
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.SystemUpdate,
-                    contentDescription = null,
-                    modifier = Modifier.size(24.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(modifier = Modifier.width(16.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(Res.string.update_check),
-                        style = MaterialTheme.typography.bodyLarge,
-                    )
-                    Text(
-                        text = stringResource(
-                            if (checking) Res.string.update_checking else Res.string.update_check_desc,
-                        ),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                if (checking) {
+        SettingsRow(
+            title = stringResource(Res.string.update_check),
+            summary = stringResource(if (checking) Res.string.update_checking else Res.string.update_check_desc),
+            icon = Icons.Default.SystemUpdate,
+            onClick = if (checking) null else onCheck,
+            showChevron = false,
+            showDivider = false,
+            trailingContent = if (checking) {
+                {
                     Spacer(modifier = Modifier.width(16.dp))
                     AdaptiveCircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                 }
-            }
-        }
+            } else {
+                null
+            },
+        )
         AnimatedVisibility(visible = state.hasResult()) {
             UpdateResultBanner(
                 state = state,
@@ -173,7 +148,7 @@ private fun ResultBanner(
                 )
             }
             if (action != null) {
-                TextButton(onClick = onAction) {
+                AdaptiveTextButton(onClick = onAction) {
                     Text(text = action, color = content)
                 }
             }
@@ -189,34 +164,12 @@ internal fun UpdateAutoCheckToggle(
     onEnabledChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = Icons.Default.Update,
-                contentDescription = null,
-                modifier = Modifier.size(24.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = stringResource(Res.string.update_auto_check),
-                    style = MaterialTheme.typography.bodyLarge,
-                )
-                Text(
-                    text = stringResource(Res.string.update_auto_check_desc),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Spacer(modifier = Modifier.width(16.dp))
-            AdaptiveSwitch(checked = enabled, onCheckedChange = onEnabledChange)
-        }
-        AdaptiveDivider(modifier = Modifier.padding(top = 8.dp))
-    }
+    SettingsSwitchRow(
+        title = stringResource(Res.string.update_auto_check),
+        description = stringResource(Res.string.update_auto_check_desc),
+        checked = enabled,
+        onCheckedChange = onEnabledChange,
+        icon = Icons.Default.Update,
+        modifier = modifier,
+    )
 }

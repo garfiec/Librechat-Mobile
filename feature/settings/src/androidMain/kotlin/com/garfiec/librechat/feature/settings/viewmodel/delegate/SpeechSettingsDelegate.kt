@@ -14,6 +14,7 @@ import com.garfiec.librechat.core.model.speech.TtsVoice
 import com.garfiec.librechat.feature.settings.screen.DeviceVoiceInfo
 import com.garfiec.librechat.feature.settings.viewmodel.ChatSettingsUiState
 import com.garfiec.librechat.feature.settings.viewmodel.SettingsStateHandle
+import com.garfiec.librechat.feature.settings.viewmodel.SpeechFailure
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -116,11 +117,11 @@ class SpeechSettingsDelegate(
         }
     }
 
-    override fun testVoice() {
+    override fun testVoice(text: String) {
         val voice = stateHandle.state.selectedVoice
         stateHandle.scope.launch {
             val result = speechRepository.synthesizeSpeech(
-                text = "This is a test of the selected voice.",
+                text = text,
                 voice = voice?.id,
             )
             when (result) {
@@ -128,7 +129,7 @@ class SpeechSettingsDelegate(
                     playAudioBytes(result.data)
                 }
                 is Result.Error -> {
-                    stateHandle.update { copy(error = result.message ?: "Voice test failed") }
+                    stateHandle.update { copy(error = SpeechFailure.VOICE_TEST) }
                 }
                 is Result.Loading -> { /* no-op */ }
             }
@@ -178,7 +179,7 @@ class SpeechSettingsDelegate(
                     stateHandle.update {
                         copy(
                             isTtsPreviewPlaying = false,
-                            error = result.message ?: "Voice preview failed",
+                            error = SpeechFailure.VOICE_PREVIEW,
                         )
                     }
                 }
@@ -306,7 +307,7 @@ class SpeechSettingsDelegate(
                     Logger.e { "MediaPlayer error: what=$what, extra=$extra" }
                     currentMediaPlayer = null
                     stateHandle.update {
-                        copy(error = "Audio playback failed", isTtsPreviewPlaying = false)
+                        copy(error = SpeechFailure.PLAYBACK, isTtsPreviewPlaying = false)
                     }
                     stateHandle.scope.launch(ioDispatcher) {
                         player.release()
@@ -334,7 +335,7 @@ class SpeechSettingsDelegate(
             Logger.e(e) { "Failed to play audio" }
             stateHandle.update {
                 copy(
-                    error = "Audio playback failed: ${e.localizedMessage}",
+                    error = SpeechFailure.PLAYBACK,
                     isTtsPreviewPlaying = false,
                 )
             }

@@ -2,6 +2,7 @@ package com.garfiec.librechat.feature.settings.screen
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -86,11 +87,10 @@ fun ContextUsageSettingsScreen(
                 item(key = "where_header") { AdaptiveSectionHeader(stringResource(Res.string.context_settings_where)) }
                 adaptiveSection {
                     row(key = "placement") {
-                        SelectorRow(
+                        SettingsRow(
                             title = stringResource(Res.string.context_settings_placement),
-                            value = contextBarPlacementLabel(state.placement),
+                            summary = contextBarPlacementLabel(state.placement),
                             onClick = { choosingPlacement = true },
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                         )
                     }
                 }
@@ -182,11 +182,13 @@ private fun DetailControls(
             )
         }
 
-        ToggleRow(
+        SettingsSwitchRow(
             title = stringResource(Res.string.context_settings_advanced),
             description = stringResource(Res.string.context_settings_advanced_desc),
             checked = state.advanced,
-            onChange = onAdvancedChange,
+            onCheckedChange = onAdvancedChange,
+            showDivider = false,
+            contentPadding = PaddingValues(0.dp),
         )
         if (state.advanced) {
             CustomSections(state, onSections)
@@ -201,37 +203,47 @@ private fun CustomSections(
 ) {
     val sections = state.sections
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        ToggleRow(
+        SettingsSwitchRow(
             title = stringResource(Res.string.context_section_breakdown),
             description = stringResource(Res.string.context_section_breakdown_desc),
             checked = sections.breakdown,
-            onChange = { on -> onSections { it.copy(breakdown = on) } },
+            onCheckedChange = { on -> onSections { it.copy(breakdown = on) } },
+            showDivider = false,
+            contentPadding = PaddingValues(0.dp),
         )
-        ToggleRow(
+        SettingsSwitchRow(
             title = stringResource(Res.string.context_section_tool_types),
             description = stringResource(Res.string.context_section_tool_types_desc),
             checked = sections.toolTypes,
-            onChange = { on -> onSections { it.copy(toolTypes = on) } },
+            onCheckedChange = { on -> onSections { it.copy(toolTypes = on) } },
+            showDivider = false,
+            contentPadding = PaddingValues(0.dp),
             enabled = sections.breakdown,
         )
-        ToggleRow(
+        SettingsSwitchRow(
             title = stringResource(Res.string.context_section_cache),
             description = stringResource(Res.string.context_section_cache_desc),
             checked = sections.cacheDetail,
-            onChange = { on -> onSections { it.copy(cacheDetail = on) } },
+            onCheckedChange = { on -> onSections { it.copy(cacheDetail = on) } },
+            showDivider = false,
+            contentPadding = PaddingValues(0.dp),
             enabled = sections.breakdown,
         )
-        ToggleRow(
+        SettingsSwitchRow(
             title = stringResource(Res.string.context_section_insights),
             description = stringResource(Res.string.context_section_insights_desc),
             checked = sections.insights,
-            onChange = { on -> onSections { it.copy(insights = on) } },
+            onCheckedChange = { on -> onSections { it.copy(insights = on) } },
+            showDivider = false,
+            contentPadding = PaddingValues(0.dp),
         )
-        ToggleRow(
+        SettingsSwitchRow(
             title = stringResource(Res.string.context_section_totals),
             description = stringResource(Res.string.context_section_totals_desc),
             checked = sections.totals,
-            onChange = { on -> onSections { it.copy(totals = on) } },
+            onCheckedChange = { on -> onSections { it.copy(totals = on) } },
+            showDivider = false,
+            contentPadding = PaddingValues(0.dp),
         )
         Text(text = stringResource(Res.string.context_section_cost), style = MaterialTheme.typography.bodyLarge)
         AdaptivePillChoice(

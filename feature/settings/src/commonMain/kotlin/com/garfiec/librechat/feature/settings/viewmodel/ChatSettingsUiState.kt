@@ -18,14 +18,10 @@ import com.garfiec.librechat.feature.settings.screen.DeviceVoiceInfo
 
 @Immutable
 data class ChatSettingsUiState(
-    /**
-     * Transient errors surfaced via snackbar; cleared by [ChatSettingsViewModel.dismissError]
-     * after the snackbar is shown/acted on.
-     */
-    val error: String? = null,
+    /** A voice test, preview or playback failure for the snackbar; cleared by [ChatSettingsViewModel.dismissError]. */
+    val error: SpeechFailure? = null,
     // Chat preferences
     val chatFontSize: ChatFontSize = ChatFontSize.MEDIUM,
-    val autoScrollEnabled: Boolean = true,
     /** Whether a reply's reasoning block starts expanded; the block itself is always shown. */
     val thinkingOpenByDefault: Boolean = false,
     val contextBarPlacement: ContextBarPlacement = ContextBarPlacement.OPTIONS_SHEET,
@@ -35,7 +31,7 @@ data class ChatSettingsUiState(
     val uploadRoutingMode: UploadRoutingMode = UploadRoutingMode.AUTO,
     val showImageDescriptions: Boolean = false,
     val showSiteIcons: Boolean = false,
-    val dismissKeyboardOnSend: Boolean = false,
+    val dismissKeyboardOnSend: Boolean = true,
     // Speech settings
     val autoReadEnabled: Boolean = false,
     val selectedVoice: TtsVoice? = null,
@@ -67,9 +63,6 @@ data class ChatSettingsUiState(
     val availableDeviceVoices: List<DeviceVoiceInfo> = emptyList(),
     // TTS preview
     val isTtsPreviewPlaying: Boolean = false,
-    // Fork settings
-    val forkMode: String = "targetLevel",
-    val showForkSettingsDialog: Boolean = false,
     val latexRenderer: LatexRenderer = LatexRenderer.KATEX,
     // Mobile-only: how pinned models/agents surface in the model-selection sheet
     val starredModelsDisplay: StarredModelsDisplay = StarredModelsDisplay.GROUPED,
@@ -93,3 +86,6 @@ data class ChatSettingsUiState(
     // What the Artifacts tool is taught when on; app-wide, read by chat's request
     val artifactsMode: ArtifactsMode = ArtifactsMode.DEFAULT,
 )
+
+/** Speech failures the page shows; the screen maps each to its string. */
+enum class SpeechFailure { VOICE_TEST, VOICE_PREVIEW, PLAYBACK }

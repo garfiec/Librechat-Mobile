@@ -3,6 +3,11 @@ package com.garfiec.librechat.feature.settings.screen
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.ManageSearch
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -11,9 +16,20 @@ import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.data.prefetch.PrefetchConversationStatus
 import com.garfiec.librechat.core.model.config.BuildInfo
 import com.garfiec.librechat.core.model.ui.UiStyle
+import com.garfiec.librechat.core.ui.components.AdaptiveGroupedPage
+import com.garfiec.librechat.core.ui.components.AdaptiveSectionHeader
+import com.garfiec.librechat.core.ui.components.adaptiveSection
 import com.garfiec.librechat.core.ui.preview.PreviewNarrowScreens
 import com.garfiec.librechat.core.ui.theme.LibreChatTheme
 import com.garfiec.librechat.feature.settings.resources.Res
+import com.garfiec.librechat.feature.settings.resources.advanced_search
+import com.garfiec.librechat.feature.settings.resources.advanced_search_desc
+import com.garfiec.librechat.feature.settings.resources.appearance_theme_and_style
+import com.garfiec.librechat.feature.settings.resources.client_image_resize
+import com.garfiec.librechat.feature.settings.resources.client_image_resize_enforced
+import com.garfiec.librechat.feature.settings.resources.delete_account
+import com.garfiec.librechat.feature.settings.resources.language
+import com.garfiec.librechat.feature.settings.resources.language_system_default
 import com.garfiec.librechat.feature.settings.resources.prefetch_cache_images
 import com.garfiec.librechat.feature.settings.resources.prefetch_cache_messages
 import com.garfiec.librechat.feature.settings.resources.prefetch_cache_messages_value
@@ -22,6 +38,8 @@ import com.garfiec.librechat.feature.settings.resources.prefetch_summary_schedul
 import com.garfiec.librechat.feature.settings.resources.prefetch_summary_status
 import com.garfiec.librechat.feature.settings.resources.prefetch_summary_warmed
 import com.garfiec.librechat.feature.settings.resources.prefetch_summary_warmed_value
+import com.garfiec.librechat.feature.settings.resources.section_appearance
+import com.garfiec.librechat.feature.settings.resources.section_danger_zone
 import com.garfiec.librechat.feature.settings.state.PrefetchDisplayStatus
 import com.garfiec.librechat.feature.settings.state.PrefetchPauseReason
 import com.garfiec.librechat.feature.settings.viewmodel.PrefetchCondition
@@ -29,6 +47,14 @@ import com.garfiec.librechat.feature.settings.viewmodel.PrefetchConditionRow
 import org.jetbrains.compose.resources.stringResource
 
 // Label and value rows across Settings, at the widths and translations that squeeze them.
+
+@PreviewNarrowScreens
+@Composable
+private fun SettingsRowsPreview() = PreviewSurface(UiStyle.MATERIAL) { SettingsRowsHost() }
+
+@PreviewNarrowScreens
+@Composable
+private fun SettingsRowsGlassPreview() = PreviewSurface(UiStyle.LIQUID_GLASS) { SettingsRowsHost() }
 
 @PreviewNarrowScreens
 @Composable
@@ -66,6 +92,63 @@ private fun NudgePreviewPreview() = PreviewSurface(UiStyle.MATERIAL) { NudgeHost
 private fun PreviewSurface(style: UiStyle, content: @Composable () -> Unit) {
     LibreChatTheme(darkTheme = true, uiStyle = style) {
         Surface(color = MaterialTheme.colorScheme.surface) { content() }
+    }
+}
+
+/** Every row kind in grouped cells: icon tile and summary, plain, switch, disabled switch, destructive. */
+@Composable
+private fun SettingsRowsHost() {
+    AdaptiveGroupedPage {
+        LazyColumn {
+            item { AdaptiveSectionHeader(stringResource(Res.string.section_appearance)) }
+            adaptiveSection {
+                row(key = "nav") {
+                    SettingsRow(
+                        title = stringResource(Res.string.appearance_theme_and_style),
+                        summary = "Dark · Material",
+                        icon = Icons.Default.Palette,
+                        tileTint = SettingsTileTint.PRIMARY,
+                        onClick = {},
+                    )
+                }
+                row(key = "plain") {
+                    SettingsRow(
+                        title = stringResource(Res.string.language),
+                        summary = stringResource(Res.string.language_system_default),
+                        onClick = {},
+                    )
+                }
+                row(key = "switch") {
+                    SettingsSwitchRow(
+                        title = stringResource(Res.string.advanced_search),
+                        description = stringResource(Res.string.advanced_search_desc),
+                        checked = true,
+                        onCheckedChange = {},
+                        icon = Icons.Default.ManageSearch,
+                    )
+                }
+                row(key = "disabled") {
+                    SettingsSwitchRow(
+                        title = stringResource(Res.string.client_image_resize),
+                        description = stringResource(Res.string.client_image_resize_enforced),
+                        checked = false,
+                        onCheckedChange = {},
+                        enabled = false,
+                    )
+                }
+            }
+            item { AdaptiveSectionHeader(stringResource(Res.string.section_danger_zone)) }
+            adaptiveSection {
+                row(key = "destructive") {
+                    SettingsRow(
+                        title = stringResource(Res.string.delete_account),
+                        icon = Icons.Default.Delete,
+                        onClick = {},
+                        destructive = true,
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -156,14 +239,12 @@ private fun AboutInfoHost() {
 private fun DataButtonsHost() {
     Column {
         DataSettingsSection(
-            archivedCount = 128,
             isClearing = false,
             onClearAllChats = {},
             archiveAllSupported = true,
             isArchivingAll = false,
             onArchiveAllChats = {},
             onViewArchive = {},
-            onExportAllData = {},
             logsBufferBytes = 0,
             isLogsExporting = false,
             isLogsClearing = false,

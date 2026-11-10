@@ -456,11 +456,10 @@ private fun ChoiceRow(
 ) {
     var expanded by remember { mutableStateOf(false) }
     Box {
-        SelectorRow(
+        SettingsRow(
             title = title,
-            value = value,
+            summary = value,
             onClick = { if (enabled) expanded = true },
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
         )
         AdaptiveDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             options.forEach { (key, label) ->

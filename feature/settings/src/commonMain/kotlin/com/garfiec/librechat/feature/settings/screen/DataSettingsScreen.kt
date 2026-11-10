@@ -13,12 +13,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -33,67 +31,19 @@ import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AdaptiveGroupedPage
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
-import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
 import com.garfiec.librechat.core.ui.components.AdaptiveSectionHeader
-import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
+import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
 import com.garfiec.librechat.core.ui.components.adaptiveSection
-import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
-import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
-import com.garfiec.librechat.core.ui.components.topbar.BarIcons
-import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
-import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.core.ui.platform.TextFileSaver
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.viewmodel.DataSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.PrefetchActivityViewModel
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun DataSettingsScreen(
-    onNavigateBack: () -> Unit,
-    onNavigateToArchive: () -> Unit,
-    onNavigateToSharedLinks: () -> Unit,
-    onNavigateToArtifactShortcuts: () -> Unit,
-    onNavigateToPrefetchSettings: () -> Unit,
-    onNavigateToCodeExecution: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val snackbarHostState = remember { SnackbarHostState() }
-
-    AdaptiveScaffold(
-        modifier = modifier,
-        snackbarHost = { AdaptiveSnackbarHost(snackbarHostState) },
-        topBar = {
-            AdaptiveTopBar(
-                spec = AdaptiveTopBarSpec(
-                    navigation = BarNavigation(BarIcons.Back, stringResource(Res.string.cd_back), onNavigateBack),
-                    title = BarTitle(stringResource(Res.string.title_data)),
-                    actions = emptyList(),
-                ),
-            )
-        },
-    ) { innerPadding ->
-        DataSettingsContent(
-            onNavigateToArchive = onNavigateToArchive,
-            onNavigateToSharedLinks = onNavigateToSharedLinks,
-            onNavigateToArtifactShortcuts = onNavigateToArtifactShortcuts,
-            onNavigateToPrefetchSettings = onNavigateToPrefetchSettings,
-            onNavigateToCodeExecution = onNavigateToCodeExecution,
-            snackbarHostState = snackbarHostState,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
-        )
-    }
-}
-
-/**
- * Reusable Data settings content (without Scaffold/TopAppBar).
- * Used by both the standalone screen and the tabbed settings screen.
- */
+/** The Data tab's content, without a Scaffold or top bar. */
 @Composable
 fun DataSettingsContent(
     onNavigateToArchive: () -> Unit,
@@ -119,7 +69,7 @@ fun DataSettingsContent(
     var logsSaverResult by remember { mutableStateOf<String?>(null) }
     val logsExportedMsg = stringResource(Res.string.logs_exported)
     val archivedAllMessage = uiState.archivedAllCount?.let {
-        stringResource(Res.string.archived_all_count, it)
+        pluralStringResource(Res.plurals.archived_all_count, it, it)
     }
 
     LaunchedEffect(uiState.error) {
@@ -132,14 +82,6 @@ fun DataSettingsContent(
         val message = archivedAllMessage ?: return@LaunchedEffect
         snackbarHostState.showSnackbar(message = message)
         viewModel.consumeArchivedAllCount()
-    }
-
-    val exportComingSoon = stringResource(Res.string.export_coming_soon)
-    LaunchedEffect(uiState.showExportComingSoon) {
-        if (uiState.showExportComingSoon) {
-            snackbarHostState.showSnackbar(message = exportComingSoon)
-            viewModel.dismissExportComingSoon()
-        }
     }
 
     // When the ViewModel finishes reading the buffer, hand the payload to the platform saver.
@@ -184,14 +126,12 @@ fun DataSettingsContent(
             adaptiveSection {
                 row(key = "data_settings") {
                     DataSettingsSection(
-                        archivedCount = uiState.archivedCount,
                         isClearing = uiState.isClearing,
                         onClearAllChats = viewModel::clearAllChats,
                         archiveAllSupported = uiState.archiveAllSupported,
                         isArchivingAll = uiState.isArchivingAll,
                         onArchiveAllChats = viewModel::archiveAllChats,
                         onViewArchive = onNavigateToArchive,
-                        onExportAllData = viewModel::exportAllData,
                         logsBufferBytes = uiState.logsBufferBytes,
                         isLogsExporting = uiState.isLogsExporting,
                         isLogsClearing = uiState.isLogsClearing,
@@ -201,11 +141,10 @@ fun DataSettingsContent(
                 }
                 // A summary row without a count: the list pages and never says how many links there are.
                 row(key = "shared_chats_row") {
-                    SelectorRow(
+                    SettingsRow(
                         title = stringResource(Res.string.shared_chats_title),
-                        value = stringResource(Res.string.shared_chats_summary),
+                        summary = stringResource(Res.string.shared_chats_summary),
                         onClick = onNavigateToSharedLinks,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                     )
                 }
                 row(key = "data_extra_actions") {
@@ -225,11 +164,10 @@ fun DataSettingsContent(
             }
             adaptiveSection {
                 row(key = "prefetch_settings") {
-                    SelectorRow(
+                    SettingsRow(
                         title = stringResource(Res.string.prefetch_enabled),
-                        value = prefetchState.status.label(),
+                        summary = prefetchState.status.label(),
                         onClick = onNavigateToPrefetchSettings,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                     )
                 }
             }
@@ -241,11 +179,10 @@ fun DataSettingsContent(
                 }
                 adaptiveSection {
                     row(key = "code_execution_row") {
-                        SelectorRow(
+                        SettingsRow(
                             title = stringResource(Res.string.code_environments),
-                            value = stringResource(Res.string.code_execution_summary),
+                            summary = stringResource(Res.string.code_execution_summary),
                             onClick = onNavigateToCodeExecution,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                         )
                     }
                 }
@@ -262,7 +199,7 @@ fun DataSettingsContent(
                 title = { Text(stringResource(Res.string.dialog_title_clear_cache)) },
                 text = { Text(stringResource(Res.string.dialog_clear_cache_message)) },
                 confirmButton = {
-                    TextButton(
+                    AdaptiveTextButton(
                         onClick = {
                             showClearCacheDialog = false
                             viewModel.clearCache()
@@ -272,7 +209,7 @@ fun DataSettingsContent(
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showClearCacheDialog = false }) {
+                    AdaptiveTextButton(onClick = { showClearCacheDialog = false }) {
                         Text(stringResource(Res.string.action_cancel))
                     }
                 },
@@ -286,7 +223,7 @@ fun DataSettingsContent(
                 title = { Text(stringResource(Res.string.dialog_title_revoke_keys)) },
                 text = { Text(stringResource(Res.string.dialog_revoke_keys_message)) },
                 confirmButton = {
-                    TextButton(
+                    AdaptiveTextButton(
                         onClick = {
                             showRevokeKeysDialog = false
                             viewModel.revokeAllKeys()
@@ -299,7 +236,7 @@ fun DataSettingsContent(
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showRevokeKeysDialog = false }) {
+                    AdaptiveTextButton(onClick = { showRevokeKeysDialog = false }) {
                         Text(stringResource(Res.string.action_cancel))
                     }
                 },

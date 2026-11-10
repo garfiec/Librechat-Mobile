@@ -1,6 +1,7 @@
 package com.garfiec.librechat.feature.settings.screen
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
@@ -38,7 +40,6 @@ import com.garfiec.librechat.core.data.datastore.UploadRoutingMode
 import com.garfiec.librechat.core.data.datastore.WebSearchPreference
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveRadioButton
-import com.garfiec.librechat.core.ui.components.AdaptiveSwitch
 import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
@@ -146,7 +147,7 @@ internal fun artifactDisplayModeLabel(mode: ArtifactDisplayMode): String = when 
 }
 
 /**
- * Generic single-select radio dialog with Save/Cancel, matching [ForkSettingsDialog].
+ * Generic single-select radio dialog with Save/Cancel.
  * [optionDescription] may return null for options without a secondary line.
  */
 @Composable
@@ -289,35 +290,45 @@ internal fun RenderInlineDialog(
                 )
                 Spacer(modifier = Modifier.height(12.dp))
 
-                InlineToggleRow(
+                SettingsSwitchRow(
                     title = stringResource(Res.string.inline_artifact_mermaid),
                     description = stringResource(Res.string.inline_artifact_mermaid_desc),
                     checked = prefs.mermaid,
-                    onChange = onMermaidChange,
+                    onCheckedChange = onMermaidChange,
+                    showDivider = false,
+                    contentPadding = DialogSwitchPadding,
                 )
-                InlineToggleRow(
+                SettingsSwitchRow(
                     title = stringResource(Res.string.inline_artifact_svg),
                     description = stringResource(Res.string.inline_artifact_svg_desc),
                     checked = prefs.svg,
-                    onChange = onSvgChange,
+                    onCheckedChange = onSvgChange,
+                    showDivider = false,
+                    contentPadding = DialogSwitchPadding,
                 )
-                InlineToggleRow(
+                SettingsSwitchRow(
                     title = stringResource(Res.string.inline_artifact_markdown),
                     description = stringResource(Res.string.inline_artifact_markdown_desc),
                     checked = prefs.markdown,
-                    onChange = onMarkdownChange,
+                    onCheckedChange = onMarkdownChange,
+                    showDivider = false,
+                    contentPadding = DialogSwitchPadding,
                 )
-                InlineToggleRow(
+                SettingsSwitchRow(
                     title = stringResource(Res.string.inline_artifact_html),
                     description = stringResource(Res.string.inline_artifact_html_desc),
                     checked = prefs.html,
-                    onChange = onHtmlChange,
+                    onCheckedChange = onHtmlChange,
+                    showDivider = false,
+                    contentPadding = DialogSwitchPadding,
                 )
-                InlineToggleRow(
+                SettingsSwitchRow(
                     title = stringResource(Res.string.inline_artifact_react),
                     description = stringResource(Res.string.inline_artifact_react_desc),
                     checked = prefs.react,
-                    onChange = onReactChange,
+                    onCheckedChange = onReactChange,
+                    showDivider = false,
+                    contentPadding = DialogSwitchPadding,
                 )
             }
         },
@@ -337,13 +348,15 @@ internal fun <T> RadioGroup(
     optionLabel: @Composable (T) -> String,
     optionDescription: @Composable (T) -> String? = { null },
 ) {
-    options.forEach { option ->
-        RadioOptionRow(
-            label = optionLabel(option),
-            description = optionDescription(option),
-            selected = selected == option,
-            onClick = { onSelect(option) },
-        )
+    Column(modifier = Modifier.selectableGroup()) {
+        options.forEach { option ->
+            RadioOptionRow(
+                label = optionLabel(option),
+                description = optionDescription(option),
+                selected = selected == option,
+                onClick = { onSelect(option) },
+            )
+        }
     }
 }
 
@@ -382,28 +395,4 @@ private fun RadioOptionRow(
     }
 }
 
-@Composable
-private fun InlineToggleRow(
-    title: String,
-    description: String,
-    checked: Boolean,
-    onChange: (Boolean) -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(text = title, style = MaterialTheme.typography.bodyLarge)
-            Text(
-                text = description,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        Spacer(modifier = Modifier.width(16.dp))
-        AdaptiveSwitch(checked = checked, onCheckedChange = onChange)
-    }
-}
+private val DialogSwitchPadding = PaddingValues(vertical = 8.dp)

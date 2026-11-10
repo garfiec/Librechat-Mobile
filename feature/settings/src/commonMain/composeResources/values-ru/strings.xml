@@ -4,7 +4,6 @@
     <string name="action_add">Добавить</string>
     <string name="action_cancel">Отмена</string>
     <string name="action_clear">Очистить</string>
-    <string name="action_confirm">Подтвердить</string>
     <string name="action_copy">Копировать</string>
     <string name="action_creating">Создание…</string>
     <string name="action_create">Создать</string>
@@ -28,7 +27,6 @@
     <string name="shared_chats_copy_link">Скопировать ссылку</string>
     <string name="cd_create_api_key">Создать API-ключ</string>
     <string name="cd_current_avatar">Текущий аватар</string>
-    <string name="cd_delete">Удалить</string>
     <string name="cd_delete_api_key">Удалить API-ключ</string>
     <string name="cd_delete_preset">Удалить пресет</string>
     <string name="memory_redacted_key">Скрытая запись</string>
@@ -36,16 +34,12 @@
     <string name="memory_redacted_value_no_delete">Политика содержимого этого сервера скрывает сохранённые здесь данные.</string>
     <string name="cd_loading_profile">Загрузка профиля</string>
     <string name="account_profile_load_failed">Не удалось загрузить профиль.</string>
-    <string name="cd_make_private">Сделать приватным</string>
-    <string name="cd_make_public">Сделать публичным</string>
     <string name="cd_preview_voice">Прослушать голос</string>
     <string name="cd_avatar_preview">Предпросмотр аватара</string>
     <string name="cd_selected">Выбрано</string>
     <string name="cd_selected_avatar">Выбранный аватар</string>
     <string name="cd_stop_voice_preview">Остановить прослушивание голоса</string>
     <string name="cd_test_tts_voice">Проверить выбранный голос TTS</string>
-    <string name="cd_toggle_auto_read">Переключить автоозвучивание ответов</string>
-    <string name="cd_toggle_auto_send_stt">Переключить автоотправку после речи</string>
     <string name="cd_tts_voice_selector">Выберите голос TTS. Сейчас выбран %1$s</string>
     <string name="cd_user_avatar">Аватар пользователя</string>
     <string name="cd_view_all_tools">Показать все инструменты</string>
@@ -53,13 +47,11 @@
     <!-- Section headers -->
     <string name="section_about">О приложении</string>
     <string name="section_updates">Обновления</string>
-    <string name="section_advanced">Дополнительно</string>
     <string name="section_appearance">Внешний вид</string>
     <string name="appearance_theme_and_style">Тема и стиль</string>
     <!-- The switch in the interface style previews: an in-joke, "go outside". -->
     <string name="ui_style_preview_switch">Потрогай траву</string>
     <string name="section_balance">Баланс</string>
-    <string name="section_chat_preferences">Настройки чата</string>
     <string name="section_conversations">Беседы</string>
     <string name="section_danger_zone">Опасная зона</string>
     <string name="section_language_region">Язык и регион</string>
@@ -134,11 +126,7 @@
     <string name="section_security">Безопасность</string>
     <string name="section_speech">Речь</string>
     <!-- Screen titles -->
-    <string name="title_account">Аккаунт</string>
     <string name="title_api_keys">API-ключи</string>
-    <string name="title_chat">Чат</string>
-    <string name="title_data">Данные</string>
-    <string name="title_general">Общие</string>
     <string name="title_memories">Память</string>
     <string name="title_mcp_servers">Серверы MCP</string>
     <string name="title_presets">Пресеты</string>
@@ -171,7 +159,6 @@
     <string name="language_system_default">Системный</string>
     <string name="status_enabled">Включено</string>
     <string name="status_disabled">Выключено</string>
-    <string name="fork_behavior">Поведение при ответвлении</string>
     <string name="api_keys">API-ключи</string>
     <string name="api_keys_subtitle">Управление API-ключами для программного доступа</string>
     <string name="presets">Пресеты</string>
@@ -337,8 +324,6 @@
     <string name="latex_katex_desc">Полная отрисовка LaTeX через WebView</string>
     <string name="latex_native">Обычный текст (быстро)</string>
     <string name="latex_native_desc">Показывает исходный код LaTeX для более плавной прокрутки</string>
-    <string name="auto_scroll">Автопрокрутка во время потоковой передачи</string>
-    <string name="auto_scroll_desc">Автоматически прокручивать к новому содержимому во время генерации ответа</string>
     <string name="thinking_open_by_default">Открывать размышления по умолчанию</string>
     <string name="thinking_open_by_default_desc">Показывать ход рассуждений ответа развёрнутым, а не свёрнутым</string>
     <string name="collapse_long_user_messages">Сворачивать длинные сообщения пользователя</string>
@@ -451,9 +436,13 @@
     <string name="dialog_title_archive_all">Архивировать все беседы?</string>
     <string name="dialog_archive_all_message">Все беседы будут перемещены в архив. Вы сможете открывать их там и в любой момент вернуть любую из них из архива.</string>
     <string name="action_archive_all">Архивировать все</string>
-    <string name="archived_all_count">Архивировано бесед: %1$d</string>
+    <plurals name="archived_all_count">
+        <item quantity="one">Архивирована %1$d беседа</item>
+        <item quantity="few">Архивировано %1$d беседы</item>
+        <item quantity="many">Архивировано %1$d бесед</item>
+        <item quantity="other">Архивировано %1$d беседы</item>
+    </plurals>
     <string name="archived_conversations">Архивированные беседы</string>
-    <string name="export_all_data">Экспортировать все данные</string>
     <string name="clear_cache_with_size">Очистить кэш (%1$s)</string>
     <string name="clear_cache">Очистить кэш</string>
     <string name="revoke_all_api_keys">Отозвать все API-ключи</string>
@@ -614,12 +603,6 @@
     <string name="error_failed_to_load_servers">Не удалось загрузить серверы</string>
     <string name="no_tools_available">Нет доступных инструментов</string>
     <!-- Fork settings -->
-    <string name="fork_mode_direct_path">Видимые сообщения</string>
-    <string name="fork_mode_direct_path_desc">Только прямой путь сообщений до выбранного сообщения</string>
-    <string name="fork_mode_include_branches">Включить ветви</string>
-    <string name="fork_mode_include_branches_desc">Прямой путь плюс соседние сообщения на каждом уровне</string>
-    <string name="fork_mode_target_level">Все до уровня цели</string>
-    <string name="fork_mode_target_level_desc">Все сообщения и ветви до уровня целевого сообщения (по умолчанию)</string>
 
     <!-- Language selector -->
     <string name="hint_search_languages">Поиск языков</string>
@@ -879,7 +862,6 @@
     <string name="advanced_search">Расширенный поиск</string>
     <string name="advanced_search_desc">Для опытных пользователей. Добавляет на экран поиска учёт регистра, поиск целых слов, регулярные выражения и фильтры по роли, модели и дате.</string>
     <string name="server_user_ca_notice">Доверие через центр сертификации, установленный на этом устройстве</string>
-    <string name="export_coming_soon">Экспорт скоро появится</string>
     <string name="mcp_tools_all">Все инструменты MCP</string>
     <string name="mcp_server_unknown">Неизвестный</string>
     <string name="avatar_upload_unavailable_ios">Загрузка аватара пока недоступна на iOS.</string>
@@ -1099,4 +1081,18 @@
     <string name="pr_account_disconnect_error">Не удалось отключить. Попробуйте ещё раз.</string>
     <string name="pr_account_connect_error">Не удалось начать подключение. Попробуйте ещё раз.</string>
     <string name="pr_account_not_available">На этом сервере нельзя подключить аккаунт.</string>
+    <string name="speech_error_voice_test">Не удалось проверить голос. Попробуйте ещё раз.</string>
+    <string name="speech_error_voice_preview">Не удалось прослушать голос. Попробуйте ещё раз.</string>
+    <string name="speech_error_playback">Не удалось воспроизвести звук.</string>
+    <string name="accent_name_blue">Синий</string>
+    <string name="accent_name_indigo">Индиго</string>
+    <string name="accent_name_lavender">Лавандовый</string>
+    <string name="accent_name_cyan">Голубой</string>
+    <string name="accent_name_turquoise">Бирюзовый</string>
+    <string name="accent_name_green">Зелёный</string>
+    <string name="accent_name_amber">Янтарный</string>
+    <string name="accent_name_orange">Оранжевый</string>
+    <string name="accent_name_red">Красный</string>
+    <string name="accent_name_pink">Розовый</string>
+    <string name="accent_name_slate">Грифельный</string>
 </resources>

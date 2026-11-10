@@ -28,8 +28,6 @@
   them).
   - `ChatLayoutSettingsScreen`: `:feature:chat` is out of reach, so its preview redraws the message
     layout at `MessageBubble`'s measures (sharing `BubbleShape`). Change one, change the other.
-  - `ForkSettingsDialog`: labels come from `fork_mode_*` strings via `forkModeLabel()` /
-    `forkModeDescription()`, not from the enum.
 - **Data** (`DataSettingsViewModel`, hosts `DataManagementDelegate`): summary rows for Shared chats,
   prefetch, code execution. Memories and MCP servers open from the drawer's Workspace tray
   (`:feature:conversations`), not from Settings.

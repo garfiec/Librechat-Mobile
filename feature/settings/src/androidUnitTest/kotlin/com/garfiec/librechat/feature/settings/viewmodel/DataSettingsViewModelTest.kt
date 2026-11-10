@@ -134,22 +134,6 @@ class DataSettingsViewModelTest {
     }
 
     @Test
-    fun `exportAllData shows coming soon flag`() = runTest {
-        viewModel = createViewModel()
-        advanceUntilIdle()
-
-        viewModel.exportAllData()
-        advanceUntilIdle()
-
-        assertThat(viewModel.uiState.value.showExportComingSoon).isTrue()
-
-        viewModel.dismissExportComingSoon()
-        advanceUntilIdle()
-
-        assertThat(viewModel.uiState.value.showExportComingSoon).isFalse()
-    }
-
-    @Test
     fun `exportLogs offers the buffer under a log filename`() = runTest {
         val buffer = """{"ts":1,"msg":"first"}""" + "\n" + """{"ts":2,"msg":"second"}""" + "\n"
         coEvery { diagnosticLogRepository.exportText() } returns buffer

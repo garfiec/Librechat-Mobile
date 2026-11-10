@@ -10,11 +10,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.ManageSearch
@@ -22,16 +19,11 @@ import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.PrivacyTip
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Tablet
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -40,16 +32,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.model.config.BuildInfo
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AdaptiveGroupedPage
-import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
 import com.garfiec.librechat.core.ui.components.AdaptiveSectionHeader
-import com.garfiec.librechat.core.ui.components.AdaptiveSwitch
-import com.garfiec.librechat.core.ui.components.adaptiveRowColor
 import com.garfiec.librechat.core.ui.components.adaptiveSection
-import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
-import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
-import com.garfiec.librechat.core.ui.components.topbar.BarIcons
-import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
-import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.resources.advanced_search
@@ -61,42 +45,7 @@ import com.garfiec.librechat.feature.settings.viewmodel.UpdateCheckViewModel
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun GeneralSettingsScreen(
-    onNavigateBack: () -> Unit,
-    onNavigateToAppearance: () -> Unit,
-    onNavigateToWhatsNew: () -> Unit,
-    onNavigateToReleaseNotes: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    AdaptiveScaffold(
-        modifier = modifier,
-        topBar = {
-            AdaptiveTopBar(
-                spec = AdaptiveTopBarSpec(
-                    navigation = BarNavigation(BarIcons.Back, stringResource(Res.string.cd_back), onNavigateBack),
-                    title = BarTitle(stringResource(Res.string.title_general)),
-                    actions = emptyList(),
-                ),
-            )
-        },
-    ) { innerPadding ->
-        GeneralSettingsContent(
-            onNavigateToAppearance = onNavigateToAppearance,
-            onNavigateToWhatsNew = onNavigateToWhatsNew,
-            onNavigateToReleaseNotes = onNavigateToReleaseNotes,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
-        )
-    }
-}
-
-/**
- * Reusable General settings content (without Scaffold/TopAppBar).
- * Used by both the standalone screen and the tabbed settings screen.
- */
+/** The General tab's content, without a Scaffold or top bar. */
 @Composable
 fun GeneralSettingsContent(
     onNavigateToAppearance: () -> Unit,
@@ -123,10 +72,10 @@ fun GeneralSettingsContent(
                 }
                 adaptiveSection {
                     row(key = "appearance_row") {
-                        GeneralSettingsRow(
+                        SettingsRow(
                             icon = Icons.Default.Palette,
                             title = stringResource(Res.string.appearance_theme_and_style),
-                            subtitle = appearanceSummary(appearance.themeMode, appearance.uiStyle),
+                            summary = appearanceSummary(appearance.themeMode, appearance.uiStyle),
                             onClick = onNavigateToAppearance,
                         )
                     }
@@ -149,10 +98,10 @@ fun GeneralSettingsContent(
                 }
                 adaptiveSection {
                     row(key = "language_row") {
-                        GeneralSettingsRow(
+                        SettingsRow(
                             icon = Icons.Default.Language,
                             title = stringResource(Res.string.language),
-                            subtitle = languageDisplayName(
+                            summary = languageDisplayName(
                                 uiState.selectedLanguage,
                                 stringResource(Res.string.language_system_default),
                             ),
@@ -160,10 +109,10 @@ fun GeneralSettingsContent(
                         )
                     }
                     row(key = "date_time_row") {
-                        GeneralSettingsRow(
+                        SettingsRow(
                             icon = Icons.Default.Schedule,
                             title = stringResource(Res.string.date_time_title),
-                            subtitle = dateTimeSummary(),
+                            summary = dateTimeSummary(),
                             onClick = viewModel::showDateTimeDialog,
                         )
                     }
@@ -174,10 +123,10 @@ fun GeneralSettingsContent(
                 }
                 adaptiveSection {
                     row(key = "advanced_search") {
-                        SwitchSettingRow(
+                        SettingsSwitchRow(
                             icon = Icons.Default.ManageSearch,
                             title = stringResource(Res.string.advanced_search),
-                            subtitle = stringResource(Res.string.advanced_search_desc),
+                            description = stringResource(Res.string.advanced_search_desc),
                             checked = uiState.advancedSearchEnabled,
                             onCheckedChange = viewModel::setAdvancedSearchEnabled,
                         )
@@ -192,10 +141,10 @@ fun GeneralSettingsContent(
                 adaptiveSection {
                     if (updateViewModel.releaseNotesAvailable) {
                         row(key = "release_notes") {
-                            GeneralSettingsRow(
+                            SettingsRow(
                                 icon = Icons.Default.Description,
                                 title = stringResource(Res.string.release_notes_title),
-                                subtitle = stringResource(Res.string.release_notes_desc, uiState.appVersion),
+                                summary = stringResource(Res.string.release_notes_desc, uiState.appVersion),
                                 onClick = onNavigateToReleaseNotes,
                                 // One divider closes the Updates group, under its last row.
                                 showDivider = !updateViewModel.isSupported,
@@ -235,10 +184,10 @@ fun GeneralSettingsContent(
                     }
                     row(key = "privacy_policy") {
                         val uriHandler = LocalUriHandler.current
-                        GeneralSettingsRow(
+                        SettingsRow(
                             icon = Icons.Default.PrivacyTip,
                             title = stringResource(Res.string.privacy_policy_title),
-                            subtitle = stringResource(Res.string.privacy_policy_desc),
+                            summary = stringResource(Res.string.privacy_policy_desc),
                             // Android throws when no browser is installed (de-Googled ROMs, work profiles).
                             onClick = { runCatching { uriHandler.openUri(PRIVACY_POLICY_URL) } },
                         )
@@ -274,62 +223,14 @@ private fun TabletSidebarGestureToggle(
     onGestureEnabledChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    SwitchSettingRow(
+    SettingsSwitchRow(
         icon = Icons.Default.Tablet,
         title = stringResource(Res.string.sidebar_swipe_gesture),
-        subtitle = stringResource(Res.string.sidebar_swipe_gesture_desc),
+        description = stringResource(Res.string.sidebar_swipe_gesture_desc),
         checked = gestureEnabled,
         onCheckedChange = onGestureEnabledChange,
         modifier = modifier,
     )
-}
-
-@Composable
-private fun SwitchSettingRow(
-    icon: ImageVector,
-    title: String,
-    subtitle: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Column(modifier = modifier) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    modifier = Modifier.size(24.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(modifier = Modifier.width(16.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.bodyLarge,
-                    )
-                    Text(
-                        text = subtitle,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                Spacer(modifier = Modifier.width(16.dp))
-                AdaptiveSwitch(
-                    checked = checked,
-                    onCheckedChange = onCheckedChange,
-                )
-            }
-        }
-        AdaptiveDivider(modifier = Modifier.padding(top = 8.dp))
-    }
 }
 
 @Composable
@@ -428,57 +329,6 @@ private fun AboutRow(label: String, value: String) {
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
-    }
-}
-
-@Composable
-private fun GeneralSettingsRow(
-    icon: ImageVector,
-    title: String,
-    subtitle: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    showDivider: Boolean = true,
-) {
-    Column(modifier = modifier) {
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            onClick = onClick,
-            color = adaptiveRowColor,
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    modifier = Modifier.size(24.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(modifier = Modifier.width(16.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.bodyLarge,
-                    )
-                    Text(
-                        text = subtitle,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-        if (showDivider) AdaptiveDivider()
     }
 }
 

@@ -9,6 +9,7 @@ import com.garfiec.librechat.core.model.speech.TtsVoice
 import com.garfiec.librechat.feature.settings.screen.DeviceVoiceInfo
 import com.garfiec.librechat.feature.settings.viewmodel.ChatSettingsUiState
 import com.garfiec.librechat.feature.settings.viewmodel.SettingsStateHandle
+import com.garfiec.librechat.feature.settings.viewmodel.SpeechFailure
 import kotlinx.cinterop.ObjCSignatureOverride
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -119,20 +120,20 @@ class IosSpeechSettingsDelegate(
         }
     }
 
-    override fun testVoice() {
+    override fun testVoice(text: String) {
         val voice = stateHandle.state.selectedVoice
         stateHandle.scope.launch {
             val result = speechRepository.synthesizeSpeech(
-                text = "This is a test of the selected voice.",
+                text = text,
                 voice = voice?.id,
             )
             when (result) {
                 is Result.Success -> {
                     // Server returns audio bytes; fall back to device TTS for playback
-                    previewDeviceTts("This is a test of the selected voice.", 1.0f, 1.0f, null)
+                    previewDeviceTts(text, 1.0f, 1.0f, null)
                 }
                 is Result.Error -> {
-                    stateHandle.update { copy(error = result.message ?: "Voice test failed") }
+                    stateHandle.update { copy(error = SpeechFailure.VOICE_TEST) }
                 }
                 is Result.Loading -> { /* no-op */ }
             }
@@ -179,7 +180,7 @@ class IosSpeechSettingsDelegate(
                     stateHandle.update {
                         copy(
                             isTtsPreviewPlaying = false,
-                            error = result.message ?: "Voice preview failed",
+                            error = SpeechFailure.VOICE_PREVIEW,
                         )
                     }
                 }

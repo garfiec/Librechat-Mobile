@@ -32,14 +32,12 @@ data class DataSettingsUiState(
      */
     val error: String? = null,
     // Data management
-    val archivedCount: Int = 0,
     val isClearing: Boolean = false,
     val isArchivingAll: Boolean = false,
     /** `POST /api/convos/archive/all` (v0.8.8-rc2). See VERSION_GATES.md. */
     val archiveAllSupported: Boolean = false,
     /** One-shot count from the last successful archive-all, for the confirmation snackbar. */
     val archivedAllCount: Int? = null,
-    val showExportComingSoon: Boolean = false,
     // Cache / Keys
     /** Cached images and files, in bytes; null until read. Excludes the database — see
      *  [com.garfiec.librechat.feature.settings.util.PlatformCacheCleaner.cacheSizeBytes]. */
@@ -115,8 +113,6 @@ class DataSettingsViewModel(
     fun clearAllChats() = dataDelegate.clearAllChats()
     fun archiveAllChats() = dataDelegate.archiveAllChats()
     fun consumeArchivedAllCount() = dataDelegate.consumeArchivedAllCount()
-    fun exportAllData() = dataDelegate.exportAllData()
-    fun dismissExportComingSoon() = dataDelegate.dismissExportComingSoon()
     fun clearCache() = dataDelegate.clearCache()
     fun revokeAllKeys() = dataDelegate.revokeAllKeys()
 

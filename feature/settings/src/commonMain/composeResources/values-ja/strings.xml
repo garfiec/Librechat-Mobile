@@ -4,7 +4,6 @@
     <string name="action_add">追加</string>
     <string name="action_cancel">キャンセル</string>
     <string name="action_clear">クリア</string>
-    <string name="action_confirm">確認</string>
     <string name="action_copy">コピー</string>
     <string name="action_creating">作成中…</string>
     <string name="action_create">作成</string>
@@ -28,7 +27,6 @@
     <string name="shared_chats_copy_link">リンクをコピー</string>
     <string name="cd_create_api_key">APIキーを作成</string>
     <string name="cd_current_avatar">現在のアバター</string>
-    <string name="cd_delete">削除</string>
     <string name="cd_delete_api_key">APIキーを削除</string>
     <string name="cd_delete_preset">プリセットを削除</string>
     <string name="memory_redacted_key">非表示の項目</string>
@@ -36,16 +34,12 @@
     <string name="memory_redacted_value_no_delete">このサーバーのコンテンツポリシーにより、保存内容は非表示になっています。</string>
     <string name="cd_loading_profile">プロフィールを読み込み中</string>
     <string name="account_profile_load_failed">プロフィールを読み込めませんでした。</string>
-    <string name="cd_make_private">非公開にする</string>
-    <string name="cd_make_public">公開にする</string>
     <string name="cd_preview_voice">音声をプレビュー</string>
     <string name="cd_avatar_preview">アバターのプレビュー</string>
     <string name="cd_selected">選択済み</string>
     <string name="cd_selected_avatar">選択されたアバター</string>
     <string name="cd_stop_voice_preview">音声プレビューを停止</string>
     <string name="cd_test_tts_voice">選択したTTS音声をテスト</string>
-    <string name="cd_toggle_auto_read">応答の自動読み上げを切り替え</string>
-    <string name="cd_toggle_auto_send_stt">音声入力後の自動送信を切り替え</string>
     <string name="cd_tts_voice_selector">TTS音声を選択。現在は %1$s</string>
     <string name="cd_user_avatar">ユーザーのアバター</string>
     <string name="cd_view_all_tools">すべてのツールを表示</string>
@@ -53,13 +47,11 @@
     <!-- Section headers -->
     <string name="section_about">情報</string>
     <string name="section_updates">アップデート</string>
-    <string name="section_advanced">詳細設定</string>
     <string name="section_appearance">外観</string>
     <string name="appearance_theme_and_style">テーマとスタイル</string>
     <!-- The switch in the interface style previews: an in-joke, "go outside". -->
     <string name="ui_style_preview_switch">草に触れよう</string>
     <string name="section_balance">残高</string>
-    <string name="section_chat_preferences">チャット設定</string>
     <string name="section_conversations">会話</string>
     <string name="section_danger_zone">危険な操作</string>
     <string name="section_language_region">言語と地域</string>
@@ -134,11 +126,7 @@
     <string name="section_security">セキュリティ</string>
     <string name="section_speech">音声</string>
     <!-- Screen titles -->
-    <string name="title_account">アカウント</string>
     <string name="title_api_keys">APIキー</string>
-    <string name="title_chat">チャット</string>
-    <string name="title_data">データ</string>
-    <string name="title_general">一般</string>
     <string name="title_memories">メモリ</string>
     <string name="title_mcp_servers">MCPサーバー</string>
     <string name="title_presets">プリセット</string>
@@ -171,7 +159,6 @@
     <string name="language_system_default">システムのデフォルト</string>
     <string name="status_enabled">有効</string>
     <string name="status_disabled">無効</string>
-    <string name="fork_behavior">フォークの動作</string>
     <string name="api_keys">APIキー</string>
     <string name="api_keys_subtitle">プログラムによるアクセス用のAPIキーを管理</string>
     <string name="presets">プリセット</string>
@@ -319,8 +306,6 @@
     <string name="latex_katex_desc">WebView経由で完全なLaTeXをレンダリング</string>
     <string name="latex_native">プレーンテキスト（高速）</string>
     <string name="latex_native_desc">スクロール性能向上のため生のLaTeXソースを表示します</string>
-    <string name="auto_scroll">ストリーミング中に自動スクロール</string>
-    <string name="auto_scroll_desc">応答の生成中に新しいコンテンツへ自動でスクロールします</string>
     <string name="thinking_open_by_default">思考をデフォルトで開く</string>
     <string name="thinking_open_by_default_desc">返答の推論を折りたたまず展開した状態で表示します</string>
     <string name="collapse_long_user_messages">長いユーザーメッセージを折りたたむ</string>
@@ -433,9 +418,10 @@
     <string name="dialog_title_archive_all">すべての会話をアーカイブしますか？</string>
     <string name="dialog_archive_all_message">すべての会話がアーカイブ済みに移動します。アーカイブ済みから引き続き開くことができ、後でいつでもアーカイブを解除できます。</string>
     <string name="action_archive_all">すべてアーカイブ</string>
-    <string name="archived_all_count">%1$d 件の会話をアーカイブしました</string>
+    <plurals name="archived_all_count">
+        <item quantity="other">%1$d 件の会話をアーカイブしました</item>
+    </plurals>
     <string name="archived_conversations">アーカイブ済みの会話</string>
-    <string name="export_all_data">すべてのデータをエクスポート</string>
     <string name="clear_cache_with_size">キャッシュをクリア (%1$s)</string>
     <string name="clear_cache">キャッシュをクリア</string>
     <string name="revoke_all_api_keys">すべてのAPIキーを取り消す</string>
@@ -584,12 +570,6 @@
     <string name="error_failed_to_load_servers">サーバーの読み込みに失敗しました</string>
     <string name="no_tools_available">利用可能なツールがありません</string>
     <!-- Fork settings -->
-    <string name="fork_mode_direct_path">表示中のメッセージ</string>
-    <string name="fork_mode_direct_path_desc">選択したメッセージまでの直接の経路のみ</string>
-    <string name="fork_mode_include_branches">分岐を含める</string>
-    <string name="fork_mode_include_branches_desc">直接の経路に加え、各階層の兄弟メッセージ</string>
-    <string name="fork_mode_target_level">対象の階層まですべて</string>
-    <string name="fork_mode_target_level_desc">対象メッセージの階層までのすべてのメッセージと分岐（デフォルト）</string>
 
     <!-- Language selector -->
     <string name="hint_search_languages">言語を検索</string>
@@ -840,7 +820,6 @@
     <string name="advanced_search">高度な検索</string>
     <string name="advanced_search_desc">上級ユーザー向け。検索画面に大文字と小文字の区別、単語単位、正規表現、およびロール・モデル・日付のフィルターを追加します。</string>
     <string name="server_user_ca_notice">このデバイスにインストールされた認証局によって信頼されています</string>
-    <string name="export_coming_soon">エクスポートは近日対応予定です</string>
     <string name="mcp_tools_all">すべての MCP ツール</string>
     <string name="mcp_server_unknown">不明</string>
     <string name="avatar_upload_unavailable_ios">iOS ではアバターのアップロードはまだ利用できません。</string>
@@ -1054,4 +1033,18 @@
     <string name="pr_account_disconnect_error">連携を解除できませんでした。もう一度お試しください。</string>
     <string name="pr_account_connect_error">接続を開始できませんでした。もう一度お試しください。</string>
     <string name="pr_account_not_available">このサーバーではアカウントを接続できません。</string>
+    <string name="speech_error_voice_test">音声をテストできませんでした。もう一度お試しください。</string>
+    <string name="speech_error_voice_preview">音声をプレビューできませんでした。もう一度お試しください。</string>
+    <string name="speech_error_playback">音声を再生できませんでした。</string>
+    <string name="accent_name_blue">青</string>
+    <string name="accent_name_indigo">インディゴ</string>
+    <string name="accent_name_lavender">ラベンダー</string>
+    <string name="accent_name_cyan">シアン</string>
+    <string name="accent_name_turquoise">ターコイズ</string>
+    <string name="accent_name_green">緑</string>
+    <string name="accent_name_amber">アンバー</string>
+    <string name="accent_name_orange">オレンジ</string>
+    <string name="accent_name_red">赤</string>
+    <string name="accent_name_pink">ピンク</string>
+    <string name="accent_name_slate">スレート</string>
 </resources>

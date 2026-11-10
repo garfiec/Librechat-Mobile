@@ -3,17 +3,13 @@ package com.garfiec.librechat.feature.settings.screen
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Extension
@@ -23,12 +19,9 @@ import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.VpnKey
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -39,9 +32,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -52,18 +43,10 @@ import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AdaptiveGroupedPage
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
-import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
 import com.garfiec.librechat.core.ui.components.AdaptiveSectionHeader
-import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
 import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
 import com.garfiec.librechat.core.ui.components.OtpVerificationDialog
-import com.garfiec.librechat.core.ui.components.adaptiveRowColor
 import com.garfiec.librechat.core.ui.components.adaptiveSection
-import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
-import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
-import com.garfiec.librechat.core.ui.components.topbar.BarIcons
-import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
-import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.core.ui.mcp.McpOAuthSignInDialog
 import com.garfiec.librechat.core.ui.resources.server_headers_no_server
 import com.garfiec.librechat.core.ui.resources.server_headers_save_error
@@ -83,54 +66,7 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import com.garfiec.librechat.core.ui.resources.Res as UiRes
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun AccountSettingsScreen(
-    onLogout: () -> Unit,
-    onNavigateBack: () -> Unit,
-    onNavigateToApiKeys: () -> Unit,
-    onNavigateToPasskeys: () -> Unit,
-    onNavigateToFavorites: () -> Unit,
-    onNavigateToProviderKeys: () -> Unit,
-    onNavigateToRoleSkillsAdmin: () -> Unit,
-    onNavigateToRoleMemoriesAdmin: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val snackbarHostState = remember { SnackbarHostState() }
-
-    AdaptiveScaffold(
-        modifier = modifier,
-        snackbarHost = { AdaptiveSnackbarHost(snackbarHostState) },
-        topBar = {
-            AdaptiveTopBar(
-                spec = AdaptiveTopBarSpec(
-                    navigation = BarNavigation(BarIcons.Back, stringResource(Res.string.cd_back), onNavigateBack),
-                    title = BarTitle(stringResource(Res.string.title_account)),
-                    actions = emptyList(),
-                ),
-            )
-        },
-    ) { innerPadding ->
-        AccountSettingsContent(
-            onLogout = onLogout,
-            onNavigateToApiKeys = onNavigateToApiKeys,
-            onNavigateToPasskeys = onNavigateToPasskeys,
-            onNavigateToFavorites = onNavigateToFavorites,
-            onNavigateToProviderKeys = onNavigateToProviderKeys,
-            onNavigateToRoleSkillsAdmin = onNavigateToRoleSkillsAdmin,
-            onNavigateToRoleMemoriesAdmin = onNavigateToRoleMemoriesAdmin,
-            snackbarHostState = snackbarHostState,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
-        )
-    }
-}
-
-/**
- * Reusable Account settings content (without Scaffold/TopAppBar).
- * Used by both the standalone screen and the tabbed settings screen.
- */
+/** The Account tab's content, without a Scaffold or top bar. */
 @Composable
 fun AccountSettingsContent(
     onLogout: () -> Unit,
@@ -277,10 +213,10 @@ fun AccountSettingsContent(
                 val email = uiState.user?.email
                 if (uiState.canChangeEmail && email != null) {
                     row(key = "change_email") {
-                        AccountSettingsRow(
+                        SettingsRow(
                             icon = Icons.Default.Email,
                             title = stringResource(Res.string.email_change_row_title),
-                            subtitle = email,
+                            summary = email,
                             onClick = viewModel::openEmailChange,
                         )
                     }
@@ -310,10 +246,10 @@ fun AccountSettingsContent(
             }
             adaptiveSection {
                 row(key = "server_connection_row") {
-                    AccountSettingsRow(
+                    SettingsRow(
                         icon = Icons.Default.Dns,
                         title = stringResource(Res.string.section_server_connection),
-                        subtitle = stringResource(Res.string.server_connection_subtitle),
+                        summary = stringResource(Res.string.server_connection_subtitle),
                         onClick = {
                             showServerHeadersDialog = true
                             // The ViewModel loads once per server, so a read that failed would keep this
@@ -336,10 +272,10 @@ fun AccountSettingsContent(
                 if (uiState.showPasskeys) {
                     row(key = "passkeys_row") {
                         val count = uiState.passkeyCount
-                        AccountSettingsRow(
+                        SettingsRow(
                             icon = Icons.Default.Fingerprint,
                             title = stringResource(Res.string.passkeys_title),
-                            subtitle = if (count != null) {
+                            summary = if (count != null) {
                                 pluralStringResource(Res.plurals.passkeys_row_count, count, count)
                             } else {
                                 stringResource(Res.string.passkeys_row_subtitle)
@@ -349,10 +285,10 @@ fun AccountSettingsContent(
                     }
                 }
                 row(key = "api_keys_row") {
-                    AccountSettingsRow(
+                    SettingsRow(
                         icon = Icons.Default.Key,
                         title = stringResource(Res.string.api_keys),
-                        subtitle = stringResource(Res.string.api_keys_subtitle),
+                        summary = stringResource(Res.string.api_keys_subtitle),
                         onClick = onNavigateToApiKeys,
                     )
                 }
@@ -361,11 +297,11 @@ fun AccountSettingsContent(
                 val providerKeys = uiState.providerKeysSummary
                 if (providerKeys != ProviderKeysSummary.Hidden) {
                     row(key = "provider_keys_row") {
-                        AccountSettingsRow(
+                        SettingsRow(
                             icon = Icons.Default.VpnKey,
                             title = stringResource(Res.string.provider_keys_title),
                             // The general line until every endpoint has answered, then the count.
-                            subtitle = if (providerKeys is ProviderKeysSummary.Count) {
+                            summary = if (providerKeys is ProviderKeysSummary.Count) {
                                 pluralStringResource(
                                     Res.plurals.provider_keys_row_summary,
                                     providerKeys.totalCount,
@@ -380,29 +316,29 @@ fun AccountSettingsContent(
                     }
                 }
                 row(key = "favorites_row") {
-                    AccountSettingsRow(
+                    SettingsRow(
                         icon = Icons.Default.Star,
                         title = stringResource(Res.string.favorites),
-                        subtitle = stringResource(Res.string.favorites_subtitle),
+                        summary = stringResource(Res.string.favorites_subtitle),
                         onClick = onNavigateToFavorites,
                     )
                 }
                 // Admin-only: role skill and memory access. Fail-CLOSED — shown only for ADMIN.
                 if (uiState.isAdmin) {
                     row(key = "role_skills_admin_row") {
-                        AccountSettingsRow(
+                        SettingsRow(
                             // Skills' own icon, as on the Skills page: Star is Favorites, the row above.
                             icon = Icons.Default.Extension,
                             title = stringResource(Res.string.role_skills_settings_row),
-                            subtitle = stringResource(Res.string.role_skills_description),
+                            summary = stringResource(Res.string.role_skills_description),
                             onClick = onNavigateToRoleSkillsAdmin,
                         )
                     }
                     row(key = "role_memories_admin_row") {
-                        AccountSettingsRow(
+                        SettingsRow(
                             icon = Icons.Default.Lightbulb,
                             title = stringResource(Res.string.role_memories_settings_row),
-                            subtitle = stringResource(Res.string.role_memories_description),
+                            summary = stringResource(Res.string.role_memories_description),
                             onClick = onNavigateToRoleMemoriesAdmin,
                         )
                     }
@@ -702,52 +638,4 @@ private fun DangerZone(
     ) {
         Text(stringResource(Res.string.delete_account))
     }
-}
-
-@Composable
-private fun AccountSettingsRow(
-    icon: ImageVector,
-    title: String,
-    subtitle: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        onClick = onClick,
-        color = adaptiveRowColor,
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(24.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.bodyLarge,
-                )
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-    AdaptiveDivider()
 }

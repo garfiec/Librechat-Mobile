@@ -32,7 +32,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/** Backs the Chat tab: display and behaviour preferences, artifacts, speech, and fork mode. */
+/** Backs the Chat tab: display and behaviour preferences, artifacts and speech. */
 // TooManyFunctions: the members are one-line forwarders to controllers, one per setting, so the
 // count tracks how many settings exist rather than how much this class does.
 @Suppress("TooManyFunctions")
@@ -131,10 +131,6 @@ class ChatSettingsViewModel(
         prefsController.setChatHeaderAlignment(alignment)
     }
 
-    fun setAutoScrollEnabled(enabled: Boolean) {
-        prefsController.setAutoScrollEnabled(enabled)
-    }
-
     fun setThinkingOpenByDefault(open: Boolean) {
         prefsController.setThinkingOpenByDefault(open)
     }
@@ -207,20 +203,6 @@ class ChatSettingsViewModel(
         prefsController.setArtifactsMode(mode)
     }
 
-    // ── Fork settings ──────────────────────────────────────────────
-
-    fun showForkSettingsDialog() {
-        _uiState.update { it.copy(showForkSettingsDialog = true) }
-    }
-
-    fun dismissForkSettingsDialog() {
-        _uiState.update { it.copy(showForkSettingsDialog = false) }
-    }
-
-    fun setForkMode(mode: String) {
-        _uiState.update { it.copy(forkMode = mode, showForkSettingsDialog = false) }
-    }
-
     fun dismissError() {
         _uiState.update { it.copy(error = null) }
     }
@@ -231,7 +213,7 @@ class ChatSettingsViewModel(
     fun setAutoSendAfterStt(enabled: Boolean) = speechDelegate.setAutoSendAfterStt(enabled)
     fun setAutoReadEnabled(enabled: Boolean) = speechDelegate.setAutoReadEnabled(enabled)
     fun selectVoice(voice: TtsVoice) = speechDelegate.selectVoice(voice)
-    fun testVoice() = speechDelegate.testVoice()
+    fun testVoice(text: String) = speechDelegate.testVoice(text)
     fun previewDeviceTts(text: String, rate: Float, pitch: Float, voiceName: String?) =
         speechDelegate.previewDeviceTts(text, rate, pitch, voiceName)
     fun previewServerTts(text: String, voice: String?, model: String?) =

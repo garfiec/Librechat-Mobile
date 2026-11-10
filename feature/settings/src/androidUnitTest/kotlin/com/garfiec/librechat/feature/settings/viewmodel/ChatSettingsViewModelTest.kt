@@ -23,6 +23,7 @@ import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -57,7 +58,6 @@ class ChatSettingsViewModelTest {
 
         // Setup DataStore flows
         every { settingsDataStore.chatFontSize } returns MutableStateFlow(ChatFontSize.MEDIUM)
-        every { settingsDataStore.autoScrollEnabled } returns MutableStateFlow(true)
         every { settingsDataStore.thinkingOpenByDefault } returns MutableStateFlow(false)
         every { settingsDataStore.autoReadEnabled } returns MutableStateFlow(false)
         every { settingsDataStore.selectedVoiceId } returns MutableStateFlow(null)
@@ -159,6 +159,15 @@ class ChatSettingsViewModelTest {
     }
 
     @Test
+    fun `hide keyboard after sending reads on until the store answers`() = runTest {
+        every { settingsDataStore.dismissKeyboardOnSend } returns MutableSharedFlow()
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.dismissKeyboardOnSend).isTrue()
+    }
+
+    @Test
     fun `new chats start on the server's choice until the user prefers last-used`() = runTest {
         viewModel = createViewModel()
         advanceUntilIdle()
@@ -182,22 +191,6 @@ class ChatSettingsViewModelTest {
 
         coVerify { preferenceStore.set(AppPreferences.WebSearchFirst, WebSearchPreference.BUILT_IN_FIRST) }
         assertThat(viewModel.uiState.value.webSearchFirst).isEqualTo(WebSearchPreference.BUILT_IN_FIRST)
-    }
-
-    @Test
-    fun `setForkMode updates mode and dismisses dialog`() = runTest {
-        viewModel = createViewModel()
-        advanceUntilIdle()
-
-        viewModel.showForkSettingsDialog()
-        advanceUntilIdle()
-        assertThat(viewModel.uiState.value.showForkSettingsDialog).isTrue()
-
-        viewModel.setForkMode("allBranches")
-        advanceUntilIdle()
-
-        assertThat(viewModel.uiState.value.forkMode).isEqualTo("allBranches")
-        assertThat(viewModel.uiState.value.showForkSettingsDialog).isFalse()
     }
 
     @Test

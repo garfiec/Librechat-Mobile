@@ -4,7 +4,6 @@
     <string name="action_add">Adicionar</string>
     <string name="action_cancel">Cancelar</string>
     <string name="action_clear">Limpar</string>
-    <string name="action_confirm">Confirmar</string>
     <string name="action_copy">Copiar</string>
     <string name="action_creating">Criando…</string>
     <string name="action_create">Criar</string>
@@ -28,7 +27,6 @@
     <string name="shared_chats_copy_link">Copiar link</string>
     <string name="cd_create_api_key">Criar chave de API</string>
     <string name="cd_current_avatar">Avatar atual</string>
-    <string name="cd_delete">Excluir</string>
     <string name="cd_delete_api_key">Excluir chave de API</string>
     <string name="cd_delete_preset">Excluir predefinição</string>
     <string name="memory_redacted_key">Entrada oculta</string>
@@ -36,16 +34,12 @@
     <string name="memory_redacted_value_no_delete">A política de conteúdo deste servidor oculta o que está armazenado aqui.</string>
     <string name="cd_loading_profile">Carregando perfil</string>
     <string name="account_profile_load_failed">Não foi possível carregar seu perfil.</string>
-    <string name="cd_make_private">Tornar privado</string>
-    <string name="cd_make_public">Tornar público</string>
     <string name="cd_preview_voice">Pré-ouvir voz</string>
     <string name="cd_avatar_preview">Visualização do avatar</string>
     <string name="cd_selected">Selecionado</string>
     <string name="cd_selected_avatar">Avatar selecionado</string>
     <string name="cd_stop_voice_preview">Parar pré-audição de voz</string>
     <string name="cd_test_tts_voice">Testar voz de TTS selecionada</string>
-    <string name="cd_toggle_auto_read">Alternar leitura automática das respostas</string>
-    <string name="cd_toggle_auto_send_stt">Alternar envio automático após a fala</string>
     <string name="cd_tts_voice_selector">Selecionar voz de TTS. Atualmente %1$s</string>
     <string name="cd_user_avatar">Avatar do usuário</string>
     <string name="cd_view_all_tools">Ver todas as ferramentas</string>
@@ -53,13 +47,11 @@
     <!-- Section headers -->
     <string name="section_about">Sobre</string>
     <string name="section_updates">Atualizações</string>
-    <string name="section_advanced">Avançado</string>
     <string name="section_appearance">Aparência</string>
     <string name="appearance_theme_and_style">Tema e estilo</string>
     <!-- The switch in the interface style previews: an in-joke, "go outside". -->
     <string name="ui_style_preview_switch">Vai tocar grama</string>
     <string name="section_balance">Saldo</string>
-    <string name="section_chat_preferences">Preferências de conversa</string>
     <string name="section_conversations">Conversas</string>
     <string name="section_danger_zone">Zona de perigo</string>
     <string name="section_language_region">Idioma e região</string>
@@ -134,11 +126,7 @@
     <string name="section_security">Segurança</string>
     <string name="section_speech">Fala</string>
     <!-- Screen titles -->
-    <string name="title_account">Conta</string>
     <string name="title_api_keys">Chaves de API</string>
-    <string name="title_chat">Conversa</string>
-    <string name="title_data">Dados</string>
-    <string name="title_general">Geral</string>
     <string name="title_memories">Memórias</string>
     <string name="title_mcp_servers">Servidores MCP</string>
     <string name="title_presets">Predefinições</string>
@@ -171,7 +159,6 @@
     <string name="language_system_default">Padrão do sistema</string>
     <string name="status_enabled">Ativado</string>
     <string name="status_disabled">Desativado</string>
-    <string name="fork_behavior">Comportamento de bifurcação</string>
     <string name="api_keys">Chaves de API</string>
     <string name="api_keys_subtitle">Gerencie chaves de API para acesso programático</string>
     <string name="presets">Predefinições</string>
@@ -325,8 +312,6 @@
     <string name="latex_katex_desc">Renderização completa de LaTeX via WebView</string>
     <string name="latex_native">Texto simples (rápido)</string>
     <string name="latex_native_desc">Mostra o código LaTeX bruto para melhor desempenho de rolagem</string>
-    <string name="auto_scroll">Rolagem automática durante o streaming</string>
-    <string name="auto_scroll_desc">Rolar automaticamente para o novo conteúdo enquanto uma resposta está sendo gerada</string>
     <string name="thinking_open_by_default">Abrir o raciocínio por padrão</string>
     <string name="thinking_open_by_default_desc">Mostrar o raciocínio da resposta expandido em vez de recolhido</string>
     <string name="collapse_long_user_messages">Recolher mensagens longas do usuário</string>
@@ -439,9 +424,11 @@
     <string name="dialog_title_archive_all">Arquivar todas as conversas?</string>
     <string name="dialog_archive_all_message">Todas as conversas vão para Arquivadas. Você ainda pode abri-las lá e desarquivar qualquer uma delas depois.</string>
     <string name="action_archive_all">Arquivar tudo</string>
-    <string name="archived_all_count">%1$d conversas arquivadas</string>
+    <plurals name="archived_all_count">
+        <item quantity="one">%1$d conversa arquivada</item>
+        <item quantity="other">%1$d conversas arquivadas</item>
+    </plurals>
     <string name="archived_conversations">Conversas arquivadas</string>
-    <string name="export_all_data">Exportar todos os dados</string>
     <string name="clear_cache_with_size">Limpar cache (%1$s)</string>
     <string name="clear_cache">Limpar cache</string>
     <string name="revoke_all_api_keys">Revogar todas as chaves de API</string>
@@ -594,12 +581,6 @@
     <string name="error_failed_to_load_servers">Falha ao carregar os servidores</string>
     <string name="no_tools_available">Nenhuma ferramenta disponível</string>
     <!-- Fork settings -->
-    <string name="fork_mode_direct_path">Mensagens visíveis</string>
-    <string name="fork_mode_direct_path_desc">Apenas o caminho direto de mensagens até a mensagem selecionada</string>
-    <string name="fork_mode_include_branches">Incluir ramificações</string>
-    <string name="fork_mode_include_branches_desc">Caminho direto mais mensagens irmãs em cada nível</string>
-    <string name="fork_mode_target_level">Tudo até o nível alvo</string>
-    <string name="fork_mode_target_level_desc">Todas as mensagens e ramificações até o nível da mensagem alvo (padrão)</string>
 
     <!-- Language selector -->
     <string name="hint_search_languages">Buscar idiomas</string>
@@ -853,7 +834,6 @@
     <string name="advanced_search">Pesquisa avançada</string>
     <string name="advanced_search_desc">Para usuários avançados. Adiciona diferenciar maiúsculas, palavra inteira, regex e filtros de função, modelo e data à tela de pesquisa.</string>
     <string name="server_user_ca_notice">Confiável por meio de uma autoridade certificadora instalada neste dispositivo</string>
-    <string name="export_coming_soon">A exportação chegará em breve</string>
     <string name="mcp_tools_all">Todas as ferramentas MCP</string>
     <string name="mcp_server_unknown">Desconhecido</string>
     <string name="avatar_upload_unavailable_ios">O envio de avatar ainda não está disponível no iOS.</string>
@@ -1070,4 +1050,18 @@
     <string name="pr_account_disconnect_error">Não foi possível desconectar. Tente novamente.</string>
     <string name="pr_account_connect_error">Não foi possível iniciar a conexão. Tente novamente.</string>
     <string name="pr_account_not_available">Este servidor não permite conectar uma conta.</string>
+    <string name="speech_error_voice_test">Não foi possível testar a voz. Tente novamente.</string>
+    <string name="speech_error_voice_preview">Não foi possível ouvir a prévia da voz. Tente novamente.</string>
+    <string name="speech_error_playback">Não foi possível reproduzir o áudio.</string>
+    <string name="accent_name_blue">Azul</string>
+    <string name="accent_name_indigo">Índigo</string>
+    <string name="accent_name_lavender">Lavanda</string>
+    <string name="accent_name_cyan">Ciano</string>
+    <string name="accent_name_turquoise">Turquesa</string>
+    <string name="accent_name_green">Verde</string>
+    <string name="accent_name_amber">Âmbar</string>
+    <string name="accent_name_orange">Laranja</string>
+    <string name="accent_name_red">Vermelho</string>
+    <string name="accent_name_pink">Rosa</string>
+    <string name="accent_name_slate">Ardósia</string>
 </resources>

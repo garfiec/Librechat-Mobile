@@ -15,7 +15,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -29,6 +28,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveButton
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
+import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
 import com.garfiec.librechat.core.ui.platform.formatFileSize
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
@@ -36,14 +36,12 @@ import org.jetbrains.compose.resources.stringResource
 
 @Composable
 internal fun DataSettingsSection(
-    archivedCount: Int,
     isClearing: Boolean,
     onClearAllChats: () -> Unit,
     archiveAllSupported: Boolean,
     isArchivingAll: Boolean,
     onArchiveAllChats: () -> Unit,
     onViewArchive: () -> Unit,
-    onExportAllData: () -> Unit,
     logsBufferBytes: Long,
     isLogsExporting: Boolean,
     isLogsClearing: Boolean,
@@ -109,33 +107,13 @@ internal fun DataSettingsSection(
                         }
                     },
                     trailing = {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        ) {
-                            if (archivedCount > 0) {
-                                Text(
-                                    text = "$archivedCount",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp),
-                            )
-                        }
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
                     },
                 )
-            }
-
-            // Export all data
-            AdaptiveOutlinedButton(
-                onClick = onExportAllData,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(stringResource(Res.string.export_all_data))
             }
 
             // Export diagnostic logs (issue #96). Label includes the buffer size when known.
@@ -183,7 +161,7 @@ internal fun DataSettingsSection(
                     )
                 },
                 confirmButton = {
-                    TextButton(
+                    AdaptiveTextButton(
                         onClick = {
                             showClearDialog = false
                             onClearAllChats()
@@ -196,7 +174,7 @@ internal fun DataSettingsSection(
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showClearDialog = false }) {
+                    AdaptiveTextButton(onClick = { showClearDialog = false }) {
                         Text(stringResource(Res.string.action_cancel))
                     }
                 },
@@ -209,7 +187,7 @@ internal fun DataSettingsSection(
                 title = { Text(stringResource(Res.string.dialog_title_archive_all)) },
                 text = { Text(stringResource(Res.string.dialog_archive_all_message)) },
                 confirmButton = {
-                    TextButton(
+                    AdaptiveTextButton(
                         onClick = {
                             showArchiveAllDialog = false
                             onArchiveAllChats()
@@ -219,7 +197,7 @@ internal fun DataSettingsSection(
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showArchiveAllDialog = false }) {
+                    AdaptiveTextButton(onClick = { showArchiveAllDialog = false }) {
                         Text(stringResource(Res.string.action_cancel))
                     }
                 },
@@ -233,7 +211,7 @@ internal fun DataSettingsSection(
                 title = { Text(stringResource(Res.string.dialog_title_clear_logs)) },
                 text = { Text(stringResource(Res.string.dialog_clear_logs_message)) },
                 confirmButton = {
-                    TextButton(
+                    AdaptiveTextButton(
                         onClick = {
                             showClearLogsDialog = false
                             onClearLogs()
@@ -246,7 +224,7 @@ internal fun DataSettingsSection(
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showClearLogsDialog = false }) {
+                    AdaptiveTextButton(onClick = { showClearLogsDialog = false }) {
                         Text(stringResource(Res.string.action_cancel))
                     }
                 },

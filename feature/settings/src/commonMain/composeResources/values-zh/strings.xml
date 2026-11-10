@@ -4,7 +4,6 @@
     <string name="action_add">添加</string>
     <string name="action_cancel">取消</string>
     <string name="action_clear">清除</string>
-    <string name="action_confirm">确认</string>
     <string name="action_copy">复制</string>
     <string name="action_creating">创建中…</string>
     <string name="action_create">创建</string>
@@ -28,7 +27,6 @@
     <string name="shared_chats_copy_link">复制链接</string>
     <string name="cd_create_api_key">创建 API 密钥</string>
     <string name="cd_current_avatar">当前头像</string>
-    <string name="cd_delete">删除</string>
     <string name="cd_delete_api_key">删除 API 密钥</string>
     <string name="cd_delete_preset">删除预设</string>
     <string name="memory_redacted_key">已隐藏的条目</string>
@@ -36,16 +34,12 @@
     <string name="memory_redacted_value_no_delete">此服务器的内容策略隐藏了此处存储的内容。</string>
     <string name="cd_loading_profile">正在加载个人资料</string>
     <string name="account_profile_load_failed">无法加载你的个人资料。</string>
-    <string name="cd_make_private">设为私有</string>
-    <string name="cd_make_public">设为公开</string>
     <string name="cd_preview_voice">试听语音</string>
     <string name="cd_avatar_preview">头像预览</string>
     <string name="cd_selected">已选择</string>
     <string name="cd_selected_avatar">已选头像</string>
     <string name="cd_stop_voice_preview">停止语音试听</string>
     <string name="cd_test_tts_voice">测试所选 TTS 语音</string>
-    <string name="cd_toggle_auto_read">切换自动朗读回复</string>
-    <string name="cd_toggle_auto_send_stt">切换语音后自动发送</string>
     <string name="cd_tts_voice_selector">选择 TTS 语音。当前为 %1$s</string>
     <string name="cd_user_avatar">用户头像</string>
     <string name="cd_view_all_tools">查看全部工具</string>
@@ -53,13 +47,11 @@
     <!-- Section headers -->
     <string name="section_about">关于</string>
     <string name="section_updates">更新</string>
-    <string name="section_advanced">高级</string>
     <string name="section_appearance">外观</string>
     <string name="appearance_theme_and_style">主题与样式</string>
     <!-- The switch in the interface style previews: an in-joke, "go outside". -->
     <string name="ui_style_preview_switch">去摸摸草</string>
     <string name="section_balance">余额</string>
-    <string name="section_chat_preferences">聊天偏好</string>
     <string name="section_conversations">对话</string>
     <string name="section_danger_zone">危险操作区</string>
     <string name="section_language_region">语言和地区</string>
@@ -134,11 +126,7 @@
     <string name="section_security">安全</string>
     <string name="section_speech">语音</string>
     <!-- Screen titles -->
-    <string name="title_account">账户</string>
     <string name="title_api_keys">API 密钥</string>
-    <string name="title_chat">聊天</string>
-    <string name="title_data">数据</string>
-    <string name="title_general">通用</string>
     <string name="title_memories">记忆</string>
     <string name="title_mcp_servers">MCP 服务器</string>
     <string name="title_presets">预设</string>
@@ -171,7 +159,6 @@
     <string name="language_system_default">跟随系统</string>
     <string name="status_enabled">已启用</string>
     <string name="status_disabled">已禁用</string>
-    <string name="fork_behavior">分叉行为</string>
     <string name="api_keys">API 密钥</string>
     <string name="api_keys_subtitle">管理用于程序化访问的 API 密钥</string>
     <string name="presets">预设</string>
@@ -319,8 +306,6 @@
     <string name="latex_katex_desc">通过 WebView 完整渲染 LaTeX</string>
     <string name="latex_native">纯文本（快速）</string>
     <string name="latex_native_desc">显示原始 LaTeX 源码以获得更流畅的滚动性能</string>
-    <string name="auto_scroll">流式输出时自动滚动</string>
-    <string name="auto_scroll_desc">在生成回复时自动滚动到新内容</string>
     <string name="thinking_open_by_default">默认展开思考</string>
     <string name="thinking_open_by_default_desc">回复的推理默认展开显示，而不是折叠</string>
     <string name="collapse_long_user_messages">折叠较长的用户消息</string>
@@ -433,9 +418,10 @@
     <string name="dialog_title_archive_all">归档所有对话？</string>
     <string name="dialog_archive_all_message">所有对话都将移至已归档。你仍可在那里打开它们，也可以随时取消归档。</string>
     <string name="action_archive_all">全部归档</string>
-    <string name="archived_all_count">已归档 %1$d 个对话</string>
+    <plurals name="archived_all_count">
+        <item quantity="other">已归档 %1$d 个对话</item>
+    </plurals>
     <string name="archived_conversations">已归档对话</string>
-    <string name="export_all_data">导出全部数据</string>
     <string name="clear_cache_with_size">清除缓存 (%1$s)</string>
     <string name="clear_cache">清除缓存</string>
     <string name="revoke_all_api_keys">吊销所有 API 密钥</string>
@@ -584,12 +570,6 @@
     <string name="error_failed_to_load_servers">加载服务器失败</string>
     <string name="no_tools_available">没有可用的工具</string>
     <!-- Fork settings -->
-    <string name="fork_mode_direct_path">可见消息</string>
-    <string name="fork_mode_direct_path_desc">仅包含到所选消息的直接消息路径</string>
-    <string name="fork_mode_include_branches">包含分支</string>
-    <string name="fork_mode_include_branches_desc">直接路径以及各层级的同级消息</string>
-    <string name="fork_mode_target_level">直到目标层级的全部</string>
-    <string name="fork_mode_target_level_desc">直到目标消息层级的所有消息和分支（默认）</string>
 
     <!-- Language selector -->
     <string name="hint_search_languages">搜索语言</string>
@@ -840,7 +820,6 @@
     <string name="advanced_search">高级搜索</string>
     <string name="advanced_search_desc">面向高级用户。在搜索界面中添加区分大小写、全字匹配、正则表达式，以及角色、模型和日期筛选。</string>
     <string name="server_user_ca_notice">通过此设备上安装的证书颁发机构获得信任</string>
-    <string name="export_coming_soon">导出功能即将推出</string>
     <string name="mcp_tools_all">所有 MCP 工具</string>
     <string name="mcp_server_unknown">未知</string>
     <string name="avatar_upload_unavailable_ios">iOS 暂不支持上传头像。</string>
@@ -1054,4 +1033,18 @@
     <string name="pr_account_disconnect_error">无法断开连接，请重试。</string>
     <string name="pr_account_connect_error">无法开始连接，请重试。</string>
     <string name="pr_account_not_available">此服务器不支持连接账号。</string>
+    <string name="speech_error_voice_test">无法测试语音，请重试。</string>
+    <string name="speech_error_voice_preview">无法试听语音，请重试。</string>
+    <string name="speech_error_playback">无法播放音频。</string>
+    <string name="accent_name_blue">蓝色</string>
+    <string name="accent_name_indigo">靛蓝</string>
+    <string name="accent_name_lavender">薰衣草紫</string>
+    <string name="accent_name_cyan">青色</string>
+    <string name="accent_name_turquoise">绿松石色</string>
+    <string name="accent_name_green">绿色</string>
+    <string name="accent_name_amber">琥珀色</string>
+    <string name="accent_name_orange">橙色</string>
+    <string name="accent_name_red">红色</string>
+    <string name="accent_name_pink">粉色</string>
+    <string name="accent_name_slate">石板灰</string>
 </resources>
