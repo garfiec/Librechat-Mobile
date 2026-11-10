@@ -82,6 +82,10 @@ internal fun aboutDiagnostics(
 
 private const val DIAGNOSTICS_MISSING = "—"
 
+/** The Device line of [aboutDiagnostics]. */
+internal fun diagnosticsDevice(platformInfo: PlatformInfo): String =
+    "${platformInfo.osName} ${platformInfo.osVersion} · ${platformInfo.deviceModel}"
+
 /** The chat and voice preferences the Settings home summarizes. */
 data class HomeChatPrefs(
     val thinkingOpenByDefault: Boolean = false,
@@ -113,7 +117,7 @@ class GeneralSettingsViewModel(
     platformInfo: PlatformInfo,
 ) : ViewModel() {
 
-    private val device = "${platformInfo.osName} ${platformInfo.osVersion} · ${platformInfo.deviceModel}"
+    private val device = diagnosticsDevice(platformInfo)
 
     private val showLanguageDialog = MutableStateFlow(false)
 
