@@ -11,8 +11,8 @@ import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 /**
- * The rail keeps the navigation control, the first action and the bottom group, and overflows the
- * rest from the last one up into one ⋯ menu.
+ * The rail keeps the navigation control and the first action, overflows the rest from the last one up
+ * into one ⋯ menu, and drops bottom items only when even that leaves them no room.
  */
 class AdaptiveSideRailTest {
 
@@ -142,6 +142,39 @@ class AdaptiveSideRailTest {
         assertEquals(4, railSlots(400.dp, 44.dp, 8.dp, 12.dp, hasNavigation = true, bottomCount = 2))
         assertEquals(7, railSlots(400.dp, 44.dp, 8.dp, 12.dp, hasNavigation = false, bottomCount = 0))
         assertEquals(0, railSlots(100.dp, 44.dp, 8.dp, 12.dp, hasNavigation = true, bottomCount = 1))
+    }
+
+    private fun spec(actions: List<BarAction>, bottom: List<BarAction>) = AdaptiveTopBarSpec(
+        navigation = BarNavigation(icon = BarIcons.Menu, contentDescription = "Menu", onClick = {}),
+        title = BarTitle(text = null),
+        actions = actions,
+        bottomActions = bottom,
+    )
+
+    private val ring = BarAction.Custom(id = "ring", label = "Context", content = {})
+
+    @Test
+    fun aRailTooShortForItsBottomGroupDropsItAndKeepsTheFirstActionAndMenu() {
+        // Navigation 56 + first action and ⋯ 96 = 152 of 160: no room for a bottom item (12 + 44).
+        val rail = spec(listOf(icon("a"), icon("b"), icon("c"), more), listOf(icon("tasks"), ring))
+        val groups = railGroups(rail, 160.dp, 8.dp, "")
+
+        assertEquals(listOf("a", "more"), groups.top.map { it.id })
+        assertEquals(emptyList(), groups.bottom)
+    }
+
+    @Test
+    fun theBottomGroupGivesWayFromItsLastItemUp() {
+        val actions = listOf(icon("a"), icon("b"), icon("c"), more)
+        val bottom = listOf(icon("tasks"), ring)
+
+        // 152 + 12 + 44 = 208 keeps one bottom item; a point less keeps none.
+        assertEquals(listOf("tasks"), railGroups(spec(actions, bottom), 208.dp, 8.dp, "").bottom.map { it.id })
+        assertEquals(emptyList(), railGroups(spec(actions, bottom), 207.dp, 8.dp, "").bottom)
+        // 152 + 12 + 44 + 8 + 44 = 260 keeps both.
+        val roomy = railGroups(spec(actions, bottom), 260.dp, 8.dp, "")
+        assertEquals(listOf("tasks", "ring"), roomy.bottom.map { it.id })
+        assertEquals(listOf("a", "more"), roomy.top.map { it.id })
     }
 
     @Test

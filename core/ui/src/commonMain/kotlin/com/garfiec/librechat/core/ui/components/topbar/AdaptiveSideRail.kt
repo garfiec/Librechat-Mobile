@@ -85,9 +85,10 @@ internal const val RAIL_OVERFLOW_ID = "rail_overflow"
  * A top bar drawn down the window's vertical bar column (iPhone Duo): the navigation control, then
  * [AdaptiveTopBarSpec.actions] in order, a gap, and [AdaptiveTopBarSpec.bottomActions] at the bottom.
  * Text actions show their compact icons. When the column is too short, actions move into the ⋯ menu
- * (the spec's trailing menu, or a new one) from the last one up; the navigation control, the first
- * action and the bottom group always stay. The first action is the primary one and is drawn apart and
- * filled ([railProminentAction]).
+ * (the spec's trailing menu, or a new one) from the last one up; the navigation control and the first
+ * action always stay, and the bottom group gives way from its last item up when even they can't fit
+ * beside it ([railGroups]). The first action is the primary one and is drawn apart and filled
+ * ([railProminentAction]).
  *
  * Fills the column's height and keeps below the system zone at its top and above the home indicator,
  * wherever it is placed. Place it on [VerticalBars.side] with absolute alignment; the column ignores RTL.
@@ -122,15 +123,8 @@ fun AdaptiveSideRail(spec: AdaptiveTopBarSpec, bars: VerticalBars, modifier: Mod
             val prominent = railProminentAction(compact.actions)
             // Glass sets the primary action apart from the group's capsule; Material's items are already spaced.
             val prominentExtra = if (prominent != null) (ProminentGap - gap).coerceAtLeast(0.dp) else 0.dp
-            val slots = railSlots(
-                available = maxHeight - prominentExtra,
-                itemSize = RailItemSize,
-                itemGap = gap,
-                groupGap = RailGroupGap,
-                hasNavigation = compact.navigation != null,
-                bottomCount = compact.bottomActions.size,
-            )
-            val top = railTopActions(compact.actions, slots, overflowLabel)
+            val groups = railGroups(compact, maxHeight - prominentExtra, gap, overflowLabel)
+            val top = groups.top
             Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
                 compact.navigation?.let { navigation ->
                     RailNavigation(navigation, glass, backdrop)
@@ -145,7 +139,7 @@ fun AdaptiveSideRail(spec: AdaptiveTopBarSpec, bars: VerticalBars, modifier: Mod
                 if (prominent != null && rest.isNotEmpty()) Spacer(Modifier.height(ProminentGap))
                 RailGroup(rest, glass, backdrop, gap)
                 Spacer(Modifier.weight(1f))
-                RailGroup(compact.bottomActions, glass, backdrop, gap)
+                RailGroup(groups.bottom, glass, backdrop, gap)
             }
         }
     }
@@ -255,6 +249,36 @@ internal fun railSlots(
     if (bottomCount > 0) room -= groupGap + itemSize * bottomCount + itemGap * (bottomCount - 1)
     if (room < itemSize) return 0
     return ((room + itemGap) / (itemSize + itemGap)).toInt()
+}
+
+/** What [AdaptiveSideRail] draws: the top group's actions and the bottom group's. */
+internal class RailGroups(val top: List<BarAction>, val bottom: List<BarAction>)
+
+/**
+ * The rail's groups in [available] height with [itemGap] between items. The bottom group keeps as many
+ * items as fit beside the navigation control and the top group's least (the first action and ⋯); past
+ * that its items drop from the last one up, and come back when the rail grows (as when the keyboard
+ * closes): a live control there has no menu form to move into.
+ */
+internal fun railGroups(spec: AdaptiveTopBarSpec, available: Dp, itemGap: Dp, overflowLabel: String): RailGroups {
+    val hasNavigation = spec.navigation != null
+    var bottom = spec.bottomActions
+    while (true) {
+        val slots = railSlots(available, RailItemSize, itemGap, RailGroupGap, hasNavigation, bottom.size)
+        val top = railTopActions(spec.actions, slots, overflowLabel)
+        if (bottom.isEmpty() || railHeight(hasNavigation, top.size, bottom.size, itemGap) <= available) {
+            return RailGroups(top, bottom)
+        }
+        bottom = bottom.dropLast(1)
+    }
+}
+
+private fun railHeight(hasNavigation: Boolean, topCount: Int, bottomCount: Int, itemGap: Dp): Dp {
+    fun stack(count: Int) = if (count == 0) 0.dp else RailItemSize * count + itemGap * (count - 1)
+    var height = stack(topCount)
+    if (hasNavigation) height += RailItemSize + if (topCount > 0) RailGroupGap else 0.dp
+    if (bottomCount > 0) height += RailGroupGap + stack(bottomCount)
+    return height
 }
 
 /**
