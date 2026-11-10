@@ -115,7 +115,7 @@ fun AdaptiveTopBar(
     val rail = LocalRailSlot.current
     // The bar's own row keeps out of the bar column; what's below it gets the column's inset here.
     val insetBelowBar = belowBar?.let { content ->
-        @Composable { Box(Modifier.windowInsetsPadding(WindowInsets.verticalBarColumn)) { content() } }
+        @Composable { Column(Modifier.windowInsetsPadding(WindowInsets.verticalBarColumn)) { content() } }
     }
     // A dialog or sheet window composed inside a top bar slot has bars of its own, not the screen's.
     if (rail != null && !rail.superseded && !LocalInSeparateWindow.current) {
