@@ -21,8 +21,7 @@ class WindowFeaturesTest {
         topRightZone: Double = 0.0,
         fold: DpRect? = null,
         foldMargins: DpRect = noMargins,
-        regularWidth: Boolean = false,
-    ) = windowFeaturesFromHost(barEdge, leftInset, rightInset, topLeftZone, topRightZone, fold, foldMargins, regularWidth)
+    ) = windowFeaturesFromHost(barEdge, leftInset, rightInset, topLeftZone, topRightZone, fold, foldMargins)
 
     @Test
     fun aCappedSheetCentredOnTheInnerScreenCoversNoneOfTheColumn() {
@@ -78,7 +77,6 @@ class WindowFeaturesTest {
             rightInset = 84.0,
             fold = DpRect(455.5.dp, 0.dp, 495.5.dp, 669.dp),
             foldMargins = DpRect(left = 20.dp, top = 0.dp, right = 20.dp, bottom = 0.dp),
-            regularWidth = true,
         ).fold
 
         assertEquals(DpRect(455.5.dp, 0.dp, 495.5.dp, 669.dp), fold?.bounds)
@@ -95,7 +93,7 @@ class WindowFeaturesTest {
 
     @Test
     fun theDefaultsSayNothing() {
-        assertEquals(WindowFeatures(verticalBars = null, fold = null, regularWidth = null), WindowFeatures())
+        assertEquals(WindowFeatures(verticalBars = null, fold = null), WindowFeatures())
     }
 
     private companion object {

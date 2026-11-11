@@ -47,7 +47,7 @@ final class ShortcutHostController: UIViewController {
         view.addSubview(content.view)
         content.didMove(toParent: self)
         if #available(iOS 27.1, *) {
-            let traits: [UITrait] = UITraitCollection.systemTraitsAffectingVerticalBarEdge + [UITraitHorizontalSizeClass.self]
+            let traits: [UITrait] = UITraitCollection.systemTraitsAffectingVerticalBarEdge
             registerForTraitChanges(traits) { (controller: ShortcutHostController, _: UITraitCollection) in
                 controller.pushWindowFeatures()
             }
@@ -94,8 +94,7 @@ final class ShortcutHostController: UIViewController {
             foldMarginTop: Double(fold?.margins.top ?? 0),
             foldMarginLeft: Double(fold?.margins.left ?? 0),
             foldMarginBottom: Double(fold?.margins.bottom ?? 0),
-            foldMarginRight: Double(fold?.margins.right ?? 0),
-            regularWidth: traitCollection.horizontalSizeClass == .regular
+            foldMarginRight: Double(fold?.margins.right ?? 0)
         )
     }
 

@@ -47,6 +47,12 @@ class SidebarLayoutBreakpointTest {
     }
 
     @Test
+    fun windowTooNarrowForAPhoneBesideTheSidebar_keepsTheDrawerWhateverTheDevice() {
+        // iPhone Duo inner screen in portrait, which iOS calls regular width.
+        assertFalse(usesSidebarLayout(669.dp, 951.dp))
+    }
+
+    @Test
     fun automaticArtifact_byWindow() {
         val cases = listOf(
             Triple(412.dp, 892.dp, ArtifactPresentation.SHEET), // phone, portrait

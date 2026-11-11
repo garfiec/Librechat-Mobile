@@ -49,8 +49,6 @@ data class WindowFeatures(
     val verticalBars: VerticalBars? = null,
     /** Present only while the fold is active (the device partly folded). */
     val fold: FoldRegion? = null,
-    /** iOS's horizontal size class is regular; null where unknown (Android, iOS before 27.1). */
-    val regularWidth: Boolean? = null,
 )
 
 val LocalWindowFeatures = compositionLocalOf { WindowFeatures() }
@@ -137,7 +135,6 @@ fun windowFeaturesFromHost(
     topRightZone: Double,
     fold: DpRect?,
     foldMargins: DpRect,
-    regularWidth: Boolean,
 ): WindowFeatures {
     val bars = if (barEdge != BAR_EDGE_UNSPECIFIED && maxOf(leftInset, rightInset) > 0.0) {
         val right = rightInset >= leftInset
@@ -162,6 +159,5 @@ fun windowFeaturesFromHost(
                 ),
             )
         },
-        regularWidth = regularWidth,
     )
 }

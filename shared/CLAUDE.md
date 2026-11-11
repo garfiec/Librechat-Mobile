@@ -18,7 +18,7 @@ The framework is static (`isStatic = true`) and named `Shared`.
 | `IosSharedModule.kt` | iOS Koin graph: `includes(sharedKoinModules)` (which brings in `networkModule` → Darwin engine + iOS `SseHttpTransport` via `networkPlatformModule.ios`, HTTP clients, all API services, SSE client) and adds only the one iOS-only binding, `LibreChatSDK`. |
 | `IosKoinAccessor.kt` | Swift-accessible Koin resolver. `KoinHelper.swift` calls these to get SDK, repos, etc. |
 | `IosCrashReporting.kt` | Unhandled exception hook — logs via Kermit + raises NSException for readable iOS crash logs. |
-| `IosWindowFeatures.kt` | Holds the window's vertical bars, fold and size class that `ComposeView.swift` reads from UIKit (iOS 27.1+); `MainViewController` provides them as `LocalWindowFeatures`. |
+| `IosWindowFeatures.kt` | Holds the window's vertical bars and fold that `ComposeView.swift` reads from UIKit (iOS 27.1+); `MainViewController` provides them as `LocalWindowFeatures`. |
 | `NsLog.kt` | `nsLogVerbatim(text)` — the only way to call `NSLog` from Kotlin. Direct calls crash: Kotlin text in the format string has its `%` read as specifiers, and a Kotlin `String` vararg isn't converted to `NSString`. |
 | `MainViewController.kt` | `MainViewController()` — the Compose Multiplatform entry point wrapped by `ComposeView.swift`. |
 

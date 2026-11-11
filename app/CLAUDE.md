@@ -9,9 +9,10 @@ links, share-intent routing and phone/tablet branching. The shared module owns t
 `shared/CLAUDE.md`. Feature modules get `onNavigate`/`onBack` lambdas, never `NavBackStack`.
 
 ### Layout modes
-- Tablet layout at 680dp+ wide and 480dp+ tall (320dp sidebar + 360dp pane), else the phone drawer. Both
-  platforms choose in the shared `WindowLayout` via `usesSidebarLayout` (`SidebarLayout.kt`): change the
-  breakpoint there, not at a call site.
+- Tablet layout at 680dp+ wide and 480dp+ tall (320dp sidebar + 360dp pane), else the phone drawer, whatever
+  the size class (iOS calls the iPhone Duo's 669dp inner portrait regular width). Both platforms choose in the
+  shared `WindowLayout` via `usesSidebarLayout` (`SidebarLayout.kt`): change the breakpoint there, not at a
+  call site.
 - Both platforms switch layouts in place (`MainActivity` handles size changes itself), so `WindowLayout`
   hands one `rememberMovableNavDisplay` to both layouts (a `MainNavDisplay` leaving composition clears
   every entry's ViewModels). Keep the choice in the host's own composition, not a subcomposition like

@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * The window's vertical bars, fold and size class, as the Swift host reads them from UIKit (iOS 27.1+;
+ * The window's vertical bars and fold, as the Swift host reads them from UIKit (iOS 27.1+;
  * earlier systems never call [update], so the features stay at their defaults). [MainViewController]
  * provides [features] as `LocalWindowFeatures`. Main thread only.
  */
@@ -41,7 +41,6 @@ object IosWindowFeatures {
         foldMarginLeft: Double,
         foldMarginBottom: Double,
         foldMarginRight: Double,
-        regularWidth: Boolean,
     ) {
         val next = windowFeaturesFromHost(
             barEdge = barEdge,
@@ -51,7 +50,6 @@ object IosWindowFeatures {
             topRightZone = topRightZone,
             fold = if (foldActive) DpRect(foldX.dp, foldY.dp, (foldX + foldWidth).dp, (foldY + foldHeight).dp) else null,
             foldMargins = DpRect(foldMarginLeft.dp, foldMarginTop.dp, foldMarginRight.dp, foldMarginBottom.dp),
-            regularWidth = regularWidth,
         )
         if (next == state.value) return
         state.value = next
