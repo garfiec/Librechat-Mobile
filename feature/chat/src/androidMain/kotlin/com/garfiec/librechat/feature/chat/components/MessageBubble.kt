@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -176,6 +177,8 @@ private fun ThreadMessageBubble(
 ) {
     val isUser = message.isCreatedByUser
     var showActions by rememberActionRowShown(message.messageId, showActionsInitially, isReading)
+    // This row takes every tap on the thread, so the root clearFocusOnTap never sees one: dismiss here.
+    val focusManager = LocalFocusManager.current
 
     // Determine background color for search state
     val searchBackground = when {
@@ -201,6 +204,7 @@ private fun ThreadMessageBubble(
                 interactionSource = null,
                 indication = null,
             ) {
+                focusManager.clearFocus()
                 showActions = !showActions
             }
             .padding(
@@ -359,6 +363,8 @@ private fun TwoSidedMessageBubble(
 ) {
     val isUser = message.isCreatedByUser
     var showActions by rememberActionRowShown(message.messageId, showActionsInitially, isReading)
+    // This row takes every tap on the thread, so the root clearFocusOnTap never sees one: dismiss here.
+    val focusManager = LocalFocusManager.current
 
     // Determine background color for search state
     val searchBackground = when {
@@ -402,6 +408,7 @@ private fun TwoSidedMessageBubble(
                 interactionSource = null,
                 indication = null,
             ) {
+                focusManager.clearFocus()
                 showActions = !showActions
             }
             .padding(

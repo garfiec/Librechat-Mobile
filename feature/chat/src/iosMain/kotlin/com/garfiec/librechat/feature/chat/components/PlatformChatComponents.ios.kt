@@ -43,6 +43,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
@@ -225,6 +226,8 @@ private fun ThreadBubble(
 ) {
     val isUser = message.isCreatedByUser
     var showActions by rememberActionRowShown(message.messageId, showActionsInitially, isReading)
+    // This row takes every tap on the thread, so the root clearFocusOnTap never sees one: dismiss here.
+    val focusManager = LocalFocusManager.current
 
     val searchBg = when {
         isCurrentSearchMatch -> SearchHighlightOrange.copy(alpha = 0.18f)
@@ -235,7 +238,10 @@ private fun ThreadBubble(
     Column(
         modifier = modifier.fillMaxWidth()
             .then(if (searchBg != null) Modifier.background(searchBg, RoundedCornerShape(8.dp)) else Modifier)
-            .clickable(interactionSource = null, indication = null) { showActions = !showActions }
+            .clickable(interactionSource = null, indication = null) {
+                focusManager.clearFocus()
+                showActions = !showActions
+            }
             .padding(horizontal = 16.dp, vertical = 8.dp),
     ) {
         Row(modifier = sendFlightHeader(message.messageId, isUser), verticalAlignment = Alignment.CenterVertically) {
@@ -363,6 +369,8 @@ private fun TwoSidedBubble(
 ) {
     val isUser = message.isCreatedByUser
     var showActions by rememberActionRowShown(message.messageId, showActionsInitially, isReading)
+    // This row takes every tap on the thread, so the root clearFocusOnTap never sees one: dismiss here.
+    val focusManager = LocalFocusManager.current
 
     val searchBg = when {
         isCurrentSearchMatch -> SearchHighlightOrange.copy(alpha = 0.18f)
@@ -382,7 +390,10 @@ private fun TwoSidedBubble(
 
     Row(
         modifier = modifier.fillMaxWidth()
-            .clickable(interactionSource = null, indication = null) { showActions = !showActions }
+            .clickable(interactionSource = null, indication = null) {
+                focusManager.clearFocus()
+                showActions = !showActions
+            }
             .padding(horizontal = 8.dp, vertical = 4.dp),
         horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start,
         verticalAlignment = Alignment.Top,
