@@ -1,5 +1,6 @@
 package com.garfiec.librechat.core.ui.components.topbar
 
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.ui.platform.BarSide
 import kotlin.test.Test
@@ -227,5 +228,25 @@ class AdaptiveSideRailTest {
         assertFalse(reachesBarSide(BarSideReach(300f, reaches = false), pane))
         assertTrue(reachesBarSide(BarSideReach(300f, reaches = true), pane))
         assertFalse(reachesBarSide(BarSideReach(631f, reaches = false), pane = null))
+    }
+
+    private val drawer = BarNavigation(BarIcons.Menu, "Open menu") {}
+    private val back = BarNavigation(BarIcons.Back, "Back") {}
+
+    @Test
+    fun theDrawerButtonStaysOnTheDrawersEdge() {
+        // Cover portrait: the rail is on the right, the drawer opens from the left.
+        assertTrue(headingKeepsDrawerButton(drawer, BarSide.RIGHT, LayoutDirection.Ltr))
+        // Cover landscape: the rail is on the left with the drawer, so the button stays in it.
+        assertFalse(headingKeepsDrawerButton(drawer, BarSide.LEFT, LayoutDirection.Ltr))
+        // Right-to-left: the drawer opens from the right.
+        assertTrue(headingKeepsDrawerButton(drawer, BarSide.LEFT, LayoutDirection.Rtl))
+        assertFalse(headingKeepsDrawerButton(drawer, BarSide.RIGHT, LayoutDirection.Rtl))
+    }
+
+    @Test
+    fun backStaysInTheRailAndNothingMovesWithoutBars() {
+        assertFalse(headingKeepsDrawerButton(back, BarSide.RIGHT, LayoutDirection.Ltr))
+        assertFalse(headingKeepsDrawerButton(drawer, barSide = null, LayoutDirection.Ltr))
     }
 }

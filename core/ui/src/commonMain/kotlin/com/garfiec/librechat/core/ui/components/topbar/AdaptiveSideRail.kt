@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -49,6 +50,7 @@ import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.semantics
@@ -56,6 +58,7 @@ import androidx.compose.ui.semantics.traversalIndex
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.ui.components.LocalInSeparateWindow
 import com.garfiec.librechat.core.ui.components.consumeUnhandledTouches
@@ -500,7 +503,20 @@ internal val LocalRailParent = staticCompositionLocalOf<RailSlot?> { null }
  */
 val LocalSidebarOpen = compositionLocalOf { false }
 
-/** A bar in rail mode: its spec goes to the rail; the title stays here as a heading, above [belowBar]. */
+/**
+ * The drawer button stays on the drawer's own edge: it leaves the rail for the heading when the rail
+ * is on the other side of the window. Back and Close stay in the rail.
+ */
+internal fun headingKeepsDrawerButton(navigation: BarNavigation, barSide: BarSide?, layoutDirection: LayoutDirection): Boolean {
+    if (navigation.icon != BarIcons.Menu || barSide == null) return false
+    val drawerSide = if (layoutDirection == LayoutDirection.Ltr) BarSide.LEFT else BarSide.RIGHT
+    return barSide != drawerSide
+}
+
+/**
+ * A bar in rail mode: its spec goes to the rail; the title stays here as a heading, above [belowBar],
+ * led by the drawer button when [headingKeepsDrawerButton].
+ */
 @Composable
 internal fun RailHeading(
     spec: AdaptiveTopBarSpec,
@@ -510,7 +526,10 @@ internal fun RailHeading(
     modifier: Modifier = Modifier,
 ) {
     val owner = remember { Any() }
-    SideEffect { slot.claim(owner, spec) }
+    val barSide = LocalWindowFeatures.current.verticalBars?.side
+    val drawerButton = spec.navigation?.takeIf { headingKeepsDrawerButton(it, barSide, LocalLayoutDirection.current) }
+    val railSpec = if (drawerButton != null) spec.copy(navigation = null) else spec
+    SideEffect { slot.claim(owner, railSpec) }
     DisposableEffect(slot) { onDispose { slot.release(owner) } }
 
     val glass = rememberGlassStyle()
@@ -525,31 +544,40 @@ internal fun RailHeading(
     Column(modifier.then(background).consumeUnhandledTouches()) {
         val title = spec.title
         val text = title.text
-        if (text != null) {
+        if (text != null || drawerButton != null) {
             val onTitleClick = title.onClick ?: title.rename?.let { { renaming = true } }
-            Box(
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     // The status bar is in the column, so the heading starts at the window's top.
                     .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))
                     .heightIn(min = HeadingMinHeight)
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                contentAlignment = if (title.alignment == BarTitleAlignment.CENTER) Alignment.Center else Alignment.CenterStart,
+                    .padding(start = if (drawerButton != null) 8.dp else 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                val chip = glass?.takeIf { title.style == BarTitleStyle.CHIP }
-                Text(
-                    text = text,
-                    style = if (glass != null) glassTitleStyle() else MaterialTheme.typography.titleLarge,
-                    maxLines = title.lines,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = if (title.alignment == BarTitleAlignment.CENTER) TextAlign.Center else null,
-                    modifier = Modifier
-                        .semantics { heading() }
-                        .then(if (title.alignment == BarTitleAlignment.FILL) Modifier.fillMaxWidth() else Modifier)
-                        .then(chip?.let { Modifier.glassSurface(it, CircleShape, LocalGlassBackdrop.current) } ?: Modifier)
-                        .then(if (onTitleClick != null) Modifier.clickable(onClick = onTitleClick) else Modifier)
-                        .then(if (chip != null) Modifier.padding(horizontal = 16.dp, vertical = 12.dp) else Modifier),
-                )
+                drawerButton?.let { RailNavigation(it, glass, LocalGlassBackdrop.current) }
+                Box(
+                    modifier = Modifier.weight(1f),
+                    contentAlignment = if (title.alignment == BarTitleAlignment.CENTER) Alignment.Center else Alignment.CenterStart,
+                ) {
+                    if (text != null) {
+                        val chip = glass?.takeIf { title.style == BarTitleStyle.CHIP }
+                        Text(
+                            text = text,
+                            style = if (glass != null) glassTitleStyle() else MaterialTheme.typography.titleLarge,
+                            maxLines = title.lines,
+                            overflow = TextOverflow.Ellipsis,
+                            textAlign = if (title.alignment == BarTitleAlignment.CENTER) TextAlign.Center else null,
+                            modifier = Modifier
+                                .semantics { heading() }
+                                .then(if (title.alignment == BarTitleAlignment.FILL) Modifier.fillMaxWidth() else Modifier)
+                                .then(chip?.let { Modifier.glassSurface(it, CircleShape, LocalGlassBackdrop.current) } ?: Modifier)
+                                .then(if (onTitleClick != null) Modifier.clickable(onClick = onTitleClick) else Modifier)
+                                .then(if (chip != null) Modifier.padding(horizontal = 16.dp, vertical = 12.dp) else Modifier),
+                        )
+                    }
+                }
             }
         }
         belowBar?.invoke()
