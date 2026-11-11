@@ -16,7 +16,9 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.model.ContentType
 import com.garfiec.librechat.core.model.Message
+import com.garfiec.librechat.core.model.content.MessageContentPart
 import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.core.ui.theme.LibreChatTheme
 import com.garfiec.librechat.feature.chat.util.buildActiveMessagePath
@@ -33,16 +35,34 @@ class MessageBubbleTest {
     @get:Rule
     val composeRule = createComposeRule()
 
-    /** Under the app root's `clearFocusOnTap`, as in the app, which never sees a tap the bubble row consumes. */
     @Test
     fun aTapOnAMessageDismissesTheKeyboard() {
+        focusComposerOver(THREAD)
+
+        composeRule.onNodeWithText(LAST_TEXT).performClick()
+
+        composeRule.onNodeWithTag(COMPOSER).assertIsNotFocused()
+    }
+
+    /** The thinking card's header toggles it, consuming the tap before the bubble row sees it. */
+    @Test
+    fun aTapOnAThinkingHeaderDismissesTheKeyboard() {
+        focusComposerOver(THREAD_WITH_THINKING)
+
+        composeRule.onNodeWithText("Thinking").performClick()
+
+        composeRule.onNodeWithTag(COMPOSER).assertIsNotFocused()
+    }
+
+    /** Under the app root's `clearFocusOnTap`, as in the app, which never sees a tap the thread consumes. */
+    private fun focusComposerOver(thread: List<Message>) {
         composeRule.setContent {
             CompositionLocalProvider(LocalParsedMarkdownCache provides remember { ParsedMarkdownCache() }) {
                 LibreChatTheme {
                     Column(Modifier.fillMaxSize().clearFocusOnTap()) {
                         Box(Modifier.weight(1f).fillMaxWidth()) {
                             MessageList(
-                                displayMessages = buildActiveMessagePath(THREAD),
+                                displayMessages = buildActiveMessagePath(thread),
                                 isStreaming = false,
                                 streamingContent = "",
                                 onSiblingNavigation = { _, _ -> },
@@ -63,10 +83,6 @@ class MessageBubbleTest {
         }
         composeRule.onNodeWithTag(COMPOSER).performClick()
         composeRule.onNodeWithTag(COMPOSER).assertIsFocused()
-
-        composeRule.onNodeWithText(LAST_TEXT).performClick()
-
-        composeRule.onNodeWithTag(COMPOSER).assertIsNotFocused()
     }
 
     private companion object {
@@ -89,6 +105,13 @@ class MessageBubbleTest {
                 text = LAST_TEXT,
                 isCreatedByUser = false,
                 sender = "TestBot",
+            ),
+        )
+
+        val THREAD_WITH_THINKING = THREAD.take(1) + THREAD[1].copy(
+            content = listOf(
+                MessageContentPart(type = ContentType.THINK, think = "Weighing the options."),
+                MessageContentPart(type = ContentType.TEXT, text = LAST_TEXT),
             ),
         )
     }
