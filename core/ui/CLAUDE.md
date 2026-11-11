@@ -64,7 +64,8 @@ it a keyboard cannot be dismissed.
 |---|---|---|
 | Tap on empty space | dismisses | it's a tap nothing handled |
 | Hold still on empty space, then release | dismisses | no duration cap — any still down→up is a tap |
-| Tap on message text (`SelectionContainer`) | dismisses | its clear-selection tap doesn't consume |
+| Tap on selectable text (`SelectionContainer`) with no clickable around it | dismisses | its clear-selection tap doesn't consume |
+| Tap on a message | dismisses | **not this modifier**: the bubble row's action-row toggle consumes the tap, so it clears focus itself |
 | Tap on the focused field | stays | the field consumes its own tap |
 | Tap on a button (Send, attach, chips) | stays | the button consumes; the button still fires |
 | Scroll / fling / pull-to-refresh / sheet drag | stays | a drag is not a tap |
