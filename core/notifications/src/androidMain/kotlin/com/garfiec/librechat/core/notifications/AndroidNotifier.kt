@@ -12,17 +12,37 @@ import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.notifications.resources.Res
 import com.garfiec.librechat.core.notifications.resources.channel_replies
 import com.garfiec.librechat.core.notifications.resources.channel_replies_description
-import com.garfiec.librechat.core.notifications.resources.reply_body_failed
-import com.garfiec.librechat.core.notifications.resources.reply_body_finished
+import com.garfiec.librechat.core.notifications.resources.channel_scheduled
+import com.garfiec.librechat.core.notifications.resources.channel_scheduled_description
 import com.garfiec.librechat.core.notifications.resources.reply_public_body
-import com.garfiec.librechat.core.notifications.resources.reply_title_fallback
+import com.garfiec.librechat.core.notifications.resources.scheduled_public_body
 import kotlinx.coroutines.flow.first
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.getString
 import java.util.Locale
 
 internal const val REPLIES_CHANNEL_ID = "replies"
-private const val REPLY_TAG_PREFIX = "reply:"
-private const val REPLY_NOTIFICATION_ID = 1
+internal const val SCHEDULED_CHANNEL_ID = "scheduled"
+private const val NOTIFICATION_ID = 1
+
+/** Each topic's channel and tag prefix. A posted notification is `notify(<prefix><key>, 1)`. */
+private enum class Channel(
+    val topic: NotificationTopic,
+    val id: String,
+    val tagPrefix: String,
+    val nameRes: StringResource,
+    val descriptionRes: StringResource,
+    val publicBodyRes: StringResource,
+) {
+    Replies(
+        NotificationTopic.Replies, REPLIES_CHANNEL_ID, "reply:",
+        Res.string.channel_replies, Res.string.channel_replies_description, Res.string.reply_public_body,
+    ),
+    Scheduled(
+        NotificationTopic.ScheduledChats, SCHEDULED_CHANNEL_ID, "scheduled:",
+        Res.string.channel_scheduled, Res.string.channel_scheduled_description, Res.string.scheduled_public_body,
+    ),
+}
 
 class AndroidNotifier(
     private val context: Context,
@@ -31,18 +51,19 @@ class AndroidNotifier(
 
     private val manager = NotificationManagerCompat.from(context)
 
-    // The posting checks areNotificationsEnabled first; on 13+ that is false without POST_NOTIFICATIONS.
+    override suspend fun post(notification: ReplyNotification, link: String, silent: Boolean) =
+        post(Channel.Replies, notification.conversationId, notification, link, silent)
+
+    override suspend fun post(notification: ScheduledRunNotification, link: String, silent: Boolean) =
+        post(Channel.Scheduled, notification.key, notification, link, silent)
+
+    // Checks areNotificationsEnabled first; on 13+ that is false without POST_NOTIFICATIONS.
     @SuppressLint("MissingPermission")
-    override suspend fun post(notification: ReplyNotification, link: String, silent: Boolean) {
-        ensureChannel()
+    private suspend fun post(channel: Channel, key: String, notification: AppNotification, link: String, silent: Boolean) {
+        ensureChannel(channel)
         if (!manager.areNotificationsEnabled()) return
-        val title = notification.title?.takeIf { it.isNotBlank() } ?: getString(Res.string.reply_title_fallback)
-        val body = when {
-            notification.failed -> getString(Res.string.reply_body_failed)
-            notification.preview.isNotBlank() -> notification.preview
-            else -> getString(Res.string.reply_body_finished)
-        }
-        // Explicit to this app; the data differs per conversation, so each gets its own PendingIntent.
+        val body = notification.bodyText()
+        // Explicit to this app; the data differs per link, so each gets its own PendingIntent.
         val open = Intent(Intent.ACTION_VIEW, link.toUri()).setPackage(context.packageName)
         val contentIntent = PendingIntent.getActivity(
             context,
@@ -51,13 +72,13 @@ class AndroidNotifier(
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
         // What a locked screen shows when the user hides sensitive content: no title, no text.
-        val publicVersion = NotificationCompat.Builder(context, REPLIES_CHANNEL_ID)
+        val publicVersion = NotificationCompat.Builder(context, channel.id)
             .setSmallIcon(R.drawable.ic_stat_reply)
-            .setContentText(getString(Res.string.reply_public_body))
+            .setContentText(getString(channel.publicBodyRes))
             .build()
-        val built = NotificationCompat.Builder(context, REPLIES_CHANNEL_ID)
+        val built = NotificationCompat.Builder(context, channel.id)
             .setSmallIcon(R.drawable.ic_stat_reply)
-            .setContentTitle(title)
+            .setContentTitle(notification.titleText())
             .setContentText(body)
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))
             .setContentIntent(contentIntent)
@@ -66,36 +87,38 @@ class AndroidNotifier(
             .setPublicVersion(publicVersion)
             .setSilent(silent)
             .build()
-        manager.notify(REPLY_TAG_PREFIX + notification.conversationId, REPLY_NOTIFICATION_ID, built)
+        manager.notify(channel.tagPrefix + key, NOTIFICATION_ID, built)
     }
 
     override fun cancel(conversationId: String) {
-        manager.cancel(REPLY_TAG_PREFIX + conversationId, REPLY_NOTIFICATION_ID)
+        Channel.entries.forEach { manager.cancel(it.tagPrefix + conversationId, NOTIFICATION_ID) }
     }
 
-    override fun cancelAll() {
+    override fun cancelAll(topic: NotificationTopic?) {
+        val prefixes = Channel.entries.filter { topic == null || it.topic == topic }.map { it.tagPrefix }
         manager.activeNotifications
-            .filter { it.tag?.startsWith(REPLY_TAG_PREFIX) == true }
+            .filter { posted -> prefixes.any { posted.tag?.startsWith(it) == true } }
             .forEach { manager.cancel(it.tag, it.id) }
     }
 
     /**
-     * Creates the Replies channel, or renames it: an existing channel keeps the user's settings and
-     * takes only the new name, so calling this before each post follows a change of app language.
+     * Creates the channel, or renames it: an existing channel keeps the user's settings and takes
+     * only the new name, so calling this before each post follows a change of app language. A
+     * channel appears only once something posts to it.
      */
-    suspend fun ensureChannel() {
+    private suspend fun ensureChannel(channel: Channel) {
         applyAppLanguage()
         manager.createNotificationChannel(
-            NotificationChannelCompat.Builder(REPLIES_CHANNEL_ID, NotificationManagerCompat.IMPORTANCE_HIGH)
-                .setName(getString(Res.string.channel_replies))
-                .setDescription(getString(Res.string.channel_replies_description))
+            NotificationChannelCompat.Builder(channel.id, NotificationManagerCompat.IMPORTANCE_HIGH)
+                .setName(getString(channel.nameRes))
+                .setDescription(getString(channel.descriptionRes))
                 .build(),
         )
     }
 
     /**
      * Strings here resolve outside composition, from the process default locale. A process the OS
-     * started for a background watch never composed, so `LocalAppLocale` never set it to the in-app
+     * started for a background job never composed, so `LocalAppLocale` never set it to the in-app
      * language; set it the same way.
      */
     private suspend fun applyAppLanguage() {

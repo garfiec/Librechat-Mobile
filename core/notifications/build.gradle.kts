@@ -17,6 +17,7 @@ kotlin {
             implementation(project(":core:logging"))
             implementation(libs.kermit)
             implementation(libs.coroutines.core)
+            implementation(libs.kotlinx.serialization.json)
             implementation(libs.koin.compose)
         }
         androidMain.dependencies {

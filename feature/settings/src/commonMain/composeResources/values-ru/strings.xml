@@ -1145,4 +1145,6 @@
     <string name="notifications_replies_server_off">Отключено вашим сервером</string>
     <string name="notifications_system_settings">Настройки уведомлений</string>
     <string name="notifications_system_settings_description">Звук, экран блокировки и другое в настройках устройства</string>
+    <string name="notifications_scheduled">Запланированные чаты</string>
+    <string name="notifications_scheduled_description">Когда запланированный чат запускается или сервер его приостанавливает</string>
 </resources>

@@ -11,4 +11,15 @@
     <string name="reply_snackbar_open">Abrir</string>
     <string name="ask_reply_notifications">Receber uma notificação quando uma resposta terminar enquanto você estiver fora?</string>
     <string name="ask_reply_notifications_allow">Permitir</string>
+    <string name="channel_scheduled">Conversas agendadas</string>
+    <string name="channel_scheduled_description">Quando uma conversa agendada é executada ou o seu servidor pausa uma</string>
+    <string name="scheduled_title_fallback">Conversa agendada</string>
+    <string name="scheduled_body_finished">Concluída</string>
+    <string name="scheduled_body_failed">A execução terminou com um erro</string>
+    <string name="scheduled_body_needs_approval">Aguardando sua aprovação</string>
+    <string name="scheduled_body_skipped_balance">Ignorada: saldo insuficiente</string>
+    <string name="scheduled_body_paused">Pausada pelo seu servidor. Abra Conversas agendadas para ver o motivo.</string>
+    <string name="scheduled_public_body">Uma conversa agendada foi executada</string>
+    <string name="scheduled_snackbar">%1$s: %2$s</string>
+    <string name="ask_scheduled_notifications">Receber uma notificação quando uma conversa agendada for executada?</string>
 </resources>

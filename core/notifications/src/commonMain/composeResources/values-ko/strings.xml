@@ -11,4 +11,15 @@
     <string name="reply_snackbar_open">열기</string>
     <string name="ask_reply_notifications">앱을 떠나 있는 동안 답변이 완료되면 알림을 받으시겠어요?</string>
     <string name="ask_reply_notifications_allow">허용</string>
+    <string name="channel_scheduled">예약 채팅</string>
+    <string name="channel_scheduled_description">예약 채팅이 실행되거나 서버가 일시 중지할 때</string>
+    <string name="scheduled_title_fallback">예약 채팅</string>
+    <string name="scheduled_body_finished">완료됨</string>
+    <string name="scheduled_body_failed">실행이 오류로 끝났습니다</string>
+    <string name="scheduled_body_needs_approval">승인을 기다리는 중</string>
+    <string name="scheduled_body_skipped_balance">건너뜀: 잔액 부족</string>
+    <string name="scheduled_body_paused">서버에서 일시 중지했습니다. 예약 채팅에서 이유를 확인하세요.</string>
+    <string name="scheduled_public_body">예약 채팅이 실행되었습니다</string>
+    <string name="scheduled_snackbar">%1$s: %2$s</string>
+    <string name="ask_scheduled_notifications">예약 채팅이 실행될 때 알림을 받으시겠어요?</string>
 </resources>

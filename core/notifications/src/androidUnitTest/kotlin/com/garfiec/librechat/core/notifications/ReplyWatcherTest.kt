@@ -34,8 +34,7 @@ class ReplyWatcherTest {
 
     private fun TestScope.watcher() = ReplyWatcher(
         chatRepository = chat,
-        conversationRepository = conversations,
-        messageRepository = messages,
+        replyReader = ReplyReader(conversations, messages),
         accounts = accounts,
         notifications = notifications,
         timeSource = testScheduler.timeSource,
@@ -105,7 +104,7 @@ class ReplyWatcherTest {
         coEvery { chat.getActiveJobIds() } returns Result.Success(emptySet())
         stored(Conversation(conversationId = "c1"))
         val outcome = async {
-            ReplyWatcher(chat, conversations, messages, loading, notifications, timeSource = testScheduler.timeSource)
+            ReplyWatcher(chat, ReplyReader(conversations, messages), loading, notifications, timeSource = testScheduler.timeSource)
                 .watch(watch, budget = 10.minutes)
         }
         runCurrent()

@@ -14,7 +14,9 @@ import com.garfiec.librechat.core.model.schedule.UpdateScheduleRequest
  *
  * Caching would be actively wrong here: `nextRunAt`, `lastRun` and `inFlight` all change without
  * this client doing anything, and a stale card claiming a run is still generating is worse than a
- * spinner.
+ * spinner. Each successful [listSchedules] also rewrites the
+ * [com.garfiec.librechat.core.data.datastore.ScheduleWatchList] that run notifications compare
+ * against; nothing on screen ever reads it.
  */
 interface ScheduleRepository {
 

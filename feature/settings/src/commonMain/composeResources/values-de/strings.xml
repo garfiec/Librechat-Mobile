@@ -1113,4 +1113,6 @@
     <string name="notifications_replies_server_off">Von deinem Server deaktiviert</string>
     <string name="notifications_system_settings">Benachrichtigungseinstellungen</string>
     <string name="notifications_system_settings_description">Ton, Sperrbildschirm und mehr in den Geräteeinstellungen</string>
+    <string name="notifications_scheduled">Geplante Chats</string>
+    <string name="notifications_scheduled_description">Wenn ein geplanter Chat läuft oder dein Server einen pausiert</string>
 </resources>

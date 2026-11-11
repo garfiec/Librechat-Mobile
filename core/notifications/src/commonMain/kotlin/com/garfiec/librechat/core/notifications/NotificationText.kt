@@ -12,6 +12,9 @@ import com.garfiec.librechat.core.model.content.stripCitations
 fun conversationLink(conversationId: String, accountId: AccountId): String =
     "librechat://conversation/$conversationId?account=${percentEncode(accountId.value)}"
 
+/** The Schedules list, for a scheduled-chat notification with no chat to open. */
+fun schedulesLink(accountId: AccountId): String = "librechat://schedules?account=${percentEncode(accountId.value)}"
+
 private const val UNRESERVED = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~"
 
 private fun percentEncode(value: String): String = buildString {

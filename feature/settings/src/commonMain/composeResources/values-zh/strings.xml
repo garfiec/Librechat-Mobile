@@ -1097,4 +1097,6 @@
     <string name="notifications_replies_server_off">已被你的服务器关闭</string>
     <string name="notifications_system_settings">通知设置</string>
     <string name="notifications_system_settings_description">声音、锁屏等，在设备设置中</string>
+    <string name="notifications_scheduled">定时聊天</string>
+    <string name="notifications_scheduled_description">定时聊天运行时，或服务器将其暂停时</string>
 </resources>

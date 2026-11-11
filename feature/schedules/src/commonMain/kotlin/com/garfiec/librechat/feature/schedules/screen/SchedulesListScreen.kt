@@ -43,6 +43,7 @@ import com.garfiec.librechat.core.model.schedule.Schedule
 import com.garfiec.librechat.core.model.schedule.blockedRun
 import com.garfiec.librechat.core.model.schedule.cadenceToCron
 import com.garfiec.librechat.core.model.schedule.pausedForUnattendedMcpAuth
+import com.garfiec.librechat.core.notifications.ScheduledChatsNotificationAsk
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveCard
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
@@ -97,6 +98,8 @@ fun SchedulesListScreen(
     // Nav3 retains this ViewModel, so `init` will not run again after the editor pops. Everything
     // on a card also moves without this client acting, which is why nothing here is cached.
     LaunchedEffect(Unit) { viewModel.refresh() }
+
+    ScheduledChatsNotificationAsk(available = uiState.schedules.isNotEmpty(), snackbarHostState = snackbarHostState)
 
     LaunchedEffect(uiState.error) {
         uiState.error?.let {

@@ -5,10 +5,7 @@ import com.garfiec.librechat.core.common.identity.AccountState
 import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.common.identity.currentAccountId
 import com.garfiec.librechat.core.common.result.Result
-import com.garfiec.librechat.core.common.result.getOrNull
 import com.garfiec.librechat.core.data.repository.ChatRepository
-import com.garfiec.librechat.core.data.repository.ConversationRepository
-import com.garfiec.librechat.core.data.repository.MessageRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlin.time.Duration
@@ -47,8 +44,7 @@ enum class ReplyWatchOutcome {
  */
 class ReplyWatcher(
     private val chatRepository: ChatRepository,
-    private val conversationRepository: ConversationRepository,
-    private val messageRepository: MessageRepository,
+    private val replyReader: ReplyReader,
     private val accounts: ActiveAccountProvider,
     private val notifications: ReplyNotifications,
     private val pollInterval: Duration = POLL_INTERVAL,
@@ -71,21 +67,16 @@ class ReplyWatcher(
     }
 
     private suspend fun announce(watch: ReplyWatch) {
-        // From the server: the cached row predates the run, so its title and last-reply id are stale.
-        val conversation = conversationRepository.refreshConversation(watch.conversationId, watch.accountId).getOrNull()
+        val reply = replyReader.read(watch.conversationId, watch.accountId)
         // A temporary chat is kept out of anything that outlives it.
-        if (conversation?.isTemporary == true) return
-        val messages = messageRepository.getMessages(watch.conversationId, toolPreviews = false).getOrNull().orEmpty()
-        val reply = conversation?.lastResponseMessageId
-            ?.let { id -> messages.firstOrNull { it.messageId == id } }
-            ?: messages.lastOrNull { !it.isCreatedByUser }
+        if (reply.isTemporary) return
         notifications.announce(
             ReplyNotification(
                 accountId = watch.accountId,
                 conversationId = watch.conversationId,
-                title = conversation?.title,
-                preview = reply?.let(::notificationPreviewOf).orEmpty(),
-                failed = reply?.error == true,
+                title = reply.title,
+                preview = reply.preview,
+                failed = reply.failed,
             ),
         )
     }

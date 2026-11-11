@@ -11,4 +11,15 @@
     <string name="reply_snackbar_open">打开</string>
     <string name="ask_reply_notifications">离开应用时，回复完成后是否通知你？</string>
     <string name="ask_reply_notifications_allow">允许</string>
+    <string name="channel_scheduled">定时聊天</string>
+    <string name="channel_scheduled_description">定时聊天运行时，或服务器将其暂停时</string>
+    <string name="scheduled_title_fallback">定时聊天</string>
+    <string name="scheduled_body_finished">已完成</string>
+    <string name="scheduled_body_failed">运行出错结束</string>
+    <string name="scheduled_body_needs_approval">等待你的批准</string>
+    <string name="scheduled_body_skipped_balance">已跳过：余额不足</string>
+    <string name="scheduled_body_paused">已被服务器暂停。打开定时聊天查看原因。</string>
+    <string name="scheduled_public_body">有一个定时聊天已运行</string>
+    <string name="scheduled_snackbar">%1$s：%2$s</string>
+    <string name="ask_scheduled_notifications">定时聊天运行时接收通知？</string>
 </resources>

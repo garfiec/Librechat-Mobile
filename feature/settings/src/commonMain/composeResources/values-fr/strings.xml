@@ -1114,4 +1114,6 @@
     <string name="notifications_replies_server_off">Désactivées par votre serveur</string>
     <string name="notifications_system_settings">Réglages des notifications</string>
     <string name="notifications_system_settings_description">Son, écran de verrouillage et plus, dans les réglages de l'appareil</string>
+    <string name="notifications_scheduled">Discussions planifiées</string>
+    <string name="notifications_scheduled_description">Quand une discussion planifiée s’exécute ou que votre serveur en met une en pause</string>
 </resources>

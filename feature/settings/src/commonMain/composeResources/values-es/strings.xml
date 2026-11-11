@@ -1114,4 +1114,6 @@
     <string name="notifications_replies_server_off">Desactivadas por tu servidor</string>
     <string name="notifications_system_settings">Ajustes de notificaciones</string>
     <string name="notifications_system_settings_description">Sonido, pantalla de bloqueo y más, en los ajustes del dispositivo</string>
+    <string name="notifications_scheduled">Chats programados</string>
+    <string name="notifications_scheduled_description">Cuando se ejecuta un chat programado o tu servidor pausa uno</string>
 </resources>

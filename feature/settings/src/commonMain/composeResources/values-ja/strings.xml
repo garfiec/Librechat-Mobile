@@ -1097,4 +1097,6 @@
     <string name="notifications_replies_server_off">サーバーによりオフになっています</string>
     <string name="notifications_system_settings">通知設定</string>
     <string name="notifications_system_settings_description">サウンドやロック画面などはデバイスの設定で</string>
+    <string name="notifications_scheduled">スケジュールされたチャット</string>
+    <string name="notifications_scheduled_description">スケジュールされたチャットの実行時、またはサーバーが一時停止したとき</string>
 </resources>

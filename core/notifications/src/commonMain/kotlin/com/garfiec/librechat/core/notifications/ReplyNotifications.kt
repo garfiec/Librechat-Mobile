@@ -40,10 +40,10 @@ class ReplyNotifications(
     private val openConversation: OpenConversationRegistry,
     scope: CoroutineScope,
 ) {
-    private val _inApp = MutableSharedFlow<ReplyNotification>(extraBufferCapacity = 4)
+    private val _inApp = MutableSharedFlow<AppNotification>(extraBufferCapacity = 4)
 
-    /** Replies to show as a snackbar: the app is in front, on another screen. */
-    val inApp: SharedFlow<ReplyNotification> = _inApp.asSharedFlow()
+    /** What to show as a snackbar: the app is in front, on another screen. */
+    val inApp: SharedFlow<AppNotification> = _inApp.asSharedFlow()
 
     init {
         // Only a move away from a signed-in account: the boot transition out of Warming is often the
@@ -65,33 +65,50 @@ class ReplyNotifications(
 
         preferences.observe(AppPreferences.ReplyNotifications)
             .filter { enabled -> !enabled }
-            .onEach { notifier.cancelAll() }
+            .onEach { notifier.cancelAll(NotificationTopic.Replies) }
+            .launchIn(scope)
+        preferences.observe(AppPreferences.ScheduledChatNotifications)
+            .filter { enabled -> !enabled }
+            .onEach { notifier.cancelAll(NotificationTopic.ScheduledChats) }
             .launchIn(scope)
     }
 
-    suspend fun announce(notification: ReplyNotification) {
+    suspend fun announce(notification: AppNotification) {
         permission.refresh()
         // A process started just for the watch has no config yet. Without one the server's gate is
         // unknown, and an operator's `false` must win.
         val config = configRepository.startupConfig.value ?: configRepository.fetchStartupConfig().getOrNull()
+        val topic = when (notification) {
+            is ReplyNotification -> NotificationTopic.Replies
+            is ScheduledRunNotification -> NotificationTopic.ScheduledChats
+        }
         val context = ReplyDeliveryContext(
             activeAccountId = accounts.currentAccountId(),
             foreground = foregroundSignal.isForeground.value,
             openConversationId = openConversation.openConversationId.value,
-            enabled = preferences.observe(AppPreferences.ReplyNotifications).first(),
+            enabled = preferences.observe(topic.toggle).first(),
             serverAllows = config != null && config.interfaceConfig.replyNotificationsAllowed,
             systemAllows = permission.status.value == NotificationPermissionStatus.Allowed,
         )
-        when (replyDelivery(notification, context)) {
-            ReplyDelivery.System -> notifier.post(
-                notification = notification,
-                link = conversationLink(notification.conversationId, notification.accountId),
-                silent = !config?.interfaceConfig.replyNotificationSoundAllowed,
-            )
+        when (deliveryOf(notification, context)) {
+            ReplyDelivery.System -> {
+                val silent = !config?.interfaceConfig.replyNotificationSoundAllowed
+                when (notification) {
+                    is ReplyNotification -> notifier.post(
+                        notification = notification,
+                        link = conversationLink(notification.conversationId, notification.accountId),
+                        silent = silent,
+                    )
+                    is ScheduledRunNotification -> notifier.post(
+                        notification = notification,
+                        link = notification.conversationId?.let { conversationLink(it, notification.accountId) }
+                            ?: schedulesLink(notification.accountId),
+                        silent = silent,
+                    )
+                }
+            }
             ReplyDelivery.InApp -> _inApp.tryEmit(notification)
-            ReplyDelivery.Drop -> Logger.d { "Reply notification not shown" }
+            ReplyDelivery.Drop -> Logger.d { "Notification not shown" }
         }
     }
-
-    fun dismiss(conversationId: String) = notifier.cancel(conversationId)
 }

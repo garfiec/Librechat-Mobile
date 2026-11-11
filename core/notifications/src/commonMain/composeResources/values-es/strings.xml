@@ -11,4 +11,15 @@
     <string name="reply_snackbar_open">Abrir</string>
     <string name="ask_reply_notifications">¿Quieres recibir una notificación cuando una respuesta termine mientras no estás?</string>
     <string name="ask_reply_notifications_allow">Permitir</string>
+    <string name="channel_scheduled">Chats programados</string>
+    <string name="channel_scheduled_description">Cuando se ejecuta un chat programado o tu servidor pausa uno</string>
+    <string name="scheduled_title_fallback">Chat programado</string>
+    <string name="scheduled_body_finished">Terminado</string>
+    <string name="scheduled_body_failed">La ejecución terminó con un error</string>
+    <string name="scheduled_body_needs_approval">Esperando tu aprobación</string>
+    <string name="scheduled_body_skipped_balance">Omitido: saldo insuficiente</string>
+    <string name="scheduled_body_paused">Pausado por tu servidor. Abre Chats programados para ver por qué.</string>
+    <string name="scheduled_public_body">Se ejecutó un chat programado</string>
+    <string name="scheduled_snackbar">%1$s: %2$s</string>
+    <string name="ask_scheduled_notifications">¿Recibir una notificación cuando se ejecute un chat programado?</string>
 </resources>

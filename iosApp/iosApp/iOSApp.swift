@@ -20,6 +20,7 @@ struct iOSApp: App {
         // Here rather than in the scene delegate: a launch triggered by a background task connects
         // no scene at all, but it still constructs the App.
         PrefetchBackgroundTasks.register()
+        ScheduleCheckTask.register()
         // Initialize Koin DI — must happen before any KMP code is used
         IosKoinHelperKt.startIosKoin()
     }
