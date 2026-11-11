@@ -1810,7 +1810,16 @@ class ChatViewModel(
 
     fun toggleTemporaryChat() = treeDelegate.toggleTemporaryChat()
 
-    fun refreshMessages() = conversationLoadDelegate.refreshMessages()
+    /**
+     * A run started on another device reaches this screen only through a status check, so a refresh
+     * asks for one: the server saves the reply when the run ends, and the reload alone shows nothing.
+     */
+    fun refreshMessages() = conversationLoadDelegate.refreshMessages { conversationId ->
+        val state = _uiState.value
+        if (!state.isStreaming && state.conversationId == conversationId) {
+            streamingManager.resumeOnOpen(conversationId, onAttached = localQueueContinuity::onRunAttached)
+        }
+    }
 
     /**
      * Resolves whether the trace entry point may render for the conversation on screen.
