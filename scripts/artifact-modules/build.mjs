@@ -76,16 +76,26 @@ async function loadShadcn(job) {
   mkdirSync(SHADCN_SRC, { recursive: true });
   const modPath = path.join(SHADCN_SRC, 'components.mjs');
   writeFileSync(modPath, js);
-  const { shadcnComponents } = await import(pathToFileURL(modPath).href);
+  const { shadcnComponents, artifactUIComponents } = await import(pathToFileURL(modPath).href);
   if (!shadcnComponents) die('upstream artifacts.ts no longer exports shadcnComponents');
 
-  // client/src/utils/artifacts.ts sharedFiles: which path each source is mounted at.
+  // client/src/utils/artifacts.ts sharedFiles mounts some sources literally ('/lib/utils.ts':
+  // shadcnComponents.utils) and spreads artifactUIComponents through a `/components/ui/${name}.tsx`
+  // template. Read the template rather than hardcode it, so a moved mount fails the coverage check.
   const client = readFileSync(clientArtifactsTs, 'utf8');
   const mounts = {};
   for (const m of client.matchAll(/['"](\/(?:components\/ui|lib)\/[\w-]+)\.tsx?['"]\s*:\s*shadcnComponents\.(\w+)/g)) {
-    mounts[m[1]] = m[2];
+    mounts[m[1]] = [`shadcnComponents.${m[2]}`, shadcnComponents[m[2]]];
   }
-  if (!Object.keys(mounts).length) die('found no shadcnComponents mounts in sharedFiles');
+  if (/\bartifactUIComponents\b/.test(client)) {
+    if (!artifactUIComponents) die('client artifacts.ts spreads artifactUIComponents, which data-provider no longer exports');
+    const template = client.match(/`(\/[\w/-]+\/)\$\{(?!string\})\w+\}\.tsx?`/);
+    if (!template) die('found no `/<dir>/${name}.tsx` mount template for artifactUIComponents in client artifacts.ts');
+    for (const [name, source] of Object.entries(artifactUIComponents)) {
+      mounts[`${template[1]}${name}`] = [`artifactUIComponents['${name}']`, source];
+    }
+  }
+  if (!Object.keys(mounts).length) die('found no shadcn component mounts in sharedFiles');
 
   // A component can live in another bundle (the Drawer ships with vaul, so declining vaul
   // keeps its code from running at all); those count as listed for the coverage check.
@@ -103,9 +113,8 @@ async function loadShadcn(job) {
   }
 
   const files = {};
-  for (const [mount, key] of Object.entries(mounts)) {
-    const source = shadcnComponents[key];
-    if (typeof source !== 'string') die(`shadcnComponents.${key} is not a source string`);
+  for (const [mount, [from, source]] of Object.entries(mounts)) {
+    if (typeof source !== 'string') die(`${from} (mounted at ${mount}) is not a source string`);
     const file = path.join(SHADCN_SRC, mount.slice(1) + (mount.startsWith('/lib/') ? '.ts' : '.tsx'));
     mkdirSync(path.dirname(file), { recursive: true });
     writeFileSync(file, source);

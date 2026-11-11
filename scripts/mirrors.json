@@ -4852,6 +4852,20 @@
     {
       "id": "artifact-shadcn-mounts",
       "upstream": {
+        "file": "packages/data-provider/src/artifacts.ts",
+        "symbol": "artifactUIComponents",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "scripts/web-assets.json",
+        "symbol": "shadcn-ui and vaul `modules` (/components/ui/*, /lib/utils)"
+      },
+      "why": "Which shadcn/ui components web mounts into every React artifact, at /components/ui/<key> (client sharedFiles spreads this map). The vendored shadcn-ui bundle registers each under that path; ReactArtifactImports aliases the artifact's import to it. build.mjs refuses to --sync while this list and the registry disagree, so a drift here is caught at the next re-vendor, but nothing forces a re-vendor; this entry does.",
+      "failure_mode": "A component web mounts is 'not bundled' on mobile; one web stopped mounting still renders on mobile (harmless, but no longer what the prompt describes)."
+    },
+    {
+      "id": "artifact-shadcn-mount-paths",
+      "upstream": {
         "file": "client/src/utils/artifacts.ts",
         "symbol": "sharedFiles",
         "mode": "block"
@@ -4860,8 +4874,8 @@
         "file": "scripts/web-assets.json",
         "symbol": "shadcn-ui and vaul `modules` (/components/ui/*, /lib/utils)"
       },
-      "why": "Which shadcn/ui components web mounts into every React artifact, and at which path. The vendored shadcn-ui bundle registers each under that path; ReactArtifactImports aliases the artifact's import to it. build.mjs refuses to --sync while this list and the registry disagree, so a drift here is caught at the next re-vendor, but nothing forces a re-vendor; this entry does.",
-      "failure_mode": "A component web mounts is 'not bundled' on mobile; one web stopped mounting still renders on mobile (harmless, but no longer what the prompt describes)."
+      "why": "Where web mounts the shadcn sources: the literal mounts (/lib/utils) and the artifactUIComponents spread. The /components/ui/<key>.tsx template lives in uiComponentFiles, outside this block, so only build.mjs --sync sees a change to it. A new literal mount, or a moved or dropped spread, changes what an artifact can import without touching artifactUIComponents.",
+      "failure_mode": "An import path web serves is 'not bundled' on mobile, or mobile serves a component at a path web no longer mounts."
     },
     {
       "id": "artifact-shadcn-sources",

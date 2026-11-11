@@ -23,7 +23,7 @@
       "modules": [
         "dat.gui"
       ],
-      "recipe": "6ebecbbc3aa369b104312a9082b61c58772cda35ad74d0e0811f90181cd8c486",
+      "recipe": "6ef7ab1c0dfbaa28c5687540a809cc3c2adda2cd0e9d6706cd62ad19f552e50c",
       "source": {
         "package": "dat.gui",
         "type": "bundle"
@@ -40,7 +40,7 @@
       "modules": [
         "date-fns"
       ],
-      "recipe": "6ebecbbc3aa369b104312a9082b61c58772cda35ad74d0e0811f90181cd8c486",
+      "recipe": "6ef7ab1c0dfbaa28c5687540a809cc3c2adda2cd0e9d6706cd62ad19f552e50c",
       "source": {
         "package": "date-fns",
         "type": "bundle"
@@ -132,7 +132,7 @@
       "modules": [
         "lucide-react"
       ],
-      "recipe": "6ebecbbc3aa369b104312a9082b61c58772cda35ad74d0e0811f90181cd8c486",
+      "recipe": "6ef7ab1c0dfbaa28c5687540a809cc3c2adda2cd0e9d6706cd62ad19f552e50c",
       "source": {
         "package": "lucide-react",
         "type": "bundle"
@@ -215,7 +215,7 @@
         "react-router-dom",
         "react-router"
       ],
-      "recipe": "6ebecbbc3aa369b104312a9082b61c58772cda35ad74d0e0811f90181cd8c486",
+      "recipe": "6ef7ab1c0dfbaa28c5687540a809cc3c2adda2cd0e9d6706cd62ad19f552e50c",
       "source": {
         "package": "react-router-dom",
         "type": "bundle"
@@ -232,7 +232,7 @@
       "modules": [
         "recharts"
       ],
-      "recipe": "6ebecbbc3aa369b104312a9082b61c58772cda35ad74d0e0811f90181cd8c486",
+      "recipe": "6ef7ab1c0dfbaa28c5687540a809cc3c2adda2cd0e9d6706cd62ad19f552e50c",
       "source": {
         "package": "recharts",
         "type": "bundle"
@@ -240,10 +240,10 @@
       "version": "3.10.1"
     },
     "shadcn-ui": {
-      "bytes": 491684,
+      "bytes": 491177,
       "files": {
-        "THIRD_PARTY_NOTICES.txt": "9a468502ff0d610c5da2bb9f293eab2c2d32388dc2ec91ddb428943201ce841a",
-        "index.js": "7d91637d22cf5f6516cb6bbe930cc8c121018554dc9651986065f356cac49652"
+        "THIRD_PARTY_NOTICES.txt": "dfe83839701518af74af4cdace5d6998aa77a9b1553b42e1291d1d8d11a6d870",
+        "index.js": "5ef21ebb0c46d565b9543f3d3c9b2382040c6b147d51bc68f533eb870976cf5d"
       },
       "license": "MIT",
       "modules": [
@@ -315,10 +315,10 @@
         "/components/ui/tooltip",
         "/components/ui/use-toast"
       ],
-      "recipe": "6ebecbbc3aa369b104312a9082b61c58772cda35ad74d0e0811f90181cd8c486",
+      "recipe": "6ef7ab1c0dfbaa28c5687540a809cc3c2adda2cd0e9d6706cd62ad19f552e50c",
       "source": {
         "shadcn": {
-          "components_url": "https://raw.githubusercontent.com/LibreChat-AI/LibreChat/e8f3be08623663d4ad7f7241e693c94469b63bb0/packages/data-provider/src/artifacts.ts",
+          "components_url": "https://raw.githubusercontent.com/LibreChat-AI/LibreChat/8d3da9bbb220a0a96be9330a2e1cbd385fb786d5/packages/data-provider/src/artifacts.ts",
           "licenses": [
             {
               "title": "shadcn/ui component sources, as embedded in LibreChat's packages/data-provider/src/artifacts.ts (MIT)",
@@ -326,14 +326,14 @@
             },
             {
               "title": "LibreChat (MIT), which carries those sources",
-              "url": "https://raw.githubusercontent.com/LibreChat-AI/LibreChat/e8f3be08623663d4ad7f7241e693c94469b63bb0/LICENSE"
+              "url": "https://raw.githubusercontent.com/LibreChat-AI/LibreChat/8d3da9bbb220a0a96be9330a2e1cbd385fb786d5/LICENSE"
             }
           ],
-          "shared_files_url": "https://raw.githubusercontent.com/LibreChat-AI/LibreChat/e8f3be08623663d4ad7f7241e693c94469b63bb0/client/src/utils/artifacts.ts"
+          "shared_files_url": "https://raw.githubusercontent.com/LibreChat-AI/LibreChat/8d3da9bbb220a0a96be9330a2e1cbd385fb786d5/client/src/utils/artifacts.ts"
         },
         "type": "bundle"
       },
-      "version": "e8f3be086236"
+      "version": "8d3da9bbb220"
     },
     "tailwind": {
       "bytes": 408350,
@@ -358,7 +358,7 @@
       "modules": [
         "three"
       ],
-      "recipe": "6ebecbbc3aa369b104312a9082b61c58772cda35ad74d0e0811f90181cd8c486",
+      "recipe": "6ef7ab1c0dfbaa28c5687540a809cc3c2adda2cd0e9d6706cd62ad19f552e50c",
       "source": {
         "package": "three",
         "type": "bundle"
@@ -366,21 +366,21 @@
       "version": "0.167.1"
     },
     "vaul": {
-      "bytes": 129793,
+      "bytes": 129439,
       "files": {
-        "THIRD_PARTY_NOTICES.txt": "06631bd41e8f6fc83d374f997fb139d79bc26cd25d7aa66b0dca365cb698f60c",
-        "index.js": "8e8048c16d7b7227c0955069af320c5c2188539a33176d236b785b41f99caef4"
+        "THIRD_PARTY_NOTICES.txt": "92a3893cf5df818b0994fb74ba62827e9a17c050bf0c2dbd7c28c1c4a74e86e6",
+        "index.js": "286c6fe74abb3b4f5cf8a3484b26fae26a9de1a24287fe94837db70cd6ad5876"
       },
       "license": "MIT",
       "modules": [
         "vaul",
         "/components/ui/drawer"
       ],
-      "recipe": "6ebecbbc3aa369b104312a9082b61c58772cda35ad74d0e0811f90181cd8c486",
+      "recipe": "6ef7ab1c0dfbaa28c5687540a809cc3c2adda2cd0e9d6706cd62ad19f552e50c",
       "source": {
         "package": "vaul",
         "shadcn": {
-          "components_url": "https://raw.githubusercontent.com/LibreChat-AI/LibreChat/e8f3be08623663d4ad7f7241e693c94469b63bb0/packages/data-provider/src/artifacts.ts",
+          "components_url": "https://raw.githubusercontent.com/LibreChat-AI/LibreChat/8d3da9bbb220a0a96be9330a2e1cbd385fb786d5/packages/data-provider/src/artifacts.ts",
           "licenses": [
             {
               "title": "shadcn/ui component sources, as embedded in LibreChat's packages/data-provider/src/artifacts.ts (MIT)",
@@ -388,10 +388,10 @@
             },
             {
               "title": "LibreChat (MIT), which carries those sources",
-              "url": "https://raw.githubusercontent.com/LibreChat-AI/LibreChat/e8f3be08623663d4ad7f7241e693c94469b63bb0/LICENSE"
+              "url": "https://raw.githubusercontent.com/LibreChat-AI/LibreChat/8d3da9bbb220a0a96be9330a2e1cbd385fb786d5/LICENSE"
             }
           ],
-          "shared_files_url": "https://raw.githubusercontent.com/LibreChat-AI/LibreChat/e8f3be08623663d4ad7f7241e693c94469b63bb0/client/src/utils/artifacts.ts"
+          "shared_files_url": "https://raw.githubusercontent.com/LibreChat-AI/LibreChat/8d3da9bbb220a0a96be9330a2e1cbd385fb786d5/client/src/utils/artifacts.ts"
         },
         "type": "bundle"
       },

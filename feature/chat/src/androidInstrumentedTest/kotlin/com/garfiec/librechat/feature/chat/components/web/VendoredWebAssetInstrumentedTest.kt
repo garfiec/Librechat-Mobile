@@ -287,6 +287,32 @@ class VendoredWebAssetInstrumentedTest {
         )
     }
 
+    // Web's artifacts run tailwind-merge 2.x; 1.x reads `text-balance` as a colour and drops
+    // the component's own text colour, and does not know `size-*` overrides `h-*`/`w-*`.
+    @Test
+    fun shadcnCnMergesLikeWeb() {
+        assertProbe(
+            """
+            import { cn } from '/lib/utils';
+            export default () => <div id="probe">{cn('text-sm text-gray-500', 'text-balance')}</div>;
+            """.trimIndent(),
+            expected = "text-sm text-gray-500 text-balance",
+        )
+    }
+
+    @Test
+    fun theDrawerBundlesCnMergesLikeWeb() {
+        assertProbe(
+            """
+            import { DrawerHeader } from '/components/ui/drawer';
+            export default () => <DrawerHeader id="host" className="h-10 w-10 size-8" />;
+            """.trimIndent(),
+            probe = "(document.getElementById('host') || {}).className",
+            expected = "grid gap-1.5 p-4 text-center sm:text-left size-8",
+            allowedLibraries = setOf("vaul"),
+        )
+    }
+
     @Test
     fun datGuiLoadsOnceAllowed() {
         assertProbe(

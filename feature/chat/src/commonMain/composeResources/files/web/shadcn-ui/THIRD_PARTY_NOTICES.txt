@@ -1834,7 +1834,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 ==============================================================================
-tailwind-merge@1.14.0 (MIT)
+tailwind-merge@2.6.1 (MIT)
 ==============================================================================
 MIT License
 
