@@ -23,7 +23,10 @@ enum ScheduleCheckTask {
     }
 
     private static func run(_ task: BGTask) {
-        let work = Task { @MainActor in
+        // Installed before the work starts so an immediate expiration still finds something to cancel.
+        let holder = CancellableWork()
+        task.expirationHandler = { holder.cancel() }
+        holder.work = Task { @MainActor in
             // A background-task launch connects no scene, so init() cannot be assumed to have run.
             IosKoinHelperKt.startIosKoin()
             let finished = (try? await IosScheduleCheck.shared
@@ -31,6 +34,5 @@ enum ScheduleCheckTask {
             // iOS terminates the app for a task that never reports completion.
             task.setTaskCompleted(success: finished)
         }
-        task.expirationHandler = { work.cancel() }
     }
 }

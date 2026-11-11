@@ -49,6 +49,9 @@ interface NotificationPermission {
 
     fun refresh()
 
+    /** Whether a system notification of [topic] would show; Android can turn off one topic's channel. */
+    fun allows(topic: NotificationTopic): Boolean = status.value == NotificationPermissionStatus.Allowed
+
     /** The app's notification settings: Android's per-app page, iOS's app page in Settings. */
     fun openSystemSettings()
 }

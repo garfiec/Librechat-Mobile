@@ -15,16 +15,18 @@ object IosScheduleCheck {
 
     /**
      * Runs one check and submits the next, returning whether it finished inside [budgetSeconds],
-     * which the task reports to iOS. Out of time, the stored list still arms a check.
+     * which the task reports to iOS. Out of time, it submits the check the stored list calls for.
      */
     @Throws(Exception::class)
     suspend fun run(budgetSeconds: Double): Boolean {
         val koin = IosKoinAccessor.koin
-        var finished = false
-        withTimeoutOrNull(budgetSeconds.seconds) {
-            koin.get<ScheduleCheckScheduler>().arm(koin.get<ScheduledRunWatcher>().check())
-            finished = true
-        }
+        val scheduler = koin.get<ScheduleCheckScheduler>()
+        val watcher = koin.get<ScheduledRunWatcher>()
+        val finished = withTimeoutOrNull(budgetSeconds.seconds) {
+            scheduler.arm(watcher.check())
+            true
+        } ?: false
+        if (!finished) watcher.fallbackCheck()?.let { scheduler.arm(it) }
         return finished
     }
 }

@@ -32,13 +32,16 @@ class WorkManagerScheduleCheckScheduler(context: Context) : ScheduleCheckSchedul
         // Replacing a running job cancels it; it re-arms itself when it ends.
         if (pending.any { it.state == WorkInfo.State.RUNNING }) return
         // A queued job that fires no later is kept: a process started for it would otherwise push
-        // it back on every start. One that fires early only checks once more.
-        val keep = at != null && pending.any {
-            it.state == WorkInfo.State.ENQUEUED && it.nextScheduleTimeMillis <= at.toEpochMilliseconds()
-        }
+        // it back on every start. One that fires early only checks once more. An overdue one is kept
+        // even when nothing is due: WorkManager may have started this process to run it, before it
+        // reads as running, and it re-arms itself.
+        val keepBy = maxOf(at?.toEpochMilliseconds() ?: 0L, nowMillis())
+        val keep = pending.any { it.state == WorkInfo.State.ENQUEUED && it.nextScheduleTimeMillis <= keepBy }
         if (!keep) workManager.armScheduleCheck(at)
     }
 }
+
+private fun nowMillis() = Clock.System.now().toEpochMilliseconds()
 
 /** Resolves from Koin like `ReplyWatchWorker`, and arms the next check as it ends. */
 @Suppress("NoKoinComponentInterface", "NoInjectDelegate") // see KDoc

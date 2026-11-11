@@ -21,8 +21,8 @@ import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.getString
 import java.util.Locale
 
-internal const val REPLIES_CHANNEL_ID = "replies"
-internal const val SCHEDULED_CHANNEL_ID = "scheduled"
+private const val REPLIES_CHANNEL_ID = "replies"
+private const val SCHEDULED_CHANNEL_ID = "scheduled"
 private const val NOTIFICATION_ID = 1
 
 /** Each topic's channel and tag prefix. A posted notification is `notify(<prefix><key>, 1)`. */
@@ -43,6 +43,9 @@ private enum class Channel(
         Res.string.channel_scheduled, Res.string.channel_scheduled_description, Res.string.scheduled_public_body,
     ),
 }
+
+internal val NotificationTopic.channelId: String
+    get() = Channel.entries.first { it.topic == this }.id
 
 class AndroidNotifier(
     private val context: Context,

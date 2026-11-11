@@ -60,24 +60,33 @@ class AndroidNotificationPermission(
         _status.value = read()
     }
 
+    // Not from [status]: a channel appears on its first post, so with Replies off and no Scheduled
+    // channel yet, [status] reads Off while scheduled chats can still show.
+    override fun allows(topic: NotificationTopic): Boolean = manager.areNotificationsEnabled() && !blocked(topic)
+
+    /** A channel exists once something posted to it; a missing one is not off. */
+    private fun blocked(topic: NotificationTopic): Boolean =
+        manager.getNotificationChannelCompat(topic.channelId)?.importance == NotificationManagerCompat.IMPORTANCE_NONE
+
+    /** Off when every topic's channel the user has seen is turned off, not just one of them. */
     private fun read(): NotificationPermissionStatus {
-        val repliesBlocked = manager.getNotificationChannelCompat(REPLIES_CHANNEL_ID)
-            ?.importance == NotificationManagerCompat.IMPORTANCE_NONE
+        val created = NotificationTopic.entries.filter { manager.getNotificationChannelCompat(it.channelId) != null }
+        val allBlocked = created.isNotEmpty() && created.all(::blocked)
         return when {
-            manager.areNotificationsEnabled() && !repliesBlocked -> NotificationPermissionStatus.Allowed
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !promptShown && !repliesBlocked ->
+            manager.areNotificationsEnabled() && !allBlocked -> NotificationPermissionStatus.Allowed
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !promptShown && !allBlocked ->
                 NotificationPermissionStatus.NotAsked
             else -> NotificationPermissionStatus.Off
         }
     }
 
-    /** The Replies channel's page when only it is off, else the app's notification page. */
+    /** The turned-off channel's page when notifications are on but one channel is off, else the app's page. */
     override fun openSystemSettings() {
-        val channelOnly = manager.areNotificationsEnabled() &&
-            manager.getNotificationChannelCompat(REPLIES_CHANNEL_ID) != null
-        val intent = if (channelOnly) {
+        val offChannel = NotificationTopic.entries.filter(::blocked).singleOrNull()
+            ?.takeIf { manager.areNotificationsEnabled() }
+        val intent = if (offChannel != null) {
             Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
-                .putExtra(Settings.EXTRA_CHANNEL_ID, REPLIES_CHANNEL_ID)
+                .putExtra(Settings.EXTRA_CHANNEL_ID, offChannel.channelId)
         } else {
             Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
         }
@@ -119,7 +128,9 @@ actual fun rememberNotificationPermissionRequest(onResult: (allowed: Boolean) ->
                     activity?.shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS) == true
                 )
             when {
-                status == NotificationPermissionStatus.Allowed -> currentOnResult(true)
+                // Allowed with one topic's channel off: only that channel's page can turn it on.
+                status == NotificationPermissionStatus.Allowed && NotificationTopic.entries.all(permission::allows) ->
+                    currentOnResult(true)
                 systemWillPrompt -> {
                     scope.launch { (permission as? AndroidNotificationPermission)?.markPromptShown() }
                     launcher.launch(Manifest.permission.POST_NOTIFICATIONS)

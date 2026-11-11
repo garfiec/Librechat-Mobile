@@ -161,7 +161,7 @@ private final class BackgroundAssertion: @unchecked Sendable {
 /// `expirationHandler` fires on the system's own queue, so the handle is guarded rather than merely
 /// stored — and a cancellation that lands before the work is assigned is remembered, so it cannot be
 /// lost in the gap between installing the handler and starting the task.
-private final class CancellableWork: @unchecked Sendable {
+final class CancellableWork: @unchecked Sendable {
 
     private let lock = NSLock()
     private var task: Task<Void, Never>?
