@@ -21,16 +21,20 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlin.time.Clock
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 
 /** Wakes the app to check the schedules. One pending wake-up: a newer one replaces it. */
 interface ScheduleCheckScheduler {
     /**
-     * Wakes the app at [at], or at no time when null. Leaves a check that is running alone: the job
-     * re-arms from [ScheduledRunWatcher.check]'s result when it ends.
+     * Wakes the app at [at]; null cancels a queued check, except on Android one already due. Leaves
+     * a check that is running alone: the job re-arms from [ScheduledRunWatcher.check]'s result when
+     * it ends.
      */
     suspend fun arm(at: Instant?)
 }
@@ -43,6 +47,12 @@ internal val SETTLE_POLL: Duration = 2.minutes
 
 /** A run not settled after this long is left alone: it is not one the user is waiting on. */
 internal val SETTLE_WINDOW: Duration = 30.minutes
+
+/** When to try again after a check that couldn't read the server and found nothing due soon. */
+internal val RETRY_AFTER_FAILURE: Duration = 30.minutes
+
+/** Failed reads are retried only this long after a run's time: a session expired or a server gone stays failing. */
+internal val RETRY_WINDOW: Duration = 12.hours
 
 /**
  * Announces scheduled chats' runs, and the server pausing a schedule, while the app isn't open on
@@ -64,13 +74,19 @@ class ScheduledRunWatcher(
     scope: CoroutineScope,
     private val clock: Clock = Clock.System,
 ) {
+    // One check at a time: two reading the same stored list would both announce the same run.
+    private val checking = Mutex()
+
     init {
+        // Arms, never cancels: a retry after a failed check is not in the stored list, and a process
+        // started for anything else would drop it. Only a check that read the server cancels.
         watchList.observe()
-            .onEach { list -> scheduler.arm(nextScheduleCheck(list, clock.now())) }
+            .onEach { list -> nextScheduleCheck(list, clock.now())?.let { scheduler.arm(it) } }
             .launchIn(scope)
 
         // Coming to the front checks: a schedule made on the web is watched from then on, and a run
-        // that ended while the app was closed is shown in the app rather than only marked seen.
+        // that ended while the app was closed is shown in the app rather than only marked seen. It
+        // arms what it returns, as the job does: a failed check's retry is not in the stored list.
         combine(
             foregroundSignal.isForeground,
             configRepository.startupConfig.map { isSchedulesEnabled(it?.interfaceConfig?.schedules) },
@@ -78,12 +94,14 @@ class ScheduledRunWatcher(
         ) { foreground, enabled, account -> account.takeIf { foreground && enabled } }
             .distinctUntilChanged()
             .filterNotNull()
-            .onEach { check() }
+            .onEach { scheduler.arm(check()) }
             .launchIn(scope)
     }
 
     /** Announces what changed since the stored list, and returns when to check next (null: never). */
-    suspend fun check(): Instant? {
+    suspend fun check(): Instant? = checking.withLock { checkOnce() }
+
+    private suspend fun checkOnce(): Instant? {
         // A process started just for this check is still loading the account.
         accounts.state.first { it !is AccountState.Warming }
         val account = accounts.currentAccountId() ?: return null
@@ -92,17 +110,33 @@ class ScheduledRunWatcher(
             watchList.clear(account)
             return null
         }
-        if (config != null) {
+        val after = if (config != null) {
             val before = watchList.snapshot(account)
-            val after = scheduleRepository.listSchedules().getOrNull()
-            if (after != null && accounts.currentAccountId() == account) {
-                scheduledRunNotices(before, after.schedules, account).forEach { announce(it) }
+            scheduleRepository.listSchedules().getOrNull()?.also { listed ->
+                if (accounts.currentAccountId() == account) {
+                    scheduledRunNotices(before, listed.schedules, account).forEach { announce(it) }
+                }
             }
+        } else {
+            null
         }
         // Offline, the stored list still says a run is due, which checks again soon.
-        val current = accounts.currentAccountId() ?: return null
-        return nextScheduleCheck(watchList.snapshot(current), clock.now())
+        return if (after == null) fallbackCheck() else nextFromStored()
     }
+
+    /**
+     * When to check next without reading the server: the stored list's time or a retry while a run
+     * is under [RETRY_WINDOW] old, whichever is sooner. A failed read long past a run's time would
+     * otherwise wait for another schedule's run, or stop checking until the app opens.
+     */
+    suspend fun fallbackCheck(): Instant? {
+        val stored = accounts.currentAccountId()?.let { watchList.snapshot(it) } ?: return null
+        val now = clock.now()
+        return listOfNotNull(nextScheduleCheck(stored, now), retryAfterFailure(stored, now)).minOrNull()
+    }
+
+    private suspend fun nextFromStored(): Instant? =
+        accounts.currentAccountId()?.let { nextScheduleCheck(watchList.snapshot(it), clock.now()) }
 
     private suspend fun announce(notice: ScheduledRunNotification) {
         val conversationId = notice.conversationId
@@ -179,3 +213,11 @@ internal fun nextScheduleCheck(schedules: List<WatchedSchedule>, now: Instant): 
             else -> null
         }
     }.minOrNull()
+
+internal fun retryAfterFailure(schedules: List<WatchedSchedule>, now: Instant): Instant? =
+    (now + RETRY_AFTER_FAILURE).takeIf {
+        schedules.any { schedule ->
+            val due = schedule.nextRunAt?.let { runCatching { Instant.parse(it) }.getOrNull() }
+            schedule.enabled && due != null && now - due < RETRY_WINDOW
+        }
+    }

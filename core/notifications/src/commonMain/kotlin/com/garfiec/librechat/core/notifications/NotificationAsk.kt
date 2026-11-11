@@ -17,7 +17,7 @@ enum class NotificationAskTrigger(val key: String, internal val topic: Notificat
 }
 
 /**
- * Whether to offer turning notifications on at a [NotificationAskTrigger]: only when they are off,
+ * Whether to offer turning notifications on at a [NotificationAskTrigger]: only when its kind can't show,
  * the server allows them, the user wants that trigger's kind, and this trigger hasn't been answered.
  * Each trigger asks once, whatever the answer, and nothing asks at launch: a feature calls
  * [shouldOffer] at its moment.
@@ -32,8 +32,8 @@ class NotificationAsk(
         configRepository.startupConfig,
         preferences.observe(trigger.topic.toggle),
         preferences.observe(AppPreferences.NotificationAsksAnswered),
-    ) { status, config, enabled, answered ->
-        status != NotificationPermissionStatus.Allowed &&
+    ) { _, config, enabled, answered ->
+        !permission.allows(trigger.topic) &&
             config != null && config.interfaceConfig.replyNotificationsAllowed &&
             enabled && trigger.key !in answered
     }

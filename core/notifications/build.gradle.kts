@@ -28,5 +28,10 @@ kotlin {
         commonTest.dependencies {
             implementation(libs.coroutines.test)
         }
+        named("androidUnitTest").dependencies {
+            implementation(libs.robolectric)
+            implementation(libs.android.test.core)
+            implementation(libs.work.testing)
+        }
     }
 }

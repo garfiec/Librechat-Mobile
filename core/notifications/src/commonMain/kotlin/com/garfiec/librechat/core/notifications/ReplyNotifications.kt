@@ -88,7 +88,7 @@ class ReplyNotifications(
             openConversationId = openConversation.openConversationId.value,
             enabled = preferences.observe(topic.toggle).first(),
             serverAllows = config != null && config.interfaceConfig.replyNotificationsAllowed,
-            systemAllows = permission.status.value == NotificationPermissionStatus.Allowed,
+            systemAllows = permission.allows(topic),
         )
         when (deliveryOf(notification, context)) {
             ReplyDelivery.System -> {
