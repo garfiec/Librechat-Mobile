@@ -20,6 +20,7 @@ import com.garfiec.librechat.core.ui.glass.GlassDefaults
 import com.garfiec.librechat.core.ui.glass.GlassMenuPortal
 import com.garfiec.librechat.core.ui.glass.LocalGlassSheetHost
 import com.garfiec.librechat.core.ui.theme.isLiquidGlass
+import com.garfiec.librechat.core.ui.theme.themeShapes
 
 /**
  * In Material, a menu that springs out of its corner nearest the anchor, in the app canvas
@@ -58,7 +59,7 @@ fun AdaptiveDropdownMenu(
             modifier = modifier,
             offset = offset,
             scrollState = scrollState,
-            shape = shape ?: AdaptiveMenuShape,
+            shape = shape ?: themeShapes().menu,
             containerColor = containerColor ?: MenuDefaults.containerColor,
             dragSelection = dragSelection,
             content = content,
@@ -73,7 +74,7 @@ fun AdaptiveDropdownMenu(
             offset = offset,
             scrollState = scrollState,
             properties = properties,
-            shape = shape ?: AdaptiveMenuShape,
+            shape = shape ?: themeShapes().menu,
             containerColor = containerColor ?: MenuDefaults.containerColor,
             dragSelection = dragSelection,
             content = content,
@@ -102,8 +103,8 @@ private val GlassMenuShadow = 12.dp
 internal val MenuBorderWidth = 1.dp
 
 /**
- * Every menu's corners, in both styles (glass uses it as `GlassDefaults.MenuShape`): rounder than
- * M3's 4dp `MenuDefaults.shape`, so a menu matches the app's cards and sheets. Clipped, so a row's
- * ripple stays inside.
+ * Liquid Glass menus' corners (`GlassDefaults.MenuShape`), and Material's when the theme names no
+ * menu corner (`ThemeShapes.menu`): rounder than M3's 4dp `MenuDefaults.shape`, so a menu matches
+ * the app's cards and sheets. Clipped, so a row's ripple stays inside.
  */
 internal val AdaptiveMenuShape = RoundedCornerShape(16.dp)

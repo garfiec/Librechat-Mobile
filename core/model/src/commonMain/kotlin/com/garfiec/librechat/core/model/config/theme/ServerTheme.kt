@@ -8,14 +8,19 @@ import kotlinx.serialization.json.doubleOrNull
 /**
  * A server theme's colours as it names them, per mode, in 24-bit RGB, under the name people see (a
  * bundled theme's brand name, not its id). Roles this client doesn't know are already dropped and
- * renamed ones carried to their current name; [resolve] fills the rest.
+ * renamed ones carried to their current name; [resolve] fills the rest. The corners and fonts it
+ * names are in [lightAppearance] and [darkAppearance].
  */
 data class ServerThemeDefinition(
     val name: String,
     val light: Map<ThemeRole, Int>,
     val dark: Map<ThemeRole, Int>,
+    val lightAppearance: ServerThemeAppearance = ServerThemeAppearance.NONE,
+    val darkAppearance: ServerThemeAppearance = ServerThemeAppearance.NONE,
 ) {
     fun colors(dark: Boolean): Map<ThemeRole, Int> = if (dark) this.dark else light
+
+    fun appearance(dark: Boolean): ServerThemeAppearance = if (dark) darkAppearance else lightAppearance
 }
 
 /** What [readServerTheme] made of `interface.theme`. */
@@ -32,8 +37,9 @@ sealed interface ServerThemeRead {
  * Reads `interface.theme` (v0.8.9-rc1) the way the web's `resolveDeploymentTheme` does: a bundled
  * name (`bundledThemeNames` in upstream `packages/data-provider/src/theme.ts`), or an inline
  * definition that passes `collectThemeIssues`. Colour roles are validated exactly; `appearance` and
- * `brands` only for shape, since nothing reads them yet and the server already drops a theme whose
- * values it rejects. Mirrored by hand (scripts/mirrors.json: theme-definition-validation).
+ * `brands` only for shape, since the server already drops a theme whose values it rejects, and an
+ * appearance value the app can't read is left out. Mirrored by hand (scripts/mirrors.json:
+ * theme-definition-validation).
  */
 fun readServerTheme(theme: JsonElement?): ServerThemeRead = when {
     theme == null -> ServerThemeRead.None
@@ -44,7 +50,16 @@ fun readServerTheme(theme: JsonElement?): ServerThemeRead = when {
 
 private fun bundledTheme(name: String): ServerThemeRead = when (name) {
     LIBRECHAT -> ServerThemeRead.Theme(ServerThemeDefinition("LibreChat", light = emptyMap(), dark = emptyMap()))
-    CLICKHOUSE -> ServerThemeRead.Theme(ServerThemeDefinition("ClickHouse", ClickHousePalette.light, ClickHousePalette.dark))
+    CLICKHOUSE -> ServerThemeRead.Theme(
+        ServerThemeDefinition(
+            name = "ClickHouse",
+            light = ClickHousePalette.light,
+            dark = ClickHousePalette.dark,
+            // Both modes share Click UI's shape.
+            lightAppearance = readAppearance(ClickHousePalette.appearance),
+            darkAppearance = readAppearance(ClickHousePalette.appearance),
+        ),
+    )
     else -> invalid("Unknown bundled theme \"$name\"")
 }
 
@@ -63,7 +78,15 @@ private fun readInline(theme: JsonObject): ServerThemeRead {
     val light = readMode(LIGHT, modes[LIGHT], issues)
     val dark = readMode(DARK, modes[DARK], issues)
     return if (issues.isEmpty() && name != null) {
-        ServerThemeRead.Theme(ServerThemeDefinition(name, light, dark))
+        ServerThemeRead.Theme(
+            ServerThemeDefinition(
+                name = name,
+                light = light,
+                dark = dark,
+                lightAppearance = modeAppearance(modes[LIGHT]),
+                darkAppearance = modeAppearance(modes[DARK]),
+            ),
+        )
     } else {
         ServerThemeRead.Invalid(issues)
     }
@@ -94,6 +117,13 @@ private fun readMode(mode: String, definition: JsonElement?, issues: MutableList
         if (rgb == null) issues += "Invalid RGB value for $token: $value" else named[token] = rgb
     }
     return knownColors(named)
+}
+
+private fun modeAppearance(definition: JsonElement?): ServerThemeAppearance {
+    val appearance = (definition as? JsonObject)?.get("appearance") as? JsonObject ?: return ServerThemeAppearance.NONE
+    return readAppearance(
+        appearance.mapNotNull { (key, value) -> (value as? JsonPrimitive)?.takeIf { it.isString }?.let { key to it.content } }.toMap(),
+    )
 }
 
 /** Carries a renamed role to its current name unless that is named too, then keeps known roles only. */

@@ -23,7 +23,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.DisableSelection
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -57,6 +56,7 @@ import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.ui.components.AdaptiveDialog
 import com.garfiec.librechat.core.ui.theme.DiagramColors
 import com.garfiec.librechat.core.ui.theme.chatColors
+import com.garfiec.librechat.core.ui.theme.themeShapes
 import com.garfiec.librechat.feature.chat.components.web.rememberWebAssetBaseUrl
 import com.garfiec.librechat.feature.chat.components.web.safelyDestroyWebView
 import com.garfiec.librechat.feature.chat.resources.*
@@ -72,13 +72,14 @@ actual fun MermaidDiagram(
     var showFullscreen by remember { mutableStateOf(false) }
 
     val diagram = chatColors().diagram
+    val diagramShape = themeShapes().diagram
 
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clip(MermaidShape)
+            .clip(diagramShape)
             .background(diagram.canvas)
-            .border(1.dp, diagram.border, MermaidShape),
+            .border(1.dp, diagram.border, diagramShape),
     ) {
         // Header
         DisableSelection {
@@ -286,8 +287,6 @@ private fun MermaidWebView(
         onRelease = ::safelyDestroyWebView,
     )
 }
-
-private val MermaidShape = RoundedCornerShape(8.dp)
 
 private const val HEIGHT_TITLE_PREFIX = "height:"
 

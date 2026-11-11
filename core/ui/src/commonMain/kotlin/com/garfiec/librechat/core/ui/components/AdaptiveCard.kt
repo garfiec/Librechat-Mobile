@@ -21,6 +21,7 @@ import com.garfiec.librechat.core.ui.glass.LocalGlassBackdrop
 import com.garfiec.librechat.core.ui.glass.glassSurface
 import com.garfiec.librechat.core.ui.glass.rememberGlassStyle
 import com.garfiec.librechat.core.ui.theme.LocalDarkTheme
+import com.garfiec.librechat.core.ui.theme.themeShapes
 
 /**
  * In Liquid Glass, a glass panel over [LocalGlassBackdrop], for a card floating over content.
@@ -29,7 +30,7 @@ import com.garfiec.librechat.core.ui.theme.LocalDarkTheme
 @Composable
 fun AdaptiveCard(
     modifier: Modifier = Modifier,
-    shape: Shape = CardDefaults.shape,
+    shape: Shape = themeShapes().card,
     colors: CardColors = CardDefaults.cardColors(),
     content: @Composable ColumnScope.() -> Unit,
 ) {
@@ -55,7 +56,7 @@ fun AdaptiveCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    shape: Shape = CardDefaults.shape,
+    shape: Shape = themeShapes().card,
     colors: CardColors = CardDefaults.cardColors(),
     content: @Composable ColumnScope.() -> Unit,
 ) {

@@ -62,6 +62,7 @@ import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.ui.components.AdaptiveDialog
 import com.garfiec.librechat.core.ui.platform.currentTopmostViewController
 import com.garfiec.librechat.core.ui.theme.chatColors
+import com.garfiec.librechat.core.ui.theme.themeShapes
 import com.garfiec.librechat.feature.chat.components.web.loadVendoredHtml
 import com.garfiec.librechat.feature.chat.components.web.rememberWebAssetBaseUrl
 import com.garfiec.librechat.feature.chat.resources.*
@@ -464,13 +465,14 @@ actual fun MermaidDiagram(
     var showFullscreen by remember { mutableStateOf(false) }
 
     val diagram = chatColors().diagram
+    val diagramShape = themeShapes().diagram
 
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clip(MermaidShape)
+            .clip(diagramShape)
             .background(diagram.canvas)
-            .border(1.dp, diagram.border, MermaidShape),
+            .border(1.dp, diagram.border, diagramShape),
     ) {
         // Header
         DisableSelection {
@@ -635,8 +637,6 @@ private fun MermaidWKWebView(
         },
     )
 }
-
-private val MermaidShape = RoundedCornerShape(8.dp)
 
 private const val MERMAID_HEIGHT_HANDLER = "mermaidHeight"
 

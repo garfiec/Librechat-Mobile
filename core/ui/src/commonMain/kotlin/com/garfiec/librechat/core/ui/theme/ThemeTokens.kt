@@ -5,6 +5,7 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+import com.garfiec.librechat.core.model.config.theme.ServerThemeAppearance
 import com.garfiec.librechat.core.model.config.theme.ThemeRole
 import com.garfiec.librechat.core.model.files.FileKind
 
@@ -25,6 +26,7 @@ data class ThemeTokens(
     val chat: ChatColors,
     val chrome: ChromeColors,
     val page: PageColors,
+    val shapes: ThemeShapes,
 ) {
     init {
         require(series.size == SERIES_SLOTS) { "series needs $SERIES_SLOTS colours, got ${series.size}" }
@@ -50,6 +52,7 @@ data class ThemeTokens(
                 chat = ChatColors.switchboard(scheme, dark),
                 chrome = ChromeColors.switchboard(scheme),
                 page = PageColors.switchboard(scheme),
+                shapes = ThemeShapes.SWITCHBOARD,
             )
         }
 
@@ -57,7 +60,11 @@ data class ThemeTokens(
          * A server theme's tokens, from its colours resolved for one mode (24-bit RGB for every role).
          * File kinds the web has no role for keep Switchboard's fill.
          */
-        fun server(colors: Map<ThemeRole, Int>, dark: Boolean): ThemeTokens = ThemeTokens(
+        fun server(
+            colors: Map<ThemeRole, Int>,
+            dark: Boolean,
+            appearance: ServerThemeAppearance = ServerThemeAppearance.NONE,
+        ): ThemeTokens = ThemeTokens(
             status = StatusColors(
                 success = colors.color(ThemeRole.STATUS_SUCCESS),
                 info = colors.color(ThemeRole.STATUS_INFO),
@@ -72,6 +79,7 @@ data class ThemeTokens(
             chat = ChatColors.server(colors, dark),
             chrome = ChromeColors.server(colors),
             page = PageColors.server(colors),
+            shapes = ThemeShapes.of(appearance.corners),
         )
 
         private val SERVER_SERIES = listOf(

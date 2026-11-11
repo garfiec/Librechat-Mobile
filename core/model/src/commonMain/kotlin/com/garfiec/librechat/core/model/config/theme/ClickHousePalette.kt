@@ -350,4 +350,46 @@ internal object ClickHousePalette {
         ThemeRole.TABLE_HEADER_FILL to 0x282828,
         ThemeRole.PRESENTATION to 0x1F1F1C,
     )
+
+    /** Both modes' `appearance` (`clickHouseShape`), as written, for the keys the app reads. */
+    val appearance: Map<String, String> = mapOf(
+        "controlRadius" to "0.25rem",
+        "roundControlRadius" to "9999px",
+        "surfaceRadius" to "0.5rem",
+        "largeSurfaceRadius" to "0.75rem",
+        "menuRadius" to "0.25rem",
+        "composerActionRadius" to "0.25rem",
+        "radiusLg" to "0.25rem",
+        "radiusXl" to "0.5rem",
+        "radius2xl" to "0.5rem",
+        "fontFamily" to listOf(
+            "\"Inter\"",
+            "\"SF Pro Display\"",
+            "-apple-system",
+            "BlinkMacSystemFont",
+            "\"Segoe UI\"",
+            "Roboto",
+            "Oxygen",
+            "Ubuntu",
+            "Cantarell",
+            "\"Open Sans\"",
+            "\"Helvetica Neue\"",
+            "sans-serif",
+        ).joinToString(", "),
+        "displayFontFamily" to listOf(
+            "'Basier Square'",
+            "\"Inter\"",
+            "\"SF Pro Display\"",
+            "-apple-system",
+            "BlinkMacSystemFont",
+            "\"Segoe UI\"",
+            "Roboto",
+            "Oxygen",
+            "Ubuntu",
+            "Cantarell",
+            "\"Open Sans\"",
+            "\"Helvetica Neue\"",
+            "sans-serif",
+        ).joinToString(", "),
+    )
 }

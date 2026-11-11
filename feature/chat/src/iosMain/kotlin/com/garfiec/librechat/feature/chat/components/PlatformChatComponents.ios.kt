@@ -67,7 +67,6 @@ import com.garfiec.librechat.core.model.media.IconSource
 import com.garfiec.librechat.core.ui.components.AdaptiveDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AvatarImage
-import com.garfiec.librechat.core.ui.components.BubbleShape
 import com.garfiec.librechat.core.ui.components.EndpointAvatar
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
@@ -77,6 +76,7 @@ import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.core.ui.components.topbar.MaterialBarStyle
 import com.garfiec.librechat.core.ui.theme.chatColors
 import com.garfiec.librechat.core.ui.theme.isSurfaceDark
+import com.garfiec.librechat.core.ui.theme.themeShapes
 import com.garfiec.librechat.feature.chat.components.sendflight.sendFlightBubble
 import com.garfiec.librechat.feature.chat.components.sendflight.sendFlightHeader
 import com.garfiec.librechat.feature.chat.resources.Res
@@ -292,7 +292,11 @@ private fun ThreadBubble(
                 .padding(start = contentPad)
                 .then(sendFlightBubble(message.messageId, isUser))
                 .then(
-                    if (bubbleBg != null) Modifier.background(bubbleBg, BubbleShape).padding(12.dp) else Modifier,
+                    if (bubbleBg != null) {
+                        Modifier.background(bubbleBg, if (isUser) themeShapes().userBubble else themeShapes().bubble).padding(12.dp)
+                    } else {
+                        Modifier
+                    },
                 ),
         ) {
             MessageContentAndActions(
@@ -406,7 +410,7 @@ private fun TwoSidedBubble(
                 .then(sendFlightBubble(message.messageId, isUser))
                 .then(
                     if (effectiveBg != null) {
-                        Modifier.background(effectiveBg, BubbleShape).padding(12.dp)
+                        Modifier.background(effectiveBg, if (isUser) themeShapes().userBubble else themeShapes().bubble).padding(12.dp)
                     } else {
                         Modifier.padding(horizontal = 4.dp, vertical = 8.dp)
                     },
@@ -866,7 +870,7 @@ private fun IosMarkdownTableGrid(
     val cellPaddingV = 8.dp
 
     Box(
-        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).clip(MaterialTheme.shapes.small),
+        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).clip(themeShapes().table),
     ) {
         Column {
             // Per-cell occurrence base offsets, headers-first then rows row-major — the same order

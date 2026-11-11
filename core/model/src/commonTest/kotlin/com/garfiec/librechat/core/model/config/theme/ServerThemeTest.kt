@@ -26,6 +26,8 @@ class ServerThemeTest {
         assertEquals("acme", definition.name)
         assertEquals(mapOf(ThemeRole.SURFACE_PRIMARY to 0xF0F4FF), definition.light)
         assertEquals(mapOf(ThemeRole.SURFACE_PRIMARY to 0x0C1020), definition.dark)
+        assertEquals(mapOf(ThemeCorner.CONTROL to 4f), definition.lightAppearance.corners)
+        assertEquals(ServerThemeAppearance.NONE, definition.darkAppearance)
     }
 
     @Test
@@ -34,6 +36,10 @@ class ServerThemeTest {
         assertEquals("ClickHouse", definition.name)
         assertEquals(ThemeRole.entries.toSet(), definition.light.keys)
         assertEquals(ThemeRole.entries.toSet(), definition.dark.keys)
+        // Click UI's square corners and its sans stacks, in both modes.
+        assertEquals(4f, definition.lightAppearance.corners[ThemeCorner.CONTROL])
+        assertEquals(12f, definition.darkAppearance.corners[ThemeCorner.LARGE_SURFACE])
+        assertEquals(GenericFontFamily.SANS, definition.lightAppearance.fonts[ThemeFont.DISPLAY])
     }
 
     @Test

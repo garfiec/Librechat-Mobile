@@ -89,6 +89,7 @@ import com.garfiec.librechat.core.ui.components.topbar.BarIcons
 import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
 import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.core.ui.components.topbar.MaterialBarStyle
+import com.garfiec.librechat.core.ui.theme.themeShapes
 import com.garfiec.librechat.feature.agents.AgentCardDisplayData
 import com.garfiec.librechat.feature.agents.components.agentCategoryLabel
 import com.garfiec.librechat.feature.agents.components.categoryValueLabel
@@ -109,7 +110,6 @@ import org.koin.compose.viewmodel.koinViewModel
 
 // One column on phones; two once each would still be this wide (tablets, an unfolded Fold).
 private val AgentCardMinWidth = 300.dp
-private val CardShape = RoundedCornerShape(16.dp)
 private const val PLACEHOLDER_COUNT = 4
 
 /** The Top pick star; the meta line is never shorter than it. */
@@ -591,7 +591,7 @@ internal fun AgentCard(
     AdaptiveCard(
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
-        shape = CardShape,
+        shape = themeShapes().card,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
     ) {
         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.Top) {
@@ -675,7 +675,7 @@ internal fun AgentCardPlaceholder() {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(CardShape)
+            .clip(themeShapes().card)
             .background(MaterialTheme.colorScheme.surfaceContainer)
             .padding(12.dp),
     ) {

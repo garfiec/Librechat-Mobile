@@ -75,6 +75,7 @@ import com.garfiec.librechat.core.ui.components.fileTypeSubtitle
 import com.garfiec.librechat.core.ui.components.scrollFadingEdges
 import com.garfiec.librechat.core.ui.media.mediaThumbnail
 import com.garfiec.librechat.core.ui.theme.isLiquidGlass
+import com.garfiec.librechat.core.ui.theme.themeShapes
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_cancel_upload
 import com.garfiec.librechat.feature.chat.resources.cd_draft_stack
@@ -223,7 +224,7 @@ private fun DraftStripItem(
             },
     ) {
         val body = Modifier
-            .clip(ItemShape)
+            .clip(themeShapes().fileChip)
             .then(
                 if (tap != null) {
                     Modifier.clickable(onClickLabel = tapLabel, role = Role.Button) { onTap(tap) }
@@ -238,7 +239,7 @@ private fun DraftStripItem(
                     .size(IMAGE_TILE)
                     .semantics { contentDescription = "$label, $subtitle" },
             ) {
-                DraftItemTile(item = item, size = IMAGE_TILE, shape = ItemShape)
+                DraftItemTile(item = item, size = IMAGE_TILE, shape = themeShapes().fileChip)
                 if (uploading) UploadOverlay({ uploadProgress.of(item.file) }, IMAGE_TILE)
                 if (failed) FailedCover()
             }
@@ -269,8 +270,8 @@ private fun DraftCard(
     val glass = isLiquidGlass
     val container = if (glass) AdaptiveChipDefaults.overlayContainerColor() else MaterialTheme.colorScheme.surfaceContainerHighest
     val edge = when {
-        failed -> Modifier.border(2.dp, MaterialTheme.colorScheme.error, ItemShape)
-        glass -> Modifier.border(1.dp, MaterialTheme.colorScheme.outlineVariant, ItemShape)
+        failed -> Modifier.border(2.dp, MaterialTheme.colorScheme.error, themeShapes().fileChip)
+        glass -> Modifier.border(1.dp, MaterialTheme.colorScheme.outlineVariant, themeShapes().fileChip)
         else -> Modifier
     }
     Row(
@@ -313,8 +314,8 @@ private fun FailedCover() {
     Box(
         modifier = Modifier
             .size(IMAGE_TILE)
-            .background(error.copy(alpha = FAILED_SCRIM_ALPHA), ItemShape)
-            .border(2.dp, error, ItemShape),
+            .background(error.copy(alpha = FAILED_SCRIM_ALPHA), themeShapes().fileChip)
+            .border(2.dp, error, themeShapes().fileChip),
         contentAlignment = Alignment.Center,
     ) {
         FixedScaleText(text = "!", color = MaterialTheme.colorScheme.onError, style = MaterialTheme.typography.titleLarge)
@@ -497,7 +498,6 @@ private fun removeDescription(item: DraftItem): String = when (item) {
 }
 
 private val TileShape = RoundedCornerShape(8.dp)
-private val ItemShape = RoundedCornerShape(12.dp)
 
 private val IMAGE_TILE = 56.dp
 private val CARD_TILE = 32.dp

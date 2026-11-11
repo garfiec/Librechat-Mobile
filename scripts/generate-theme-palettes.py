@@ -117,9 +117,38 @@ enum class ThemeRole(val token: String, val libreChatLight: Int, val libreChatDa
 """
 
 
-def clickhouse_kt(tokens, light, dark, commit) -> str:
+def appearance_keys() -> list[str]:
+    """The `appearance` keys the app reads: the keys of the enums in ServerThemeAppearance.kt."""
+    source = (OUT_DIR / "ServerThemeAppearance.kt").read_text()
+    return re.findall(r'^\s+[A-Z0-9_]+\("([A-Za-z0-9]+)"\),?$', source, re.M)
+
+
+def shape(source: str, keys: list[str]) -> dict[str, str]:
+    """`clickHouseShape`'s string values for the [keys] it names, in the order the app lists them."""
+    body = block(source, "const clickHouseShape = {", "\n};")
+    values = {}
+    for key, single, double in re.findall(r"^\s+(\w+):\s*(?:'((?:[^'\\]|\\.)*)'|\"([^\"]*)\")", body, re.M):
+        values[key] = (single.replace("\\'", "'") if single else double)
+    return {k: values[k] for k in keys if k in values}
+
+
+def kotlin_string(value: str) -> str:
+    return '"' + value.replace("\\", "\\\\").replace('"', '\\"').replace("$", "\\$") + '"'
+
+
+def clickhouse_kt(tokens, light, dark, appearance, commit) -> str:
     def rows(values):
         return "\n".join(f"        ThemeRole.{constant(t)} to {hex6(values[t])}," for t in tokens)
+
+    def shape_row(key: str, value: str) -> str:
+        if len(value) <= 70:
+            return f"        {kotlin_string(key)} to {kotlin_string(value)},"
+        # A long font stack, one family per line, so no line runs past the style limit.
+        parts = [p.strip() for p in value.split(",")]
+        joined = ",\n".join(f"            {kotlin_string(p)}" for p in parts)
+        return f"        {kotlin_string(key)} to listOf(\n{joined},\n        ).joinToString(\", \"),"
+
+    shape_rows = "\n".join(shape_row(k, v) for k, v in appearance.items())
 
     return HEADER.format(commit=commit, package=PACKAGE) + f"""
 /**
@@ -133,6 +162,11 @@ internal object ClickHousePalette {{
 
     val dark: Map<ThemeRole, Int> = mapOf(
 {rows(dark)}
+    )
+
+    /** Both modes' `appearance` (`clickHouseShape`), as written, for the keys the app reads. */
+    val appearance: Map<String, String> = mapOf(
+{shape_rows}
     )
 }}
 """
@@ -160,11 +194,12 @@ def main() -> None:
     clickhouse = read("packages/client/src/theme/themes/clickhouse.ts")
     ch_light = palette(clickhouse, "export const clickHouseLightTheme", tokens, "clickhouse light")
     ch_dark = palette(clickhouse, "export const clickHouseDarkTheme", tokens, "clickhouse dark")
+    ch_shape = shape(clickhouse, appearance_keys())
     commit = upstream_commit()
 
     outputs = {
         OUT_DIR / "ThemeRole.kt": theme_role_kt(tokens, renames, stock_light, stock_dark, commit),
-        OUT_DIR / "ClickHousePalette.kt": clickhouse_kt(tokens, ch_light, ch_dark, commit),
+        OUT_DIR / "ClickHousePalette.kt": clickhouse_kt(tokens, ch_light, ch_dark, ch_shape, commit),
     }
     stale = [path for path, text in outputs.items() if not path.exists() or path.read_text() != text]
     if args.check:
