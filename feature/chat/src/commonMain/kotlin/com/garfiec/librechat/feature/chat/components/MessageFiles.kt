@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material.icons.outlined.Schedule
@@ -39,6 +38,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicato
 import com.garfiec.librechat.core.ui.components.FileTypeChip
 import com.garfiec.librechat.core.ui.components.fileTypeSubtitle
 import com.garfiec.librechat.core.ui.media.mediaThumbnail
+import com.garfiec.librechat.core.ui.theme.themeShapes
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import org.jetbrains.compose.resources.stringResource
@@ -133,7 +133,7 @@ internal fun MessageImagePreview(
         modifier = modifier
             .widthIn(max = 300.dp)
             .heightIn(max = 300.dp)
-            .mediaThumbnail(imageUrl, RoundedCornerShape(12.dp))
+            .mediaThumbnail(imageUrl, themeShapes().fileChip)
             .clickable { openMedia(imageUrl) }
             .semantics {
                 role = Role.Image
@@ -146,7 +146,7 @@ internal fun MessageImagePreview(
                     .height(120.dp)
                     .background(
                         MaterialTheme.colorScheme.surfaceContainerHigh,
-                        RoundedCornerShape(12.dp),
+                        themeShapes().fileChip,
                     ),
                 contentAlignment = Alignment.Center,
             ) {
@@ -160,7 +160,7 @@ internal fun MessageImagePreview(
                     .height(120.dp)
                     .background(
                         MaterialTheme.colorScheme.surfaceContainerHigh,
-                        RoundedCornerShape(12.dp),
+                        themeShapes().fileChip,
                     ),
                 contentAlignment = Alignment.Center,
             ) {

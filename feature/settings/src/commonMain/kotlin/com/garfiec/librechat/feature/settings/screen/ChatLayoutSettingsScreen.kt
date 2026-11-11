@@ -38,9 +38,9 @@ import com.garfiec.librechat.core.data.datastore.ChatFontSize
 import com.garfiec.librechat.core.data.datastore.ChatHeaderAlignment
 import com.garfiec.librechat.core.data.datastore.ChatHeaderContent
 import com.garfiec.librechat.core.ui.components.AvatarImage
-import com.garfiec.librechat.core.ui.components.BubbleShape
 import com.garfiec.librechat.core.ui.components.EndpointAvatar
 import com.garfiec.librechat.core.ui.components.adaptiveSection
+import com.garfiec.librechat.core.ui.theme.themeShapes
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.viewmodel.ChatLayoutSettingsUiState
@@ -299,7 +299,7 @@ private fun ThreadSample(
         Column(
             modifier = Modifier
                 .padding(start = if (showAvatars) 36.dp else 0.dp)
-                .then(if (bubble != null) Modifier.background(bubble, BubbleShape).padding(12.dp) else Modifier),
+                .then(if (bubble != null) Modifier.background(bubble, themeShapes().bubble).padding(12.dp) else Modifier),
         ) {
             Text(text = message.text, style = bodyStyle, color = MaterialTheme.colorScheme.onSurface)
         }
@@ -330,7 +330,7 @@ private fun TwoSidedSample(
                 .weight(1f)
                 .then(
                     if (bubble != null) {
-                        Modifier.background(bubble, BubbleShape).padding(12.dp)
+                        Modifier.background(bubble, themeShapes().bubble).padding(12.dp)
                     } else {
                         Modifier.padding(horizontal = 4.dp, vertical = 8.dp)
                     },

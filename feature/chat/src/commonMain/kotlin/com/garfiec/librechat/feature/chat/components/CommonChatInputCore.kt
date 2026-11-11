@@ -89,6 +89,7 @@ import com.garfiec.librechat.core.ui.glass.glassSurface
 import com.garfiec.librechat.core.ui.glass.rememberGlassStyle
 import com.garfiec.librechat.core.ui.theme.chatColors
 import com.garfiec.librechat.core.ui.theme.isLiquidGlass
+import com.garfiec.librechat.core.ui.theme.themeShapes
 import com.garfiec.librechat.feature.chat.components.veil.LocalComposerFlare
 import com.garfiec.librechat.feature.chat.components.veil.retonedSurface
 import com.garfiec.librechat.feature.chat.model.ComposerPickerItem
@@ -303,6 +304,7 @@ fun CommonChatInputCore(
             val boxBorder = ChatInputDefaults.borderColor
             val boxFocusedBorder = chatColors().composerBorderFocused
             val temporaryAccent = ChatInputDefaults.temporaryAccent
+            val composerShape = themeShapes().composer
             var boxFocused by remember { mutableStateOf(false) }
             BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
                 // Below a 360dp screen the during-run caret folds into the send button, so the
@@ -316,14 +318,14 @@ fun CommonChatInputCore(
                         .then(
                             if (glass != null) {
                                 Modifier
-                                    .glassSurface(glass, ComposerBoxShape, glassBackdrop, flare = LocalComposerFlare.current)
+                                    .glassSurface(glass, composerShape, glassBackdrop, flare = LocalComposerFlare.current)
                                     .drawBehind {
                                         val amount = temporaryAmount.value
                                         if (amount > 0f) {
-                                            val outline = ComposerBoxShape.createOutline(size, layoutDirection, this)
+                                            val outline = composerShape.createOutline(size, layoutDirection, this)
                                             drawOutline(outline, temporaryWash.copy(alpha = temporaryWash.alpha * amount))
                                             drawInsetOutlineStroke(
-                                                ComposerBoxShape,
+                                                composerShape,
                                                 temporaryBorder.copy(alpha = temporaryBorder.alpha * amount),
                                                 1.dp.toPx(),
                                             )
@@ -332,14 +334,14 @@ fun CommonChatInputCore(
                             } else {
                                 Modifier.drawBehind {
                                     val amount = temporaryAmount.value
-                                    val outline = ComposerBoxShape.createOutline(size, layoutDirection, this)
+                                    val outline = composerShape.createOutline(size, layoutDirection, this)
                                     drawOutline(outline, lerp(boxFill, temporaryWash.compositeOver(boxFill), amount))
                                     val border = if (boxFocused) {
                                         lerp(boxFocusedBorder, temporaryAccent, amount)
                                     } else {
                                         lerp(boxBorder, temporaryBorder.compositeOver(boxFill), amount)
                                     }
-                                    drawInsetOutlineStroke(ComposerBoxShape, border, 1.dp.toPx())
+                                    drawInsetOutlineStroke(composerShape, border, 1.dp.toPx())
                                 }
                             },
                         )
@@ -613,8 +615,6 @@ private fun ComposerButtonRow(
     }
 }
 
-private val ComposerBoxShape = RoundedCornerShape(28.dp)
-
 /** The box's round buttons: 40dp drawn, a 48dp touch target from Compose's touch-bounds expansion. */
 internal val BoxButtonSize = 40.dp
 
@@ -733,6 +733,7 @@ fun SendStopButton(
     )
     // On the slot, not each button, so a send's bounce survives the swap to Stop.
     val bounce = rememberPressBounce()
+    val actionShape = themeShapes().composerAction
     val bounces = !isLiquidGlass && (canSend || (mode != SendButtonMode.SEND && mode != SendButtonMode.UPDATE))
     AnimatedContent(
         targetState = mode,
@@ -748,6 +749,7 @@ fun SendStopButton(
                 modifier = Modifier.size(buttonSize),
                 enabled = canSend,
                 colors = ChatInputDefaults.sendButtonColors(),
+                shape = actionShape,
             ) {
                 Icon(
                     imageVector = Icons.Default.Check,
@@ -759,6 +761,7 @@ fun SendStopButton(
                 onClick = onUpdate,
                 modifier = Modifier.size(buttonSize),
                 colors = ChatInputDefaults.sendButtonColors(MaterialTheme.colorScheme.error),
+                shape = actionShape,
             ) {
                 Icon(
                     imageVector = Icons.Default.Delete,
@@ -770,6 +773,7 @@ fun SendStopButton(
                 onClick = onCancelPendingSend,
                 modifier = Modifier.size(buttonSize),
                 colors = ChatInputDefaults.sendButtonColors(),
+                shape = actionShape,
             ) {
                 // Spinner (upload still in flight) with a small ✕ so it reads as "tap to cancel".
                 Box(contentAlignment = Alignment.Center) {
@@ -790,6 +794,7 @@ fun SendStopButton(
                 onClick = onStop,
                 modifier = Modifier.size(buttonSize),
                 colors = ChatInputDefaults.stopButtonColors(),
+                shape = actionShape,
             ) {
                 Icon(
                     imageVector = Icons.Default.Stop,
@@ -802,6 +807,7 @@ fun SendStopButton(
                 onClick = onQueue,
                 modifier = Modifier.size(buttonSize),
                 colors = ChatInputDefaults.sendButtonColors(),
+                shape = actionShape,
             ) {
                 DuringRunSendIcon(
                     imageVector = Icons.AutoMirrored.Filled.PlaylistAdd,
@@ -814,6 +820,7 @@ fun SendStopButton(
                 onClick = onQueue,
                 modifier = Modifier.size(buttonSize),
                 colors = ChatInputDefaults.sendButtonColors(),
+                shape = actionShape,
             ) {
                 DuringRunSendIcon(
                     imageVector = Icons.Default.Bolt,
@@ -826,6 +833,7 @@ fun SendStopButton(
                 onClick = onQueue,
                 modifier = Modifier.size(buttonSize),
                 colors = ChatInputDefaults.sendButtonColors(),
+                shape = actionShape,
             ) {
                 DuringRunSendIcon(
                     imageVector = Icons.Default.FlashOff,
@@ -841,6 +849,7 @@ fun SendStopButton(
                 onClick = onQueue,
                 modifier = Modifier.size(buttonSize),
                 colors = ChatInputDefaults.sendButtonColors(),
+                shape = actionShape,
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.Send,
@@ -853,6 +862,7 @@ fun SendStopButton(
                 modifier = Modifier.size(buttonSize),
                 enabled = canSend,
                 colors = ChatInputDefaults.sendButtonColors(),
+                shape = actionShape,
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.Send,

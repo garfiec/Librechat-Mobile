@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.DisableSelection
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -52,6 +51,7 @@ import androidx.compose.ui.unit.sp
 import com.garfiec.librechat.core.ui.theme.SyntaxColors
 import com.garfiec.librechat.core.ui.theme.chatColors
 import com.garfiec.librechat.core.ui.theme.isSurfaceDark
+import com.garfiec.librechat.core.ui.theme.themeShapes
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.util.rememberClipboardWriter
@@ -102,7 +102,7 @@ fun CodeBlock(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
+            .clip(themeShapes().codeBlock)
             .background(chatColors().codeBody)
             .semantics {
                 contentDescription = blockCd

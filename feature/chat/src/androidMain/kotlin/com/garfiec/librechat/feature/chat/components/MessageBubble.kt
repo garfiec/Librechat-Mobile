@@ -30,9 +30,9 @@ import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.MinimalFeedback
 import com.garfiec.librechat.core.model.media.IconSource
 import com.garfiec.librechat.core.ui.components.AvatarImage
-import com.garfiec.librechat.core.ui.components.BubbleShape
 import com.garfiec.librechat.core.ui.components.EndpointAvatar
 import com.garfiec.librechat.core.ui.theme.chatColors
+import com.garfiec.librechat.core.ui.theme.themeShapes
 import com.garfiec.librechat.feature.chat.components.sendflight.sendFlightBubble
 import com.garfiec.librechat.feature.chat.components.sendflight.sendFlightHeader
 import com.garfiec.librechat.feature.chat.resources.*
@@ -280,7 +280,7 @@ private fun ThreadMessageBubble(
                         Modifier
                             .background(
                                 color = threadBubbleBackground,
-                                shape = BubbleShape,
+                                shape = if (isUser) themeShapes().userBubble else themeShapes().bubble,
                             )
                             .padding(12.dp)
                     } else {
@@ -433,7 +433,7 @@ private fun TwoSidedMessageBubble(
                         Modifier
                             .background(
                                 color = effectiveBubbleBackground,
-                                shape = BubbleShape,
+                                shape = if (isUser) themeShapes().userBubble else themeShapes().bubble,
                             )
                             .padding(12.dp)
                     } else {

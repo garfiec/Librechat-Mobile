@@ -33,13 +33,13 @@ import com.garfiec.librechat.core.common.datetime.messageLabel
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AdaptiveRadioButton
 import com.garfiec.librechat.core.ui.components.AdaptiveSectionHeader
-import com.garfiec.librechat.core.ui.components.BubbleShape
 import com.garfiec.librechat.core.ui.components.adaptiveSection
 import com.garfiec.librechat.core.ui.datetime.LocalDateTimeFormat
 import com.garfiec.librechat.core.ui.datetime.LocalRelativeTimeReference
 import com.garfiec.librechat.core.ui.datetime.rememberDateLocaleTag
 import com.garfiec.librechat.core.ui.datetime.rememberSystemIs24Hour
 import com.garfiec.librechat.core.ui.datetime.resolve
+import com.garfiec.librechat.core.ui.theme.themeShapes
 import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.resources.chat_appearance_sample_answer
 import com.garfiec.librechat.feature.settings.resources.chat_appearance_sample_question
@@ -211,7 +211,7 @@ private fun PreviewMessage(isUser: Boolean, text: String, timestamp: String) {
                 .wrapContentWidth(alignment)
                 .background(
                     if (isUser) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceVariant,
-                    BubbleShape,
+                    themeShapes().bubble,
                 )
                 .padding(horizontal = 12.dp, vertical = 8.dp),
         )

@@ -22,16 +22,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.common.ChatLayoutConstants
 import com.garfiec.librechat.core.model.media.IconSource
-import com.garfiec.librechat.core.ui.components.BubbleShape
 import com.garfiec.librechat.core.ui.components.EndpointAvatar
+import com.garfiec.librechat.core.ui.theme.themeShapes
 import com.garfiec.librechat.feature.chat.components.sendflight.sendFlightReplyBody
 import com.garfiec.librechat.feature.chat.components.sendflight.sendFlightReplyHeader
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_assistant_responding
 import com.garfiec.librechat.feature.chat.resources.cd_generating_response
 import org.jetbrains.compose.resources.stringResource
-
-// Shared BubbleShape is imported from MessageBubble.kt
 
 /**
  * Dedicated composable for rendering a message that is currently being streamed.
@@ -156,7 +154,7 @@ private fun ThreadStreamingBubble(
                         Modifier
                             .background(
                                 color = MaterialTheme.colorScheme.surfaceVariant,
-                                shape = BubbleShape,
+                                shape = themeShapes().bubble,
                             )
                             .padding(12.dp)
                     } else {
@@ -240,7 +238,7 @@ private fun TwoSidedStreamingBubble(
                         Modifier
                             .background(
                                 color = MaterialTheme.colorScheme.surfaceVariant,
-                                shape = BubbleShape,
+                                shape = themeShapes().bubble,
                             )
                             .padding(12.dp)
                     } else {

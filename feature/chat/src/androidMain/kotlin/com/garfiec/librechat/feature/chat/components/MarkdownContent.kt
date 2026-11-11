@@ -63,6 +63,7 @@ import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.core.ui.components.topbar.MaterialBarStyle
 import com.garfiec.librechat.core.ui.theme.chatColors
 import com.garfiec.librechat.core.ui.theme.isSurfaceDark
+import com.garfiec.librechat.core.ui.theme.themeShapes
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.mikepenz.markdown.m3.markdownColor
@@ -499,7 +500,7 @@ private fun MarkdownTableGrid(
         modifier = Modifier
             .fillMaxWidth()
             .horizontalScroll(rememberScrollState())
-            .clip(MaterialTheme.shapes.small),
+            .clip(themeShapes().table),
     ) {
         Column {
             // Per-cell occurrence base offsets, headers-first then rows row-major — the same order

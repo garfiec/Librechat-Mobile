@@ -3,6 +3,7 @@ package com.garfiec.librechat.core.ui.theme
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Typography
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
@@ -73,7 +74,7 @@ fun LibreChatTheme(
     ) {
         MaterialTheme(
             colorScheme = colors.scheme,
-            typography = libreChatTypography,
+            typography = colors.typography,
             shapes = libreChatShapes,
             content = content,
         )
@@ -100,14 +101,14 @@ fun ThemePreview(
     ) {
         MaterialTheme(
             colorScheme = colors.scheme,
-            typography = libreChatTypography,
+            typography = colors.typography,
             shapes = libreChatShapes,
             content = content,
         )
     }
 }
 
-private class ThemeColors(val scheme: ColorScheme, val tokens: ThemeTokens)
+private class ThemeColors(val scheme: ColorScheme, val tokens: ThemeTokens, val typography: Typography = libreChatTypography)
 
 /** The scheme and tokens for these settings, by the precedence [LibreChatTheme] documents. */
 @Composable
@@ -120,7 +121,12 @@ private fun rememberThemeColors(
     if (serverTheme != null) {
         return remember(serverTheme, darkTheme) {
             val colors = serverTheme.resolve(darkTheme)
-            ThemeColors(serverColorScheme(colors, darkTheme), ThemeTokens.server(colors, darkTheme))
+            val appearance = serverTheme.appearance(darkTheme)
+            ThemeColors(
+                scheme = serverColorScheme(colors, darkTheme),
+                tokens = ThemeTokens.server(colors, darkTheme, appearance),
+                typography = libreChatTypography.withFonts(appearance),
+            )
         }
     }
     val scheme = rememberLibreChatColorScheme(darkTheme, accentColor, useDynamicColor)

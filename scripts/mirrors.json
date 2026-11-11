@@ -7008,8 +7008,64 @@
         "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/config/theme/ClickHousePalette.kt",
         "symbol": "ClickHousePalette"
       },
-      "why": "The bundled `clickhouse` theme lives in the web client, never on the wire: a server naming it sends only the name. Watches the whole file, since the light and dark maps and the appearance (not yet read) are all here. Generated: rerun scripts/generate-theme-palettes.py, which fails on a token it cannot place.",
+      "why": "The bundled `clickhouse` theme lives in the web client, never on the wire: a server naming it sends only the name. Watches the whole file, since the light and dark maps and `clickHouseShape` (the corners and fonts the app reads) are all here. Generated: rerun scripts/generate-theme-palettes.py, which fails on a token it cannot place.",
       "failure_mode": "A server on `theme: clickhouse` paints an outdated ClickHouse palette."
+    },
+    {
+      "id": "theme-appearance-inheritance",
+      "upstream": {
+        "file": "packages/data-provider/src/themes/registry.ts",
+        "symbol": "inheritedAppearance",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/config/theme/ServerThemeAppearance.kt",
+        "symbol": "ThemeCorner.INHERITED / ThemeFont.INHERITED"
+      },
+      "why": "Which corner or font a theme leaves out follows a broader one it names (composerActionRadius from roundControlRadius, displayFontFamily from fontFamily). Only the pairs for settings the app reads are copied.",
+      "failure_mode": "A theme that names only the broad setting reshapes the web's element but not the app's, or the reverse."
+    },
+    {
+      "id": "theme-appearance-length",
+      "upstream": {
+        "file": "packages/data-provider/src/theme.ts",
+        "symbol": "cssLengthPattern",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/config/theme/ServerThemeAppearance.kt",
+        "symbol": "cssLengthDp"
+      },
+      "why": "The plain length forms a theme's corner settings may use (px, rem, em; calc() is theme-appearance-length-calc). A form the app can't read is left out, so that corner keeps Switchboard's.",
+      "failure_mode": "A corner written in a new form shows Switchboard's shape where the web rounds it."
+    },
+    {
+      "id": "theme-appearance-length-calc",
+      "upstream": {
+        "file": "packages/data-provider/src/theme.ts",
+        "symbol": "cssLengthDifferencePattern",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/config/theme/ServerThemeAppearance.kt",
+        "symbol": "cssLengthDp (CALC)"
+      },
+      "why": "The calc() form of a corner length, which upstream keeps in its own pattern beside cssLengthPattern.",
+      "failure_mode": "A corner written in a new calc() form shows Switchboard's shape where the web rounds it."
+    },
+    {
+      "id": "theme-radius-classes",
+      "upstream": {
+        "file": "packages/client/tailwind.preset.cjs",
+        "symbol": "borderRadius",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/theme/ThemeShapes.kt",
+        "symbol": "ThemeShapes.of"
+      },
+      "why": "Which corner setting each element takes follows the class the web rounds it with (rounded-theme-surface-lg for the composer, rounded-xl for code blocks, .popover-ui for menus...). A renamed or remapped class here is the first sign an element moved to another setting; each ThemeShapes field names the class it follows.",
+      "failure_mode": "An element follows a different corner setting on the web than in the app; nothing errors."
     },
     {
       "id": "theme-bundled-names",

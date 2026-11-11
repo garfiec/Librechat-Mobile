@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.ui.glass.GlassControlColors
 import com.garfiec.librechat.core.ui.glass.GlassDefaults
 import com.garfiec.librechat.core.ui.theme.isLiquidGlass
+import com.garfiec.librechat.core.ui.theme.themeShapes
 
 /**
  * The M3 exposed dropdown box, unchanged in both styles: it only wires the field
@@ -41,7 +42,7 @@ fun AdaptiveExposedDropdownMenuBox(
 
 /**
  * The menu of an [AdaptiveExposedDropdownMenuBox], still anchored to its field and sized to it.
- * Material: the M3 exposed menu with every parameter forwarded, rounded to [AdaptiveMenuShape]
+ * Material: the M3 exposed menu with every parameter forwarded, rounded to the theme's menu corner
  * rather than M3's 4dp. Liquid Glass: the same popup restyled like [AdaptiveDropdownMenu]'s
  * windowed fallback (16dp, opaque `surfaceContainerHigh`, hairline border, shadow); [tonalElevation],
  * [shadowElevation] and [border] apply to Material only. A [shape] or [containerColor] the caller
@@ -69,7 +70,7 @@ fun ExposedDropdownMenuBoxScope.AdaptiveExposedDropdownMenu(
         modifier = modifier,
         scrollState = scrollState,
         matchAnchorWidth = matchAnchorWidth,
-        shape = shape ?: AdaptiveMenuShape,
+        shape = shape ?: if (glass) AdaptiveMenuShape else themeShapes().menu,
         containerColor = containerColor
             ?: if (glass) MaterialTheme.colorScheme.surfaceContainerHigh else MenuDefaults.containerColor,
         tonalElevation = if (glass) 0.dp else tonalElevation,

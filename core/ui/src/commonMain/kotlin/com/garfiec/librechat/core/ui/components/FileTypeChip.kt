@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -28,8 +27,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.files.FileKind
+import com.garfiec.librechat.core.ui.theme.themeShapes
 
-private val ChipShape = RoundedCornerShape(12.dp)
 private val ChipMaxWidth = 240.dp
 
 /** Large text widens the cap rather than ellipsizing the size off the second line. */
@@ -58,14 +57,15 @@ fun FileTypeChip(
     outlined: Boolean = false,
     onClick: (() -> Unit)? = null,
 ) {
+    val chipShape = themeShapes().fileChip
     Row(
         modifier = modifier
             .widthIn(max = ChipMaxWidth * LocalDensity.current.fontScale.coerceIn(1f, MAX_WIDTH_FONT_SCALE))
             .heightIn(min = 48.dp)
-            .clip(ChipShape)
+            .clip(chipShape)
             .then(
                 if (outlined) {
-                    Modifier.border(1.dp, MaterialTheme.colorScheme.outlineVariant, ChipShape)
+                    Modifier.border(1.dp, MaterialTheme.colorScheme.outlineVariant, chipShape)
                 } else {
                     Modifier.background(MaterialTheme.colorScheme.surfaceContainerHigh)
                 },
