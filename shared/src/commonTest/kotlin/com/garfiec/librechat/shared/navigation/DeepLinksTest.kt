@@ -2,8 +2,10 @@ package com.garfiec.librechat.shared.navigation
 
 import com.garfiec.librechat.core.common.identity.AccountId
 import com.garfiec.librechat.core.notifications.conversationLink
+import com.garfiec.librechat.core.notifications.schedulesLink
 import com.garfiec.librechat.feature.chat.navigation.Chat
 import com.garfiec.librechat.feature.chat.navigation.NewChat
+import com.garfiec.librechat.feature.schedules.navigation.SchedulesList
 import com.garfiec.librechat.feature.settings.navigation.CodeSetup
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -163,5 +165,14 @@ class DeepLinksTest {
             DeepLinks.resolve(uri("conversation", "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d")),
         )
         assertEquals(null, route.forAccount)
+    }
+
+    @Test
+    fun schedulesLinkFromANotification_opensTheSchedulesListForItsAccount() {
+        val account = AccountId("3f1c9a:user/42 x")
+        val parsed = assertNotNull(DeepLinkUri.parse(schedulesLink(account)))
+        val route = assertIs<DeepLinkResolution.Route>(DeepLinks.resolve(parsed))
+        assertEquals(SchedulesList, route.target)
+        assertEquals(account.value, route.forAccount)
     }
 }

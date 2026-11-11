@@ -1097,4 +1097,6 @@
     <string name="notifications_replies_server_off">서버에서 꺼 두었습니다</string>
     <string name="notifications_system_settings">알림 설정</string>
     <string name="notifications_system_settings_description">소리, 잠금 화면 등은 기기 설정에서</string>
+    <string name="notifications_scheduled">예약 채팅</string>
+    <string name="notifications_scheduled_description">예약 채팅이 실행되거나 서버가 일시 중지할 때</string>
 </resources>

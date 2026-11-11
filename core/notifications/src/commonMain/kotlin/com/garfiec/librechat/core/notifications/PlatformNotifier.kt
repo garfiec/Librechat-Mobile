@@ -1,16 +1,35 @@
 package com.garfiec.librechat.core.notifications
 
 import androidx.compose.runtime.Composable
+import com.garfiec.librechat.core.data.datastore.AppPreferences
+import com.garfiec.librechat.core.data.datastore.PreferenceSpec
 import kotlinx.coroutines.flow.StateFlow
 
-/** Posts and removes the app's system notifications. One per conversation: a newer one replaces it. */
+/** The kinds of notification, each with its own toggle (and, on Android, its own channel). */
+enum class NotificationTopic { Replies, ScheduledChats }
+
+val NotificationTopic.toggle: PreferenceSpec<Boolean, Boolean>
+    get() = when (this) {
+        NotificationTopic.Replies -> AppPreferences.ReplyNotifications
+        NotificationTopic.ScheduledChats -> AppPreferences.ScheduledChatNotifications
+    }
+
+/**
+ * Posts and removes the app's system notifications. One per conversation, or per schedule when
+ * there is no chat: a newer one replaces it.
+ */
 interface PlatformNotifier {
     /** [link] opens the conversation (`librechat://conversation/<id>?account=…`). */
     suspend fun post(notification: ReplyNotification, link: String, silent: Boolean)
 
+    /** [link] opens the run's conversation, or the Schedules list. */
+    suspend fun post(notification: ScheduledRunNotification, link: String, silent: Boolean)
+
+    /** Removes what was posted for [conversationId], of either topic. */
     fun cancel(conversationId: String)
 
-    fun cancelAll()
+    /** Removes every notification of [topic], or of every topic when null. */
+    fun cancelAll(topic: NotificationTopic? = null)
 }
 
 enum class NotificationPermissionStatus {

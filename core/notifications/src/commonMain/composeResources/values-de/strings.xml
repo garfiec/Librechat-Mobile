@@ -11,4 +11,15 @@
     <string name="reply_snackbar_open">Öffnen</string>
     <string name="ask_reply_notifications">Benachrichtigen, wenn eine Antwort fertig ist, während du weg bist?</string>
     <string name="ask_reply_notifications_allow">Erlauben</string>
+    <string name="channel_scheduled">Geplante Chats</string>
+    <string name="channel_scheduled_description">Wenn ein geplanter Chat läuft oder dein Server einen pausiert</string>
+    <string name="scheduled_title_fallback">Geplanter Chat</string>
+    <string name="scheduled_body_finished">Fertig</string>
+    <string name="scheduled_body_failed">Der Lauf endete mit einem Fehler</string>
+    <string name="scheduled_body_needs_approval">Wartet auf deine Freigabe</string>
+    <string name="scheduled_body_skipped_balance">Übersprungen: Guthaben reicht nicht</string>
+    <string name="scheduled_body_paused">Von deinem Server pausiert. Öffne Geplante Chats, um den Grund zu sehen.</string>
+    <string name="scheduled_public_body">Ein geplanter Chat ist gelaufen</string>
+    <string name="scheduled_snackbar">%1$s: %2$s</string>
+    <string name="ask_scheduled_notifications">Benachrichtigung erhalten, wenn ein geplanter Chat läuft?</string>
 </resources>

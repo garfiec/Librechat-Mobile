@@ -11,4 +11,15 @@
     <string name="reply_snackbar_open">Ouvrir</string>
     <string name="ask_reply_notifications">Recevoir une notification quand une réponse se termine pendant votre absence ?</string>
     <string name="ask_reply_notifications_allow">Autoriser</string>
+    <string name="channel_scheduled">Discussions planifiées</string>
+    <string name="channel_scheduled_description">Quand une discussion planifiée s’exécute ou que votre serveur en met une en pause</string>
+    <string name="scheduled_title_fallback">Discussion planifiée</string>
+    <string name="scheduled_body_finished">Terminé</string>
+    <string name="scheduled_body_failed">L’exécution s’est terminée par une erreur</string>
+    <string name="scheduled_body_needs_approval">En attente de votre approbation</string>
+    <string name="scheduled_body_skipped_balance">Ignorée : solde insuffisant</string>
+    <string name="scheduled_body_paused">Mise en pause par votre serveur. Ouvrez Discussions planifiées pour savoir pourquoi.</string>
+    <string name="scheduled_public_body">Une discussion planifiée s’est exécutée</string>
+    <string name="scheduled_snackbar">%1$s : %2$s</string>
+    <string name="ask_scheduled_notifications">Recevoir une notification quand une discussion planifiée s’exécute ?</string>
 </resources>

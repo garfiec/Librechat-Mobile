@@ -1114,4 +1114,6 @@
     <string name="notifications_replies_server_off">Desativadas pelo seu servidor</string>
     <string name="notifications_system_settings">Configurações de notificação</string>
     <string name="notifications_system_settings_description">Som, tela de bloqueio e mais, nas configurações do dispositivo</string>
+    <string name="notifications_scheduled">Conversas agendadas</string>
+    <string name="notifications_scheduled_description">Quando uma conversa agendada é executada ou o seu servidor pausa uma</string>
 </resources>

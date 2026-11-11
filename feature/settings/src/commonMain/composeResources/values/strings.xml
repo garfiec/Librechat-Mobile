@@ -1127,4 +1127,6 @@
     <string name="notifications_replies_server_off">Turned off by your server</string>
     <string name="notifications_system_settings">Notification settings</string>
     <string name="notifications_system_settings_description">Sound, lock screen and more, in your device's settings</string>
+    <string name="notifications_scheduled">Scheduled chats</string>
+    <string name="notifications_scheduled_description">When a scheduled chat runs, or your server pauses one</string>
 </resources>

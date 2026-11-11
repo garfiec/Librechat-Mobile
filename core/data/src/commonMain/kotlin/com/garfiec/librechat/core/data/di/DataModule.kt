@@ -17,6 +17,7 @@ import com.garfiec.librechat.core.data.datastore.DrawerPinsStore
 import com.garfiec.librechat.core.data.datastore.McpAppLocationConsentStore
 import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import com.garfiec.librechat.core.data.datastore.RoleCacheDataStore
+import com.garfiec.librechat.core.data.datastore.ScheduleWatchList
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.datastore.SsoRiskDataStore
@@ -346,6 +347,7 @@ val dataModule = module {
     singleOf(::ConversationWebSearchStore)
     singleOf(::McpAppLocationConsentStore)
     singleOf(::CodeWorkspacePreferenceStore)
+    single { ScheduleWatchList(dataStore = get(), accounts = get()) }
     single {
         DateTimePrefsStore(
             dataStore = get(),

@@ -113,6 +113,7 @@ import com.garfiec.librechat.feature.conversations.navigation.conversationsEntri
 import com.garfiec.librechat.feature.files.navigation.FilesPicker
 import com.garfiec.librechat.feature.files.navigation.filePickerEntries
 import com.garfiec.librechat.feature.files.navigation.filesEntries
+import com.garfiec.librechat.feature.schedules.navigation.SchedulesList
 import com.garfiec.librechat.feature.schedules.navigation.schedulesEntries
 import com.garfiec.librechat.feature.settings.navigation.Memories
 import com.garfiec.librechat.feature.settings.navigation.SettingsTabbed
@@ -421,7 +422,11 @@ fun LibreChatNavHost(
                             }
                         }
                         val replySnackbarState = remember { SnackbarHostState() }
-                        ReplySnackbars(replySnackbarState, onOpen = { id -> navigator.navigateToChat(conversationId = id) })
+                        ReplySnackbars(
+                            snackbarHostState = replySnackbarState,
+                            onOpenChat = { id -> navigator.navigateToChat(conversationId = id) },
+                            onOpenSchedules = { navigator.navigate(SchedulesList) },
+                        )
                         AdaptiveSnackbarHost(
                             hostState = replySnackbarState,
                             modifier = Modifier

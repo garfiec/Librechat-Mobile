@@ -9,6 +9,7 @@ android {
 kotlin {
     sourceSets {
         commonMain.dependencies {
+            implementation(project(":core:notifications"))
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.kermit)
         }

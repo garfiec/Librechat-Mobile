@@ -101,6 +101,9 @@ object AppPreferences {
      */
     val ReplyNotifications = boolPreference("reply_notifications", default = always(true))
 
+    /** Notify when a scheduled chat runs, or the server pauses one. On by default, as Replies. */
+    val ScheduledChatNotifications = boolPreference("scheduled_chat_notifications", default = always(true))
+
     /**
      * The in-context notification asks the user has already answered (`NotificationAskTrigger`
      * names), so none is offered twice. Device-wide.
@@ -123,6 +126,7 @@ object AppPreferences {
             CollapseLongUserMessages,
             ClientImageResize,
             ReplyNotifications,
+            ScheduledChatNotifications,
             NotificationAsksAnswered,
         )
 }

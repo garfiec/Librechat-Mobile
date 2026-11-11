@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Reply
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,6 +25,8 @@ import com.garfiec.librechat.feature.settings.resources.notifications_permission
 import com.garfiec.librechat.feature.settings.resources.notifications_replies
 import com.garfiec.librechat.feature.settings.resources.notifications_replies_description
 import com.garfiec.librechat.feature.settings.resources.notifications_replies_server_off
+import com.garfiec.librechat.feature.settings.resources.notifications_scheduled
+import com.garfiec.librechat.feature.settings.resources.notifications_scheduled_description
 import com.garfiec.librechat.feature.settings.resources.notifications_system_settings
 import com.garfiec.librechat.feature.settings.resources.notifications_system_settings_description
 import com.garfiec.librechat.feature.settings.resources.notifications_turn_on
@@ -76,6 +79,24 @@ fun NotificationSettingsPage(
                     onCheckedChange = viewModel::setRepliesEnabled,
                     enabled = uiState.serverAllowsReplies,
                 )
+            }
+            if (uiState.schedulesAvailable) {
+                row(key = "scheduled_row") {
+                    SettingsSwitchRow(
+                        icon = Icons.Default.Schedule,
+                        title = stringResource(Res.string.notifications_scheduled),
+                        description = stringResource(
+                            if (uiState.serverAllowsReplies) {
+                                Res.string.notifications_scheduled_description
+                            } else {
+                                Res.string.notifications_replies_server_off
+                            },
+                        ),
+                        checked = uiState.scheduledEnabled && uiState.serverAllowsReplies,
+                        onCheckedChange = viewModel::setScheduledEnabled,
+                        enabled = uiState.serverAllowsReplies,
+                    )
+                }
             }
             row(key = "system_settings_row") {
                 SettingsRow(

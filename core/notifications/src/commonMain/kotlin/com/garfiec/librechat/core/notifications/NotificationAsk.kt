@@ -8,14 +8,17 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 
 /** A moment at which the app may ask for notifications. Stored by [key]: never rename one. */
-enum class NotificationAskTrigger(val key: String) {
+enum class NotificationAskTrigger(val key: String, internal val topic: NotificationTopic) {
     /** A reply has been streaming long enough that the user may leave before it ends. */
-    LongReply("long_reply"),
+    LongReply("long_reply", NotificationTopic.Replies),
+
+    /** The Schedules screen opened: its runs happen while the app is closed. */
+    SchedulesOpened("schedules_opened", NotificationTopic.ScheduledChats),
 }
 
 /**
  * Whether to offer turning notifications on at a [NotificationAskTrigger]: only when they are off,
- * the server allows them, the user wants reply notifications, and this trigger hasn't been answered.
+ * the server allows them, the user wants that trigger's kind, and this trigger hasn't been answered.
  * Each trigger asks once, whatever the answer, and nothing asks at launch: a feature calls
  * [shouldOffer] at its moment.
  */
@@ -27,7 +30,7 @@ class NotificationAsk(
     fun shouldOffer(trigger: NotificationAskTrigger): Flow<Boolean> = combine(
         permission.status,
         configRepository.startupConfig,
-        preferences.observe(AppPreferences.ReplyNotifications),
+        preferences.observe(trigger.topic.toggle),
         preferences.observe(AppPreferences.NotificationAsksAnswered),
     ) { status, config, enabled, answered ->
         status != NotificationPermissionStatus.Allowed &&

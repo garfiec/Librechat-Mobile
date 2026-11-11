@@ -1,7 +1,10 @@
 package com.garfiec.librechat.core.data.repository
 
+import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
+import com.garfiec.librechat.core.common.identity.currentAccountId
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.common.result.safeApiCall
+import com.garfiec.librechat.core.data.datastore.ScheduleWatchList
 import com.garfiec.librechat.core.model.schedule.CreateScheduleRequest
 import com.garfiec.librechat.core.model.schedule.RevokeScheduleMcpConsentRequest
 import com.garfiec.librechat.core.model.schedule.Schedule
@@ -14,10 +17,18 @@ import com.garfiec.librechat.core.network.api.SchedulesApi
 
 class ScheduleRepositoryImpl(
     private val schedulesApi: SchedulesApi,
+    private val watchList: ScheduleWatchList,
+    private val accounts: ActiveAccountProvider,
 ) : ScheduleRepository {
 
-    override suspend fun listSchedules(): Result<ScheduleListResponse> =
-        safeApiCall { schedulesApi.listSchedules() }
+    override suspend fun listSchedules(): Result<ScheduleListResponse> {
+        // Captured before the request, so a list that lands after an account switch is not stored
+        // under the new account.
+        val account = accounts.currentAccountId()
+        val result = safeApiCall { schedulesApi.listSchedules() }
+        if (result is Result.Success && account != null) watchList.replace(account, result.data.schedules)
+        return result
+    }
 
     override suspend fun getSchedule(id: String): Result<Schedule> =
         safeApiCall { schedulesApi.getSchedule(id) }

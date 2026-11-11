@@ -11,4 +11,15 @@
     <string name="reply_snackbar_open">فتح</string>
     <string name="ask_reply_notifications">هل تريد تلقي إشعار عند اكتمال رد أثناء ابتعادك؟</string>
     <string name="ask_reply_notifications_allow">السماح</string>
+    <string name="channel_scheduled">المحادثات المجدولة</string>
+    <string name="channel_scheduled_description">عند تشغيل محادثة مجدولة، أو عندما يوقف الخادم إحداها مؤقتًا</string>
+    <string name="scheduled_title_fallback">محادثة مجدولة</string>
+    <string name="scheduled_body_finished">اكتملت</string>
+    <string name="scheduled_body_failed">انتهى التشغيل بخطأ</string>
+    <string name="scheduled_body_needs_approval">بانتظار موافقتك</string>
+    <string name="scheduled_body_skipped_balance">تم التخطي: الرصيد غير كافٍ</string>
+    <string name="scheduled_body_paused">أوقفها الخادم مؤقتًا. افتح المحادثات المجدولة لمعرفة السبب.</string>
+    <string name="scheduled_public_body">تم تشغيل محادثة مجدولة</string>
+    <string name="scheduled_snackbar">%1$s: %2$s</string>
+    <string name="ask_scheduled_notifications">هل تريد تلقي إشعار عند تشغيل محادثة مجدولة؟</string>
 </resources>

@@ -11,4 +11,15 @@
     <string name="reply_snackbar_open">Открыть</string>
     <string name="ask_reply_notifications">Уведомлять, когда ответ готов, пока вас нет?</string>
     <string name="ask_reply_notifications_allow">Разрешить</string>
+    <string name="channel_scheduled">Запланированные чаты</string>
+    <string name="channel_scheduled_description">Когда запланированный чат запускается или сервер его приостанавливает</string>
+    <string name="scheduled_title_fallback">Запланированный чат</string>
+    <string name="scheduled_body_finished">Готово</string>
+    <string name="scheduled_body_failed">Запуск завершился с ошибкой</string>
+    <string name="scheduled_body_needs_approval">Ждёт вашего одобрения</string>
+    <string name="scheduled_body_skipped_balance">Пропущено: недостаточно средств</string>
+    <string name="scheduled_body_paused">Приостановлено сервером. Откройте «Запланированные чаты», чтобы узнать причину.</string>
+    <string name="scheduled_public_body">Запланированный чат запущен</string>
+    <string name="scheduled_snackbar">%1$s: %2$s</string>
+    <string name="ask_scheduled_notifications">Получать уведомление, когда запускается запланированный чат?</string>
 </resources>

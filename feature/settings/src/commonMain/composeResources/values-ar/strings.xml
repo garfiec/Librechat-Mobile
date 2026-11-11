@@ -1177,4 +1177,6 @@
     <string name="notifications_replies_server_off">أوقفها الخادم</string>
     <string name="notifications_system_settings">إعدادات الإشعارات</string>
     <string name="notifications_system_settings_description">الصوت وشاشة القفل والمزيد في إعدادات الجهاز</string>
+    <string name="notifications_scheduled">المحادثات المجدولة</string>
+    <string name="notifications_scheduled_description">عند تشغيل محادثة مجدولة، أو عندما يوقف الخادم إحداها مؤقتًا</string>
 </resources>

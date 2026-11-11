@@ -11,29 +11,42 @@ import com.garfiec.librechat.core.notifications.resources.Res
 import com.garfiec.librechat.core.notifications.resources.reply_snackbar_failed
 import com.garfiec.librechat.core.notifications.resources.reply_snackbar_finished
 import com.garfiec.librechat.core.notifications.resources.reply_snackbar_open
-import com.garfiec.librechat.core.notifications.resources.reply_title_fallback
+import com.garfiec.librechat.core.notifications.resources.scheduled_snackbar
 import org.jetbrains.compose.resources.getString
 import org.koin.compose.koinInject
 
-/** Shows each reply that ended while the app was on another screen, with Open to go to its chat. */
+/**
+ * Shows each reply or scheduled run that ended while the app was on another screen, with Open to
+ * go to its chat ([onOpenChat]), or to the Schedules list when there is none ([onOpenSchedules]).
+ */
 @Composable
-fun ReplySnackbars(snackbarHostState: SnackbarHostState, onOpen: (conversationId: String) -> Unit) {
+fun ReplySnackbars(
+    snackbarHostState: SnackbarHostState,
+    onOpenChat: (conversationId: String) -> Unit,
+    onOpenSchedules: () -> Unit,
+) {
     val notifications = koinInject<ReplyNotifications>()
-    val currentOnOpen by rememberUpdatedState(onOpen)
+    val currentOnOpenChat by rememberUpdatedState(onOpenChat)
+    val currentOnOpenSchedules by rememberUpdatedState(onOpenSchedules)
     LaunchedEffect(notifications, snackbarHostState) {
-        notifications.inApp.collect { reply ->
-            val title = reply.title?.takeIf { it.isNotBlank() } ?: getString(Res.string.reply_title_fallback)
-            val message = getString(
-                if (reply.failed) Res.string.reply_snackbar_failed else Res.string.reply_snackbar_finished,
-                title,
-            )
+        notifications.inApp.collect { notification ->
+            val title = notification.titleText()
+            val message = when (notification) {
+                is ReplyNotification -> getString(
+                    if (notification.failed) Res.string.reply_snackbar_failed else Res.string.reply_snackbar_finished,
+                    title,
+                )
+                is ScheduledRunNotification -> getString(Res.string.scheduled_snackbar, title, notification.bodyText())
+            }
             val result = snackbarHostState.showSnackbar(
                 message = message,
                 actionLabel = getString(Res.string.reply_snackbar_open),
                 withDismissAction = true,
                 duration = SnackbarDuration.Long,
             )
-            if (result == SnackbarResult.ActionPerformed) currentOnOpen(reply.conversationId)
+            if (result == SnackbarResult.ActionPerformed) {
+                notification.conversationId?.let(currentOnOpenChat) ?: currentOnOpenSchedules()
+            }
         }
     }
 }

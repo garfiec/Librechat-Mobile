@@ -4,6 +4,7 @@ import androidx.navigation3.runtime.NavKey
 import com.garfiec.librechat.core.model.code.CodeSetupAttempt
 import com.garfiec.librechat.feature.chat.navigation.Chat
 import com.garfiec.librechat.feature.chat.navigation.NewChat
+import com.garfiec.librechat.feature.schedules.navigation.SchedulesList
 import com.garfiec.librechat.feature.settings.navigation.CodeSetup
 import io.ktor.http.parseUrl
 
@@ -126,6 +127,10 @@ object DeepLinks {
             ?.let(CodeSetupAttempt::idFrom)
             ?.let { DeepLinkResolution.Route(CodeSetup(it)) }
             ?: DeepLinkResolution.None
+
+        // The Schedules list (librechat://schedules), for a scheduled-chat notification with no chat.
+        // `?account=` refuses it unless that account is active, as for a conversation.
+        "schedules" -> DeepLinkResolution.Route(SchedulesList, forAccount = uri.query["account"]?.takeIf { it.isNotBlank() })
 
         // OAuth redirect (librechat://oauth): token comes back via cookie, not the URI — see [Consumed].
         "oauth" -> DeepLinkResolution.Consumed

@@ -11,4 +11,15 @@
     <string name="reply_snackbar_open">Open</string>
     <string name="ask_reply_notifications">Get a notification when a reply finishes while you're away?</string>
     <string name="ask_reply_notifications_allow">Allow</string>
+    <string name="channel_scheduled">Scheduled chats</string>
+    <string name="channel_scheduled_description">When a scheduled chat runs, or your server pauses one</string>
+    <string name="scheduled_title_fallback">Scheduled chat</string>
+    <string name="scheduled_body_finished">Finished</string>
+    <string name="scheduled_body_failed">The run ended with an error</string>
+    <string name="scheduled_body_needs_approval">Waiting for your approval</string>
+    <string name="scheduled_body_skipped_balance">Skipped: not enough balance</string>
+    <string name="scheduled_body_paused">Paused by your server. Open Scheduled chats to see why.</string>
+    <string name="scheduled_public_body">A scheduled chat ran</string>
+    <string name="scheduled_snackbar">%1$s: %2$s</string>
+    <string name="ask_scheduled_notifications">Get a notification when a scheduled chat runs?</string>
 </resources>

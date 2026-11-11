@@ -11,4 +11,15 @@
     <string name="reply_snackbar_open">開く</string>
     <string name="ask_reply_notifications">アプリを離れている間に返信が完了したら通知しますか？</string>
     <string name="ask_reply_notifications_allow">許可</string>
+    <string name="channel_scheduled">スケジュールされたチャット</string>
+    <string name="channel_scheduled_description">スケジュールされたチャットの実行時、またはサーバーが一時停止したとき</string>
+    <string name="scheduled_title_fallback">スケジュールされたチャット</string>
+    <string name="scheduled_body_finished">完了しました</string>
+    <string name="scheduled_body_failed">実行がエラーで終了しました</string>
+    <string name="scheduled_body_needs_approval">承認待ちです</string>
+    <string name="scheduled_body_skipped_balance">スキップしました：残高が不足しています</string>
+    <string name="scheduled_body_paused">サーバーにより一時停止されました。理由はスケジュールされたチャットで確認できます。</string>
+    <string name="scheduled_public_body">スケジュールされたチャットが実行されました</string>
+    <string name="scheduled_snackbar">%1$s：%2$s</string>
+    <string name="ask_scheduled_notifications">スケジュールされたチャットの実行時に通知を受け取りますか？</string>
 </resources>

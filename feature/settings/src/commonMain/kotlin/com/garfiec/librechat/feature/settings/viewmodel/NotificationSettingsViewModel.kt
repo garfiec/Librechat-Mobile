@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.garfiec.librechat.core.data.datastore.AppPreferences
 import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import com.garfiec.librechat.core.data.repository.ConfigRepository
+import com.garfiec.librechat.core.model.config.isSchedulesEnabled
 import com.garfiec.librechat.core.model.config.replyNotificationsAllowed
 import com.garfiec.librechat.core.notifications.NotificationPermission
 import com.garfiec.librechat.core.notifications.NotificationPermissionStatus
@@ -21,9 +22,14 @@ data class NotificationSettingsUiState(
     val repliesEnabled: Boolean = true,
     /** The server's `interface.replyNotifications.desktop`; allowed until its config says otherwise. */
     val serverAllowsReplies: Boolean = true,
+    val scheduledEnabled: Boolean = true,
+    /** The server offers scheduled chats; the Scheduled chats row is shown only then. */
+    val schedulesAvailable: Boolean = false,
 ) {
     /** What the Settings home row says. */
-    val on: Boolean get() = permission == NotificationPermissionStatus.Allowed && repliesEnabled && serverAllowsReplies
+    val on: Boolean
+        get() = permission == NotificationPermissionStatus.Allowed && serverAllowsReplies &&
+            (repliesEnabled || (schedulesAvailable && scheduledEnabled))
 }
 
 class NotificationSettingsViewModel(
@@ -35,17 +41,24 @@ class NotificationSettingsViewModel(
     val uiState: StateFlow<NotificationSettingsUiState> = combine(
         permission.status,
         preferences.observe(AppPreferences.ReplyNotifications),
+        preferences.observe(AppPreferences.ScheduledChatNotifications),
         configRepository.startupConfig,
-    ) { status, enabled, config ->
+    ) { status, replies, scheduled, config ->
         NotificationSettingsUiState(
             permission = status,
-            repliesEnabled = enabled,
+            repliesEnabled = replies,
             serverAllowsReplies = config == null || config.interfaceConfig.replyNotificationsAllowed,
+            scheduledEnabled = scheduled,
+            schedulesAvailable = isSchedulesEnabled(config?.interfaceConfig?.schedules),
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, NotificationSettingsUiState())
 
     fun setRepliesEnabled(enabled: Boolean) {
         viewModelScope.launch { preferences.set(AppPreferences.ReplyNotifications, enabled) }
+    }
+
+    fun setScheduledEnabled(enabled: Boolean) {
+        viewModelScope.launch { preferences.set(AppPreferences.ScheduledChatNotifications, enabled) }
     }
 
     fun openSystemSettings() = permission.openSystemSettings()

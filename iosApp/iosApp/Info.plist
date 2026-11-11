@@ -47,9 +47,10 @@
 	     question once, so App Store Connect never holds an upload on a manual prompt. -->
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
-	<!-- Background cache warming. `fetch` and `processing` are the two task types registered in
-	     PrefetchBackgroundTasks.swift; iOS silently refuses to register an identifier absent from
-	     BGTaskSchedulerPermittedIdentifiers, so these must match IosPrefetchTasks in :core:data. -->
+	<!-- Background tasks: cache warming (`fetch` and `processing`, registered in
+	     PrefetchBackgroundTasks.swift) and the schedule check (a `fetch` task, ScheduleCheckTask.swift).
+	     iOS silently refuses to register an identifier absent from BGTaskSchedulerPermittedIdentifiers,
+	     so these must match IosPrefetchTasks in :core:data and IosScheduleCheckTask in :core:notifications. -->
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>fetch</string>
@@ -59,6 +60,7 @@
 	<array>
 		<string>com.garfiec.librechat.prefetch.refresh</string>
 		<string>com.garfiec.librechat.prefetch.processing</string>
+		<string>com.garfiec.librechat.schedules.check</string>
 	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
