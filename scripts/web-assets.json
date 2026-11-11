@@ -304,13 +304,13 @@
     {
       "id": "shadcn-ui",
       "dir": "shadcn-ui",
-      "version": "e8f3be086236",
+      "version": "8d3da9bbb220",
       "license": "MIT",
       "source": {
         "type": "bundle",
         "shadcn": {
-          "components_url": "https://raw.githubusercontent.com/LibreChat-AI/LibreChat/e8f3be08623663d4ad7f7241e693c94469b63bb0/packages/data-provider/src/artifacts.ts",
-          "shared_files_url": "https://raw.githubusercontent.com/LibreChat-AI/LibreChat/e8f3be08623663d4ad7f7241e693c94469b63bb0/client/src/utils/artifacts.ts",
+          "components_url": "https://raw.githubusercontent.com/LibreChat-AI/LibreChat/8d3da9bbb220a0a96be9330a2e1cbd385fb786d5/packages/data-provider/src/artifacts.ts",
+          "shared_files_url": "https://raw.githubusercontent.com/LibreChat-AI/LibreChat/8d3da9bbb220a0a96be9330a2e1cbd385fb786d5/client/src/utils/artifacts.ts",
           "licenses": [
             {
               "title": "shadcn/ui component sources, as embedded in LibreChat's packages/data-provider/src/artifacts.ts (MIT)",
@@ -318,7 +318,7 @@
             },
             {
               "title": "LibreChat (MIT), which carries those sources",
-              "url": "https://raw.githubusercontent.com/LibreChat-AI/LibreChat/e8f3be08623663d4ad7f7241e693c94469b63bb0/LICENSE"
+              "url": "https://raw.githubusercontent.com/LibreChat-AI/LibreChat/8d3da9bbb220a0a96be9330a2e1cbd385fb786d5/LICENSE"
             }
           ]
         }
@@ -394,7 +394,7 @@
       ],
       "used_by": ["commonMain/components/artifact/ArtifactWebContent.kt"],
       "why": "The shadcn/ui components web mounts into every React artifact at /components/ui/*, which the server's prompt tells the model to import, plus the packages they are built on, which web also exposes directly. One bundle, so a component and an artifact importing the same Radix primitive share one copy (and one React context). The Drawer is the exception: it ships in the vaul bundle.",
-      "pin_reason": "Version is the upstream commit the component sources were taken from (UPSTREAM_VERSION's commit=); move it with a sync. The packages are the latest within web's carets, pinned exactly in scripts/artifact-modules/package.json. build.mjs refuses to build when upstream's sharedFiles mounts a component this list omits, or drops one it lists. tailwindcss-animate (in web's list) is a Tailwind plugin, not an importable module; web's Tailwind runs with no config, so it does nothing there either. The calendar component is written against react-day-picker 8's classNames keys and IconLeft/IconRight components, which 9.x renamed; web's caret resolves 9.x too, so both run the same code. Parity, not a bug to fix here."
+      "pin_reason": "Version is the upstream commit the component sources were taken from (UPSTREAM_VERSION's commit=); move it with a sync. The packages are the latest within web's carets, pinned exactly in scripts/artifact-modules/package.json. build.mjs refuses to build when upstream mounts a component this list omits (sharedFiles, plus the artifactUIComponents it spreads), or drops one it lists. tailwindcss-animate (in web's list) is a Tailwind plugin, not an importable module; web's Tailwind runs with no config, so it does nothing there either. The calendar component is written against react-day-picker 8's classNames keys and IconLeft/IconRight components, which 9.x renamed; web's caret resolves 9.x too, so both run the same code. Parity, not a bug to fix here."
     },
     {
       "id": "vaul",
@@ -405,8 +405,8 @@
         "type": "bundle",
         "package": "vaul",
         "shadcn": {
-          "components_url": "https://raw.githubusercontent.com/LibreChat-AI/LibreChat/e8f3be08623663d4ad7f7241e693c94469b63bb0/packages/data-provider/src/artifacts.ts",
-          "shared_files_url": "https://raw.githubusercontent.com/LibreChat-AI/LibreChat/e8f3be08623663d4ad7f7241e693c94469b63bb0/client/src/utils/artifacts.ts",
+          "components_url": "https://raw.githubusercontent.com/LibreChat-AI/LibreChat/8d3da9bbb220a0a96be9330a2e1cbd385fb786d5/packages/data-provider/src/artifacts.ts",
+          "shared_files_url": "https://raw.githubusercontent.com/LibreChat-AI/LibreChat/8d3da9bbb220a0a96be9330a2e1cbd385fb786d5/client/src/utils/artifacts.ts",
           "licenses": [
             {
               "title": "shadcn/ui component sources, as embedded in LibreChat's packages/data-provider/src/artifacts.ts (MIT)",
@@ -414,7 +414,7 @@
             },
             {
               "title": "LibreChat (MIT), which carries those sources",
-              "url": "https://raw.githubusercontent.com/LibreChat-AI/LibreChat/e8f3be08623663d4ad7f7241e693c94469b63bb0/LICENSE"
+              "url": "https://raw.githubusercontent.com/LibreChat-AI/LibreChat/8d3da9bbb220a0a96be9330a2e1cbd385fb786d5/LICENSE"
             }
           ]
         }

@@ -28,7 +28,7 @@ internal object VendoredWebAssets {
      * version, so bumping a library to a build that ships the same names leaves the
      * list byte-identical and a stale copy would be kept and executed indefinitely.
      */
-    const val FINGERPRINT: String = "9c14b7ae1974414e"
+    const val FINGERPRINT: String = "5f7af7b60600ae71"
 
     val FILES: List<String> = listOf(
         "katex/LICENSE",

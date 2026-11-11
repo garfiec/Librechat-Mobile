@@ -121,8 +121,8 @@ What a React artifact may `import` is decided in three upstream places, none ser
 | Path | What It Contains | Client side |
 |------|------------------|-------------|
 | `client/src/utils/artifacts.ts` → `standardDependencies` | The npm packages web's Sandpack installs for every artifact | `bundle` entries in `scripts/web-assets.json`, pins in `scripts/artifact-modules/package.json` |
-| `client/src/utils/artifacts.ts` → `sharedFiles`, `TAILWIND_CDN` | Which shadcn/ui components are mounted at `/components/ui/*`; the Tailwind build | `shadcn-ui` / `vaul` `modules`; the `tailwind` pin |
-| `packages/data-provider/src/artifacts.ts` → `shadcnComponents` | The component sources themselves | Compiled into the `shadcn-ui` / `vaul` bundles from a commit-pinned URL |
+| `client/src/utils/artifacts.ts` → `sharedFiles`, `TAILWIND_CDN` | Where shadcn/ui sources are mounted (`/lib/utils`, and the `artifactUIComponents` spread at `/components/ui/*`); the Tailwind build | `shadcn-ui` / `vaul` `modules`; the `tailwind` pin |
+| `packages/data-provider/src/artifacts.ts` → `shadcnComponents`, `artifactUIComponents` | The component sources themselves, and which ones are mounted | Compiled into the `shadcn-ui` / `vaul` bundles from a commit-pinned URL; `modules` |
 | `packages/api/src/prompts/artifacts/index.ts` | The system prompt telling the model which libraries exist (and lucide-react's exact version) | What models actually write against |
 
 All four are `scripts/mirrors.json` entries (`artifact-*`), so Phase 0's check-mirrors run reports
