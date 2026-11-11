@@ -3,6 +3,8 @@ package com.garfiec.librechat.feature.chat.components
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.gestures.animateScrollBy
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -30,12 +32,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.changedToUp
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.common.ChatLayoutConstants
@@ -247,6 +254,7 @@ fun MessageList(
     // The keyboard handler below stands down for those; foundation brings a focused node into
     // view on its own, and unlike this file it knows which node that is.
     var listHasFocus by remember { mutableStateOf(false) }
+    val focusManager = LocalFocusManager.current
 
     val isNearBottom = rememberIsNearBottom(listState, extraEndPx)
     if (onNearBottomChange != null) {
@@ -578,6 +586,7 @@ fun MessageList(
                     .fillMaxSize()
                     .glassBackdropSource(listBackdrop)
                     .onFocusChanged { listHasFocus = it.hasFocus }
+                    .clearFocusOnThreadTap(focusManager) { listHasFocus }
                     .onGloballyPositioned { listCoordinates = it }
                     .tailFollowerTouch(follower)
                     .onEveryPress(unpinTail),
@@ -933,4 +942,29 @@ private class FocusedSearchMatchReport(
     val matchRect: Rect,
 ) {
     fun matches(request: SearchFocusRequest): Boolean = requestId == request.requestId
+}
+
+/**
+ * Messages, their text and their cards consume taps, so the root `clearFocusOnTap` never sees one.
+ * Watches the Initial pass and consumes nothing. Stands down while focus is inside the list (an inline
+ * edit keeps its caret taps). Not gated on scrolling: the auto-follow scrolls every frame while a reply streams.
+ */
+private fun Modifier.clearFocusOnThreadTap(
+    focusManager: FocusManager,
+    focusInside: () -> Boolean,
+): Modifier = pointerInput(focusManager) {
+    awaitEachGesture {
+        val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+        while (true) {
+            val change = awaitPointerEvent(PointerEventPass.Initial).changes.singleOrNull()
+            val abandoned = change == null ||
+                change.id != down.id ||
+                (change.position - down.position).getDistance() > viewConfiguration.touchSlop
+            if (abandoned) return@awaitEachGesture
+            if (change.changedToUp()) {
+                if (!focusInside()) focusManager.clearFocus()
+                return@awaitEachGesture
+            }
+        }
+    }
 }

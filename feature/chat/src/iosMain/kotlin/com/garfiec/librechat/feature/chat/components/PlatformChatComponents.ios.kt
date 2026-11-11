@@ -226,7 +226,7 @@ private fun ThreadBubble(
 ) {
     val isUser = message.isCreatedByUser
     var showActions by rememberActionRowShown(message.messageId, showActionsInitially, isReading)
-    // This row takes every tap on the thread, so the root clearFocusOnTap never sees one: dismiss here.
+    // The thread's tap handler leaves focus inside the list alone; a tap on a message ends an inline edit.
     val focusManager = LocalFocusManager.current
 
     val searchBg = when {
@@ -369,7 +369,7 @@ private fun TwoSidedBubble(
 ) {
     val isUser = message.isCreatedByUser
     var showActions by rememberActionRowShown(message.messageId, showActionsInitially, isReading)
-    // This row takes every tap on the thread, so the root clearFocusOnTap never sees one: dismiss here.
+    // The thread's tap handler leaves focus inside the list alone; a tap on a message ends an inline edit.
     val focusManager = LocalFocusManager.current
 
     val searchBg = when {

@@ -65,12 +65,12 @@ it a keyboard cannot be dismissed.
 | Tap on empty space | dismisses | it's a tap nothing handled |
 | Hold still on empty space, then release | dismisses | no duration cap — any still down→up is a tap |
 | Tap on selectable text (`SelectionContainer`) with no clickable around it | dismisses | its clear-selection tap doesn't consume |
-| Tap on a message | dismisses | **not this modifier**: the bubble row's action-row toggle consumes the tap, so it clears focus itself |
+| Tap anywhere in the chat thread (message, text, thinking card, buttons in it) | dismisses | **not this modifier**: they consume the tap, so `MessageList` watches the Initial pass itself; not while focus is inside the list (inline edit) |
 | Tap on the focused field | stays | the field consumes its own tap |
 | Tap on a button (Send, attach, chips) | stays | the button consumes; the button still fires |
 | Scroll / fling / pull-to-refresh / sheet drag | stays | a drag is not a tap |
 | Drag across non-scrolling space | stays | past touch slop → gesture abandoned |
-| Tap that stops a fling | stays | the list consumes the stopping tap |
+| Tap that stops a fling | stays, except in the chat thread | the list consumes the stopping tap |
 | Long-press message text | dismisses | **not this modifier**: starting a selection moves focus to the `SelectionContainer`; same without it |
 
 Scroll-to-dismiss is deliberately not done (non-idiomatic on Android; iOS's interactive variant can't be
