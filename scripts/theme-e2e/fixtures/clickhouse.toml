@@ -1,0 +1,18 @@
+# The bundled ClickHouse theme. Expectations are its roles after the resolver's fallbacks
+# (ClickHousePalette through ServerThemeResolver, which ServerThemeUpstreamParityTest holds to
+# upstream's resolveTheme).
+description = "Bundled theme: ClickHouse"
+theme = "clickhouse"
+served = "clickhouse"
+
+[expect.light]
+canvas = "#FFFFFF"
+user_message = "#E6E7E9"
+composer = "#FFFFFF"
+code_body = "#F6F7FA"
+
+[expect.dark]
+canvas = "#1F1F1C"
+user_message = "#323232"
+composer = "#2D2D2D"
+code_body = "#282828"

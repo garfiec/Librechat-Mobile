@@ -2,10 +2,12 @@ package com.garfiec.librechat
 
 import android.view.Window
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
@@ -58,13 +60,6 @@ internal fun SwitchboardTheme(window: Window, content: @Composable (appLocaleTag
         ThemeMode.SYSTEM -> isSystemInDarkTheme()
     }
 
-    // Bar icons follow the app's theme, not the system's, so they stay legible when the user overrides it.
-    SideEffect {
-        val insetsController = WindowCompat.getInsetsController(window, window.decorView)
-        insetsController.isAppearanceLightStatusBars = !darkTheme
-        insetsController.isAppearanceLightNavigationBars = !darkTheme
-    }
-
     if (themeReady && localeReady && dateTimeReady) {
         LibreChatTheme(
             darkTheme = darkTheme,
@@ -73,7 +68,17 @@ internal fun SwitchboardTheme(window: Window, content: @Composable (appLocaleTag
             uiStyle = storedUiStyle,
             serverTheme = serverTheme?.painted,
         ) {
+            // Bar icons follow the colour under them, not the mode: a server theme can be dark in
+            // light mode, and the user's mode can differ from the system's.
+            val lightBars = MaterialTheme.colorScheme.background.luminance() > HALF_LUMINANCE
+            SideEffect {
+                val insetsController = WindowCompat.getInsetsController(window, window.decorView)
+                insetsController.isAppearanceLightStatusBars = lightBars
+                insetsController.isAppearanceLightNavigationBars = lightBars
+            }
             content(appLocale)
         }
     }
 }
+
+private const val HALF_LUMINANCE = 0.5f

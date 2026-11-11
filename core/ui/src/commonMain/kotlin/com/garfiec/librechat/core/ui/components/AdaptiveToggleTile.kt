@@ -66,7 +66,7 @@ fun AdaptiveToggleTile(
     }
     val contentColor = when {
         !checked -> scheme.onSurface
-        glass -> Color.White
+        glass -> GlassControlColors.onTint
         else -> scheme.onPrimaryContainer
     }
     val stateColor = if (checked) contentColor else GlassControlColors.secondaryLabel

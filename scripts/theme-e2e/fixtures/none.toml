@@ -1,0 +1,12 @@
+# No theme: the app goes back to Switchboard's own colours. Those follow the user's accent, so the
+# check is only that nothing of the last theme is left.
+description = "No theme: Switchboard's own colours"
+served = ""
+
+[differ.light]
+canvas = "#F5EFE4"
+code_body = "#E8E0D2"
+
+[differ.dark]
+canvas = "#12182C"
+code_body = "#0A0E1C"

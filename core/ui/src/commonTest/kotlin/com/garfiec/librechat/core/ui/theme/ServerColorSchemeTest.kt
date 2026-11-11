@@ -3,6 +3,7 @@ package com.garfiec.librechat.core.ui.theme
 import androidx.compose.material3.ColorScheme
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.luminance
 import com.garfiec.librechat.core.model.config.theme.ServerThemeDefinition
 import com.garfiec.librechat.core.model.config.theme.ThemeRole
 import com.garfiec.librechat.core.model.config.theme.resolve
@@ -49,12 +50,58 @@ class ServerColorSchemeTest {
 
     @Test
     fun inkThatWouldNotReadOnItsFillTurnsBlackOrWhite() {
-        // ClickHouse-style yellow accent with the stock white inverted text.
-        val yellow = ServerThemeDefinition("y", light = mapOf(ThemeRole.ACCENT_PRIMARY to 0xFAFF69), dark = emptyMap())
-        val scheme = serverColorScheme(yellow.resolve(dark = false), dark = false)
-        assertEquals(Color.Black, scheme.onPrimary)
-        // Stock teal keeps the server's white.
+        // ClickHouse's dark yellow accent under a white inverted text.
+        val yellow = ServerThemeDefinition(
+            "y",
+            light = emptyMap(),
+            dark = mapOf(ThemeRole.ACCENT_PRIMARY to 0xFAFF69, ThemeRole.TEXT_INVERTED to 0xFFFFFF),
+        )
+        assertEquals(Color.Black, serverColorScheme(yellow.resolve(dark = true), dark = true).onPrimary)
         assertEquals(Color.White, serverColorScheme(stock.resolve(dark = false), dark = false).onPrimary)
+    }
+
+    @Test
+    fun aLightAccentIsDarkenedJustEnoughForLabels() {
+        val ember = ServerThemeDefinition(
+            "ember",
+            light = mapOf(ThemeRole.ACCENT_PRIMARY to 0xEA580C),
+            dark = emptyMap(),
+        )
+        val colors = ember.resolve(dark = false)
+        val primary = serverColorScheme(colors, dark = false).primary
+        val surfaces = listOf(
+            ThemeRole.PAGE_CANVAS,
+            ThemeRole.SURFACE_SIDEBAR,
+            ThemeRole.SURFACE_MENU,
+            ThemeRole.SURFACE_COMPOSER,
+            ThemeRole.SURFACE_TERTIARY,
+        )
+        val worst = surfaces.minOf { contrast(primary, colors.color(it)) }
+        assertTrue(worst >= MIN_INK_CONTRAST, "worst $worst")
+        assertTrue(worst < MIN_INK_CONTRAST + 0.2f, "moved further than needed: $worst")
+        assertTrue(primary.red > primary.green && primary.green > primary.blue, "hue lost: $primary")
+        // The fills that carry no label keep the accent as given.
+        assertEquals(colors.color(ThemeRole.ACCENT_PRIMARY), serverColorScheme(colors, dark = false).inversePrimary)
+    }
+
+    @Test
+    fun anAccentThatAlreadyReadsIsKept() {
+        val ink = ServerThemeDefinition(
+            "ink",
+            light = mapOf(ThemeRole.ACCENT_PRIMARY to 0x151515),
+            dark = mapOf(ThemeRole.ACCENT_PRIMARY to 0x00FFAA),
+        )
+        assertEquals(Color(0xFF151515), serverColorScheme(ink.resolve(dark = false), dark = false).primary)
+        assertEquals(Color(0xFF00FFAA), serverColorScheme(ink.resolve(dark = true), dark = true).primary)
+    }
+
+    @Test
+    fun aDarkAccentOnDarkSurfacesIsLightened() {
+        val navy = ServerThemeDefinition("navy", light = emptyMap(), dark = mapOf(ThemeRole.ACCENT_PRIMARY to 0x1E3A8A))
+        val colors = navy.resolve(dark = true)
+        val primary = serverColorScheme(colors, dark = true).primary
+        assertTrue(primary.luminance() > Color(0xFF1E3A8A).luminance())
+        assertTrue(contrast(primary, colors.color(ThemeRole.PAGE_CANVAS)) >= MIN_INK_CONTRAST)
     }
 
     @Test

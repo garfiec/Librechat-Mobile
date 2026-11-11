@@ -46,7 +46,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.contentDescription
@@ -81,6 +80,7 @@ import com.garfiec.librechat.core.ui.components.dragSelectRow
 import com.garfiec.librechat.core.ui.components.dragSelectRowIcon
 import com.garfiec.librechat.core.ui.components.listDragSelection
 import com.garfiec.librechat.core.ui.components.rememberListDragSelection
+import com.garfiec.librechat.core.ui.theme.statusColors
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.util.HeaderIcon
@@ -680,7 +680,7 @@ private fun LazyItemScope.AgentListItem(
                 imageVector = Icons.Outlined.Public,
                 contentDescription = stringResource(Res.string.cd_public_agent),
                 modifier = Modifier.size(16.dp),
-                tint = Color(0xFF4CAF50),
+                tint = statusColors().success,
             )
         }
         if (isSelected) {

@@ -515,5 +515,5 @@ private const val POP_SCALE = 1.08f
 private const val FAILED_SCRIM_ALPHA = 0.45f
 
 // Fixed, not theme colours: the overlay sits on a photo, whose colours no theme knows.
-private val UploadScrim = Color(0x8C000000)
-private val UploadTrack = Color(0x4DFFFFFF)
+private val UploadScrim = Color.Black.copy(alpha = 0.55f)
+private val UploadTrack = Color.White.copy(alpha = 0.3f)
