@@ -181,7 +181,7 @@ internal fun GlassFloatingSheet(
                 .padding(SheetMargin),
             contentAlignment = Alignment.BottomCenter,
         ) {
-            Column(
+            Box(
                 modifier = Modifier
                     .widthIn(max = MaxSheetWidth)
                     .fillMaxWidth()
@@ -191,7 +191,6 @@ internal fun GlassFloatingSheet(
                         translationY = (1f - shown.value) * hiddenOffset + dragged.coerceAtLeast(0f)
                     }
                     .predictiveBackSheet(back)
-                    .glassSheetPanel(style, backdrop, thickening)
                     .draggable(
                         state = rememberDraggableState { delta -> dragged = (dragged + delta).coerceAtLeast(0f) },
                         orientation = Orientation.Vertical,
@@ -202,10 +201,13 @@ internal fun GlassFloatingSheet(
                     // least keep the sheet's own contents together for screen readers.
                     .semantics { isTraversalGroup = true },
             ) {
+                // Glass as a sibling behind the content, not a modifier around it: inside the glass's layer
+                // a UIKitView's see-through cut-out (an artifact's WKWebView) stops there and never shows.
+                Box(Modifier.matchParentSize().glassSheetPanel(style, backdrop, thickening))
                 // What an M3 sheet provides from its container; without it, text that relies on the
                 // ambient content colour renders in the default black, unreadable on dark glass.
                 CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
-                    Column(Modifier.fillMaxWidth().predictiveBackSheetContent(back)) {
+                    Column(Modifier.fillMaxWidth().clip(SheetShape).predictiveBackSheetContent(back)) {
                         // Centred as M3's sheet does: its default handle is a bare pill with no width of its own.
                         if (dragHandle != null) {
                             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) { dragHandle() }
