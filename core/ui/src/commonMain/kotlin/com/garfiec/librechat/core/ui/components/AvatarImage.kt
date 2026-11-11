@@ -27,9 +27,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.garfiec.librechat.core.common.extensions.firstGrapheme
-
-/** Default user avatar background matching the official web app. */
-private val UserAvatarBlue = Color(0xFF7989FF)
+import com.garfiec.librechat.core.ui.theme.chromeColors
 
 @Composable
 fun AvatarImage(
@@ -62,14 +60,14 @@ fun AvatarImage(
             modifier = modifier
                 .size(size)
                 .clip(CircleShape)
-                .background(UserAvatarBlue),
+                .background(chromeColors().avatar),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = Icons.Default.Person,
                 contentDescription = contentDescription,
                 modifier = Modifier.size(size * 0.6f),
-                tint = Color.White,
+                tint = chromeColors().onAvatar,
             )
         }
     } else if (fallbackIconPainter != null) {

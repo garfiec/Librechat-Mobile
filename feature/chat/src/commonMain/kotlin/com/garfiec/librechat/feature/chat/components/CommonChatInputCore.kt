@@ -71,6 +71,7 @@ import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
@@ -313,6 +314,8 @@ fun CommonChatInputCore(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
+                        // scripts/theme-e2e samples the box's fill here.
+                        .testTag("composer")
                         // A parent sees its children's focus: the box's border follows the field's.
                         .onFocusChanged { boxFocused = it.hasFocus }
                         .then(

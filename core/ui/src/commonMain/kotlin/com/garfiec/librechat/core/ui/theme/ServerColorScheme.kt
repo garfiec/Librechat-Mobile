@@ -5,6 +5,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
 import com.garfiec.librechat.core.model.config.theme.ThemeRole
 import com.garfiec.librechat.core.model.config.theme.ThemeRole.ACCENT_PRIMARY
@@ -27,6 +28,7 @@ import com.garfiec.librechat.core.model.config.theme.ThemeRole.TEXT_ON_STATUS
 import com.garfiec.librechat.core.model.config.theme.ThemeRole.TEXT_PRIMARY
 import com.garfiec.librechat.core.model.config.theme.ThemeRole.TEXT_SECONDARY
 import com.garfiec.librechat.core.ui.theme.ServerColor.Ink
+import com.garfiec.librechat.core.ui.theme.ServerColor.Legible
 import com.garfiec.librechat.core.ui.theme.ServerColor.Role
 import com.garfiec.librechat.core.ui.theme.ServerColor.Tint
 
@@ -39,6 +41,12 @@ internal sealed interface ServerColor {
 
     /** [role] as ink on [on], made readable by [readableInk]. */
     data class Ink(val role: ThemeRole, val on: SchemeSlot) : ServerColor
+
+    /**
+     * [role] moved toward black or white, hue kept, only as far as it takes to read at
+     * [MIN_INK_CONTRAST] on each of [against]: an accent the app also writes labels in.
+     */
+    data class Legible(val role: ThemeRole, val against: List<ThemeRole>) : ServerColor
 }
 
 /**
@@ -47,9 +55,17 @@ internal sealed interface ServerColor {
  * `surface`. The containers follow what the app paints with each: High is the composer, Low the
  * drawer and sheets, the plain one menus. `scrim` is left out on purpose: it stays M3's black.
  * An [ServerColor.Ink]'s fill is declared above it.
+ *
+ * The web fills with its accent but never writes running labels in it; the app does (section
+ * headers, selected rows), so `primary` is the accent made [ServerColor.Legible] on the surfaces
+ * those labels sit on, while the containers and `inversePrimary` keep it as given. `surfaceTint`
+ * is the canvas itself: M3 washes an elevated `surface` (a sheet) in it, so a sheet keeps the
+ * server's colour as the web paints it, and labels keep the contrast `primary` was moved to.
  */
 internal enum class SchemeSlot(val source: ServerColor) {
-    PRIMARY(Role(ACCENT_PRIMARY)),
+    PRIMARY(
+        Legible(ACCENT_PRIMARY, against = listOf(PAGE_CANVAS, SURFACE_SIDEBAR, SURFACE_MENU, SURFACE_COMPOSER, SURFACE_TERTIARY)),
+    ),
     ON_PRIMARY(Ink(TEXT_INVERTED, on = PRIMARY)),
     PRIMARY_CONTAINER(Tint(ACCENT_PRIMARY, PAGE_CANVAS, CONTAINER_TINT)),
     ON_PRIMARY_CONTAINER(Ink(TEXT_PRIMARY, on = PRIMARY_CONTAINER)),
@@ -68,7 +84,7 @@ internal enum class SchemeSlot(val source: ServerColor) {
     ON_SURFACE(Role(TEXT_PRIMARY)),
     SURFACE_VARIANT(Role(SURFACE_TERTIARY)),
     ON_SURFACE_VARIANT(Role(TEXT_SECONDARY)),
-    SURFACE_TINT(Role(ACCENT_PRIMARY)),
+    SURFACE_TINT(Role(PAGE_CANVAS)),
     INVERSE_SURFACE(Role(SURFACE_INVERTED)),
     INVERSE_ON_SURFACE(Role(TEXT_INVERTED)),
     ERROR(Role(TEXT_DESTRUCTIVE)),
@@ -94,6 +110,7 @@ fun serverColorScheme(colors: Map<ThemeRole, Int>, dark: Boolean): ColorScheme {
             is ServerColor.Role -> colors.color(source.role)
             is ServerColor.Tint -> colors.color(source.role).copy(alpha = source.alpha).compositeOver(colors.color(source.base))
             is ServerColor.Ink -> readableInk(colors.color(source.role), on = color(source.on))
+            is ServerColor.Legible -> legible(colors.color(source.role), source.against.map(colors::color))
         }
     }
     val base = if (dark) darkColorScheme() else lightColorScheme()
@@ -145,6 +162,23 @@ internal fun readableInk(ink: Color, on: Color): Color = when {
     else -> Color.White
 }
 
+/**
+ * [color] moved in Oklab toward black (white when the first of [surfaces] is dark) until it reads
+ * at [MIN_INK_CONTRAST] on every one of [surfaces]; unchanged when it already does.
+ */
+internal fun legible(color: Color, surfaces: List<Color>): Color {
+    fun reads(candidate: Color) = surfaces.all { contrast(candidate, it) >= MIN_INK_CONTRAST }
+    if (reads(color)) return color
+    val toward = if (surfaces.first().luminance() > HALF_LUMINANCE) Color.Black else Color.White
+    var low = 0f
+    var high = 1f
+    repeat(LEGIBLE_STEPS) {
+        val mid = (low + high) / 2
+        if (reads(lerp(color, toward, mid))) high = mid else low = mid
+    }
+    return lerp(color, toward, high)
+}
+
 /** WCAG 2 contrast ratio. */
 internal fun contrast(a: Color, b: Color): Float {
     val (light, dark) = listOf(a.luminance(), b.luminance()).sortedDescending()
@@ -154,5 +188,7 @@ internal fun contrast(a: Color, b: Color): Float {
 /** Body text on its fill, WCAG AA. */
 internal const val MIN_INK_CONTRAST = 4.5f
 private const val CONTAINER_TINT = 0.16f
+private const val HALF_LUMINANCE = 0.5f
+private const val LEGIBLE_STEPS = 12
 private const val WCAG_OFFSET = 0.05f
 private const val OPAQUE = -0x1000000

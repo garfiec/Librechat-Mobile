@@ -48,6 +48,8 @@ class ChatColorsTest {
             chat.diagram,
         )
         assertEquals("dark", ChatColors.switchboard(darkColorScheme(), dark = true).diagram.mermaidTheme)
+        assertEquals(Color(0xFF7C3AED), chat.temporary)
+        assertEquals(Color(0xFFA78BFA), ChatColors.switchboard(darkColorScheme(), dark = true).temporary)
         assertEquals(
             PageColors(
                 surfacePrimary = scheme.surface,
@@ -66,7 +68,17 @@ class ChatColorsTest {
             PageColors.switchboard(scheme),
         )
         assertEquals(
-            ChromeColors(scheme.surfaceContainerHigh, Color.Transparent, scheme.surfaceContainerHigh, scheme.onSurface),
+            ChromeColors(
+                scheme.surfaceContainerHigh,
+                Color.Transparent,
+                scheme.surfaceContainerHigh,
+                scheme.onSurface,
+                Color(0xFF7989FF),
+                Color.White,
+                scheme.secondaryContainer,
+                Color.Transparent,
+                scheme.onSecondaryContainer,
+            ),
             ChromeColors.switchboard(scheme),
         )
     }
@@ -84,6 +96,14 @@ class ChatColorsTest {
         assertEquals(colors.color(ThemeRole.SURFACE_CODE_BODY), chat.codeBody)
         assertEquals(colors.color(ThemeRole.LINK_INLINE), chat.linkInline)
         assertEquals(colors.color(ThemeRole.SURFACE_DIALOG), ChromeColors.server(colors).dialog)
+        assertEquals(colors.color(ThemeRole.SERIES_6), chat.temporary)
+        assertEquals(colors.color(ThemeRole.AVATAR_FILL), ChromeColors.server(colors).avatar)
+        assertEquals(colors.color(ThemeRole.AVATAR_TEXT), ChromeColors.server(colors).onAvatar)
+        with(ChromeColors.server(colors)) {
+            assertEquals(colors.color(ThemeRole.SURFACE_PRIMARY), segment)
+            assertEquals(colors.color(ThemeRole.BORDER_LIGHT), segmentEdge)
+            assertEquals(colors.color(ThemeRole.TEXT_PRIMARY), onSegment)
+        }
     }
 
     @Test

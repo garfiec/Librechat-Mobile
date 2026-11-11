@@ -26,11 +26,11 @@ object ChatInputDefaults {
         @Composable get() = MaterialTheme.colorScheme.outlineVariant
 
     /**
-     * Temporary chat's violet, as web tints its composer. A fixed hue rather than a scheme role, so
-     * the mode reads the same under any accent or dynamic colour.
+     * Temporary chat's tint, as web tints its composer. A fixed hue in Switchboard rather than a
+     * scheme role, so the mode reads the same under any accent or dynamic colour.
      */
     val temporaryAccent: Color
-        @Composable get() = if (LocalDarkTheme.current) TemporaryVioletDark else TemporaryVioletLight
+        @Composable get() = chatColors().temporary
 
     /** The composer's resting border while temporary chat is on. */
     val temporaryBorderColor: Color
@@ -97,8 +97,4 @@ object ChatInputDefaults {
     private const val TEMPORARY_BORDER_ALPHA = 0.6f
     private const val TEMPORARY_WASH_ALPHA_LIGHT = 0.08f
     private const val TEMPORARY_WASH_ALPHA_DARK = 0.14f
-
-    // Tailwind violet-600 / violet-400: web's violet, stepped for contrast against each surface.
-    private val TemporaryVioletLight = Color(0xFF7C3AED)
-    private val TemporaryVioletDark = Color(0xFFA78BFA)
 }

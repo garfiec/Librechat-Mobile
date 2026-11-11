@@ -4,6 +4,7 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
@@ -41,6 +42,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.max
 import com.garfiec.librechat.core.ui.glass.LiquidSegmentedControl
+import com.garfiec.librechat.core.ui.theme.chromeColors
 import com.garfiec.librechat.core.ui.theme.isLiquidGlass
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -116,6 +118,7 @@ private fun MaterialPill(
             thumb.settle(selectedIndex)
         }
     }
+    val chrome = chromeColors()
     val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     val density = LocalDensity.current
     val flingPx = with(density) { FlingVelocity.toPx() }
@@ -153,7 +156,8 @@ private fun MaterialPill(
                     .fillMaxHeight()
                     // offset {} already mirrors x in RTL; negating it here would flip it twice.
                     .offset { IntOffset((cellPx * thumb.position.value).roundToInt(), 0) }
-                    .background(MaterialTheme.colorScheme.secondaryContainer, ThumbShape),
+                    .background(chrome.segment, ThumbShape)
+                    .border(1.dp, chrome.segmentEdge, ThumbShape),
             )
             Row(modifier = Modifier.selectableGroup()) {
                 options.forEachIndexed { index, label ->
@@ -187,11 +191,7 @@ private fun PillSegment(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val color = lerp(
-        MaterialTheme.colorScheme.onSurfaceVariant,
-        MaterialTheme.colorScheme.onSecondaryContainer,
-        onThumb,
-    )
+    val color = lerp(MaterialTheme.colorScheme.onSurfaceVariant, chromeColors().onSegment, onThumb)
     Box(
         modifier = modifier
             .fillMaxHeight()

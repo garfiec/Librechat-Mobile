@@ -43,6 +43,8 @@ data class ChatColors(
     val inlineCode: Color,
     val syntax: SyntaxColors,
     val diagram: DiagramColors,
+    /** Temporary chat's tint on the composer: a fixed violet in Switchboard, the web's `series-6`. */
+    val temporary: Color,
 ) {
     companion object {
         fun switchboard(scheme: ColorScheme, dark: Boolean): ChatColors = ChatColors(
@@ -76,6 +78,8 @@ data class ChatColors(
                 border = Color.Transparent,
                 mermaidTheme = if (dark) "dark" else "default",
             ),
+            // Tailwind violet-600 / violet-400, stepped for contrast against each surface.
+            temporary = if (dark) Color(0xFFA78BFA) else Color(0xFF7C3AED),
         )
 
         /** Upstream v0.8.9-rc1 `client/src` and `packages/client/src`: which role each element paints. */
@@ -117,6 +121,7 @@ data class ChatColors(
                     border = colors.color(ThemeRole.BORDER_LIGHT),
                     mermaidTheme = if (dark) "dark" else "neutral",
                 ),
+                temporary = colors.color(ThemeRole.SERIES_6),
             )
         }
 
@@ -211,6 +216,17 @@ data class ChromeColors(
     val menuBorder: Color,
     val dialog: Color,
     val dialogTitle: Color,
+    /** The default user avatar: the web's `avatar-fill` behind an `avatar-text` person. */
+    val avatar: Color,
+    val onAvatar: Color,
+    /**
+     * A pill choice's selected segment, its edge ([Color.Transparent] for none) and its label. A
+     * server's are the web's segmented control (`Radio.tsx`): `surface-primary` edged in
+     * `border-light` on the `surface-tertiary` track, the label in `text-primary`.
+     */
+    val segment: Color,
+    val segmentEdge: Color,
+    val onSegment: Color,
 ) {
     companion object {
         fun switchboard(scheme: ColorScheme): ChromeColors = ChromeColors(
@@ -218,6 +234,11 @@ data class ChromeColors(
             menuBorder = Color.Transparent,
             dialog = scheme.surfaceContainerHigh,
             dialogTitle = scheme.onSurface,
+            avatar = Color(0xFF7989FF),
+            onAvatar = Color.White,
+            segment = scheme.secondaryContainer,
+            segmentEdge = Color.Transparent,
+            onSegment = scheme.onSecondaryContainer,
         )
 
         fun server(colors: Map<ThemeRole, Int>): ChromeColors = ChromeColors(
@@ -225,6 +246,11 @@ data class ChromeColors(
             menuBorder = colors.color(ThemeRole.BORDER_MENU),
             dialog = colors.color(ThemeRole.SURFACE_DIALOG),
             dialogTitle = colors.color(ThemeRole.DIALOG_TITLE),
+            avatar = colors.color(ThemeRole.AVATAR_FILL),
+            onAvatar = colors.color(ThemeRole.AVATAR_TEXT),
+            segment = colors.color(ThemeRole.SURFACE_PRIMARY),
+            segmentEdge = colors.color(ThemeRole.BORDER_LIGHT),
+            onSegment = colors.color(ThemeRole.TEXT_PRIMARY),
         )
     }
 }

@@ -6,6 +6,7 @@ import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import com.garfiec.librechat.core.ui.theme.LocalDarkTheme
+import com.garfiec.librechat.core.ui.theme.readableInk
 
 /**
  * Liquid Glass control colours, mapped onto the M3 scheme so the accent and dark mode carry over.
@@ -41,6 +42,14 @@ object GlassControlColors {
         } else {
             MaterialTheme.colorScheme.primary
         }
+
+    /**
+     * Labels and icons on [tint]. White, as iOS draws them; a server theme's light accent gets the
+     * black that reads on it instead. Switchboard's tints are tone 40, where white always reads.
+     */
+    val onTint: Color
+        @Composable @ReadOnlyComposable
+        get() = readableInk(Color.White, on = tint)
 
     val separator: Color
         @Composable @ReadOnlyComposable

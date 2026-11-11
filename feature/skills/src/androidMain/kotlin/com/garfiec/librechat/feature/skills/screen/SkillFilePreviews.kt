@@ -1,9 +1,9 @@
 package com.garfiec.librechat.feature.skills.screen
 
 import androidx.compose.foundation.Image
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.BrushPainter
 import com.garfiec.librechat.core.model.ui.UiStyle
 import com.garfiec.librechat.core.ui.preview.PreviewNarrowScreens
@@ -106,8 +106,9 @@ private fun FileHost(style: UiStyle, state: SkillFileUiState) {
             actions = SkillFileActions(onBack = {}, onSave = {}, onReload = {}, onDraftChange = {}, onImageFailed = {}),
             // A gradient stands in for the decoded image: the loader has nothing to decode in a preview.
             image = { _, description, modifier ->
+                val scheme = MaterialTheme.colorScheme
                 Image(
-                    painter = BrushPainter(Brush.linearGradient(listOf(Color(0xFF3A6FF7), Color(0xFF8E5CF7)))),
+                    painter = BrushPainter(Brush.linearGradient(listOf(scheme.primary, scheme.tertiary))),
                     contentDescription = description,
                     modifier = modifier,
                 )

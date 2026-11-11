@@ -1,0 +1,66 @@
+# An inline theme that names every role the run samples, so each expectation is a value written
+# here. Also squares the corners and asks for a serif face, for the contact sheet.
+description = "Inline theme: cream and teal in light, navy and coral in dark"
+theme = """
+version: 1
+name: acme
+modes:
+  light:
+    colors:
+      rgb-surface-canvas: '245 239 228'
+      rgb-surface-user-message: '214 236 228'
+      rgb-surface-composer: '255 252 246'
+      rgb-surface-code-body: '232 224 210'
+      rgb-surface-primary: '250 246 238'
+      rgb-surface-secondary: '240 232 218'
+      rgb-surface-sidebar: '236 226 208'
+      rgb-text-primary: '40 32 24'
+      rgb-text-secondary: '96 84 70'
+      rgb-accent-primary: '13 128 110'
+      rgb-link: '13 110 150'
+      rgb-border-light: '222 208 186'
+      rgb-border-medium: '204 188 162'
+    appearance:
+      controlRadius: '0.25rem'
+      surfaceRadius: '0.25rem'
+      largeSurfaceRadius: '0.5rem'
+      radiusXl: '0.25rem'
+      composerActionRadius: '0.5rem'
+      fontFamily: 'Georgia, "Noto Serif", serif'
+  dark:
+    colors:
+      rgb-surface-canvas: '18 24 44'
+      rgb-surface-user-message: '44 56 96'
+      rgb-surface-composer: '28 36 62'
+      rgb-surface-code-body: '10 14 28'
+      rgb-surface-primary: '18 24 44'
+      rgb-surface-secondary: '28 36 62'
+      rgb-surface-sidebar: '14 19 36'
+      rgb-text-primary: '236 240 255'
+      rgb-text-secondary: '170 180 210'
+      rgb-accent-primary: '255 122 89'
+      rgb-link: '255 160 130'
+      rgb-border-light: '44 54 86'
+      rgb-border-medium: '60 72 110'
+    appearance:
+      controlRadius: '0.25rem'
+      surfaceRadius: '0.25rem'
+      largeSurfaceRadius: '0.5rem'
+      radiusXl: '0.25rem'
+      composerActionRadius: '0.5rem'
+      fontFamily: 'Georgia, "Noto Serif", serif'
+"""
+# The theme's name as /api/config serves it, which tells the run the server has reloaded.
+served = "acme"
+
+[expect.light]
+canvas = "#F5EFE4"
+user_message = "#D6ECE4"
+composer = "#FFFCF6"
+code_body = "#E8E0D2"
+
+[expect.dark]
+canvas = "#12182C"
+user_message = "#2C3860"
+composer = "#1C243E"
+code_body = "#0A0E1C"

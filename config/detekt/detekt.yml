@@ -277,7 +277,8 @@ formatting:
 # Custom ruleset (:detekt-rules). AccountScopedDao enforces that account-scoped Room DAOs filter
 # every tenant-table statement by accountId. AlertDialogNestedScroll catches an AdaptiveAlertDialog
 # text slot that scrolls itself without opting out of the dialog's own scroll. MaskedFieldKeyboard
-# catches a masked text field that isn't on the password keyboard.
+# catches a masked text field that isn't on the password keyboard. HardcodedColor catches a
+# `Color(0x…)` literal, which no theme can reach.
 librechat:
   AccountScopedDao:
     active: true
@@ -285,3 +286,25 @@ librechat:
     active: true
   MaskedFieldKeyboard:
     active: true
+  # The allowlist: every colour outside these paths comes from the theme. An entry is a kind of
+  # colour a theme must not recolour, with its reason; if a theme author would reasonably want to
+  # recolour it, it's a theme token instead (a producer in core/ui theme/), not an entry here.
+  HardcodedColor:
+    active: true
+    excludes:
+      # The theme itself: Switchboard's producers and the mirrored server palettes.
+      - "**/core/ui/src/*/kotlin/**/theme/**"
+      - "**/core/model/src/*/kotlin/**/config/theme/**"
+      # Provider tiles: each provider's fixed brand-adjacent tint, the same under every theme so a
+      # provider is recognisable at a glance (the web's provider registry is the same exception).
+      - "**/core/ui/src/commonMain/kotlin/**/components/EndpointIcons.kt"
+      # Letter avatars: a fixed palette so an account keeps its colour across themes and devices.
+      - "**/core/ui/src/commonMain/kotlin/**/components/AvatarColors.kt"
+      # Tests assert on literal colours.
+      - "**/test/**"
+      - "**/androidTest/**"
+      - "**/commonTest/**"
+      - "**/jvmTest/**"
+      - "**/androidUnitTest/**"
+      - "**/androidInstrumentedTest/**"
+      - "**/iosTest/**"

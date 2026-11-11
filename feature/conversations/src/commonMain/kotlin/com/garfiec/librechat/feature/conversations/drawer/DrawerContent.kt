@@ -679,7 +679,7 @@ fun DrawerContent(
                     // Round in both styles: the header's buttons are pills, as in glass.
                     shape = CircleShape,
                     color = slotColor,
-                    contentColor = if (glass) Color.White else MaterialTheme.colorScheme.onPrimary,
+                    contentColor = if (glass) GlassControlColors.onTint else MaterialTheme.colorScheme.onPrimary,
                 ) {
                     Box(contentAlignment = Alignment.CenterStart) {
                         // Qualified: inside the Row, the RowScope overload would win and can't be called here.

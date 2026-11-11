@@ -151,7 +151,7 @@ fun AdaptiveSuggestionChip(
     )
 }
 
-/** Fill when resting, accent with white content when selected; custom colours keep their content colours. */
+/** Fill when resting, accent with its readable content when selected; custom colours keep their content colours. */
 @Composable
 private fun glassSelectableChipColors(isDefault: Boolean, colors: SelectableChipColors): SelectableChipColors {
     val fill = GlassControlColors.fill
@@ -166,9 +166,9 @@ private fun glassSelectableChipColors(isDefault: Boolean, colors: SelectableChip
         disabledContainerColor = fill,
         selectedContainerColor = tint,
         disabledSelectedContainerColor = tint,
-        selectedLabelColor = Color.White,
-        selectedLeadingIconColor = Color.White,
-        selectedTrailingIconColor = Color.White,
+        selectedLabelColor = GlassControlColors.onTint,
+        selectedLeadingIconColor = GlassControlColors.onTint,
+        selectedTrailingIconColor = GlassControlColors.onTint,
     )
 }
 
