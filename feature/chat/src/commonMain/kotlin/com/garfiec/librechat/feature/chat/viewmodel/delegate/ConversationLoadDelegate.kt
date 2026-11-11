@@ -516,7 +516,7 @@ class ConversationLoadDelegate(
         (cached.spec == null && currentModelSpecs()?.enforce == true) ||
             (wantsParameters && (!cached.hasParameters || cached.parametersStale))
 
-    fun refreshMessages() {
+    fun refreshMessages(onRefreshed: (conversationId: String) -> Unit = {}) {
         val conversationId = handle.state.conversationId ?: return
         // SECURITY: do not remove — temp-chat data-at-rest guard.
         // Temp chats aren't persisted server- or client-side; a pull-to-refresh would
@@ -531,6 +531,7 @@ class ConversationLoadDelegate(
             messageRepository.refreshMessages(conversationId, originAccount = null, toolPreviews = true)
             loadConversation(conversationId)
             handle.update { content = content.copy(isRefreshingMessages = false) }
+            onRefreshed(conversationId)
         }
     }
 }

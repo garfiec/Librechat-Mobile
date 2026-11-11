@@ -22,6 +22,7 @@ import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -610,6 +611,70 @@ class ChatViewModelHandoffResumeTest {
             runCurrent()
             assertThat(vm.uiState.value.isStreaming).isFalse()
             assertThat(fetches).isEqualTo(0)
+        } finally {
+            vm.viewModelScope.cancel()
+        }
+    }
+
+    /**
+     * The chat is open with no run, and a reply is started from another device. The server keeps
+     * that reply off the message list until it ends, so a pull-to-refresh must attach to the run.
+     */
+    @Test
+    fun `a refresh attaches to a run another device started`() = runTest(testDispatcher) {
+        var runStarted = false
+        coEvery { fixture.chatRepository.checkStreamStatus(eq(CONVERSATION_ID), any()) } coAnswers {
+            ChatStatusResponse(active = runStarted)
+        }
+        coEvery { fixture.messageRepository.refreshMessages(CONVERSATION_ID, any(), any()) } coAnswers {
+            stored.value = onServer
+            Result.Success(onServer)
+        }
+        every { fixture.chatRepository.resumeStream(CONVERSATION_ID) } returns flow {
+            emit(StreamEvent.ContentDelta(chunk = "Kap"))
+            awaitCancellation()
+        }
+        onServer = listOf(user)
+        val vm = fixture.build(defaultDispatcher = testDispatcher, initialConversationId = CONVERSATION_ID)
+        try {
+            advanceUntilIdle()
+            assertThat(vm.uiState.value.isStreaming).isFalse()
+
+            runStarted = true
+            vm.refreshMessages()
+            advanceTimeBy(STEP_MS)
+            runCurrent()
+
+            assertThat(vm.uiState.value.isStreaming).isTrue()
+            assertThat(vm.uiState.value.streamingContent).isEqualTo("Kap")
+        } finally {
+            vm.viewModelScope.cancel()
+        }
+    }
+
+    @Test
+    fun `a refresh during a reply already on screen does not attach to it again`() = runTest(testDispatcher) {
+        coEvery { fixture.chatRepository.checkStreamStatus(eq(CONVERSATION_ID), any()) } returns
+            ChatStatusResponse(active = true)
+        coEvery { fixture.messageRepository.refreshMessages(CONVERSATION_ID, any(), any()) } returns
+            Result.Success(listOf(user))
+        every { fixture.chatRepository.resumeStream(CONVERSATION_ID) } returns flow {
+            emit(StreamEvent.ContentDelta(chunk = "Kap"))
+            awaitCancellation()
+        }
+        onServer = listOf(user)
+        val vm = fixture.build(defaultDispatcher = testDispatcher, initialConversationId = CONVERSATION_ID)
+        try {
+            advanceTimeBy(STEP_MS)
+            runCurrent()
+            assertThat(vm.uiState.value.isStreaming).isTrue()
+
+            vm.refreshMessages()
+            advanceTimeBy(STEP_MS)
+            runCurrent()
+
+            verify(exactly = 1) { fixture.chatRepository.resumeStream(CONVERSATION_ID) }
+            assertThat(vm.uiState.value.streamingContent).isEqualTo("Kap")
         } finally {
             vm.viewModelScope.cancel()
         }
