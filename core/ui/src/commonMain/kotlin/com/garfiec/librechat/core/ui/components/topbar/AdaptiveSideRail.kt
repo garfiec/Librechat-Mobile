@@ -526,8 +526,8 @@ internal fun RailHeading(
     modifier: Modifier = Modifier,
 ) {
     val owner = remember { Any() }
-    val barSide = LocalWindowFeatures.current.verticalBars?.side
-    val drawerButton = spec.navigation?.takeIf { headingKeepsDrawerButton(it, barSide, LocalLayoutDirection.current) }
+    val bars = LocalWindowFeatures.current.verticalBars
+    val drawerButton = spec.navigation?.takeIf { headingKeepsDrawerButton(it, bars?.side, LocalLayoutDirection.current) }
     val railSpec = if (drawerButton != null) spec.copy(navigation = null) else spec
     SideEffect { slot.claim(owner, railSpec) }
     DisposableEffect(slot) { onDispose { slot.release(owner) } }
@@ -552,13 +552,18 @@ internal fun RailHeading(
                     // The status bar is in the column, so the heading starts at the window's top.
                     .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))
                     .heightIn(min = HeadingMinHeight)
-                    .padding(start = if (drawerButton != null) 8.dp else 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
+                    .padding(start = if (drawerButton != null) 0.dp else 16.dp, end = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                drawerButton?.let { RailNavigation(it, glass, LocalGlassBackdrop.current) }
+                // Mirrors the bar column: centred in a column-wide square at the window's corner, so it
+                // keeps the rail buttons' edge margin and clears the rounded display corner.
+                if (drawerButton != null && bars != null) {
+                    Box(Modifier.size(bars.columnWidth), contentAlignment = Alignment.Center) {
+                        RailNavigation(drawerButton, glass, LocalGlassBackdrop.current)
+                    }
+                }
                 Box(
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).padding(vertical = 8.dp),
                     contentAlignment = if (title.alignment == BarTitleAlignment.CENTER) Alignment.Center else Alignment.CenterStart,
                 ) {
                     if (text != null) {
