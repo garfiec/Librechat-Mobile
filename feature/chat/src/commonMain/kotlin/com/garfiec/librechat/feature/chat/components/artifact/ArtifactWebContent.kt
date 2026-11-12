@@ -6,8 +6,8 @@ import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 
 /**
- * Builds the HTML document for an artifact preview. Used by both the fullscreen
- * [ArtifactPanel] and the [InlineArtifactView]. Set [inline] to true when
+ * Builds the HTML document for an artifact preview. Used by both the
+ * [ArtifactViewer] and the [InlineArtifactView]. Set [inline] to true when
  * embedding inside a chat message: SVG/Markdown/Plain shrink their body
  * padding, Mermaid additionally disables htmlLabels so the SVG can round-trip
  * through Coil's SvgDecoder for the cache-harvest path. HTML and React
@@ -47,7 +47,7 @@ object ArtifactWebContent {
         return when (ArtifactType.from(type)) {
             // htmlLabels = !inline: only the inline cache-harvest path needs htmlLabels
             // disabled so the resulting SVG renders correctly through Coil 3's SvgDecoder
-            // (no foreignObject). The fullscreen ArtifactPanel renders via the live
+            // (no foreignObject). The artifact viewer renders via the live
             // WebView+mermaid runtime so it keeps mermaid's default htmlLabels=true for
             // label fidelity (bold/italic, <br/>, nested spans).
             ArtifactType.MERMAID -> MermaidWebContent.buildHtml(content, isDarkTheme, inline, htmlLabels = !inline)

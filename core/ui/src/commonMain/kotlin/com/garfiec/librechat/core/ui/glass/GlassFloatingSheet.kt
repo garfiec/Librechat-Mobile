@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -226,10 +227,14 @@ internal fun GlassFloatingSheet(
 }
 
 /** Shared with `AdaptiveSheetSurface`, so a sheet a screen drags itself matches this one. */
-internal fun Modifier.glassSheetPanel(style: GlassStyle, backdrop: GlassBackdrop?, thickening: Color): Modifier =
-    glassSurface(style, SheetShape, backdrop).clip(SheetShape).background(thickening)
+internal fun Modifier.glassSheetPanel(
+    style: GlassStyle,
+    backdrop: GlassBackdrop?,
+    thickening: Color,
+    shape: CornerBasedShape = SheetShape,
+): Modifier = glassSurface(style, shape, backdrop).clip(shape).background(thickening)
 
-private val SheetShape = RoundedCornerShape(32.dp)
+internal val SheetShape = RoundedCornerShape(32.dp)
 
 /** How far a floating sheet sits in from the screen's edges (inside the safe area). */
 internal val SheetMargin = 12.dp

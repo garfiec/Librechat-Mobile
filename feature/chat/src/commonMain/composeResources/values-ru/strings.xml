@@ -358,6 +358,10 @@
     <string name="cd_view_code">Показать код</string>
     <string name="label_diagram">Диаграмма</string>
     <string name="cd_fullscreen">Во весь экран</string>
+    <string name="cd_exit_fullscreen">Выйти из полноэкранного режима</string>
+    <string name="cd_resize_artifact">Изменить размер артефакта</string>
+    <string name="artifact_wider">Артефакт шире</string>
+    <string name="artifact_narrower">Артефакт уже</string>
     <string name="cd_close_fullscreen">Закрыть полноэкранный режим</string>
 
     <!-- Message bubble -->

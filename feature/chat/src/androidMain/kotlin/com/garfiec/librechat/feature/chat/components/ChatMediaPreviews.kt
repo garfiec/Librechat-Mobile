@@ -62,7 +62,7 @@ private fun ArtifactSheetHost() {
             ArtifactViewer(
                 artifact = versions.last(),
                 versions = versions,
-                isFullscreen = false,
+                inSheet = true,
                 onClose = {},
                 onExpand = {},
             )

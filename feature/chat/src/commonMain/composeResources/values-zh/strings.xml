@@ -343,6 +343,10 @@
     <string name="cd_view_code">查看代码</string>
     <string name="label_diagram">图表</string>
     <string name="cd_fullscreen">全屏</string>
+    <string name="cd_exit_fullscreen">退出全屏</string>
+    <string name="cd_resize_artifact">调整 artifact 大小</string>
+    <string name="artifact_wider">加宽 artifact</string>
+    <string name="artifact_narrower">缩窄 artifact</string>
     <string name="cd_close_fullscreen">退出全屏</string>
 
     <!-- Message bubble -->

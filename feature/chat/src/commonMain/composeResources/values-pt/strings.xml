@@ -350,6 +350,10 @@
     <string name="cd_view_code">Ver código</string>
     <string name="label_diagram">Diagrama</string>
     <string name="cd_fullscreen">Tela cheia</string>
+    <string name="cd_exit_fullscreen">Sair da tela cheia</string>
+    <string name="cd_resize_artifact">Redimensionar o artefato</string>
+    <string name="artifact_wider">Artefato mais largo</string>
+    <string name="artifact_narrower">Artefato mais estreito</string>
     <string name="cd_close_fullscreen">Fechar tela cheia</string>
 
     <!-- Message bubble -->

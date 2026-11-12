@@ -35,8 +35,8 @@ import com.garfiec.librechat.feature.chat.components.web.safelyDestroyWebView
  * Android inline artifact preview. The slot is hardcoded to the inline cap for
  * every type routed here (HTML, React, uncached Mermaid). SVG and cached
  * Mermaid take the synchronous-aspect-ratio path via `InlineSvgSurface`
- * upstream; Markdown renders natively. Full content lives in the fullscreen
- * [ArtifactPanel] on tap. A fixed slot is the only configuration we've
+ * upstream; Markdown renders natively. Full content lives in the
+ * [ArtifactViewer] on tap. A fixed slot is the only configuration we've
  * measured that fully eliminates LazyColumn scroll-jump for WebView-hosted
  * previews; `fitContent` (office previews) trades one resize per card for not
  * leaving most of a short document's card empty.
@@ -80,7 +80,7 @@ actual fun InlineArtifactView(
 
     // Inline previews are capped to ~70% of the current window so a long HTML /
     // React doc can never claim multiple screens of LazyColumn space (the full
-    // content lives in the fullscreen ArtifactPanel on tap). A second reason
+    // content lives in the artifact viewer on tap). A second reason
     // the cap matters on Android: `LAYER_TYPE_SOFTWARE` on the inline WebView
     // (see `WebViewSafeDestroy.kt`) allocates a backing bitmap sized to the
     // WebView's full layout height — an unbounded 380×4500 dp layout produces

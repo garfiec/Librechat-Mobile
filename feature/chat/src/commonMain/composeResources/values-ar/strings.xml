@@ -368,6 +368,10 @@
     <string name="cd_view_code">عرض الكود</string>
     <string name="label_diagram">المخطط</string>
     <string name="cd_fullscreen">ملء الشاشة</string>
+    <string name="cd_exit_fullscreen">الخروج من ملء الشاشة</string>
+    <string name="cd_resize_artifact">تغيير حجم العنصر التفاعلي</string>
+    <string name="artifact_wider">توسيع العنصر التفاعلي</string>
+    <string name="artifact_narrower">تضييق العنصر التفاعلي</string>
     <string name="cd_close_fullscreen">إغلاق ملء الشاشة</string>
 
     <!-- Message bubble -->

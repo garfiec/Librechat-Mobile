@@ -259,7 +259,7 @@ internal fun displayFilename(name: String): String = sandboxDisplayName(name)
 
 /**
  * Mobile equivalent of upstream `fileToArtifact`: maps a text-bearing attachment to an [Artifact]
- * the existing `ArtifactPanel` can render, or `null` to fall back to a download chip. Content is the
+ * the existing `ArtifactViewer` can render, or `null` to fall back to a download chip. Content is the
  * server-extracted `attachment.text`; a blank/absent text can't be rendered, so it falls back. Code
  * files are wrapped in a fenced block so the markdown artifact renderer highlights them.
  *
