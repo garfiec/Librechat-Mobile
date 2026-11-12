@@ -78,10 +78,11 @@ fun CachedMarkdown(
 ) {
     val cache = LocalParsedMarkdownCache.current
     val rendered = if (trailingCursor) withStreamingCursor(content) else content
-    val key = parsedMarkdownCacheKey(rendered)
     // The last message opts into synchronous first-parse; see [LocalImmediateMarkdown].
     val immediate = immediate || LocalImmediateMarkdown.current
     val cacheable = !streaming && !trailingCursor
+    // Only settled content touches the cache; hashing the live text on every flush would buy nothing.
+    val key = if (cacheable) parsedMarkdownCacheKey(rendered) else null
     // Remembered per media holder: the renderer keys its inline-image layout on the transformer.
     val media = LocalMarkdownMedia.current
     // Citations arrive normalized (see `normalizeCitations`): only resolvable groups are left, in
@@ -104,7 +105,7 @@ fun CachedMarkdown(
     }
     val imageTransformer = remember(media) { ChatImageTransformer(media) }
 
-    if (cacheable) {
+    if (key != null) {
         // Fast path: stable content + a cache hit → render the cached AST with
         // no MarkdownState and no parse. The content equality guard (not just
         // the 32-bit hash key) keeps a hash collision on the shared cache from
@@ -143,7 +144,7 @@ fun CachedMarkdown(
     // message's AST. retainState also lets `liveSuccess` lag a delta behind
     // `content` while streaming, so tier 1 must reject the stale one.
     val effective = liveSuccess?.takeIf { it.content == rendered }
-        ?: cache[key]?.takeIf { it.content == rendered }
+        ?: key?.let { cache[it] }?.takeIf { it.content == rendered }
         ?: liveState
 
     MarkdownWithImages(effective, colors, typography, annotator, inlineContent, components, imageTransformer, modifier)

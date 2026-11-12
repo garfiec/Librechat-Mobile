@@ -251,4 +251,25 @@ class ChatChromeEquivalenceTest {
         )
         assertFalse(base.chromeEquivalentTo(next))
     }
+
+    @Test
+    fun `the thread's split takes out only the text and streamingText carries it`() {
+        val toolCall = listOf(ActiveToolCall(id = "t1", name = "web_search"))
+        val loud = streaming
+            .withContent { copy(streamingThinking = "Considering", activeToolCalls = toolCall) }
+            .copy(
+                comparisonState = ComparisonState(
+                    isEnabled = true,
+                    primaryStreamingContent = "left",
+                    secondaryStreamingContent = "right",
+                ),
+            )
+        val next = loud.withContent { copy(streamingContent = "Once upon a time") }
+
+        // A flush is invisible to the thread's half...
+        assertEquals(loud.withoutStreamingText(), next.withoutStreamingText())
+        // ...but a tool call is not: the thread draws it.
+        assertEquals(toolCall, loud.withoutStreamingText().activeToolCalls)
+        assertEquals(StreamingText("Once upon a time", "Considering", "left", "right"), next.streamingText())
+    }
 }

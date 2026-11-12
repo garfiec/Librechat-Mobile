@@ -33,6 +33,7 @@ import com.garfiec.librechat.feature.chat.resources.action_keep_and_continue
 import com.garfiec.librechat.feature.chat.util.buildComparisonDisplayMessages
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ChatViewModel
+import com.garfiec.librechat.feature.chat.viewmodel.StreamingText
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -48,6 +49,8 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 internal fun ComparisonPanes(
     uiState: ChatUiState,
+    /** The live text of both lanes, read only by their streaming items (see ChatContent). */
+    streamingText: () -> StreamingText,
     viewModel: ChatViewModel,
     senderName: String,
     fontSizeMultiplier: Float,
@@ -181,9 +184,9 @@ internal fun ComparisonPanes(
                 isStreaming = comparisonState.primaryIsStreaming || uiState.isStreaming,
                 justSettledMessageId = uiState.justSettledMessageId,
                 streamingContent = if (comparisonState.primaryIsStreaming) {
-                    comparisonState.primaryStreamingContent
+                    { streamingText().primary }
                 } else {
-                    uiState.streamingContent
+                    { streamingText().content }
                 },
                 activeToolCalls = if (comparisonState.primaryIsStreaming) {
                     comparisonState.primaryActiveToolCalls
@@ -257,7 +260,7 @@ internal fun ComparisonPanes(
                 displayMessages = secondaryDisplayMessages,
                 isStreaming = comparisonState.secondaryIsStreaming,
                 justSettledMessageId = uiState.justSettledMessageId,
-                streamingContent = comparisonState.secondaryStreamingContent,
+                streamingContent = { streamingText().secondary },
                 activeToolCalls = comparisonState.secondaryActiveToolCalls,
                 sandboxStartingToolCallIds = uiState.sandboxStartingToolCallIds,
                 streamingAttachments = uiState.streamingAttachments,

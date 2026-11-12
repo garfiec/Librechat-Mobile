@@ -16,10 +16,14 @@ import kotlinx.coroutines.withContext
 import kotlin.coroutines.CoroutineContext
 
 /**
- * [rememberMarkdownSegments] with citations normalized against the turn's search results
+ * [text] parsed into [MarkdownSegment]s with citations normalized against the turn's search results
  * ([LocalMarkdownMedia]), so the segments hold only citations that resolve, ready to draw as pills.
  * With [withoutCitations] every citation is removed instead: find-in-page draws its own strings, which
  * have no pills, and its match numbering ([countMarkdownOccurrences]) counts the same stripped text.
+ *
+ * While [streaming], parsing and normalizing run off the main thread with the previous result
+ * retained (and the first text done synchronously) so the bubble never blanks. A new citation index
+ * re-derives the same text.
  */
 @Composable
 internal fun rememberCitedMarkdownSegments(
@@ -27,38 +31,29 @@ internal fun rememberCitedMarkdownSegments(
     streaming: Boolean,
     withoutCitations: Boolean,
 ): List<MarkdownSegment> {
-    val segments = rememberMarkdownSegments(text, streaming)
     val index = if (withoutCitations) CitationIndex.Empty else LocalMarkdownMedia.current.citations
-    return remember(segments, index, streaming) { segments.withCitations(index, streaming) }
-}
-
-/**
- * Parses [text] into [MarkdownSegment]s. While [streaming], parsing runs off the main thread with
- * the previous result retained (and the first text parsed synchronously) so the bubble never blanks.
- */
-@Composable
-internal fun rememberMarkdownSegments(
-    text: String,
-    streaming: Boolean,
-): List<MarkdownSegment> {
     if (!streaming) {
-        return remember(text) { parseMarkdownSegments(text) }
+        val segments = remember(text) { parseMarkdownSegments(text) }
+        return remember(segments, index) { segments.withCitations(index, streaming = false) }
     }
 
-    val latestText by rememberUpdatedState(text)
-    var segments by remember { mutableStateOf(parseMarkdownSegments(text, streaming = true)) }
-    val initialText = remember { text }
+    val latest by rememberUpdatedState(text to index)
+    val initial = remember { text to index }
+    var segments by remember { mutableStateOf(streamedSegments(initial)) }
 
     LaunchedEffect(Unit) {
-        collectMarkdownSegments(
-            texts = snapshotFlow { latestText },
-            alreadyParsed = initialText,
-            parse = { parseMarkdownSegments(it, streaming = true) },
+        collectDerived(
+            inputs = snapshotFlow { latest },
+            alreadyDerived = initial,
+            derive = ::streamedSegments,
         ) { segments = it }
     }
 
     return segments
 }
+
+internal fun streamedSegments(input: Pair<String, CitationIndex>): List<MarkdownSegment> =
+    parseMarkdownSegments(input.first, streaming = true).withCitations(input.second, streaming = true)
 
 /**
  * Parses the latest text from [texts] on [parseContext]. [parseContext] must differ from the

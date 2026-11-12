@@ -1,5 +1,9 @@
 package com.garfiec.librechat.feature.chat.components
 
+import com.garfiec.librechat.core.model.Attachment
+import com.garfiec.librechat.core.model.WebSearchData
+import com.garfiec.librechat.core.model.WebSearchSource
+import com.garfiec.librechat.core.model.content.CitationIndex
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
@@ -148,6 +152,37 @@ class MarkdownSegmentStreamTest {
         val code = published.last().filterIsInstance<MarkdownSegment.CodeBlock>().single()
         assertEquals("kotlin", code.language)
         assertEquals("val x = 1", code.code)
+        job.cancel()
+    }
+
+    @Test
+    fun aNewCitationIndexReDerivesTheSameText() = runTest {
+        val index = CitationIndex.from(
+            listOf(
+                Attachment(
+                    type = "web_search",
+                    webSearch = WebSearchData(turn = 0, organic = listOf(WebSearchSource(link = "https://site.com/a", title = "T"))),
+                ),
+            ),
+        )
+        val reply = "Rivers.\\ue202turn0search0 More"
+        val source = Channel<Pair<String, CitationIndex>>(Channel.UNLIMITED)
+        val published = mutableListOf<String>()
+        val job = launch {
+            collectDerived(
+                inputs = source.receiveAsFlow(),
+                alreadyDerived = "" to CitationIndex.Empty,
+                derive = ::streamedSegments,
+                deriveContext = StandardTestDispatcher(testScheduler),
+            ) { published += text(it) }
+        }
+        runCurrent()
+
+        source.trySend(reply to CitationIndex.Empty); advanceUntilIdle()
+        source.trySend(reply to index); advanceUntilIdle()
+
+        // Unresolved anchors are dropped; once the results arrive the same text keeps its pill.
+        assertEquals(listOf("Rivers. More", "Rivers.\uE202turn0search0 More"), published)
         job.cancel()
     }
 }

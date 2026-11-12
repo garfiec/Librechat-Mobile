@@ -11,8 +11,10 @@ mapped `settingChips`, plus top-level `error` (shared transient banner) and `med
 - **Single emissions:** completion-flash finalize, begin-stream, reset-with-carryover,
   `applyComposer` and `switchBranch` each stay ONE `StateFlow` emission; don't split them across
   `update`/`copy` calls (why tree and streaming fields share `MessagesState`).
-- **Chrome/hot split (`ChatScreen`):** the thread collects at full rate; everything else collects
-  `map { it.neutralizeStreamingChurn() }.distinctUntilChanged()` (`ChatChromeEquivalence.kt`).
+- **Chrome/hot split (`ChatScreen`):** everything but the thread collects
+  `map { it.neutralizeStreamingChurn() }.distinctUntilChanged()` (`ChatChromeEquivalence.kt`). The
+  thread (`ChatContent`) reads `withoutStreamingText()`; the live text reaches only the streaming
+  items, as a `() -> String` they call, so a flush recomposes nothing above them.
   Chrome must not read a neutralized field (they are always empty there). A new high-frequency
   streaming field goes in both `neutralizeStreamingChurn` and `ChatChromeEquivalenceTest`. Known
   exception: `subagentProgress` (chrome-visible, unthrottled; open follow-up).

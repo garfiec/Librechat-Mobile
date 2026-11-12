@@ -77,14 +77,15 @@ import kotlin.math.abs
 fun MessageList(
     displayMessages: List<MessageNode>,
     isStreaming: Boolean,
-    streamingContent: String,
+    /** The live reply's text; read only inside the streaming item, so a flush recomposes that alone. */
+    streamingContent: () -> String,
     onSiblingNavigation: (parentMessageId: String, siblingIndex: Int) -> Unit,
     onEditMessage: (messageId: String) -> Unit,
     onRegenerateMessage: (messageId: String) -> Unit,
     onCopyMessage: (messageId: String) -> Unit,
     modifier: Modifier = Modifier,
     /** The live reply's reasoning, shown collapsed above its text. See [StreamingMessageBubble]. */
-    streamingThinking: String = "",
+    streamingThinking: () -> String = { "" },
     activeToolCalls: List<ActiveToolCall> = emptyList(),
     /** Calls whose sandbox is cold-booting; see `MessagesState.sandboxStartingToolCallIds`. */
     sandboxStartingToolCallIds: Set<String> = emptySet(),
@@ -234,6 +235,7 @@ fun MessageList(
     val renderedToolCalls = remember(activeToolCalls, pausedAskToolCallId, pausedAskQuestion) {
         activeToolCalls.withoutUnansweredQuestions(pausedAskToolCallId, pausedAskQuestion)
     }
+    val replyLength = { streamingContent().length }
     // One "Running X" row per skill the streaming turn picked, until the final message brings
     // the real cards. The turn's user message is the last displayed node (fresh send, regenerate
     // and edit alike), and a resync that already carries a skill's card retires its row.
@@ -791,7 +793,7 @@ fun MessageList(
                     item(key = streamingSlotKey) {
                         ProvideMarkdownMedia(liveAttachments, baseUrl) {
                             StreamingMessageBubble(
-                                streamingContent = streamingContent,
+                                streamingContent = streamingContent(),
                                 senderName = streamingSenderName,
                                 avatar = streamingAvatar,
                                 fontSizeMultiplier = fontSizeMultiplier,
@@ -799,7 +801,7 @@ fun MessageList(
                                 showAvatars = showAvatars,
                                 showBubbles = showBubbles,
                                 useKatex = useKatex,
-                                streamingThinking = streamingThinking,
+                                streamingThinking = streamingThinking(),
                                 // Inside the reply, under its sender row, where the finalized
                                 // message draws the cards that replace them.
                                 pendingSkills = pendingSkills,
@@ -825,7 +827,7 @@ fun MessageList(
                                         showImageDescriptions = showImageDescriptions,
                                         sandboxStarting = toolCall.id in sandboxStartingToolCallIds,
                                         isLatestStep = toolCall.id == renderedToolCalls.lastOrNull()?.id,
-                                        replyLength = streamingContent.length,
+                                        replyLength = replyLength,
                                     )
                                 }
                             }

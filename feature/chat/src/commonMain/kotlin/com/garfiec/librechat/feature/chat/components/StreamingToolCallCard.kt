@@ -27,6 +27,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -58,8 +59,11 @@ fun StreamingToolCallCard(
     sandboxStarting: Boolean = false,
     /** This is the reply's most recent tool call, so a finished search may still be being read. */
     isLatestStep: Boolean = false,
-    /** The reply text's length so far, to tell when the model has moved past a finished search. */
-    replyLength: Int = 0,
+    /**
+     * The reply text's length so far, to tell when the model has moved past a finished search. Read
+     * through [derivedStateOf], so the card recomposes when that answer flips, not on every flush.
+     */
+    replyLength: () -> Int = { 0 },
 ) {
     // The run is holding this call for an MCP sign-in (delta.auth). Upstream shows the action only
     // while the step runs; the completion that follows the callback flips isComplete and hides it.
@@ -216,7 +220,10 @@ fun StreamingToolCallCard(
     val replyLengthAtComplete =
         // Saveable: this is a LazyColumn item, and a plain remember re-captured on scroll-back would
         // put a settled search back to "Reading results".
-        rememberSaveable(toolCall.id, toolCall.isComplete) { if (toolCall.isComplete) replyLength else -1 }
+        rememberSaveable(toolCall.id, toolCall.isComplete) { if (toolCall.isComplete) replyLength() else -1 }
+    val replyMovedOn by remember(replyLengthAtComplete, replyLength) {
+        derivedStateOf { replyLengthAtComplete >= 0 && replyLength() > replyLengthAtComplete }
+    }
 
     // Web search: the phase line while it runs ("Searching the web" → "Processing results" →
     // "Reading results"), then the same settled card the finalized message uses, with sources
@@ -234,7 +241,7 @@ fun StreamingToolCallCard(
                 isComplete = verdict != ToolCallVerdict.RUNNING,
                 hasSources = sources.isNotEmpty(),
                 isLatestStep = isLatestStep,
-                replyMovedOn = replyLengthAtComplete >= 0 && replyLength > replyLengthAtComplete,
+                replyMovedOn = replyMovedOn,
             )
             WebSearchCard(
                 sources = sources,
