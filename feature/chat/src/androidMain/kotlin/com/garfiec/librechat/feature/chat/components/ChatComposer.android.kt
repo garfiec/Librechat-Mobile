@@ -114,6 +114,7 @@ internal actual fun ChatComposer(
             comparisonHint = comparisonHint,
             onCancelPendingSend = onCancelPendingSend,
             fontSizeMultiplier = fontSizeMultiplier,
+            canFold = true,
             modifier = modifier.then(receiver),
         )
     }

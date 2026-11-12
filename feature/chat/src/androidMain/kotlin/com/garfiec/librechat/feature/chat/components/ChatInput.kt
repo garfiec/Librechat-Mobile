@@ -77,6 +77,7 @@ fun ChatInput(
     comparisonHint: ComposerComparisonHint = ComposerComparisonHint.NONE,
     onCancelPendingSend: () -> Unit = {},
     fontSizeMultiplier: Float = 1f,
+    canFold: Boolean = false,
     promptSuggestions: List<PromptMentionDisplayData> = emptyList(),
     skillSuggestions: List<PickerSkill> = emptyList(),
     isLoadingSkills: Boolean = false,
@@ -156,6 +157,7 @@ fun ChatInput(
         onCancelEdit = onCancelEdit,
         onCancelPendingSend = onCancelPendingSend,
         fontSizeMultiplier = fontSizeMultiplier,
+        canFold = canFold,
         modifier = modifier,
         leadingButtons = {
             val toolsBounce = rememberPressBounce()

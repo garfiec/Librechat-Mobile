@@ -484,23 +484,9 @@ fun ChatScreen(
         // scrolling up behind its dimming scrim.
         var inputBarHeightPx by remember { mutableIntStateOf(0) }
         var topBarHeightPx by remember { mutableIntStateOf(0) }
-        val bottomContentPadding = with(LocalDensity.current) {
-            maxOf(160.dp, inputBarHeightPx.toDp() + 16.dp)
-        }
-        // Side-by-side comparison panes are cards that stop above the composer, not lists that
-        // scroll under it, so they sit on the measured bar itself. The list floor above would
-        // leave a band of empty space, widest with the keyboard up (the bar loses its nav-bar inset).
-        val paneBottomInset = with(LocalDensity.current) {
-            if (inputBarHeightPx > 0) inputBarHeightPx.toDp() + 8.dp else bottomContentPadding
-        }
-        // The jump-to-bottom button sits on the measured composer: the default placement, 30dp
-        // into the list's reserve, overlaps a tall composer.
-        val scrollToBottomPadding = with(LocalDensity.current) {
-            if (inputBarHeightPx > 0) inputBarHeightPx.toDp() + 8.dp else null
-        }
         // Floor the top inset at status bar + one chip row so content clears the bar on the first
         // frame (before onSizeChanged reports the real height), avoiding a content-under-bar flash
-        // on each screen entry. Mirrors the bottomContentPadding floor.
+        // on each screen entry.
         val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
         val (fallbackToggleEnd, fallbackToggleBottom) = with(LocalDensity.current) {
             NativeToggleFromEnd.toPx() to NativeToggleFromBottom.toPx()
@@ -558,9 +544,7 @@ fun ChatScreen(
                             showAvatars = showAvatars,
                             showBubbles = showBubbles,
                             useKatex = useKatex,
-                            bottomContentPadding = bottomContentPadding,
-                            paneBottomInset = paneBottomInset,
-                            scrollToBottomPadding = scrollToBottomPadding,
+                            bottomBarHeightPx = { inputBarHeightPx },
                             topContentPadding = topContentPadding,
                             onShowSecondaryModelSheet = { showSecondaryModelSheet = true },
                             onComparisonTabChange = { activeComparisonTab = it },

@@ -118,6 +118,7 @@ internal actual fun ChatComposer(
         comparisonHint = comparisonHint,
         onCancelPendingSend = onCancelPendingSend,
         fontSizeMultiplier = fontSizeMultiplier,
+        canFold = true,
         hasClipboardImage = hasClipboardImage,
         onPasteImage = {
             // The screen's scope: a pause panel can swap this composer out mid-decode.

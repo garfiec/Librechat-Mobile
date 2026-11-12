@@ -3,6 +3,7 @@ package com.garfiec.librechat.feature.chat.components
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
@@ -53,6 +54,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -73,6 +75,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.onClick
@@ -219,6 +222,8 @@ fun CommonChatInputCore(
     /** Cancel a send parked behind an in-flight upload (see [ChatInputState.isAwaitingUploadSend]). */
     onCancelPendingSend: () -> Unit = {},
     fontSizeMultiplier: Float = 1f,
+    /** The composer may fold to one line while idle (see [composerHoldsOpen]); false keeps it open, as in previews. */
+    canFold: Boolean = false,
     /** A row picked from the `/` and `$` list: a prompt or a skill. */
     onSelectPickerItem: (ComposerPickerItem) -> Unit = {},
     /** The picker's scope chips and close replace the composer text with a command. */
@@ -307,6 +312,17 @@ fun CommonChatInputCore(
             val temporaryAccent = ChatInputDefaults.temporaryAccent
             val composerShape = themeShapes().composer
             var boxFocused by remember { mutableStateOf(false) }
+            val workspace = LocalCodeWorkspaceComposer.current
+            val holdsOpen = composerHoldsOpen(
+                inputText = state.inputText,
+                hasDraftItems = !state.chrome.draftItems.isEmpty,
+                arePicksUnsettled = state.arePicksUnsettled,
+                showsWorkspaceNotice = workspace?.state?.showsNotice == true,
+                isRecording = state.isRecording,
+                isTranscribing = state.isTranscribing,
+                isEditingQueued = state.isEditingQueued,
+            )
+            val openness = rememberComposerOpenness(canFold = canFold, holdsOpen = holdsOpen, focused = boxFocused)
             BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
                 // Below a 360dp screen the during-run caret folds into the send button, so the
                 // settings line keeps its room.
@@ -351,16 +367,22 @@ fun CommonChatInputCore(
                         .padding(4.dp),
                 ) {
                     ComposerDraftStrip(state.chrome)
-                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        textFieldContent(compact)
-                    }
-                    FailedUploadsLine(failedCount = state.chrome.draftItems.failedCount)
-                    LocalCodeWorkspaceComposer.current?.let { CodeWorkspaceNotice(it) }
-                    ComposerButtonRow(
+                    ComposerRows(
                         state = state,
                         compact = compact,
+                        openness = openness,
                         leadingButtons = leadingButtons,
                         trailingButtons = trailingButtons,
+                        // Both lines hold the composer open, so they never fold with the field.
+                        textFieldContent = {
+                            Column {
+                                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                    textFieldContent(compact)
+                                }
+                                FailedUploadsLine(failedCount = state.chrome.draftItems.failedCount)
+                                workspace?.let { CodeWorkspaceNotice(it) }
+                            }
+                        },
                         onSend = onSend,
                         onStop = onStop,
                         onQueue = onQueue,
@@ -506,11 +528,13 @@ internal val STEER_AND_QUEUE_MAX_HEIGHT = 168.dp
 
 @Suppress("LongParameterList")
 @Composable
-private fun ComposerButtonRow(
+private fun ComposerRows(
     state: ChatInputState,
     compact: Boolean,
+    openness: () -> Float,
     leadingButtons: @Composable RowScope.(compact: Boolean) -> Unit,
     trailingButtons: @Composable RowScope.(compact: Boolean) -> Unit,
+    textFieldContent: @Composable () -> Unit,
     onSend: () -> Unit,
     onStop: () -> Unit,
     onQueue: (() -> Unit)?,
@@ -522,22 +546,70 @@ private fun ComposerButtonRow(
     onCancelPendingSend: () -> Unit,
 ) {
     val chrome = state.chrome
-    Row(
-        modifier = Modifier.fillMaxWidth().passVerticalDragsToThread(),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        leadingButtons(compact)
-        Box(modifier = Modifier.weight(1f).padding(horizontal = 4.dp)) {
-            ComposerSettingsLine(
-                chips = chrome.settingChips,
-                onChipTap = chrome.onSettingChipTap,
-                onCancelSignIn = chrome.onCancelMcpSignIn,
-                onStartSignInOver = chrome.onStartMcpSignInOver,
-                ring = chrome.contextRing(),
-                leading = codeWorkspaceLineLeading(LocalCodeWorkspaceComposer.current),
+    // Folded, the settings line and Send are out of sight, so they leave the accessibility tree too.
+    val folded by remember(openness) { derivedStateOf { openness() < 0.5f } }
+    // Folded mid-run, Stop stays and the mic gives way; otherwise the mic stays and Send goes.
+    val streaming by animateFloatAsState(if (state.isStreaming) 1f else 0f, label = "foldStreaming")
+    val hidden = if (folded) Modifier.clearAndSetSemantics {} else Modifier
+    FoldingComposerRows(
+        openness = openness,
+        field = textFieldContent,
+        leading = { Row(verticalAlignment = Alignment.CenterVertically) { leadingButtons(compact) } },
+        settings = {
+            Box(modifier = Modifier.padding(horizontal = 4.dp).then(hidden)) {
+                ComposerSettingsLine(
+                    chips = chrome.settingChips,
+                    onChipTap = chrome.onSettingChipTap,
+                    onCancelSignIn = chrome.onCancelMcpSignIn,
+                    onStartSignInOver = chrome.onStartMcpSignInOver,
+                    ring = chrome.contextRing(),
+                    leading = codeWorkspaceLineLeading(LocalCodeWorkspaceComposer.current),
+                )
+            }
+        },
+        trailing = {
+            ComposerTrailing(
+                state = state,
+                compact = compact,
+                trailingButtons = trailingButtons,
+                micSlotModifier = Modifier.foldSlot { openness() + (1f - openness()) * (1f - streaming) },
+                sendSlotModifier = Modifier.foldSlot { openness() + (1f - openness()) * streaming }
+                    .then(if (folded && !state.isStreaming) Modifier.clearAndSetSemantics {} else Modifier),
+                onSend = onSend,
+                onStop = onStop,
+                onQueue = onQueue,
+                onSteer = onSteer,
+                onInterrupt = onInterrupt,
+                onDuringRunSend = onDuringRunSend,
+                onSetDuringRunAction = onSetDuringRunAction,
+                onCommitEdit = onCommitEdit,
+                onCancelPendingSend = onCancelPendingSend,
             )
-        }
-        trailingButtons(compact)
+        },
+        modifier = Modifier.fillMaxWidth().passVerticalDragsToThread(),
+    )
+}
+
+@Suppress("LongParameterList")
+@Composable
+private fun ComposerTrailing(
+    state: ChatInputState,
+    compact: Boolean,
+    onSend: () -> Unit,
+    onStop: () -> Unit,
+    onQueue: (() -> Unit)?,
+    onSteer: () -> Unit,
+    onInterrupt: () -> Unit,
+    onDuringRunSend: () -> Unit,
+    onSetDuringRunAction: (DuringRunAction) -> Unit,
+    onCommitEdit: () -> Unit,
+    onCancelPendingSend: () -> Unit,
+    micSlotModifier: Modifier = Modifier,
+    sendSlotModifier: Modifier = Modifier,
+    trailingButtons: @Composable RowScope.(compact: Boolean) -> Unit,
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(modifier = micSlotModifier, verticalAlignment = Alignment.CenterVertically) { trailingButtons(compact) }
         // A comparison still choosing its second model has nowhere to send yet. Committing a queued
         // edit sends nothing (the queue is held through setup), so Update stays available.
         val blockedBySetup = state.comparisonHint == ComposerComparisonHint.SETTING_UP && !state.isEditingQueued
@@ -580,7 +652,7 @@ private fun ComposerButtonRow(
                 onSetDefault = onSetDuringRunAction,
             )
         }
-        Box {
+        Box(modifier = sendSlotModifier) {
             SendStopButton(
                 buttonSize = BoxButtonSize,
                 isStreaming = state.isStreaming,
