@@ -69,6 +69,25 @@ class ComparisonModeDelegate(
     /** The primary pane's streamed answer, without its reasoning — the auto-read source on Final. */
     fun primaryAnswerText(): String = primaryAnswerBuffer.toString()
 
+    /** Text appended since the last [flushText]. */
+    private var textDirty = false
+
+    /**
+     * Publishes both panes' text. Driven by the stream's 50 ms text flush ([StreamTextBuffer]), so a
+     * comparison updates its panes at the rate a single reply does rather than on every chunk.
+     */
+    fun flushText() {
+        if (!textDirty) return
+        textDirty = false
+        handle.update {
+            comparisonState = comparisonState.copy(
+                primaryStreamingContent = primaryBuffer.toString(),
+                secondaryStreamingContent = secondaryBuffer.toString(),
+            )
+            content = content.copy(streamingContent = primaryBuffer.toString())
+        }
+    }
+
     // ── Selection ────────────────────────────────────────────────────
 
     /**
@@ -127,6 +146,7 @@ class ComparisonModeDelegate(
         primaryBuffer.clear()
         primaryAnswerBuffer.clear()
         secondaryBuffer.clear()
+        textDirty = false
         handle.update {
             comparisonState = ComparisonState()
             if (conversation.conversationId == null &&
@@ -303,6 +323,7 @@ class ComparisonModeDelegate(
         primaryBuffer.clear()
         primaryAnswerBuffer.clear()
         secondaryBuffer.clear()
+        textDirty = false
         handle.update {
             comparisonState = comparisonState.copy(
                 primaryIsStreaming = true,
@@ -434,28 +455,32 @@ class ComparisonModeDelegate(
         handle.update { content = content.withoutSandboxStarting(toolCallId) }
     }
 
+    /** Buffers the text for [flushText]; the lane's streaming flag and agent id go out at once. */
     private fun routeTextDelta(agentId: String?, chunk: String, isReasoning: Boolean) {
+        val lanes = handle.state.comparisonState
         if (isSecondaryEvent(agentId)) {
             secondaryBuffer.append(chunk)
-            handle.update {
-                comparisonState = comparisonState.copy(
-                    secondaryStreamingContent = secondaryBuffer.toString(),
-                    secondaryIsStreaming = true,
-                    secondaryAgentId = comparisonState.secondaryAgentId ?: agentId,
-                )
+            if (!lanes.secondaryIsStreaming || (lanes.secondaryAgentId == null && agentId != null)) {
+                handle.update {
+                    comparisonState = comparisonState.copy(
+                        secondaryIsStreaming = true,
+                        secondaryAgentId = comparisonState.secondaryAgentId ?: agentId,
+                    )
+                }
             }
         } else {
             primaryBuffer.append(chunk)
             if (!isReasoning) primaryAnswerBuffer.append(chunk)
-            handle.update {
-                comparisonState = comparisonState.copy(
-                    primaryStreamingContent = primaryBuffer.toString(),
-                    primaryIsStreaming = true,
-                    primaryAgentId = comparisonState.primaryAgentId ?: agentId,
-                )
-                content = content.copy(streamingContent = primaryBuffer.toString())
+            if (!lanes.primaryIsStreaming || (lanes.primaryAgentId == null && agentId != null)) {
+                handle.update {
+                    comparisonState = comparisonState.copy(
+                        primaryIsStreaming = true,
+                        primaryAgentId = comparisonState.primaryAgentId ?: agentId,
+                    )
+                }
             }
         }
+        textDirty = true
     }
 
     private fun routeToolCallStart(event: StreamEvent.ToolCallStart) {
@@ -506,6 +531,7 @@ class ComparisonModeDelegate(
      */
     fun endStreaming(clearContent: Boolean = false) {
         if (!handle.state.comparisonState.isEnabled) return
+        if (clearContent) textDirty = false else flushText()
         handle.update {
             comparisonState = comparisonState.copy(
                 primaryIsStreaming = false,
@@ -529,6 +555,7 @@ class ComparisonModeDelegate(
      * streamed id or none: the server refuses to branch to a lane with no parts either way.
      */
     fun onFinal(message: Message?) {
+        textDirty = false
         handle.update {
             comparisonState = comparisonState.copy(
                 primaryAgentId = message?.let(::primaryAgentId) ?: comparisonState.primaryAgentId,

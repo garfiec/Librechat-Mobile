@@ -15,7 +15,11 @@ import kotlinx.coroutines.launch
  * block — the same place the persisted message renders its THINK parts — instead of as body text.
  * Both share one dirty flag and one flush.
  */
-internal class StreamTextBuffer(private val handle: StreamingHandle) {
+internal class StreamTextBuffer(
+    private val handle: StreamingHandle,
+    /** Flushed on the same beat: a comparison's lane text ([ComparisonModeDelegate.flushText]). */
+    private val flushAlso: () -> Unit = {},
+) {
     private val text = StringBuilder()
     private val thinking = StringBuilder()
     private var dirty = false
@@ -80,6 +84,7 @@ internal class StreamTextBuffer(private val handle: StreamingHandle) {
     }
 
     fun flush() {
+        flushAlso()
         if (!dirty) return
         dirty = false
         handle.update {

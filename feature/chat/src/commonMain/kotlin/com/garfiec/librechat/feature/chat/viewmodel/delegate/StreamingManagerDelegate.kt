@@ -65,7 +65,7 @@ class StreamingManagerDelegate(
     private val scope get() = handle.scope
 
     private var streamJob: Job? = null
-    private val buffer = StreamTextBuffer(handle)
+    private val buffer = StreamTextBuffer(handle, flushAlso = { comparisonDelegate.flushText() })
     private var wasStreaming = false
 
     private val networkRecovery = NetworkRecoveryTrigger(connectivityObserver, handle.scope, ::attemptNetworkRecovery)
