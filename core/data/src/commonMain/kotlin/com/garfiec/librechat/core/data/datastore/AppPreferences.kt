@@ -110,6 +110,27 @@ object AppPreferences {
      */
     val NotificationAsksAnswered = stringListPreference("notification_asks_answered")
 
+    /**
+     * How an artifact opens: Automatic (beside the chat, as a sheet or full screen, by the window),
+     * always a bottom sheet, or always full screen. Mobile-only.
+     */
+    val ArtifactDisplay = stringPreference(
+        "artifact_display_mode",
+        default = always(ArtifactDisplayMode.AUTOMATIC),
+        decode = ArtifactDisplayMode::fromString,
+        encode = ArtifactDisplayMode::toStorageString,
+    )
+
+    /**
+     * The artifact's share of the width when it stands beside the chat, set by dragging the divider;
+     * one value for every window.
+     */
+    val ArtifactSplitFraction = floatPreference(
+        "artifact_split_fraction",
+        default = always(0.5f),
+        decode = { it.takeIf { fraction -> fraction in 0f..1f } },
+    )
+
     val all: List<PreferenceSpec<*, *>> =
         listOf(
             SiteIcons,
@@ -128,5 +149,7 @@ object AppPreferences {
             ReplyNotifications,
             ScheduledChatNotifications,
             NotificationAsksAnswered,
+            ArtifactDisplay,
+            ArtifactSplitFraction,
         )
 }

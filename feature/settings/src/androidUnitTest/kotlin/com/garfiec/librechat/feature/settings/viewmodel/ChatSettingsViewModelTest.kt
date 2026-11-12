@@ -2,6 +2,7 @@ package com.garfiec.librechat.feature.settings.viewmodel
 
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.AppPreferences
+import com.garfiec.librechat.core.data.datastore.ArtifactDisplayMode
 import com.garfiec.librechat.core.data.datastore.ArtifactLibraryConsentStore
 import com.garfiec.librechat.core.data.datastore.ArtifactLibraryConsentStore.Decision
 import com.garfiec.librechat.core.data.datastore.FlaggedArtifactLibraries
@@ -97,6 +98,8 @@ class ChatSettingsViewModelTest {
         coEvery { preferenceStore.set(AppPreferences.WebSearchFirst, any()) } answers { webSearchFirstFlow.value = secondArg() }
         every { preferenceStore.observe(AppPreferences.CollapseLongUserMessages) } returns MutableStateFlow(true)
         every { preferenceStore.observe(AppPreferences.ClientImageResize) } returns MutableStateFlow(true)
+        every { preferenceStore.observe(AppPreferences.ArtifactDisplay) } returns MutableStateFlow(ArtifactDisplayMode.AUTOMATIC)
+        every { preferenceStore.initial(AppPreferences.ArtifactDisplay) } returns ArtifactDisplayMode.AUTOMATIC
         every { preferenceStore.initial(AppPreferences.SiteIcons) } returns null
         coEvery { preferenceStore.set(AppPreferences.SiteIcons, any()) } answers { siteIconsChoiceFlow.value = secondArg() }
         every { settingsDataStore.latexRenderer } returns MutableStateFlow(LatexRenderer.KATEX)

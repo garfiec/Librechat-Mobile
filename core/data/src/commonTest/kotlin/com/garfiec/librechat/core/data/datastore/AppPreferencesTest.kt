@@ -61,6 +61,8 @@ class AppPreferencesTest {
             "reply_notifications" to everyChannel(true),
             "scheduled_chat_notifications" to everyChannel(true),
             "notification_asks_answered" to everyChannel(emptyList<String>()),
+            "artifact_display_mode" to everyChannel(ArtifactDisplayMode.AUTOMATIC),
+            "artifact_split_fraction" to everyChannel(0.5f),
         )
         assertEquals(expected, actual)
     }

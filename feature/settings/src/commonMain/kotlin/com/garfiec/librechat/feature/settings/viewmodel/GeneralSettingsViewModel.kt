@@ -135,9 +135,9 @@ class GeneralSettingsViewModel(
         preferenceStore.observe(AppPreferences.AdvancedSearch),
         combine(
             settingsDataStore.thinkingOpenByDefault,
-            settingsDataStore.artifactDisplayPrefs,
+            preferenceStore.observe(AppPreferences.ArtifactDisplay),
             settingsDataStore.autoReadEnabled,
-        ) { thinkingOpen, artifacts, autoRead -> HomeChatPrefs(thinkingOpen, artifacts.mode, autoRead) },
+        ) { thinkingOpen, artifacts, autoRead -> HomeChatPrefs(thinkingOpen, artifacts, autoRead) },
         ::GeneralPrefs,
     )
 

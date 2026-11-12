@@ -2,7 +2,6 @@ package com.garfiec.librechat.feature.settings.viewmodel
 
 import com.garfiec.librechat.core.data.datastore.AppPreferences
 import com.garfiec.librechat.core.data.datastore.ArtifactDisplayMode
-import com.garfiec.librechat.core.data.datastore.ArtifactDisplayPrefs
 import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.data.datastore.InlineArtifactPrefs
 import com.garfiec.librechat.core.data.datastore.LatexRenderer
@@ -45,7 +44,7 @@ private data class AdditionalPreferences(
     val sttEndOfSpeech: Boolean = false,
     val latexRenderer: LatexRenderer = LatexRenderer.KATEX,
     val inlineArtifactPrefs: InlineArtifactPrefs = InlineArtifactPrefs(),
-    val artifactDisplayPrefs: ArtifactDisplayPrefs = ArtifactDisplayPrefs(),
+    val artifactDisplayMode: ArtifactDisplayMode = ArtifactDisplayMode.AUTOMATIC,
     val artifactsMode: ArtifactsMode = ArtifactsMode.DEFAULT,
     val starredModelsDisplay: StarredModelsDisplay = StarredModelsDisplay.GROUPED,
     val duringRunAction: DuringRunAction = DuringRunAction.STEER,
@@ -102,8 +101,8 @@ class ChatPreferencesController(
     private val inlineArtifactPrefsFlow: StateFlow<InlineArtifactPrefs> = settingsDataStore.inlineArtifactPrefs
         .stateIn(scope, SharingStarted.Eagerly, InlineArtifactPrefs())
 
-    private val artifactDisplayPrefsFlow: StateFlow<ArtifactDisplayPrefs> = settingsDataStore.artifactDisplayPrefs
-        .stateIn(scope, SharingStarted.Eagerly, ArtifactDisplayPrefs())
+    private val artifactDisplayModePref: StateFlow<ArtifactDisplayMode> = preferenceStore.observe(AppPreferences.ArtifactDisplay)
+        .stateIn(scope, SharingStarted.Eagerly, preferenceStore.initial(AppPreferences.ArtifactDisplay))
 
     private val artifactsModePref: StateFlow<ArtifactsMode> = settingsDataStore.artifactsMode
         .stateIn(scope, SharingStarted.Eagerly, ArtifactsMode.DEFAULT)
@@ -131,8 +130,8 @@ class ChatPreferencesController(
         base.copy(latexRenderer = latexRenderer)
     }.combine(inlineArtifactPrefsFlow) { additional, inlineArtifact ->
         additional.copy(inlineArtifactPrefs = inlineArtifact)
-    }.combine(artifactDisplayPrefsFlow) { additional, artifactDisplay ->
-        additional.copy(artifactDisplayPrefs = artifactDisplay)
+    }.combine(artifactDisplayModePref) { additional, artifactDisplay ->
+        additional.copy(artifactDisplayMode = artifactDisplay)
     }.combine(artifactsModePref) { additional, artifactsMode ->
         additional.copy(artifactsMode = artifactsMode)
     }.combine(starredModelsDisplayPref) { additional, starredDisplay ->
@@ -188,7 +187,7 @@ class ChatPreferencesController(
             sttEndOfSpeech = additional.sttEndOfSpeech,
             latexRenderer = additional.latexRenderer,
             inlineArtifactPrefs = additional.inlineArtifactPrefs,
-            artifactDisplayPrefs = additional.artifactDisplayPrefs,
+            artifactDisplayMode = additional.artifactDisplayMode,
             artifactsMode = additional.artifactsMode,
             starredModelsDisplay = additional.starredModelsDisplay,
             duringRunAction = additional.duringRunAction,
@@ -272,7 +271,7 @@ class ChatPreferencesController(
     }
 
     fun setArtifactDisplayMode(mode: ArtifactDisplayMode) {
-        scope.launch { settingsDataStore.setArtifactDisplayMode(mode) }
+        scope.launch { preferenceStore.set(AppPreferences.ArtifactDisplay, mode) }
     }
 
     fun setArtifactsMode(mode: ArtifactsMode) {

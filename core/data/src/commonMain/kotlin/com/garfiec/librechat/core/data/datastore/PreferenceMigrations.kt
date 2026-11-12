@@ -37,7 +37,10 @@ fun <S : Any, V> MutablePreferences.force(spec: PreferenceSpec<S, V>, value: V &
  * shipped.
  */
 object PreferenceMigrations {
-    val all: List<PreferenceMigration> = emptyList()
+    val all: List<PreferenceMigration> = listOf(
+        // Automatic arrived as the new default: everyone starts on it once, whatever they chose before.
+        PreferenceMigration("20261112-artifacts-automatic") { it.reset(AppPreferences.ArtifactDisplay) },
+    )
 }
 
 /**

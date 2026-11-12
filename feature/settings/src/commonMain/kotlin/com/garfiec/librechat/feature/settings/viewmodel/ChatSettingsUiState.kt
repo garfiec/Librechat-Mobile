@@ -1,7 +1,7 @@
 package com.garfiec.librechat.feature.settings.viewmodel
 
 import androidx.compose.runtime.Immutable
-import com.garfiec.librechat.core.data.datastore.ArtifactDisplayPrefs
+import com.garfiec.librechat.core.data.datastore.ArtifactDisplayMode
 import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.data.datastore.InlineArtifactPrefs
 import com.garfiec.librechat.core.data.datastore.LatexRenderer
@@ -67,7 +67,7 @@ data class ChatSettingsUiState(
     // Inline artifact rendering (per-type toggles)
     val inlineArtifactPrefs: InlineArtifactPrefs = InlineArtifactPrefs(),
     // Artifact viewer presentation (bottom sheet vs full screen + selector visibility)
-    val artifactDisplayPrefs: ArtifactDisplayPrefs = ArtifactDisplayPrefs(),
+    val artifactDisplayMode: ArtifactDisplayMode = ArtifactDisplayMode.AUTOMATIC,
     // What the Artifacts tool is taught when on; app-wide, read by chat's request
     val artifactsMode: ArtifactsMode = ArtifactsMode.DEFAULT,
 )

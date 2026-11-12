@@ -95,6 +95,18 @@ class PreferenceMigrationRunnerTest {
     }
 
     @Test
+    fun shippedMigrations_moveEveryArtifactChoiceToAutomatic() = runTest(testDispatcher) {
+        withStore(migrations = null) { store ->
+            store.edit { it[AppPreferences.ArtifactDisplay.key] = ArtifactDisplayMode.FULLSCREEN.toStorageString() }
+        }
+
+        val prefs = withStore(PreferenceMigrations.all) { it.data.first() }
+
+        assertThat(prefs[AppPreferences.ArtifactDisplay.key]).isNull()
+        assertThat(prefs[PreferenceMigrationRunner.LEDGER]).contains("20261112-artifacts-automatic")
+    }
+
+    @Test
     fun aRecordedMigrationNeverRunsAgain() = runTest(testDispatcher) {
         seedExistingUser()
         val migrations = listOf(migration("20270101-a"))

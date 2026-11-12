@@ -166,7 +166,6 @@ class DataStoreRoundTripTest {
         assertThat(store.sttOnDevice.first()).isTrue()
         assertThat(store.sttEndOfSpeech.first()).isFalse()
         assertThat(store.uploadRoutingMode.first()).isEqualTo(UploadRoutingMode.AUTO)
-        assertThat(store.artifactDisplayPrefs.first().mode).isEqualTo(ArtifactDisplayMode.AUTOMATIC)
     }
 
     @Test

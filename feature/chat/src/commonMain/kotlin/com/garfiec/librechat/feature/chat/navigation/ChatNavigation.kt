@@ -12,9 +12,9 @@ import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
+import com.garfiec.librechat.core.data.datastore.AppPreferences
 import com.garfiec.librechat.core.data.datastore.ArtifactDisplayMode
-import com.garfiec.librechat.core.data.datastore.ArtifactDisplayPrefs
-import com.garfiec.librechat.core.data.datastore.SettingsDataStore
+import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import com.garfiec.librechat.feature.chat.components.LocalArtifactFileActions
 import com.garfiec.librechat.feature.chat.components.artifact.Artifact
 import com.garfiec.librechat.feature.chat.components.artifact.ArtifactOrigin
@@ -277,15 +277,18 @@ internal fun ProvideOpenArtifact(
     content: @Composable () -> Unit,
 ) {
     val handoff = koinInject<ArtifactViewerHandoff>()
-    val settingsDataStore = koinInject<SettingsDataStore>()
-    val displayPrefs by settingsDataStore.artifactDisplayPrefs.collectAsStateWithLifecycle(ArtifactDisplayPrefs())
+    val preferences = koinInject<PreferenceStore>()
+    val displayMode by preferences.observe(AppPreferences.ArtifactDisplay)
+        .collectAsStateWithLifecycle(preferences.initial(AppPreferences.ArtifactDisplay))
+    val splitFraction by preferences.observe(AppPreferences.ArtifactSplitFraction)
+        .collectAsStateWithLifecycle(preferences.initial(AppPreferences.ArtifactSplitFraction))
     val presentation = remember { ArtifactPresentationState() }
     val origin = remember { ArtifactOrigin() }
     val scope = rememberCoroutineScope()
     val density = LocalDensity.current
     val windowWidth = with(density) { LocalWindowInfo.current.containerSize.width.toDp() }
     // Read at tap time: the mode and the window only matter as the artifact opens.
-    val currentMode by rememberUpdatedState(displayPrefs.mode)
+    val currentMode by rememberUpdatedState(displayMode)
     val currentWindowWidth by rememberUpdatedState(windowWidth)
 
     val openArtifact = remember(onNavigate, handoff, presentation) {
@@ -308,9 +311,11 @@ internal fun ProvideOpenArtifact(
         CompositionLocalProvider(LocalOpenArtifact provides openArtifact, LocalArtifactOrigin provides origin) {
             ArtifactPresentationHost(
                 state = presentation,
-                automatic = displayPrefs.mode == ArtifactDisplayMode.AUTOMATIC,
-                splitFraction = displayPrefs.splitFraction,
-                onSplitFractionChange = { fraction -> scope.launch { settingsDataStore.setArtifactSplitFraction(fraction) } },
+                automatic = displayMode == ArtifactDisplayMode.AUTOMATIC,
+                splitFraction = splitFraction,
+                onSplitFractionChange = { fraction ->
+                    scope.launch { preferences.set(AppPreferences.ArtifactSplitFraction, fraction) }
+                },
                 origin = origin,
                 panelScope = { panel ->
                     ProvideAttachmentDownloader {
