@@ -601,8 +601,8 @@ class StreamingManagerDelegate(
             handle.update { conversation = conversation.copy(conversationId = conversationId) }
         }
         if (isComparison) {
-            // Comparison reconciles via background reload (no in-memory finalize to fold the
-            // streaming-clear into), so clear the single-stream UI fields now.
+            // Comparison panes draw the lanes' text, which onFinal freezes, so the single-stream
+            // fields are cleared here rather than folded into finalizeChatDisplay.
             handle.update { content = content.resetLiveReply(isStreaming = false) }
             comparisonDelegate.onFinal(event.responseMessage ?: event.message)
         }

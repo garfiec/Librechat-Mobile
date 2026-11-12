@@ -99,16 +99,6 @@ class MessageTreeDelegate(
      * it. The optimistic user message was never written to Room during streaming, so this is what
      * keeps it on reopen. Temp chats ignore the return value.
      */
-    /**
-     * Names the response that is about to take over from the streaming bubble, for the one path
-     * that never reaches [finalizeChatDisplay]: a live comparison turn, which rebuilds from a
-     * background reload. The message is not in the tree yet — the flag is only an id, and the
-     * reload's emission is what makes it match.
-     */
-    fun markSettled(messageId: String?) {
-        handle.update { content = content.copy(justSettledMessageId = messageId) }
-    }
-
     fun finalizeChatDisplay(event: StreamEvent.Final, optimisticUserMessageId: String? = null): List<Message> {
         // Defensive: upstream 0.8.7 sets responseMessage.attachments before saving, but the app
         // supports a backend version range. If the Final payload omitted a file that streamed in

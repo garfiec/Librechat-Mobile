@@ -391,6 +391,23 @@ class SendCompletionDelegateTest {
     }
 
     @Test
+    fun `a clean comparison final shows the reply before the reload lands`() = runTest(StandardTestDispatcher()) {
+        val (delegate, flow) = delegateWith(this, baseState(isComparison = true))
+        val reply = AbortFrameFixtures.abortedResponse().copy(unfinished = false)
+
+        delegate.finalArrives(
+            StreamEvent.Final(requestMessage = optimisticUserMessage(), responseMessage = reply),
+            isComparison = true,
+        )
+        advanceUntilIdle()
+
+        // The panes draw their frozen lane text in this message's place until the attributed
+        // copy arrives; with no reply in the path both would end scrolled to the question.
+        assertThat(flow.value.displayMessages.map { it.message.messageId }).contains(reply.messageId)
+        assertThat(flow.value.justSettledMessageId).isEqualTo(reply.messageId)
+    }
+
+    @Test
     fun `a temporary chat never caches even on a persisted abort`() = runTest(StandardTestDispatcher()) {
         val state = baseState().let {
             it.copy(conversation = it.conversation.copy(isTemporaryChat = true))

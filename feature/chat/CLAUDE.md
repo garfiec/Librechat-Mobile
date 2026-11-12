@@ -921,8 +921,8 @@ boundary and put the user's words inside a tool block.
   streaming bubble**, named by the VM (`MessagesState.justSettledMessageId`), written by
   `finalizeChatDisplay` in the same atomic update. Don't derive it in the UI. **Never clear it at the
   turn boundary** (an inline queue drain would clear it before Compose sees it); the next finalize
-  overwrites it. `ActivityGroup` latches the suppressed decision too. A live comparison calls
-  `markSettled` from `SendCompletionDelegate`.
+  overwrites it. `ActivityGroup` latches the suppressed decision too. A live comparison finalizes in
+  memory too, then reloads for the attributed parts.
 - "Preparing {tool}" (`on_tool_preparation`) shows on the generic card only; MCP and action tools keep
   their name.
 - **Steers** render as a user turn where they entered. A handoff AT the resume point keeps the
