@@ -16,9 +16,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableIntState
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -162,6 +165,28 @@ private fun NativeLatexInline(
 
 // ── KaTeX (WebView) renderers ──────────────────────────────────────
 
+/** Stores the page's content height in CSS px (0 until known). */
+private fun WebView.readContentHeight(into: MutableIntState) {
+    evaluateJavascript("document.body.scrollHeight") { heightStr ->
+        heightStr?.toIntOrNull()?.takeIf { it > 0 }?.let { into.intValue = it }
+    }
+}
+
+/**
+ * Sizes the view to [height] CSS px, which are dp, converted at layout so a density change (a fold
+ * between screens of different density) resizes it without recomposing, which would reload the page.
+ */
+private fun Modifier.cssHeight(height: MutableIntState): Modifier = layout { measurable, constraints ->
+    val css = height.intValue
+    val placeable = if (css > 0) {
+        val px = css.dp.roundToPx().coerceIn(constraints.minHeight, constraints.maxHeight)
+        measurable.measure(constraints.copy(minHeight = px, maxHeight = px))
+    } else {
+        measurable.measure(constraints)
+    }
+    layout(placeable.width, placeable.height) { placeable.place(0, 0) }
+}
+
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
 private fun KatexLatexBlock(
@@ -175,11 +200,13 @@ private fun KatexLatexBlock(
         buildKatexHtml(escapedLatex, displayMode = true, textColorCss = textColorCss)
     }
     val assetBase = rememberWebAssetBaseUrl() ?: return
+    val contentHeight = remember { mutableIntStateOf(0) }
 
     AndroidView(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
+            .padding(vertical = 4.dp)
+            .cssHeight(contentHeight),
         factory = { context ->
             WebView(context).apply {
                 layoutParams = ViewGroup.LayoutParams(
@@ -192,16 +219,7 @@ private fun KatexLatexBlock(
                 settings.allowContentAccess = false
                 webViewClient = object : WebViewClient() {
                     override fun onPageFinished(view: WebView, url: String?) {
-                        // Read the content height from document.title (set by JS)
-                        view.evaluateJavascript("document.body.scrollHeight") { heightStr ->
-                            val h = heightStr?.toIntOrNull()
-                            if (h != null && h > 0) {
-                                val density = view.resources.displayMetrics.density
-                                val layoutParams = view.layoutParams
-                                layoutParams.height = (h * density).toInt()
-                                view.layoutParams = layoutParams
-                            }
-                        }
+                        view.readContentHeight(contentHeight)
                     }
 
                     override fun onReceivedSslError(
@@ -251,9 +269,10 @@ private fun KatexLatexInline(
         buildKatexHtml(escapedLatex, displayMode = false, textColorCss = textColorCss)
     }
     val assetBase = rememberWebAssetBaseUrl() ?: return
+    val contentHeight = remember { mutableIntStateOf(0) }
 
     AndroidView(
-        modifier = modifier,
+        modifier = modifier.cssHeight(contentHeight),
         factory = { context ->
             WebView(context).apply {
                 layoutParams = ViewGroup.LayoutParams(
@@ -266,15 +285,7 @@ private fun KatexLatexInline(
                 settings.allowContentAccess = false
                 webViewClient = object : WebViewClient() {
                     override fun onPageFinished(view: WebView, url: String?) {
-                        view.evaluateJavascript("document.body.scrollHeight") { heightStr ->
-                            val h = heightStr?.toIntOrNull()
-                            if (h != null && h > 0) {
-                                val density = view.resources.displayMetrics.density
-                                val layoutParams = view.layoutParams
-                                layoutParams.height = (h * density).toInt()
-                                view.layoutParams = layoutParams
-                            }
-                        }
+                        view.readContentHeight(contentHeight)
                     }
 
                     override fun onReceivedSslError(

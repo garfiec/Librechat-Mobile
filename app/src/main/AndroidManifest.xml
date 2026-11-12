@@ -40,13 +40,13 @@
             android:value="${distributionChannel}" />
 
         <!-- Handles size changes itself: rebuilding on a rotation, fold or resize would close open
-             sheets and reload artifact and MCP app pages. System dark mode, locale and display size
+             sheets and reload artifact and MCP app pages. System dark mode, locale and font size
              still rebuild. -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTask"
-            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|navigation"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|density|keyboard|keyboardHidden|navigation"
             android:windowSoftInputMode="adjustResize"
             android:theme="@style/Theme.LibreChat">
             <intent-filter>
@@ -146,7 +146,7 @@
             android:name=".artifact.ArtifactAppActivity"
             android:exported="false"
             android:documentLaunchMode="intoExisting"
-            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|density|keyboard|keyboardHidden"
             android:windowSoftInputMode="adjustResize"
             android:theme="@style/Theme.LibreChat" />
         <provider
