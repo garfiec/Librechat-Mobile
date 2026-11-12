@@ -65,8 +65,8 @@ final class ShortcutHostController: UIViewController {
         pushWindowFeatures()
     }
 
-    /// Hands Compose the vertical bar column, the system zone at its top, the active fold and the size
-    /// class (`LocalWindowFeatures`). Before iOS 27.1 it reports nothing, so Compose keeps its defaults.
+    /// Hands Compose the vertical bar column, the system zone at its top and the active fold
+    /// (`LocalWindowFeatures`). Before iOS 27.1 it reports nothing, so Compose keeps its defaults.
     private func pushWindowFeatures() {
         guard #available(iOS 27.1, *) else { return }
         let bounds = view.bounds

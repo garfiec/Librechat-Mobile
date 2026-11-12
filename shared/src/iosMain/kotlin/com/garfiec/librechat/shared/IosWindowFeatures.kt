@@ -20,10 +20,9 @@ object IosWindowFeatures {
     val features: StateFlow<WindowFeatures> = state.asStateFlow()
 
     /**
-     * [barEdge] is `UIVerticalBarEdge`'s raw value; the insets are the host view's horizontal safe-area
-     * insets; the zones are the lowest edge of the active occlusion regions touching each top corner.
-     * The fold is the active division region's frame and margins, ignored unless [foldActive]. All
-     * lengths in points. See `windowFeaturesFromHost` for how they combine.
+     * [barEdge] is `UIVerticalBarEdge`'s raw value and the insets are the host view's horizontal
+     * safe-area insets; the fold is ignored unless [foldActive]. All lengths in points. See
+     * `windowFeaturesFromHost` for the zones and fold and how they combine.
      */
     @Suppress("LongParameterList") // Plain values are what Swift can pass without building Kotlin types.
     fun update(

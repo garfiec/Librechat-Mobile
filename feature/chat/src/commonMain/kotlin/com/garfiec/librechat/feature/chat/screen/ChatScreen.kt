@@ -240,7 +240,6 @@ fun ChatScreen(
     var mcpVariablesServer by rememberSaveable { mutableStateOf<String?>(null) }
     var showSavePresetDialog by remember { mutableStateOf(false) }
     var showSecondaryModelSheet by remember { mutableStateOf(false) }
-    // Above both context rings (rail and composer), so a dialog stays up while the ring moves between them.
     val contextRingDialogs = remember { ContextRingDialogs() }
     var activeComparisonTab by remember { mutableIntStateOf(0) }
     val compareSetupPick = rememberCompareSetupPick(uiState.comparisonState.isSettingUp)
@@ -523,7 +522,6 @@ fun ChatScreen(
                 // Run Code on reply fences, behind RUN_CODE.USE (web `MarkdownComponents` `canRunCode`).
                 LocalCodeRunHost provides viewModel.codeRunHost.takeIf { uiState.runCodeEnabled },
             ) {
-                // On vertical bars (iPhone Duo) the floating bar's controls stand in a side rail over the chat.
                 AdaptiveRailBox(
                     Modifier
                         .fillMaxSize()

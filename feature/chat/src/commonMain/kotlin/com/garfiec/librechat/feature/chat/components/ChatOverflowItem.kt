@@ -133,7 +133,6 @@ internal data class ChatBarGates(
     val showTempChatToggle: Boolean,
     /** A wide pane's pull request chip; the rail leaves the pull request in the menu. */
     val showPullRequestChip: Boolean,
-    /** The conversation has background tasks to show. */
     val backgroundTasksVisible: Boolean,
     val contextUsageEnabled: Boolean,
     val contextBarPlacement: ContextBarPlacement,

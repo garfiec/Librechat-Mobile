@@ -244,7 +244,6 @@ internal fun ChatFloatingTopBar(
         viewModel.closeSearch()
     }
 
-    // The rail draws the bar's data in either style; its title stays here as a heading.
     if (isLiquidGlass || railMode) {
         SpecChatTopBar(
             uiState = uiState,
@@ -275,7 +274,7 @@ internal fun ChatFloatingTopBar(
         )
     }
     backgroundTasks?.let { BackgroundTasksSheetHost(it) }
-    // Every context ring's dialogs, the composer's included: here they outlive a ring moving to or from the rail.
+    // Every context ring's dialogs, the composer's included.
     contextRing?.let { ContextRingDialogsHost(it) }
 
     // The context-usage gauge's default home is just above the composer (Settings → Chat picks
