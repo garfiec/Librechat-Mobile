@@ -889,7 +889,7 @@
     <string name="agent_handoff_to">エージェント %1$s</string>
     <string name="agent_handoff_run">実行：%1$s</string>
     <string name="sibling_position">回答 %1$d / %2$d</string>
-    <string name="cd_assistant_responding">アシスタントが応答中：%1$s</string>
+    <string name="cd_assistant_responding">アシスタントが応答中</string>
     <string name="tool_call_fallback">ツール呼び出し</string>
     <string name="mcp_sign_in_needed">%1$s へのサインインが必要です</string>
     <string name="mcp_sign_in_needed_unnamed">ツールへのサインインが必要です</string>

@@ -931,7 +931,7 @@
     <string name="agent_handoff_to">Агент %1$s</string>
     <string name="agent_handoff_run">Запуск: %1$s</string>
     <string name="sibling_position">Ответ %1$d из %2$d</string>
-    <string name="cd_assistant_responding">Ассистент отвечает: %1$s</string>
+    <string name="cd_assistant_responding">Ассистент отвечает</string>
     <string name="tool_call_fallback">Вызов инструмента</string>
     <string name="mcp_sign_in_needed">%1$s требует входа</string>
     <string name="mcp_sign_in_needed_unnamed">Инструмент требует входа</string>

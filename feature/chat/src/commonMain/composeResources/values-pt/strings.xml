@@ -913,7 +913,7 @@
     <string name="agent_handoff_to">Agente %1$s</string>
     <string name="agent_handoff_run">Execução: %1$s</string>
     <string name="sibling_position">Resposta %1$d de %2$d</string>
-    <string name="cd_assistant_responding">O assistente está respondendo: %1$s</string>
+    <string name="cd_assistant_responding">O assistente está respondendo</string>
     <string name="tool_call_fallback">Chamada de ferramenta</string>
     <string name="mcp_sign_in_needed">%1$s precisa que você entre</string>
     <string name="mcp_sign_in_needed_unnamed">Uma ferramenta precisa que você entre</string>

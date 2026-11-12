@@ -903,7 +903,7 @@
     <string name="agent_handoff_to">Agent %1$s</string>
     <string name="agent_handoff_run">Lauf: %1$s</string>
     <string name="sibling_position">Antwort %1$d von %2$d</string>
-    <string name="cd_assistant_responding">Assistent antwortet: %1$s</string>
+    <string name="cd_assistant_responding">Assistent antwortet</string>
     <string name="tool_call_fallback">Tool-Aufruf</string>
     <string name="mcp_sign_in_needed">%1$s erfordert deine Anmeldung</string>
     <string name="mcp_sign_in_needed_unnamed">Ein Tool erfordert deine Anmeldung</string>
