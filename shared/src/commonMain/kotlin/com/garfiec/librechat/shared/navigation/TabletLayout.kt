@@ -54,8 +54,8 @@ private const val FLING_VELOCITY_THRESHOLD = 800f
 @Composable
 fun TabletLayout(
     navigator: Navigator,
+    navDisplay: NavDisplaySlot,
     modifier: Modifier = Modifier,
-    navDisplay: NavDisplaySlot = rememberMovableNavDisplay(navigator),
     navHostViewModel: NavHostViewModel = koinViewModel(),
 ) {
     // Banner state only -- drawer state is collected inside DrawerContent itself

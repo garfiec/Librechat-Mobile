@@ -152,9 +152,8 @@ private const val HYGIENE_UNRECORDED = "__unrecorded__"
 /**
  * Shared root composable for LibreChat navigation.
  *
- * Places links from [DeepLinkInbox] on both platforms. With no [content], picks [TabletLayout] or
- * [PhoneLayout] from the window (iOS). Android passes [content] to add share intents, and makes the
- * same [windowUsesSidebarLayout] choice there.
+ * Places links from [DeepLinkInbox] on both platforms. With no [content], shows [WindowLayout] (iOS).
+ * Android passes [content] to add share intents, and shows [WindowLayout] there.
  */
 @Composable
 fun LibreChatNavHost(
@@ -412,14 +411,7 @@ fun LibreChatNavHost(
                         if (content != null) {
                             content(navigator, navHostViewModel, Modifier)
                         } else {
-                            // iOS resizes in place, so both layouts share one movable NavDisplay; see
-                            // rememberMovableNavDisplay.
-                            val navDisplay = rememberMovableNavDisplay(navigator)
-                            if (windowUsesSidebarLayout()) {
-                                TabletLayout(navigator = navigator, navDisplay = navDisplay)
-                            } else {
-                                PhoneLayout(navigator = navigator, navDisplay = navDisplay)
-                            }
+                            WindowLayout(navigator = navigator)
                         }
                         val replySnackbarState = remember { SnackbarHostState() }
                         ReplySnackbars(
@@ -546,12 +538,27 @@ internal fun VersionMismatchDialog(
     )
 }
 
+/**
+ * [TabletLayout] or [PhoneLayout] as the window allows, both placing one movable [MainNavDisplay]: the
+ * window resizes in place on both platforms, and a switch must move the display, not dispose it (see
+ * [rememberMovableNavDisplay]). The choice is made here, in the caller's own composition.
+ */
+@Composable
+fun WindowLayout(navigator: Navigator, modifier: Modifier = Modifier) {
+    val navDisplay = rememberMovableNavDisplay(navigator)
+    if (windowUsesSidebarLayout()) {
+        TabletLayout(navigator = navigator, navDisplay = navDisplay, modifier = modifier)
+    } else {
+        PhoneLayout(navigator = navigator, navDisplay = navDisplay, modifier = modifier)
+    }
+}
+
 /** Phone layout with a modal drawer sidebar: the path on both platforms when [windowUsesSidebarLayout] is false. */
 @Composable
 fun PhoneLayout(
     navigator: Navigator,
+    navDisplay: NavDisplaySlot,
     modifier: Modifier = Modifier,
-    navDisplay: NavDisplaySlot = rememberMovableNavDisplay(navigator),
     navHostViewModel: NavHostViewModel = koinViewModel(),
 ) {
     val drawerState = rememberDrawerState(DrawerValue.Closed)

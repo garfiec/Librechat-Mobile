@@ -4,10 +4,11 @@ import android.view.Window
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
@@ -71,10 +72,15 @@ internal fun SwitchboardTheme(window: Window, content: @Composable (appLocaleTag
             // Bar icons follow the colour under them, not the mode: a server theme can be dark in
             // light mode, and the user's mode can differ from the system's.
             val lightBars = MaterialTheme.colorScheme.background.luminance() > HALF_LUMINANCE
-            SideEffect {
+            // Again after every configuration change, before that frame draws: enableEdgeToEdge then
+            // re-applies its own bars, which follow the system's mode, and the activity handles
+            // rotation without a rebuild.
+            val configuration = LocalConfiguration.current
+            DisposableEffect(lightBars, configuration) {
                 val insetsController = WindowCompat.getInsetsController(window, window.decorView)
                 insetsController.isAppearanceLightStatusBars = lightBars
                 insetsController.isAppearanceLightNavigationBars = lightBars
+                onDispose {}
             }
             content(appLocale)
         }

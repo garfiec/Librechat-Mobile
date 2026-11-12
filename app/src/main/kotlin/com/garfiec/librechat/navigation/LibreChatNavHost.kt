@@ -6,7 +6,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.garfiec.librechat.core.ui.components.windowUsesSidebarLayout
 import com.garfiec.librechat.feature.chat.ShareIntentConsumer
 import com.garfiec.librechat.feature.chat.SharedContent
 import com.garfiec.librechat.feature.chat.navigation.Chat
@@ -14,14 +13,13 @@ import com.garfiec.librechat.feature.chat.navigation.NewChat
 import com.garfiec.librechat.feature.chat.navigation.isPlainLanding
 import com.garfiec.librechat.shared.navigation.NavHostViewModel
 import com.garfiec.librechat.shared.navigation.Navigator
-import com.garfiec.librechat.shared.navigation.PhoneLayout
 import com.garfiec.librechat.shared.navigation.SharedLinkRoute
-import com.garfiec.librechat.shared.navigation.TabletLayout
+import com.garfiec.librechat.shared.navigation.WindowLayout
 import com.garfiec.librechat.shared.navigation.LibreChatNavHost as SharedLibreChatNavHost
 
 /**
  * Android-specific entry point that wraps the shared [SharedLibreChatNavHost]
- * with share intent support and tablet layout branching. Deep links are placed by the shared host.
+ * with share intent support; the layout is [WindowLayout], as on iOS. Deep links are placed by the shared host.
  */
 @Composable
 fun LibreChatNavHost(
@@ -68,18 +66,7 @@ fun LibreChatNavHost(
             ShareIntentConsumer.dispatchTo(target)
         }
 
-        if (windowUsesSidebarLayout()) {
-            TabletLayout(
-                navigator = navigator,
-                navHostViewModel = navHostViewModel,
-                modifier = mod,
-            )
-        } else {
-            PhoneLayout(
-                navigator = navigator,
-                modifier = mod,
-            )
-        }
+        WindowLayout(navigator = navigator, modifier = mod)
     }
 }
 

@@ -84,8 +84,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        // Only process the launch intent on a genuinely fresh start. On recreation (rotation,
-        // theme/locale change, restore) it is still sticky; re-processing would re-fire the deep link
+        // Only process the launch intent on a genuinely fresh start. On recreation (a theme or
+        // locale change, a restore) it is still sticky; re-processing would re-fire the deep link
         // and yank the user back to it. A link not yet placed survives a recreation in DeepLinkInbox.
         // Restore a shared-in link the nav host hadn't consumed (see onSaveInstanceState).
         if (savedInstanceState == null) {
