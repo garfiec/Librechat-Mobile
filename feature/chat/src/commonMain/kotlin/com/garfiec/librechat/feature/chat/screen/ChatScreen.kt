@@ -484,8 +484,9 @@ fun ChatScreen(
         // scrolling up behind its dimming scrim.
         var inputBarHeightPx by remember { mutableIntStateOf(0) }
         var topBarHeightPx by remember { mutableIntStateOf(0) }
+        // 160dp stands in for the bar only until it is measured: the folded bar is far shorter.
         val bottomContentPadding = with(LocalDensity.current) {
-            maxOf(160.dp, inputBarHeightPx.toDp() + 16.dp)
+            if (inputBarHeightPx > 0) inputBarHeightPx.toDp() + 16.dp else 160.dp
         }
         // Side-by-side comparison panes are cards that stop above the composer, not lists that
         // scroll under it, so they sit on the measured bar itself. The list floor above would
@@ -500,7 +501,7 @@ fun ChatScreen(
         }
         // Floor the top inset at status bar + one chip row so content clears the bar on the first
         // frame (before onSizeChanged reports the real height), avoiding a content-under-bar flash
-        // on each screen entry. Mirrors the bottomContentPadding floor.
+        // on each screen entry.
         val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
         val (fallbackToggleEnd, fallbackToggleBottom) = with(LocalDensity.current) {
             NativeToggleFromEnd.toPx() to NativeToggleFromBottom.toPx()

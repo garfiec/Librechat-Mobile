@@ -253,6 +253,11 @@ private fun CodeWorkspaceSheetHost(composer: CodeWorkspaceComposer) {
     if (transition != null) TransitionSheet(transition, composer) else CodeWorkspaceSheet(composer)
 }
 
+/** Whether [CodeWorkspaceNotice] shows anything; keep in step with it, or the composer folds over a notice. */
+internal val CodeWorkspaceUiState.showsNotice: Boolean
+    get() = confirming != null || graphRequirement || requirements.isNotEmpty() || selectionConflict ||
+        footnote == CodeFootnote.LOCKED_RECOVERY
+
 @Composable
 internal fun CodeWorkspaceNotice(composer: CodeWorkspaceComposer) {
     val state = composer.state

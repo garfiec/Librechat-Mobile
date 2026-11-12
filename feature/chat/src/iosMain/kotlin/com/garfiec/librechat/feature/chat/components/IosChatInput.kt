@@ -75,6 +75,7 @@ fun IosChatInput(
     comparisonHint: ComposerComparisonHint = ComposerComparisonHint.NONE,
     onCancelPendingSend: () -> Unit = {},
     fontSizeMultiplier: Float = 1f,
+    canFold: Boolean = false,
     isRecording: Boolean = false,
     isTranscribing: Boolean = false,
     onStartRecording: () -> Unit = {},
@@ -139,6 +140,7 @@ fun IosChatInput(
         onCancelEdit = onCancelEdit,
         onCancelPendingSend = onCancelPendingSend,
         fontSizeMultiplier = fontSizeMultiplier,
+        canFold = canFold,
         modifier = modifier,
         leadingButtons = {
             // "+" opens the options sheet, not a file picker, as on Android.
