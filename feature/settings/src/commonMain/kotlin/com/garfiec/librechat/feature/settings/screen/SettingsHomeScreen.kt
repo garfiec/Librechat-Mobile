@@ -149,7 +149,7 @@ fun SettingsHomeScreen(
         appearance = appearanceSummary(appearance.themeMode, appearance.uiStyle),
         chats = stringResource(
             if (homeChats.thinkingOpenByDefault) Res.string.settings_home_thinking_open else Res.string.settings_home_thinking_closed,
-        ) + " · " + stringResource(Res.string.settings_home_artifacts, artifactDisplayModeLabel(homeChats.artifactDisplayMode)),
+        ) + " · " + stringResource(Res.string.settings_home_artifacts, artifactDisplayModeSummary(homeChats.artifactDisplayMode)),
         notifications = stringResource(if (notifications.on) Res.string.notifications_on else Res.string.notifications_off),
         voice = stringResource(
             if (homeChats.autoReadEnabled) Res.string.settings_home_read_aloud_on else Res.string.settings_home_read_aloud_off,

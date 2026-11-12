@@ -314,6 +314,10 @@
     <string name="artifacts_open_in">Abrir artefactos en</string>
     <string name="artifact_mode_bottom_sheet">Panel inferior</string>
     <string name="artifact_mode_fullscreen">Pantalla completa</string>
+    <string name="artifact_mode_automatic">Automático</string>
+    <string name="artifact_mode_split">Lado a lado</string>
+    <string name="artifact_mode_here">%1$s aquí</string>
+    <string name="artifact_mode_automatic_here">Automático · %1$s aquí</string>
     <string name="artifact_inline_title">Renderizar en línea</string>
     <string name="artifact_inline_enabled_count">%1$d de %2$d activados</string>
     <string name="artifact_libraries_title">Bibliotecas señaladas</string>

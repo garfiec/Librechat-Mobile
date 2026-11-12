@@ -314,6 +314,10 @@
     <string name="artifacts_open_in">Ouvrir les artefacts en</string>
     <string name="artifact_mode_bottom_sheet">Panneau inférieur</string>
     <string name="artifact_mode_fullscreen">Plein écran</string>
+    <string name="artifact_mode_automatic">Automatique</string>
+    <string name="artifact_mode_split">Côte à côte</string>
+    <string name="artifact_mode_here">%1$s ici</string>
+    <string name="artifact_mode_automatic_here">Automatique · %1$s ici</string>
     <string name="artifact_inline_title">Afficher dans la discussion</string>
     <string name="artifact_inline_enabled_count">%1$d sur %2$d activés</string>
     <string name="artifact_libraries_title">Bibliothèques signalées</string>

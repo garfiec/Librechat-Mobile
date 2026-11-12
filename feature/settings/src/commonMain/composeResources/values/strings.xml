@@ -322,6 +322,11 @@
     <string name="artifacts_open_in">Artifacts open in</string>
     <string name="artifact_mode_bottom_sheet">Bottom sheet</string>
     <string name="artifact_mode_fullscreen">Full screen</string>
+    <string name="artifact_mode_automatic">Automatic</string>
+    <string name="artifact_mode_split">Side by side</string>
+    <!-- %1$s is how artifacts open in this window: artifact_mode_split, artifact_mode_bottom_sheet or artifact_mode_fullscreen. -->
+    <string name="artifact_mode_here">%1$s here</string>
+    <string name="artifact_mode_automatic_here">Automatic · %1$s here</string>
     <string name="artifact_inline_title">Render inline</string>
     <string name="artifact_inline_enabled_count">%1$d of %2$d enabled</string>
     <string name="artifact_libraries_title">Flagged libraries</string>

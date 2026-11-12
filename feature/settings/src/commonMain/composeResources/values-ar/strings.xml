@@ -338,6 +338,10 @@
     <string name="artifacts_open_in">طريقة فتح العناصر التفاعلية</string>
     <string name="artifact_mode_bottom_sheet">لوحة سفلية</string>
     <string name="artifact_mode_fullscreen">ملء الشاشة</string>
+    <string name="artifact_mode_automatic">تلقائي</string>
+    <string name="artifact_mode_split">جنبًا إلى جنب</string>
+    <string name="artifact_mode_here">%1$s هنا</string>
+    <string name="artifact_mode_automatic_here">تلقائي · %1$s هنا</string>
     <string name="artifact_inline_title">العرض المضمّن</string>
     <string name="artifact_inline_enabled_count">%1$d من %2$d مفعّلة</string>
     <string name="artifact_libraries_title">المكتبات المُعلَّمة</string>

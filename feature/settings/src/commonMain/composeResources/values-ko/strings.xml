@@ -308,6 +308,10 @@
     <string name="artifacts_open_in">아티팩트 여는 방식</string>
     <string name="artifact_mode_bottom_sheet">하단 시트</string>
     <string name="artifact_mode_fullscreen">전체 화면</string>
+    <string name="artifact_mode_automatic">자동</string>
+    <string name="artifact_mode_split">나란히</string>
+    <string name="artifact_mode_here">여기서는 %1$s</string>
+    <string name="artifact_mode_automatic_here">자동 · 여기서는 %1$s</string>
     <string name="artifact_inline_title">인라인으로 렌더링</string>
     <string name="artifact_inline_enabled_count">%2$d개 중 %1$d개 사용</string>
     <string name="artifact_libraries_title">주의가 필요한 라이브러리</string>

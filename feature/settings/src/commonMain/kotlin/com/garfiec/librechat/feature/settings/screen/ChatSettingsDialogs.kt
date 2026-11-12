@@ -41,6 +41,8 @@ import com.garfiec.librechat.core.data.datastore.WebSearchPreference
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveRadioButton
 import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
+import com.garfiec.librechat.core.ui.components.ArtifactPresentation
+import com.garfiec.librechat.core.ui.components.windowAutomaticArtifactPresentation
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
 import org.jetbrains.compose.resources.stringResource
@@ -138,8 +140,24 @@ internal fun chatHeaderAlignmentLabel(alignment: ChatHeaderAlignment): String = 
 
 @Composable
 internal fun artifactDisplayModeLabel(mode: ArtifactDisplayMode): String = when (mode) {
+    ArtifactDisplayMode.AUTOMATIC -> stringResource(Res.string.artifact_mode_automatic)
     ArtifactDisplayMode.BOTTOM_SHEET -> stringResource(Res.string.artifact_mode_bottom_sheet)
     ArtifactDisplayMode.FULLSCREEN -> stringResource(Res.string.artifact_mode_fullscreen)
+}
+
+/** The mode as a summary; Automatic also names what it does in this window. */
+@Composable
+internal fun artifactDisplayModeSummary(mode: ArtifactDisplayMode): String = when (mode) {
+    ArtifactDisplayMode.AUTOMATIC ->
+        stringResource(Res.string.artifact_mode_automatic_here, artifactPresentationLabel(windowAutomaticArtifactPresentation()))
+    else -> artifactDisplayModeLabel(mode)
+}
+
+@Composable
+internal fun artifactPresentationLabel(presentation: ArtifactPresentation): String = when (presentation) {
+    ArtifactPresentation.SPLIT -> stringResource(Res.string.artifact_mode_split)
+    ArtifactPresentation.SHEET -> stringResource(Res.string.artifact_mode_bottom_sheet)
+    ArtifactPresentation.FULL_SCREEN -> stringResource(Res.string.artifact_mode_fullscreen)
 }
 
 /**

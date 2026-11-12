@@ -36,22 +36,48 @@ import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.data.datastore.ArtifactDisplayMode
 import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
+import com.garfiec.librechat.core.ui.components.windowAutomaticArtifactPresentation
+import com.garfiec.librechat.feature.settings.resources.Res
+import com.garfiec.librechat.feature.settings.resources.artifact_mode_here
+import org.jetbrains.compose.resources.stringResource
 
-/** Chats › Artifacts open in: a sheet over the chat, or a page of its own. */
+/**
+ * Chats › Artifacts open in: chosen by the window (Automatic, which names what it does in this one), a
+ * sheet over the chat, or a page of its own.
+ */
 @Composable
 internal fun ArtifactViewerChoice(
     selected: ArtifactDisplayMode,
     onSelect: (ArtifactDisplayMode) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val automaticHere =
+        stringResource(Res.string.artifact_mode_here, artifactPresentationLabel(windowAutomaticArtifactPresentation()))
     PictureChoiceGroup(
         options = ArtifactDisplayMode.entries,
         selected = selected,
         onSelect = onSelect,
         label = { artifactDisplayModeLabel(it) },
+        detail = { if (it == ArtifactDisplayMode.AUTOMATIC) automaticHere else null },
         modifier = modifier,
     ) { mode ->
         when (mode) {
+            ArtifactDisplayMode.AUTOMATIC -> Row(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
+                MiniChat(modifier = Modifier.weight(1f)) {}
+                Box(modifier = Modifier.width(24.dp).fillMaxHeight(), contentAlignment = Alignment.Center) {
+                    Box(
+                        Modifier
+                            .size(width = 4.dp, height = 32.dp)
+                            .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = SAMPLE_LINE_ALPHA), CircleShape),
+                    )
+                }
+                Column(modifier = Modifier.weight(SPLIT_ARTIFACT_WEIGHT).fillMaxHeight()) {
+                    MiniBar(leading = { BarIcon(Icons.Default.Close) })
+                    Column(modifier = Modifier.weight(1f).padding(end = 12.dp, bottom = 12.dp)) {
+                        ArtifactBody()
+                    }
+                }
+            }
             ArtifactDisplayMode.BOTTOM_SHEET -> MiniChat {
                 Scrim()
                 Column(
@@ -189,10 +215,14 @@ internal fun StarredModelsChoice(
 
 /** A chat: bar, a conversation drawn as lines, and the message box, with [overlay] drawn over it all. */
 @Composable
-private fun MiniChat(gaugeInComposer: Boolean = false, overlay: @Composable BoxScope.() -> Unit) {
+private fun MiniChat(
+    modifier: Modifier = Modifier,
+    gaugeInComposer: Boolean = false,
+    overlay: @Composable BoxScope.() -> Unit,
+) {
     val colors = MaterialTheme.colorScheme
     val line = colors.onSurfaceVariant.copy(alpha = SAMPLE_LINE_ALPHA)
-    Box(modifier = Modifier.fillMaxSize().background(colors.surface)) {
+    Box(modifier = modifier.fillMaxSize().background(colors.surface)) {
         Column(modifier = Modifier.fillMaxSize()) {
             MiniBar(leading = { BarIcon(Icons.Default.Menu) }, trailing = { BarIcon(Icons.Default.MoreVert) })
             Column(
@@ -332,6 +362,7 @@ private val MenuShape = RoundedCornerShape(12.dp)
 private val BubbleShapeSample = RoundedCornerShape(20.dp)
 private const val BUBBLE_WIDTH = 0.7f
 private const val SHEET_HEIGHT = 0.6f
+private const val SPLIT_ARTIFACT_WEIGHT = 0.7f
 private const val GAUGE_FILL = 0.6f
 private const val GROUP_ALPHA = 0.5f
 private const val SCRIM_ALPHA = 0.32f

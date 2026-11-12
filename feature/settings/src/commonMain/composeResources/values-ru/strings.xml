@@ -326,6 +326,10 @@
     <string name="artifacts_open_in">Как открывать артефакты</string>
     <string name="artifact_mode_bottom_sheet">Нижняя панель</string>
     <string name="artifact_mode_fullscreen">Полный экран</string>
+    <string name="artifact_mode_automatic">Авто</string>
+    <string name="artifact_mode_split">Рядом</string>
+    <string name="artifact_mode_here">Здесь: %1$s</string>
+    <string name="artifact_mode_automatic_here">Авто · здесь: %1$s</string>
     <string name="artifact_inline_title">Встроенное отображение</string>
     <string name="artifact_inline_enabled_count">Включено %1$d из %2$d</string>
     <string name="artifact_libraries_title">Отмеченные библиотеки</string>

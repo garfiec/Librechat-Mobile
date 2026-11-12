@@ -105,6 +105,7 @@ class GeneralSettingsViewModelTest {
         val viewModel = createViewModel()
         advanceUntilIdle()
         assertThat(viewModel.uiState.value.homeChats).isEqualTo(HomeChatPrefs())
+        assertThat(viewModel.uiState.value.homeChats.artifactDisplayMode).isEqualTo(ArtifactDisplayMode.AUTOMATIC)
 
         thinkingOpenFlow.value = true
         artifactDisplayFlow.value = ArtifactDisplayPrefs(mode = ArtifactDisplayMode.FULLSCREEN)

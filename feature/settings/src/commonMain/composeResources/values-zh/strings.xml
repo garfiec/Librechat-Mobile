@@ -308,6 +308,10 @@
     <string name="artifacts_open_in">Artifact 打开方式</string>
     <string name="artifact_mode_bottom_sheet">底部面板</string>
     <string name="artifact_mode_fullscreen">全屏</string>
+    <string name="artifact_mode_automatic">自动</string>
+    <string name="artifact_mode_split">并排</string>
+    <string name="artifact_mode_here">此处为%1$s</string>
+    <string name="artifact_mode_automatic_here">自动 · 此处为%1$s</string>
     <string name="artifact_inline_title">内嵌渲染</string>
     <string name="artifact_inline_enabled_count">已启用 %1$d / %2$d</string>
     <string name="artifact_libraries_title">需留意的库</string>

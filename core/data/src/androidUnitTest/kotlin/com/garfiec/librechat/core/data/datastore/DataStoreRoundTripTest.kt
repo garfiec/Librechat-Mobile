@@ -166,6 +166,7 @@ class DataStoreRoundTripTest {
         assertThat(store.sttOnDevice.first()).isTrue()
         assertThat(store.sttEndOfSpeech.first()).isFalse()
         assertThat(store.uploadRoutingMode.first()).isEqualTo(UploadRoutingMode.AUTO)
+        assertThat(store.artifactDisplayPrefs.first().mode).isEqualTo(ArtifactDisplayMode.AUTOMATIC)
     }
 
     @Test
@@ -293,6 +294,18 @@ class DataStoreRoundTripTest {
         assertThat(UploadRoutingMode.fromString("garbage")).isEqualTo(UploadRoutingMode.AUTO)
         for (mode in UploadRoutingMode.entries) {
             assertThat(UploadRoutingMode.fromString(mode.toStorageString())).isEqualTo(mode)
+        }
+    }
+
+    @Test
+    fun artifactDisplayMode_readsStoredChoicesAndDefaultsToAutomatic() {
+        assertThat(ArtifactDisplayMode.fromString(null)).isEqualTo(ArtifactDisplayMode.AUTOMATIC)
+        assertThat(ArtifactDisplayMode.fromString("auto")).isEqualTo(ArtifactDisplayMode.AUTOMATIC)
+        assertThat(ArtifactDisplayMode.fromString("bottom_sheet")).isEqualTo(ArtifactDisplayMode.BOTTOM_SHEET)
+        assertThat(ArtifactDisplayMode.fromString("fullscreen")).isEqualTo(ArtifactDisplayMode.FULLSCREEN)
+        assertThat(ArtifactDisplayMode.fromString("split")).isEqualTo(ArtifactDisplayMode.AUTOMATIC)
+        for (mode in ArtifactDisplayMode.entries) {
+            assertThat(ArtifactDisplayMode.fromString(mode.toStorageString())).isEqualTo(mode)
         }
     }
 

@@ -350,6 +350,7 @@ class SettingsDataStore(
     val artifactDisplayPrefs: Flow<ArtifactDisplayPrefs> = dataStore.data.map { prefs ->
         ArtifactDisplayPrefs(
             mode = ArtifactDisplayMode.fromString(prefs[KEY_ARTIFACT_DISPLAY_MODE]),
+            splitFraction = prefs[KEY_ARTIFACT_SPLIT_FRACTION] ?: ArtifactDisplayPrefs.DEFAULT_SPLIT_FRACTION,
         )
     }
 
@@ -831,6 +832,10 @@ class SettingsDataStore(
         dataStore.edit { prefs -> prefs[KEY_ARTIFACT_DISPLAY_MODE] = mode.toStorageString() }
     }
 
+    suspend fun setArtifactSplitFraction(fraction: Float) {
+        dataStore.edit { prefs -> prefs[KEY_ARTIFACT_SPLIT_FRACTION] = fraction }
+    }
+
     /**
      * Saves the backend version for which the user chose "Don't warn again".
      * If the backend later updates to a different version, the warning will reappear.
@@ -941,6 +946,7 @@ class SettingsDataStore(
         private val KEY_INLINE_ARTIFACT_REACT = booleanPreferencesKey("inline_artifact_react")
         private val KEY_INLINE_ARTIFACT_MARKDOWN = booleanPreferencesKey("inline_artifact_markdown")
         private val KEY_ARTIFACT_DISPLAY_MODE = stringPreferencesKey("artifact_display_mode")
+        private val KEY_ARTIFACT_SPLIT_FRACTION = floatPreferencesKey("artifact_split_fraction")
         private val KEY_DISMISSED_VERSION_WARNING = stringPreferencesKey("dismissed_version_warning")
         private val KEY_SELECTED_MCP_SERVERS = stringPreferencesKey("selected_mcp_servers")
         private val KEY_ENABLED_TOOLS = stringPreferencesKey("enabled_tools")

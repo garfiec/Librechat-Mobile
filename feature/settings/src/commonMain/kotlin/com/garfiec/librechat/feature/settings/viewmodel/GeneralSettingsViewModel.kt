@@ -95,7 +95,7 @@ internal fun diagnosticsInstallSource(appInfo: AppInfo, platformInfo: PlatformIn
 /** The chat and voice preferences the Settings home summarizes. */
 data class HomeChatPrefs(
     val thinkingOpenByDefault: Boolean = false,
-    val artifactDisplayMode: ArtifactDisplayMode = ArtifactDisplayMode.BOTTOM_SHEET,
+    val artifactDisplayMode: ArtifactDisplayMode = ArtifactDisplayMode.AUTOMATIC,
     val autoReadEnabled: Boolean = false,
 )
 
