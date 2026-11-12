@@ -10,6 +10,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -66,11 +67,11 @@ internal fun ColumnScope.ChatContent(
     showAvatars: Boolean,
     showBubbles: Boolean,
     useKatex: Boolean,
-    bottomContentPadding: Dp,
-    /** Where side-by-side comparison cards end: just above the measured composer. */
-    paneBottomInset: Dp,
-    /** Where the jump-to-bottom button floats: just above the measured composer, null before it is. */
-    scrollToBottomPadding: Dp?,
+    /**
+     * The measured bottom bar (composer and the rows above it), 0 before it is measured. Read here, not
+     * by the screen: it changes every frame while the composer folds, and only the thread needs it.
+     */
+    bottomBarHeightPx: () -> Int,
     topContentPadding: Dp,
     onShowSecondaryModelSheet: () -> Unit,
     onComparisonTabChange: (Int) -> Unit,
@@ -91,6 +92,17 @@ internal fun ColumnScope.ChatContent(
     projectName: String? = null,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val barHeight = bottomBarHeightPx()
+    // 160dp stands in for the bar only until it is measured: the folded bar is far shorter.
+    val density = LocalDensity.current
+    val bottomContentPadding = with(density) { if (barHeight > 0) barHeight.toDp() + 16.dp else 160.dp }
+    // Side-by-side comparison panes are cards that stop above the composer, not lists that
+    // scroll under it, so they sit on the measured bar itself. The list floor above would
+    // leave a band of empty space, widest with the keyboard up (the bar loses its nav-bar inset).
+    val paneBottomInset = with(density) { if (barHeight > 0) barHeight.toDp() + 8.dp else bottomContentPadding }
+    // The jump-to-bottom button sits on the measured composer: the default placement, 30dp
+    // into the list's reserve, overlaps a tall composer.
+    val scrollToBottomPadding = with(density) { if (barHeight > 0) barHeight.toDp() + 8.dp else null }
     val clipboard = rememberClipboardWriter()
     val fallbackSenderName = stringResource(Res.string.sender_assistant)
     // Non-scrolling bodies (landing, loading, comparison panes) clear the floating bar with a

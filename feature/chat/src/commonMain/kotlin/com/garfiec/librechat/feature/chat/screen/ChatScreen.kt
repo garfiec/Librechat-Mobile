@@ -484,21 +484,6 @@ fun ChatScreen(
         // scrolling up behind its dimming scrim.
         var inputBarHeightPx by remember { mutableIntStateOf(0) }
         var topBarHeightPx by remember { mutableIntStateOf(0) }
-        // 160dp stands in for the bar only until it is measured: the folded bar is far shorter.
-        val bottomContentPadding = with(LocalDensity.current) {
-            if (inputBarHeightPx > 0) inputBarHeightPx.toDp() + 16.dp else 160.dp
-        }
-        // Side-by-side comparison panes are cards that stop above the composer, not lists that
-        // scroll under it, so they sit on the measured bar itself. The list floor above would
-        // leave a band of empty space, widest with the keyboard up (the bar loses its nav-bar inset).
-        val paneBottomInset = with(LocalDensity.current) {
-            if (inputBarHeightPx > 0) inputBarHeightPx.toDp() + 8.dp else bottomContentPadding
-        }
-        // The jump-to-bottom button sits on the measured composer: the default placement, 30dp
-        // into the list's reserve, overlaps a tall composer.
-        val scrollToBottomPadding = with(LocalDensity.current) {
-            if (inputBarHeightPx > 0) inputBarHeightPx.toDp() + 8.dp else null
-        }
         // Floor the top inset at status bar + one chip row so content clears the bar on the first
         // frame (before onSizeChanged reports the real height), avoiding a content-under-bar flash
         // on each screen entry.
@@ -559,9 +544,7 @@ fun ChatScreen(
                             showAvatars = showAvatars,
                             showBubbles = showBubbles,
                             useKatex = useKatex,
-                            bottomContentPadding = bottomContentPadding,
-                            paneBottomInset = paneBottomInset,
-                            scrollToBottomPadding = scrollToBottomPadding,
+                            bottomBarHeightPx = { inputBarHeightPx },
                             topContentPadding = topContentPadding,
                             onShowSecondaryModelSheet = { showSecondaryModelSheet = true },
                             onComparisonTabChange = { activeComparisonTab = it },
