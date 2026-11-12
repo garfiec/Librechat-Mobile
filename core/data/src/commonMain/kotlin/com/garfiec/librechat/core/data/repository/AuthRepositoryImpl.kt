@@ -165,11 +165,7 @@ class AuthRepositoryImpl(
                             ?: throw IllegalStateException("Server indicated 2FA required but tempToken was null"),
                     )
                 } else {
-                    val user = stageAuthenticatedSession(result)
-                    // Establish identity (+ run the legacy claim) before session tasks fire, so their
-                    // tenant writes are stamped to this account and reads filter to it.
-                    establishSession(pending, user)
-                    LoginOutcome.Success(user)
+                    LoginOutcome.Success(commitSession(pending) { stageAuthenticatedSession(result) })
                 }
             }
         }.fireSessionTasksIfLoggedIn(previousAccountId) { outcome ->
@@ -177,6 +173,7 @@ class AuthRepositoryImpl(
         }
     }
 
+    @Suppress("TooGenericExceptionCaught") // any failure after staging must roll the pair back
     override suspend fun loginWithOAuthToken(cookies: AuthCookies): Result<User> {
         val pending = accountSwitcher.pendingAdd
         val previousAccountId = activeAccountProvider.currentAccountId()
@@ -189,10 +186,13 @@ class AuthRepositoryImpl(
                 val token = result.response.token?.takeUnless { result.response.isTwoFactorSetupRequired }
                     ?: throw incompleteAuthResponse("token")
                 tokenManager.setSession(SessionCredentials(token, result.cookies))
-                // Fetch the user profile, then establish identity before session tasks fire.
-                val user = fetchAuthenticatedUser(pending)
-                establishSession(pending, user)
-                user
+                val user = try {
+                    fetchAuthenticatedUser(pending)
+                } catch (e: Exception) { // includes cancellation: leaving the screen must roll back too
+                    rollbackStagedSession(pending)
+                    throw e
+                }
+                commitSession(pending) { user }
             }
         }.fireSessionTasksIfLoggedIn(previousAccountId)
     }
@@ -243,20 +243,32 @@ class AuthRepositoryImpl(
         loginResult: LoginResult,
     ): Result<User> =
         try {
-            val user = withContext(NonCancellable) {
-                val user = stageAuthenticatedSession(loginResult)
-                establishSession(pending, user)
-                user
-            }
+            val user = commitSession(pending) { stageAuthenticatedSession(loginResult) }
             Result.Success(user).fireSessionTasksIfLoggedIn(previousAccountId)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             Logger.w(e) { "2FA accepted but session commit failed" }
-            // stageAuthenticatedSession already wrote the token pair; roll it back so a failed commit
-            // can't leave an orphaned session behind (see rollbackStagedSession).
-            rollbackStagedSession(pending)
             Result.Error(IllegalStateException(INCOMPLETE_AUTH_MESSAGE), INCOMPLETE_AUTH_MESSAGE)
+        }
+
+    /**
+     * Stages [stage]'s session and makes it the active account under NonCancellable: the server has
+     * already issued it, so stopping halfway would store tokens with no account. A failure rolls the
+     * staged pair back and rethrows. Session tasks fire only after it returns, so their tenant writes
+     * are stamped to the established account.
+     */
+    @Suppress("TooGenericExceptionCaught") // any commit failure must roll back the staged session
+    private suspend fun commitSession(pending: PendingAddSession?, stage: suspend () -> User): User =
+        withContext(NonCancellable) {
+            try {
+                val user = stage()
+                establishSession(pending, user)
+                user
+            } catch (e: Exception) {
+                rollbackStagedSession(pending)
+                throw e
+            }
         }
 
     override suspend fun startTwoFactorSetup(tempToken: String): Result<TwoFactorSetupResponse> =
@@ -298,25 +310,27 @@ class AuthRepositoryImpl(
     }
 
     /**
-     * Undoes the credentials staged in phase 2 when the session commit faults *after* the server has
-     * already consumed the code. Without this the access/refresh pair set by [stageAuthenticatedSession]
-     * lingers in the store with no established account, and a later [TokenManager.onAccountResolved]
-     * could silently re-home a session the user was just told had failed. Best-effort and
-     * NonCancellable so a scope death mid-rollback can't strand the leak.
+     * Undoes a staged sign-in that didn't become an account. Left behind, the staged pair is read as a
+     * session on the next cold start and signs in a user who was told the sign-in failed. Best-effort
+     * and NonCancellable so a scope death mid-rollback can't strand the leak.
      *
      * The primitive depends on the flow:
      * - Fresh sign-in ([pending] == null, logged-out target): the staged bare pair — or a keyed slot a
      *   partly-completed [establishSession] already re-homed via `onAccountResolved` — is the only
      *   session, so a full [TokenManager.clearTokens] teardown is both safe and complete.
-     * - Add-account ([pending] != null): [AccountSwitcher.completeAdd] already restored the outgoing
-     *   account's binding on its own failure, so only the staged bare pair needs dropping;
-     *   [TokenManager.clearTokens] would tear down the still-live outgoing account.
+     * - Add-account ([pending] != null): drop only the staged bare pair, then re-bind the live account,
+     *   whose binding staging dropped; [TokenManager.clearTokens] would tear that account down.
      */
     private suspend fun rollbackStagedSession(pending: PendingAddSession?) {
         withContext(NonCancellable) {
             runCatching {
-                if (pending == null) tokenManager.clearTokens() else tokenManager.clearStagedTokens()
-            }.onFailure { Logger.w(it) { "2FA rollback: staged-session clear failed" } }
+                if (pending == null) {
+                    tokenManager.clearTokens()
+                } else {
+                    tokenManager.clearStagedTokens()
+                    activeAccountProvider.currentAccountId()?.let { tokenManager.selectAccount(it.value) }
+                }
+            }.onFailure { Logger.w(it) { "Sign-in rollback: staged-session clear failed" } }
         }
     }
 

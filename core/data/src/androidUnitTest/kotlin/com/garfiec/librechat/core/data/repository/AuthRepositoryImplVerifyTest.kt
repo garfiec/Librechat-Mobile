@@ -1,9 +1,11 @@
 package com.garfiec.librechat.core.data.repository
 
+import com.garfiec.librechat.core.common.identity.AccountId
 import com.garfiec.librechat.core.common.identity.AccountState
 import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.common.identity.SessionManager
 import com.garfiec.librechat.core.common.result.ApiException
+import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.AccountRegistry
 import com.garfiec.librechat.core.data.util.SessionTaskRunner
 import com.garfiec.librechat.core.model.User
@@ -33,7 +35,9 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import org.junit.Before
 import org.junit.Test
@@ -169,6 +173,39 @@ class AuthRepositoryImplVerifyTest {
             .verifyTwoFactor(tempToken = "temp-abc", code = "123456")
 
         assertThat(outcome).isEqualTo(VerifyTwoFactorOutcome.Success(User(mongoId = "u1", email = "a@b.com")))
+    }
+
+    @Test
+    fun `a password sign-in whose commit fails rolls the staged session back`() = runTest {
+        coEvery { accountSessionEstablisher.establish(any()) } throws IllegalStateException("registry write failed")
+
+        val result = repo(engineReturning(VALID_SESSION_BODY, HttpStatusCode.OK)).login("a@b.com", "pw")
+
+        assertThat(result).isInstanceOf(Result.Error::class.java)
+        coVerify { tokenManager.clearTokens() }
+    }
+
+    @Test
+    fun `leaving a password sign-in mid-commit still finishes the commit`() = runTest {
+        val entered = CompletableDeferred<Unit>()
+        val release = CompletableDeferred<Unit>()
+        var committed = false
+        coEvery { accountSessionEstablisher.establish(any()) } coAnswers {
+            entered.complete(Unit)
+            release.await()
+            committed = true
+            AccountId("u1")
+        }
+        val repository = repo(engineReturning(VALID_SESSION_BODY, HttpStatusCode.OK))
+
+        val signIn = launch { repository.login("a@b.com", "pw") }
+        entered.await()
+        signIn.cancel()
+        release.complete(Unit)
+        signIn.join()
+
+        assertThat(committed).isTrue()
+        coVerify(exactly = 0) { tokenManager.clearTokens() }
     }
 
     private companion object {
