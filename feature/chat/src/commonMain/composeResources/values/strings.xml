@@ -356,6 +356,10 @@
     <string name="cd_view_code">View code</string>
     <string name="label_diagram">Diagram</string>
     <string name="cd_fullscreen">Fullscreen</string>
+    <string name="cd_exit_fullscreen">Exit full screen</string>
+    <string name="cd_resize_artifact">Resize the artifact</string>
+    <string name="artifact_wider">Wider artifact</string>
+    <string name="artifact_narrower">Narrower artifact</string>
     <string name="cd_close_fullscreen">Close fullscreen</string>
 
     <!-- Message bubble -->

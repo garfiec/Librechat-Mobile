@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -40,6 +41,8 @@ import com.garfiec.librechat.core.ui.components.PlatformBackHandler
 import com.garfiec.librechat.core.ui.components.SidebarWidth
 import com.garfiec.librechat.core.ui.glass.rememberGlassStyle
 import com.garfiec.librechat.core.ui.navigation.FullWidthRoute
+import com.garfiec.librechat.core.ui.navigation.LocalSidebarAsideRequests
+import com.garfiec.librechat.core.ui.navigation.SidebarAsideRequests
 import com.garfiec.librechat.feature.auth.navigation.AddAccountServerUrl
 import com.garfiec.librechat.feature.chat.navigation.NewChat
 import com.garfiec.librechat.feature.chat.navigation.isPlainLanding
@@ -67,7 +70,9 @@ fun TabletLayout(
     val showSidebar = isLoggedIn && !navigator.isInAuthFlow
     // An unfolded Fold leaves a two-pane screen under its threshold beside the sidebar. Nothing is
     // persisted: leaving brings the sidebar back as it was.
-    val sidebarAside = navigator.currentRoute is FullWidthRoute
+    // A screen can also ask for the room while it shows something wide (an artifact beside the chat).
+    val asideRequests = remember { SidebarAsideRequests() }
+    val sidebarAside = navigator.currentRoute is FullWidthRoute || asideRequests.requested
     val sidebarReveal by animateFloatAsState(
         targetValue = if (sidebarAside) 0f else 1f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow),
@@ -250,6 +255,7 @@ fun TabletLayout(
                 // Slot 1: Main content -- resizes to fill remaining space
                 MainContent(
                     navDisplay = navDisplay,
+                    asideRequests = asideRequests,
                     showBanner = true,
                     banner = banner,
                     onDismissBanner = navHostViewModel::dismissBanner,
@@ -310,6 +316,7 @@ private fun MainContent(
     onSignInAgain: () -> Unit,
     onToggleDrawer: () -> Unit,
     modifier: Modifier = Modifier,
+    asideRequests: SidebarAsideRequests? = null,
 ) {
     Column(modifier = modifier) {
         if (showBanner) {
@@ -322,6 +329,8 @@ private fun MainContent(
                 onDismiss = onDismissBanner,
             )
         }
-        navDisplay(onToggleDrawer, Modifier.fillMaxSize())
+        CompositionLocalProvider(LocalSidebarAsideRequests provides asideRequests) {
+            navDisplay(onToggleDrawer, Modifier.fillMaxSize())
+        }
     }
 }

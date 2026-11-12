@@ -2,6 +2,7 @@ package com.garfiec.librechat.core.ui.components
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
@@ -76,6 +77,27 @@ fun Modifier.predictiveBackSheetContent(back: SheetPredictiveBack): Modifier = g
     transformOrigin = TransformOrigin(0.5f, 0f)
 }
 
+/**
+ * Shrinks a panel standing beside the screen's content toward its end edge ([towardEnd]), or one
+ * covering the whole screen toward its centre, rounding its corners as it goes. [rtl] puts the end
+ * edge on the left.
+ */
+fun Modifier.predictiveBackPane(back: SheetPredictiveBack, towardEnd: Boolean, rtl: Boolean): Modifier = graphicsLayer {
+    val p = back.progress.value
+    val scale = 1f - (1f - MinPaneBackScale) * p
+    scaleX = scale
+    scaleY = scale
+    transformOrigin = when {
+        !towardEnd -> TransformOrigin.Center
+        rtl -> TransformOrigin(0f, 0.5f)
+        else -> TransformOrigin(1f, 0.5f)
+    }
+    if (p > 0f) {
+        shape = RoundedCornerShape(PaneBackCorner * p)
+        clip = true
+    }
+}
+
 private fun GraphicsLayerScope.backScaleX(progress: Float): Float {
     val width = size.width
     if (width.isNaN() || width == 0f) return 1f
@@ -92,3 +114,7 @@ private fun GraphicsLayerScope.backScaleY(progress: Float): Float {
 private val PredictiveBackEasing = CubicBezierEasing(0.1f, 0.1f, 0f, 1f)
 private val MaxScaleXDistance = 48.dp
 private val MaxScaleYDistance = 24.dp
+
+// M3's full-screen predictive back: down to 90%, with the device's corner radius.
+private const val MinPaneBackScale = 0.9f
+private val PaneBackCorner = 28.dp

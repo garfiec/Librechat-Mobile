@@ -343,6 +343,10 @@
     <string name="cd_view_code">코드 보기</string>
     <string name="label_diagram">다이어그램</string>
     <string name="cd_fullscreen">전체 화면</string>
+    <string name="cd_exit_fullscreen">전체 화면 종료</string>
+    <string name="cd_resize_artifact">아티팩트 크기 조절</string>
+    <string name="artifact_wider">아티팩트 넓히기</string>
+    <string name="artifact_narrower">아티팩트 좁히기</string>
     <string name="cd_close_fullscreen">전체 화면 닫기</string>
 
     <!-- Message bubble -->

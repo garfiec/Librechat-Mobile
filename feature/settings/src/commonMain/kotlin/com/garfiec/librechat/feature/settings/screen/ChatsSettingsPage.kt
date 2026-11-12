@@ -79,7 +79,7 @@ fun ChatsSettingsPage(
         adaptiveSection {
             row(key = "artifact_viewer") {
                 ArtifactViewerChoice(
-                    selected = uiState.artifactDisplayPrefs.mode,
+                    selected = uiState.artifactDisplayMode,
                     onSelect = viewModel::setArtifactDisplayMode,
                 )
             }

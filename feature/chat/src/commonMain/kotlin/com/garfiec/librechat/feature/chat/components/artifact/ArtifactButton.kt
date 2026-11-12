@@ -27,9 +27,13 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -49,9 +53,17 @@ fun ArtifactButton(
     /** Replaces the type label under the title. */
     subtitle: String? = null,
 ) {
+    val origin = LocalArtifactOrigin.current
+    // A plain reference, not state: bounds are read from it only at the tap and when the viewer closes.
+    val placed = remember { PlacedRef() }
     Card(
-        onClick = onClick,
-        modifier = modifier.fillMaxWidth(),
+        onClick = {
+            origin?.bounds = { placed.coordinates?.takeIf { it.isAttached }?.boundsInWindow() }
+            onClick()
+        },
+        modifier = modifier
+            .fillMaxWidth()
+            .then(if (origin != null) Modifier.onPlaced { placed.coordinates = it } else Modifier),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.secondaryContainer,
@@ -137,3 +149,7 @@ internal fun artifactTypeIcon(type: String): ImageVector =
         ArtifactType.MARKDOWN -> Icons.AutoMirrored.Filled.Article
         ArtifactType.PLAIN, ArtifactType.CODE -> Icons.Default.Code
     }
+
+private class PlacedRef {
+    var coordinates: LayoutCoordinates? = null
+}

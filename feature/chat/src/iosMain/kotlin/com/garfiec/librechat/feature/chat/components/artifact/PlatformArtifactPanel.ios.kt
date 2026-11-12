@@ -18,7 +18,7 @@ import platform.WebKit.WKWebViewConfiguration
 
 /**
  * iOS preview surface — a `WKWebView` hosting the artifact's rendered HTML. The
- * shell, header, selector, and code body are shared in the common `ArtifactPanel`.
+ * shell, header, selector, and code body are shared in the common `ArtifactViewer`.
  */
 @OptIn(ExperimentalForeignApi::class)
 @Composable

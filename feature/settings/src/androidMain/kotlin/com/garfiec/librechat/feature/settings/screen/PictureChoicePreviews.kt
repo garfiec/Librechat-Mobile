@@ -59,7 +59,7 @@ private fun PreviewSurface(style: UiStyle, content: @Composable () -> Unit) {
 
 @Composable
 private fun ArtifactViewerHost() {
-    var selected by remember { mutableStateOf(ArtifactDisplayMode.BOTTOM_SHEET) }
+    var selected by remember { mutableStateOf(ArtifactDisplayMode.AUTOMATIC) }
     InCell(stringResource(Res.string.artifacts_open_in)) {
         ArtifactViewerChoice(selected = selected, onSelect = { selected = it })
     }

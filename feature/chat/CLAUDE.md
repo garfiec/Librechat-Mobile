@@ -809,6 +809,10 @@ neither `codeEnvironmentMode` nor `codeWorkspaces` is sealed "No workspace" for 
   (`shouldRenderInlineArtifact`, `InlineArtifactPrefsExt.kt`): an inline preview would reload its
   WebView per delta.
 - **The FileProvider authority must match the app's manifest** (`ArtifactDownloadHelper`).
+- **The open artifact's viewer is composed once, in the chat's own window** (`ArtifactPresentationHost`):
+  sheet, split and full screen are placements of that one composition. A change of shape must never
+  move it into another window (a dialog sheet) or route, or its page reloads; only the explicit Full
+  screen choice uses the `ArtifactFullscreen` route.
 
 ### Everything a WebView executes is bundled (no CDNs)
 A hard requirement (F-Droid); see the root `CLAUDE.md`. Never edit a vendored file; repin via

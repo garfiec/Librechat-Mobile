@@ -114,6 +114,7 @@ internal fun <T> PictureChoiceGroup(
     onSelect: (T) -> Unit,
     label: @Composable (T) -> String,
     modifier: Modifier = Modifier,
+    detail: @Composable (T) -> String? = { null },
     picture: @Composable (T) -> Unit,
 ) {
     val minWidth = MinPictureWidth * LocalDensity.current.fontScale
@@ -131,6 +132,7 @@ internal fun <T> PictureChoiceGroup(
                                 selected = selected == option,
                                 onClick = { onSelect(option) },
                                 modifier = Modifier.weight(1f),
+                                detail = detail(option),
                             ) { picture(option) }
                         }
                         // A short last row keeps the others' card width.

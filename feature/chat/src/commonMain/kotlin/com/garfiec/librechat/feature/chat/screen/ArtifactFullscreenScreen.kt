@@ -49,7 +49,7 @@ fun ArtifactFullscreenScreen(
         ArtifactViewer(
             artifact = entry.artifact,
             versions = entry.versions,
-            isFullscreen = true,
+            inSheet = false,
             onClose = onBack,
             onExpand = null,
             modifier = Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding(),

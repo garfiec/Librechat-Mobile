@@ -5,7 +5,7 @@ import androidx.compose.ui.unit.dp
 
 /**
  * Inline artifact previews are capped to this fraction of the current window
- * height. The full artifact remains available via the fullscreen [ArtifactPanel]
+ * height. The full artifact remains available via the [ArtifactViewer]
  * on tap; the inline view is a "card preview" of the top portion. The cap also
  * keeps the Android software-layer WebView's backing bitmap inside the
  * paintable range — see `InlineArtifactView.android.kt` for the rendering

@@ -348,6 +348,10 @@
     <string name="cd_view_code">Code anzeigen</string>
     <string name="label_diagram">Diagramm</string>
     <string name="cd_fullscreen">Vollbild</string>
+    <string name="cd_exit_fullscreen">Vollbild beenden</string>
+    <string name="cd_resize_artifact">Größe des Artefakts ändern</string>
+    <string name="artifact_wider">Artefakt breiter</string>
+    <string name="artifact_narrower">Artefakt schmaler</string>
     <string name="cd_close_fullscreen">Vollbild schließen</string>
 
     <!-- Message bubble -->

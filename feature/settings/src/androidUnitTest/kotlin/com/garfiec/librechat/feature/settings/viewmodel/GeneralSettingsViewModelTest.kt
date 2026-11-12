@@ -8,7 +8,6 @@ import com.garfiec.librechat.core.common.datetime.DateTimeFormatPrefs
 import com.garfiec.librechat.core.common.datetime.TimestampStyle
 import com.garfiec.librechat.core.data.datastore.AppPreferences
 import com.garfiec.librechat.core.data.datastore.ArtifactDisplayMode
-import com.garfiec.librechat.core.data.datastore.ArtifactDisplayPrefs
 import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
 import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
@@ -49,11 +48,12 @@ class GeneralSettingsViewModelTest {
     private val version = MutableStateFlow<String?>(null)
     private val startupConfig = MutableStateFlow<StartupConfig?>(null)
     private val thinkingOpenFlow = MutableStateFlow(false)
-    private val artifactDisplayFlow = MutableStateFlow(ArtifactDisplayPrefs())
+    private val artifactDisplayFlow = MutableStateFlow(ArtifactDisplayMode.AUTOMATIC)
     private val autoReadFlow = MutableStateFlow(false)
     private val certificateTrust = CertificateTrustRegistry()
     private val preferenceStore = mockk<PreferenceStore>(relaxed = true) {
         every { observe(AppPreferences.AdvancedSearch) } returns MutableStateFlow(false)
+        every { observe(AppPreferences.ArtifactDisplay) } returns artifactDisplayFlow
     }
 
     @Before
@@ -63,7 +63,6 @@ class GeneralSettingsViewModelTest {
         coEvery { settingsDataStore.setSelectedLanguage(any()) } answers { selectedLanguageFlow.value = firstArg() }
         every { settingsDataStore.tabletSidebarGestureEnabled } returns MutableStateFlow(true)
         every { settingsDataStore.thinkingOpenByDefault } returns thinkingOpenFlow
-        every { settingsDataStore.artifactDisplayPrefs } returns artifactDisplayFlow
         every { settingsDataStore.autoReadEnabled } returns autoReadFlow
         every { dateTimePrefsStore.prefs } returns dateTimePrefsFlow
         coEvery { dateTimePrefsStore.update(any()) } answers {
@@ -105,9 +104,10 @@ class GeneralSettingsViewModelTest {
         val viewModel = createViewModel()
         advanceUntilIdle()
         assertThat(viewModel.uiState.value.homeChats).isEqualTo(HomeChatPrefs())
+        assertThat(viewModel.uiState.value.homeChats.artifactDisplayMode).isEqualTo(ArtifactDisplayMode.AUTOMATIC)
 
         thinkingOpenFlow.value = true
-        artifactDisplayFlow.value = ArtifactDisplayPrefs(mode = ArtifactDisplayMode.FULLSCREEN)
+        artifactDisplayFlow.value = ArtifactDisplayMode.FULLSCREEN
         autoReadFlow.value = true
         advanceUntilIdle()
         assertThat(viewModel.uiState.value.homeChats).isEqualTo(

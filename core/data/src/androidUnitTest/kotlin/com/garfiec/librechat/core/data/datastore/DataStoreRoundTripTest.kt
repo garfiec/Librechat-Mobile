@@ -297,6 +297,18 @@ class DataStoreRoundTripTest {
     }
 
     @Test
+    fun artifactDisplayMode_readsStoredChoicesAndDefaultsToAutomatic() {
+        assertThat(ArtifactDisplayMode.fromString(null)).isEqualTo(ArtifactDisplayMode.AUTOMATIC)
+        assertThat(ArtifactDisplayMode.fromString("auto")).isEqualTo(ArtifactDisplayMode.AUTOMATIC)
+        assertThat(ArtifactDisplayMode.fromString("bottom_sheet")).isEqualTo(ArtifactDisplayMode.BOTTOM_SHEET)
+        assertThat(ArtifactDisplayMode.fromString("fullscreen")).isEqualTo(ArtifactDisplayMode.FULLSCREEN)
+        assertThat(ArtifactDisplayMode.fromString("split")).isEqualTo(ArtifactDisplayMode.AUTOMATIC)
+        for (mode in ArtifactDisplayMode.entries) {
+            assertThat(ArtifactDisplayMode.fromString(mode.toStorageString())).isEqualTo(mode)
+        }
+    }
+
+    @Test
     fun settingsDataStore_roundTrip_uploadRoutingMode() = runTest(testDispatcher) {
         val ds = createDataStore("settings-upload-routing")
         val store = settingsStore(ds)

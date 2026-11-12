@@ -3,7 +3,7 @@ package com.garfiec.librechat.feature.chat.components.artifact
 /**
  * Classification of an artifact MIME type into the renderer/icon families the
  * UI knows about. Centralises the substring-matching ladder that used to live
- * in `ArtifactButton`, `ArtifactPanel.isPreviewableType`, `ArtifactWebContent`,
+ * in `ArtifactButton`, `isPreviewableType`, `ArtifactWebContent`,
  * and `InlineArtifactPrefs.shouldRenderInline` — all four sites now classify
  * via [from] and switch on the resulting enum.
  *

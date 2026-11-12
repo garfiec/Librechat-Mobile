@@ -95,7 +95,7 @@ internal fun diagnosticsInstallSource(appInfo: AppInfo, platformInfo: PlatformIn
 /** The chat and voice preferences the Settings home summarizes. */
 data class HomeChatPrefs(
     val thinkingOpenByDefault: Boolean = false,
-    val artifactDisplayMode: ArtifactDisplayMode = ArtifactDisplayMode.BOTTOM_SHEET,
+    val artifactDisplayMode: ArtifactDisplayMode = ArtifactDisplayMode.AUTOMATIC,
     val autoReadEnabled: Boolean = false,
 )
 
@@ -135,9 +135,9 @@ class GeneralSettingsViewModel(
         preferenceStore.observe(AppPreferences.AdvancedSearch),
         combine(
             settingsDataStore.thinkingOpenByDefault,
-            settingsDataStore.artifactDisplayPrefs,
+            preferenceStore.observe(AppPreferences.ArtifactDisplay),
             settingsDataStore.autoReadEnabled,
-        ) { thinkingOpen, artifacts, autoRead -> HomeChatPrefs(thinkingOpen, artifacts.mode, autoRead) },
+        ) { thinkingOpen, artifacts, autoRead -> HomeChatPrefs(thinkingOpen, artifacts, autoRead) },
         ::GeneralPrefs,
     )
 

@@ -38,8 +38,8 @@ import platform.darwin.NSObject
  * SVG and cached Mermaid take the synchronous-aspect-ratio path via
  * `InlineSvgSurface` upstream; Markdown renders natively. iOS does not
  * participate in the mermaid SVG cache (Coil 3 on Apple uses Skia SVGDOM, not
- * AndroidSVG — fidelity is unverified). Full content lives in the fullscreen
- * [ArtifactPanel] on tap.
+ * AndroidSVG — fidelity is unverified). Full content lives in the
+ * [ArtifactViewer] on tap.
  */
 @OptIn(ExperimentalForeignApi::class)
 @Composable

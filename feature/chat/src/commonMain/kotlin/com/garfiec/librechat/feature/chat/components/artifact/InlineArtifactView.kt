@@ -5,8 +5,8 @@ import androidx.compose.ui.Modifier
 
 /**
  * Renders an artifact inline in a chat message. Fills the available width and
- * scales height to match the rendered content. Tapping opens the fullscreen
- * [ArtifactPanel] via [onTap].
+ * scales height to match the rendered content. Tapping opens the
+ * [ArtifactViewer] via [onTap].
  *
  * Used when the user has enabled inline rendering for the artifact's type in
  * Settings > Chat > Artifacts.

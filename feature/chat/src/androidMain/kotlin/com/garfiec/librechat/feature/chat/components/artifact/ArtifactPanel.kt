@@ -45,7 +45,7 @@ import kotlin.uuid.Uuid
 /**
  * Android preview surface — a `WebView` hosting the artifact's rendered HTML.
  * The shell, header, selector, and code body are shared in the common
- * `ArtifactPanel`.
+ * `ArtifactViewer`.
  */
 @Composable
 actual fun ArtifactPreviewSurface(
