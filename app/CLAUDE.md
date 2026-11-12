@@ -9,13 +9,13 @@ links, share-intent routing and phone/tablet branching. The shared module owns t
 `shared/CLAUDE.md`. Feature modules get `onNavigate`/`onBack` lambdas, never `NavBackStack`.
 
 ### Layout modes
-- Tablet layout at 680dp+ wide and 480dp+ tall (320dp sidebar + 360dp pane), else the phone drawer. Android
-  picks here, iOS in the shared host, both via `usesSidebarLayout` (`TabletLayout.kt`): change the breakpoint
-  there, not at a call site.
-- iOS switches layouts in place, so both layouts must place the one `rememberMovableNavDisplay` instance (a
-  `MainNavDisplay` leaving composition clears every entry's ViewModels). Keep the layout choice in the host's
-  own composition, not a subcomposition like `BoxWithConstraints` — only that case is covered
-  (`MovableNavDisplayTest`).
+- Tablet layout at 680dp+ wide and 480dp+ tall (320dp sidebar + 360dp pane), else the phone drawer. Both
+  platforms choose in the shared `WindowLayout` via `usesSidebarLayout` (`SidebarLayout.kt`): change the
+  breakpoint there, not at a call site.
+- Both platforms switch layouts in place (`MainActivity` handles size changes itself), so `WindowLayout`
+  hands one `rememberMovableNavDisplay` to both layouts (a `MainNavDisplay` leaving composition clears
+  every entry's ViewModels). Keep the choice in the host's own composition, not a subcomposition like
+  `BoxWithConstraints` — only that case is covered (`MovableNavDisplayTest`).
 
 ## Deep links
 - Scheme `librechat://`; hosts `conversation/{id}`, `artifact/{uuid}`, `model?endpoint=&model=[&spec=]`, `code-setup/{id}`, `oauth`.

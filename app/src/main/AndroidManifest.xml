@@ -39,10 +39,14 @@
             android:name="com.garfiec.librechat.CHANNEL"
             android:value="${distributionChannel}" />
 
+        <!-- Handles size changes itself: rebuilding on a rotation, fold or resize would close open
+             sheets and reload artifact and MCP app pages. System dark mode, locale and display size
+             still rebuild. -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTask"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|navigation"
             android:windowSoftInputMode="adjustResize"
             android:theme="@style/Theme.LibreChat">
             <intent-filter>
