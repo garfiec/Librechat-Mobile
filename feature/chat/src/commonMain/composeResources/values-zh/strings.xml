@@ -889,7 +889,7 @@
     <string name="agent_handoff_to">智能体 %1$s</string>
     <string name="agent_handoff_run">运行：%1$s</string>
     <string name="sibling_position">第 %1$d 个回复，共 %2$d 个</string>
-    <string name="cd_assistant_responding">助手正在回复：%1$s</string>
+    <string name="cd_assistant_responding">助手正在回复</string>
     <string name="tool_call_fallback">工具调用</string>
     <string name="mcp_sign_in_needed">%1$s 需要你登录</string>
     <string name="mcp_sign_in_needed_unnamed">某个工具需要你登录</string>

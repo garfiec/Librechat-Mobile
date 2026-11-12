@@ -107,7 +107,7 @@ private fun ThreadStreamingBubble(
     waiting: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val liveCd = streamingLiveDescription(streamingContent)
+    val liveCd = streamingLiveDescription(streamingContent.isNotBlank())
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -205,7 +205,7 @@ private fun TwoSidedStreamingBubble(
     waiting: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val liveCd = streamingLiveDescription(streamingContent)
+    val liveCd = streamingLiveDescription(streamingContent.isNotBlank())
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -297,10 +297,13 @@ private fun TwoSidedStreamingBubble(
  * expands it mid-stream keeps it expanded as deltas arrive — but not across settle: the persisted
  * THINK part has its own key and opens collapsed (an accepted limit, see feature/chat CLAUDE.md).
  */
-/** What a screen reader announces as the reply streams in. */
+/**
+ * The live region's status as the reply streams in; never the reply text, which would be
+ * re-formatted and re-announced on every delta.
+ */
 @Composable
-private fun streamingLiveDescription(streamingContent: String): String = if (streamingContent.isNotBlank()) {
-    stringResource(Res.string.cd_assistant_responding, streamingContent)
+private fun streamingLiveDescription(responding: Boolean): String = if (responding) {
+    stringResource(Res.string.cd_assistant_responding)
 } else {
     stringResource(Res.string.cd_generating_response)
 }

@@ -950,7 +950,7 @@
     <string name="agent_handoff_to">Agent %1$s</string>
     <string name="agent_handoff_run">Run: %1$s</string>
     <string name="sibling_position">Response %1$d of %2$d</string>
-    <string name="cd_assistant_responding">Assistant is responding: %1$s</string>
+    <string name="cd_assistant_responding">Assistant is responding</string>
     <string name="tool_call_fallback">Tool Call</string>
     <!-- Live tool call row while the run waits for the user to sign in to an MCP server. %1$s is the server's name -->
     <string name="mcp_sign_in_needed">%1$s needs you to sign in</string>

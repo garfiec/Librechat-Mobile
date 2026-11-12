@@ -889,7 +889,7 @@
     <string name="agent_handoff_to">에이전트 %1$s</string>
     <string name="agent_handoff_run">실행: %1$s</string>
     <string name="sibling_position">응답 %1$d/%2$d</string>
-    <string name="cd_assistant_responding">어시스턴트 응답 중: %1$s</string>
+    <string name="cd_assistant_responding">어시스턴트 응답 중</string>
     <string name="tool_call_fallback">도구 호출</string>
     <string name="mcp_sign_in_needed">%1$s에 로그인해야 합니다</string>
     <string name="mcp_sign_in_needed_unnamed">도구에 로그인해야 합니다</string>
