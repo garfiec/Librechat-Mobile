@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -41,6 +42,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.Attachment
@@ -124,11 +127,19 @@ fun ArtifactPanel(
     onExpandFullscreen: ((Artifact, List<Artifact>) -> Unit)? = null,
     versions: List<Artifact> = listOf(artifact),
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
+    // Read once: a changed value would replace the state and close the open sheet.
+    val windowInfo = LocalWindowInfo.current
+    val density = LocalDensity.current
+    val opensHalfway = remember {
+        with(density) { windowInfo.containerSize.width.toDp() } < ArtifactSheetHalfOpenBelowWidth
+    }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = !opensHalfway)
     AdaptiveModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        modifier = modifier.fillMaxSize(),
+        sheetMaxWidth = ArtifactSheetMaxWidth,
+        // Height only: on the Material sheet a width here would override its own cap.
+        modifier = modifier.fillMaxHeight(),
         dragHandle = { LowProfileDragHandle() },
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
     ) {
@@ -143,6 +154,15 @@ fun ArtifactPanel(
         )
     }
 }
+
+/** The artifact sheet's widest: wider than a menu sheet, since it shows a page. */
+internal val ArtifactSheetMaxWidth = 840.dp
+
+/**
+ * In Material, windows narrower than this (a phone held upright) open the artifact sheet half way,
+ * others at full height. The Liquid Glass sheet has no half-way stop.
+ */
+internal val ArtifactSheetHalfOpenBelowWidth = 600.dp
 
 /**
  * Stateful artifact viewer used by both the bottom-sheet shell and the full-screen

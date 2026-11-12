@@ -16,6 +16,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.ui.components.topbar.CoversNativeBars
 import com.garfiec.librechat.core.ui.glass.GlassFloatingSheet
@@ -27,7 +28,8 @@ import kotlinx.coroutines.launch
 
 /**
  * In Liquid Glass, a floating glass panel portalled through [GlassSheetHost]. [sheetState] and
- * [shape] apply to the M3 sheet only.
+ * [shape] apply to the M3 sheet only; [sheetMaxWidth] caps both. The default suits menus and forms;
+ * a sheet that shows a page can go wider on a big screen.
  *
  * While [secure] is true the sheet stays out of screenshots, screen recording and the recents
  * snapshot, which is written to disk: set it while a secret is revealed. On Android the M3 sheet's
@@ -45,6 +47,7 @@ fun AdaptiveModalBottomSheet(
     onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier,
     sheetState: SheetState = rememberModalBottomSheetState(),
+    sheetMaxWidth: Dp = BottomSheetDefaults.SheetMaxWidth,
     shape: Shape = BottomSheetDefaults.ExpandedShape,
     dragHandle: @Composable (() -> Unit)? = { BottomSheetDefaults.DragHandle() },
     secure: Boolean = false,
@@ -54,6 +57,7 @@ fun AdaptiveModalBottomSheet(
     interceptDismiss = false,
     modifier = modifier,
     sheetState = sheetState,
+    sheetMaxWidth = sheetMaxWidth,
     shape = shape,
     dragHandle = dragHandle,
     secure = secure,
@@ -69,7 +73,7 @@ fun AdaptiveModalBottomSheet(
  * going, the sheet comes back up as it asks.
  *
  * Owns its [SheetState], since in Material the hold lives in the state's `confirmValueChange`.
- * [secure] is as on the overload above.
+ * [sheetMaxWidth] and [secure] are as on the overload above.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -78,6 +82,7 @@ fun AdaptiveModalBottomSheet(
     interceptDismiss: Boolean,
     modifier: Modifier = Modifier,
     skipPartiallyExpanded: Boolean = false,
+    sheetMaxWidth: Dp = BottomSheetDefaults.SheetMaxWidth,
     shape: Shape = BottomSheetDefaults.ExpandedShape,
     dragHandle: @Composable (() -> Unit)? = { BottomSheetDefaults.DragHandle() },
     secure: Boolean = false,
@@ -114,6 +119,7 @@ fun AdaptiveModalBottomSheet(
         interceptDismiss = interceptDismiss,
         modifier = modifier,
         sheetState = sheetState,
+        sheetMaxWidth = sheetMaxWidth,
         shape = shape,
         dragHandle = dragHandle,
         secure = secure,
@@ -127,6 +133,7 @@ private fun AdaptiveModalBottomSheetImpl(
     onDismissRequest: () -> Unit,
     interceptDismiss: Boolean,
     sheetState: SheetState,
+    sheetMaxWidth: Dp,
     shape: Shape,
     dragHandle: @Composable (() -> Unit)?,
     secure: Boolean,
@@ -145,6 +152,7 @@ private fun AdaptiveModalBottomSheetImpl(
         val currentOnDismiss by rememberUpdatedState(onDismissRequest)
         val currentIntercept by rememberUpdatedState(interceptDismiss)
         val currentModifier by rememberUpdatedState(modifier)
+        val currentMaxWidth by rememberUpdatedState(sheetMaxWidth)
         val currentDragHandle by rememberUpdatedState(dragHandle)
         val currentContent by rememberUpdatedState(content)
         // The glass sheet draws in the activity window, so that window is what must turn secure.
@@ -157,6 +165,7 @@ private fun AdaptiveModalBottomSheetImpl(
                         onDismissRequest = { currentOnDismiss() },
                         interceptDismiss = { currentIntercept },
                         modifier = currentModifier,
+                        maxWidth = currentMaxWidth,
                         dragHandle = currentDragHandle,
                         content = currentContent,
                     )
@@ -169,6 +178,7 @@ private fun AdaptiveModalBottomSheetImpl(
         onDismissRequest = onMaterialHide,
         modifier = modifier,
         sheetState = sheetState,
+        sheetMaxWidth = sheetMaxWidth,
         shape = shape,
         containerColor = if (glass) MaterialTheme.colorScheme.surfaceContainerLow else BottomSheetDefaults.ContainerColor,
         tonalElevation = if (glass) 0.dp else BottomSheetDefaults.Elevation,

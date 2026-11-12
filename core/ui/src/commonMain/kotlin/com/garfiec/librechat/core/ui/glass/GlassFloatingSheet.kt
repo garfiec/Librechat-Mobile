@@ -24,6 +24,8 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.BottomSheetDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -51,6 +53,7 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.ui.components.predictiveBackSheet
@@ -67,10 +70,12 @@ import kotlinx.coroutines.launch
  * call [onDismissRequest] straight away; otherwise it is called once the sheet has slid away. If
  * [interceptDismiss] turned true during that slide, the sheet slides back up as it asks.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun GlassFloatingSheet(
     onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier,
+    maxWidth: Dp = BottomSheetDefaults.SheetMaxWidth,
     interceptDismiss: () -> Boolean = { false },
     dragHandle: @Composable (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
@@ -183,7 +188,7 @@ internal fun GlassFloatingSheet(
         ) {
             Box(
                 modifier = Modifier
-                    .widthIn(max = MaxSheetWidth)
+                    .widthIn(max = maxWidth)
                     .fillMaxWidth()
                     .onSizeChanged { panelHeight = it.height }
                     .graphicsLayer {
@@ -228,7 +233,6 @@ private val SheetShape = RoundedCornerShape(32.dp)
 
 /** How far a floating sheet sits in from the screen's edges (inside the safe area). */
 internal val SheetMargin = 12.dp
-private val MaxSheetWidth = 640.dp
 private val DismissVelocity = 1200.dp
 private const val DISMISS_FRACTION = 0.33f
 private val ScrimColor = Color.Black.copy(alpha = 0.2f)
