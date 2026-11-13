@@ -41,13 +41,15 @@ import com.garfiec.librechat.core.ui.components.withIosTextContentType
 import com.garfiec.librechat.feature.auth.diagnostics.DiagnosticLogLink
 import com.garfiec.librechat.feature.auth.resources.*
 import com.garfiec.librechat.feature.auth.resources.Res
+import com.garfiec.librechat.feature.auth.viewmodel.RegisterError
+import com.garfiec.librechat.feature.auth.viewmodel.RegisterOutcome
 import com.garfiec.librechat.feature.auth.viewmodel.RegisterViewModel
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun RegisterScreen(
-    onRegister: () -> Unit,
+    onRegister: (RegisterOutcome) -> Unit,
     onNavigateToLogin: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: RegisterViewModel = koinViewModel(),
@@ -56,12 +58,12 @@ fun RegisterScreen(
     val currentOnRegister by rememberUpdatedState(onRegister)
     val autofillManager = LocalAutofillManager.current
 
-    LaunchedEffect(uiState.isRegistered) {
-        if (uiState.isRegistered) {
-            // Register returns to Login, whose own fields keep the autofill session open, so the
-            // session would never end on its own and no save prompt would appear.
+    LaunchedEffect(uiState.outcome) {
+        uiState.outcome?.let { outcome ->
+            // The next screen may have fields of its own that keep the autofill session open, so
+            // it would never end on its own and no save prompt would appear.
             autofillManager?.commit()
-            currentOnRegister()
+            currentOnRegister(outcome)
         }
     }
 
@@ -106,7 +108,7 @@ fun RegisterScreen(
             AdaptiveOutlinedTextField(
                 value = uiState.username,
                 onValueChange = viewModel::onUsernameChanged,
-                label = { Text(stringResource(Res.string.username_label)) },
+                label = { Text(stringResource(Res.string.username_optional_label)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 keyboardOptions = VerbatimKeyboardOptions,
@@ -162,7 +164,8 @@ fun RegisterScreen(
                 enabled = !uiState.isLoading,
             )
 
-            val errorText = authErrorText(uiState.refusal, uiState.error)
+            val errorText = uiState.registerError?.let { registerErrorText(it, uiState.minPasswordLength) }
+                ?: authErrorText(uiState.refusal, uiState.error)
             if (errorText != null) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
@@ -192,4 +195,12 @@ fun RegisterScreen(
             PolicyLinksFooter(uiState.policyLinks, modifier = Modifier.padding(top = 16.dp))
         }
     }
+}
+
+@Composable
+private fun registerErrorText(error: RegisterError, minPasswordLength: Int): String = when (error) {
+    RegisterError.MissingFields -> stringResource(Res.string.register_error_missing_fields)
+    RegisterError.PasswordTooShort -> stringResource(Res.string.register_error_password_too_short, minPasswordLength)
+    RegisterError.PasswordMismatch -> stringResource(Res.string.register_error_password_mismatch)
+    RegisterError.EmailTaken -> stringResource(Res.string.register_error_email_taken)
 }

@@ -7,6 +7,7 @@ import com.garfiec.librechat.feature.auth.resources.auth_error_cross_origin
 import com.garfiec.librechat.feature.auth.resources.auth_error_rate_limited
 import com.garfiec.librechat.feature.auth.resources.auth_error_tenant_required
 import com.garfiec.librechat.feature.auth.resources.login_error_email_login_disabled
+import com.garfiec.librechat.feature.auth.resources.login_error_email_not_verified
 import com.garfiec.librechat.feature.auth.resources.login_error_federated_blocked
 import com.garfiec.librechat.feature.auth.resources.login_error_other_sign_in_method
 import com.garfiec.librechat.feature.auth.resources.login_error_wrong_credentials
@@ -35,6 +36,7 @@ internal fun authRefusalText(refusal: AuthRefusal, usernameLogin: Boolean = fals
             if (usernameLogin) Res.string.login_error_wrong_credentials_username else Res.string.login_error_wrong_credentials
         AuthRefusal.OtherSignInMethod -> Res.string.login_error_other_sign_in_method
         AuthRefusal.EmailLoginDisabled -> Res.string.login_error_email_login_disabled
+        AuthRefusal.EmailNotVerified -> Res.string.login_error_email_not_verified
         AuthRefusal.Banned -> Res.string.auth_error_banned
         AuthRefusal.RateLimited -> Res.string.auth_error_rate_limited
     },

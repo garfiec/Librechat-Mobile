@@ -15,6 +15,7 @@ import com.garfiec.librechat.feature.auth.screen.TermsScreen
 import com.garfiec.librechat.feature.auth.screen.TwoFactorScreen
 import com.garfiec.librechat.feature.auth.screen.TwoFactorSetupScreen
 import com.garfiec.librechat.feature.auth.screen.VerifyEmailScreen
+import com.garfiec.librechat.feature.auth.viewmodel.RegisterOutcome
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.modules.SerializersModule
@@ -66,7 +67,8 @@ val NavKey.isAddAccountFlowRoute: Boolean
     override fun toString(): String = "TwoFactorSetup"
 }
 
-@Serializable data class VerifyEmail(val email: String) : AuthRoute
+/** [sendNow] mails a fresh link on open: true from a sign-in refused as unverified, never after sign-up. */
+@Serializable data class VerifyEmail(val email: String, val sendNow: Boolean = false) : AuthRoute
 
 @Serializable data object Terms : AuthRoute
 
@@ -124,6 +126,7 @@ fun EntryProviderScope<NavKey>.authEntries(
             },
             onNavigateToTwoFactorSetup = { tempToken -> onNavigate(TwoFactorSetup(tempToken = tempToken)) },
             onNavigateToSso = { provider -> onNavigate(SsoLogin(provider)) },
+            onNavigateToVerifyEmail = { email -> onNavigate(VerifyEmail(email, sendNow = true)) },
             onBack = onBack,
         )
     }
@@ -137,6 +140,7 @@ fun EntryProviderScope<NavKey>.authEntries(
             },
             onNavigateToTwoFactorSetup = { tempToken -> onNavigate(TwoFactorSetup(tempToken = tempToken)) },
             onNavigateToSso = { provider -> onNavigate(SsoLogin(provider)) },
+            onNavigateToVerifyEmail = { email -> onNavigate(VerifyEmail(email, sendNow = true)) },
             onUseAnotherAccount = signInEscape.actionOrNull(),
         )
     }
@@ -145,12 +149,6 @@ fun EntryProviderScope<NavKey>.authEntries(
             provider = key.provider,
             onLoginSuccess = onAuthComplete,
             onBack = onBack,
-        )
-    }
-    entry<Register> {
-        RegisterScreen(
-            onRegister = onBack,
-            onNavigateToLogin = onBack,
         )
     }
     entry<ForgotPassword> {
@@ -174,13 +172,6 @@ fun EntryProviderScope<NavKey>.authEntries(
             onUseAnotherAccount = signInEscape.actionOrNull(),
         )
     }
-    entry<VerifyEmail> { key ->
-        VerifyEmailScreen(
-            onVerify = onBack,
-            onBack = onBack,
-            email = key.email,
-        )
-    }
     // Pushed over the signed-in stack when the server requires the terms (modalAcceptance), so
     // accepting just returns to where the user was. Never dismissable: back is a decline.
     entry<Terms> {
@@ -197,6 +188,38 @@ fun EntryProviderScope<NavKey>.authEntries(
             onBack = onBack,
             userId = key.userId,
             token = key.token,
+        )
+    }
+}
+
+/**
+ * Sign-up and its follow-on screens. [onReplace] swaps the first route for the second while the first
+ * is on top: every hand-over replaces Register, so back from the next screen lands on sign-in.
+ */
+fun EntryProviderScope<NavKey>.signUpEntries(
+    onReplace: (NavKey, NavKey) -> Unit,
+    onBack: () -> Unit,
+    onAuthComplete: () -> Unit,
+) {
+    entry<Register> { key ->
+        RegisterScreen(
+            onRegister = { outcome ->
+                when (outcome) {
+                    is RegisterOutcome.VerifyEmail -> onReplace(key, VerifyEmail(outcome.email))
+                    RegisterOutcome.SignedIn -> onAuthComplete()
+                    is RegisterOutcome.TwoFactor -> onReplace(key, TwoFactor(outcome.tempToken))
+                    is RegisterOutcome.TwoFactorSetup -> onReplace(key, TwoFactorSetup(outcome.tempToken))
+                    RegisterOutcome.SignIn -> onBack()
+                }
+            },
+            onNavigateToLogin = onBack,
+        )
+    }
+    entry<VerifyEmail> { key ->
+        VerifyEmailScreen(
+            onBack = onBack,
+            email = key.email,
+            sendNow = key.sendNow,
         )
     }
 }

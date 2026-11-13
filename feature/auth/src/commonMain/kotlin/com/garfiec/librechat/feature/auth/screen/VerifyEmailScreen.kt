@@ -13,9 +13,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.heading
@@ -41,22 +39,14 @@ import org.koin.core.parameter.parametersOf
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VerifyEmailScreen(
-    onVerify: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     email: String? = null,
-    viewModel: VerifyEmailViewModel = koinViewModel { parametersOf(email) },
+    sendNow: Boolean = false,
+    viewModel: VerifyEmailViewModel = koinViewModel { parametersOf(email, sendNow) },
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val displayEmail = uiState.email
-    val currentOnVerify by rememberUpdatedState(onVerify)
-
-    LaunchedEffect(uiState.isVerified) {
-        if (uiState.isVerified) {
-            viewModel.consumeVerified()
-            currentOnVerify()
-        }
-    }
 
     AdaptiveScaffold(
         modifier = modifier,

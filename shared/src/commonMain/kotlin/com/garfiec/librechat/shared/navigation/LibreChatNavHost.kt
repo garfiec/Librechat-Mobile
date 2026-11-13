@@ -95,6 +95,7 @@ import com.garfiec.librechat.feature.auth.navigation.SignInEscape
 import com.garfiec.librechat.feature.auth.navigation.Terms
 import com.garfiec.librechat.feature.auth.navigation.authEntries
 import com.garfiec.librechat.feature.auth.navigation.isAddAccountFlowRoute
+import com.garfiec.librechat.feature.auth.navigation.signUpEntries
 import com.garfiec.librechat.feature.chat.navigation.Chat
 import com.garfiec.librechat.feature.chat.navigation.NewChat
 import com.garfiec.librechat.feature.chat.navigation.chatEntries
@@ -826,22 +827,23 @@ fun MainNavDisplay(
             rememberPredictiveBackCardDecorator(navigator.backStack),
         ),
         entryProvider = entryProvider {
+            val onAuthComplete: () -> Unit = {
+                navHostViewModel.onAuthComplete()
+                // accountTransitions() doesn't fire on login-from-logged-out, so the drawer's
+                // conversation list is refreshed explicitly here (the other half — banners,
+                // version — rides onAuthComplete above). Conversations-only: the login session
+                // tasks already refreshed tags, so this must not re-fetch them (double-fetch).
+                drawerViewModel.refreshConversationsAfterLogin()
+                // An add-account completion lands here over a stack whose landing belongs to the
+                // previous account; scoping it to the now-active one discards that ViewModel.
+                navigator.navigateToChat(
+                    accountScope = (navHostViewModel.accountState.value as? AccountState.Resolved)?.id?.value,
+                )
+            }
             authEntries(
                 onNavigate = { navigator.navigate(it) },
                 onBack = { navigator.goBack() },
-                onAuthComplete = {
-                    navHostViewModel.onAuthComplete()
-                    // accountTransitions() doesn't fire on login-from-logged-out, so the drawer's
-                    // conversation list is refreshed explicitly here (the other half — banners,
-                    // version — rides onAuthComplete above). Conversations-only: the login session
-                    // tasks already refreshed tags, so this must not re-fetch them (double-fetch).
-                    drawerViewModel.refreshConversationsAfterLogin()
-                    // An add-account completion lands here over a stack whose landing belongs to the
-                    // previous account; scoping it to the now-active one discards that ViewModel.
-                    navigator.navigateToChat(
-                        accountScope = (navHostViewModel.accountState.value as? AccountState.Resolved)?.id?.value,
-                    )
-                },
+                onAuthComplete = onAuthComplete,
                 onTermsAccepted = {
                     navHostViewModel.termsRequirement.clear()
                     navigator.remove(Terms)
@@ -850,6 +852,11 @@ fun MainNavDisplay(
                 onTermsDeclined = navHostViewModel::declineTerms,
                 termsDeclining = navHostViewModel.termsRequirement.declining,
                 signInEscape = signInEscape,
+            )
+            signUpEntries(
+                onReplace = { route, replacement -> navigator.replace(route, replacement) },
+                onBack = { navigator.goBack() },
+                onAuthComplete = onAuthComplete,
             )
             chatEntries(
                 onNavigate = { navigator.navigate(it) },

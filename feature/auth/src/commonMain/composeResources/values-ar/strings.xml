@@ -27,6 +27,11 @@
     <string name="register_title">إنشاء حساب</string>
     <string name="full_name_label">الاسم الكامل</string>
     <string name="username_label">اسم المستخدم</string>
+    <string name="username_optional_label">اسم المستخدم (اختياري)</string>
+    <string name="register_error_missing_fields">أدخل اسمك وبريدك الإلكتروني وكلمة مرور.</string>
+    <string name="register_error_password_too_short">يجب ألا تقل كلمة المرور عن %1$d أحرف.</string>
+    <string name="register_error_password_mismatch">كلمتا المرور غير متطابقتين.</string>
+    <string name="register_error_email_taken">يوجد حساب بهذا البريد الإلكتروني بالفعل. سجّل الدخول بدلًا من ذلك.</string>
     <string name="confirm_password_label">تأكيد كلمة المرور</string>
     <string name="sign_up">سجّل الآن</string>
     <string name="have_account_sign_in">لديك حساب بالفعل؟ سجّل الدخول</string>
@@ -127,6 +132,7 @@
     <string name="login_error_wrong_credentials_username">اسم المستخدم أو كلمة المرور غير صحيحة.</string>
     <string name="login_error_other_sign_in_method">يسجّل هذا الحساب الدخول بطريقة أخرى. استخدم الخيار الذي سجّلت الدخول به أول مرة.</string>
     <string name="login_error_email_login_disabled">لا يسمح هذا الخادم بتسجيل الدخول بالبريد الإلكتروني وكلمة المرور.</string>
+    <string name="login_error_email_not_verified">تحقّق من بريدك الإلكتروني قبل تسجيل الدخول.</string>
     <string name="login_error_missing_fields">أدخل بريدك الإلكتروني وكلمة المرور.</string>
     <string name="login_error_missing_fields_username">أدخل اسم المستخدم وكلمة المرور.</string>
     <string name="login_error_invalid_email">أدخل عنوان بريد إلكتروني صالحًا.</string>

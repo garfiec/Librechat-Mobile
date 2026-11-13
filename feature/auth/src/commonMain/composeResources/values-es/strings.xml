@@ -27,6 +27,11 @@
     <string name="register_title">Crear cuenta</string>
     <string name="full_name_label">Nombre completo</string>
     <string name="username_label">Nombre de usuario</string>
+    <string name="username_optional_label">Nombre de usuario (opcional)</string>
+    <string name="register_error_missing_fields">Escribe tu nombre, tu correo y una contraseña.</string>
+    <string name="register_error_password_too_short">La contraseña debe tener al menos %1$d caracteres.</string>
+    <string name="register_error_password_mismatch">Las contraseñas no coinciden.</string>
+    <string name="register_error_email_taken">Ya existe una cuenta con este correo. Inicia sesión en su lugar.</string>
     <string name="confirm_password_label">Confirmar contraseña</string>
     <string name="sign_up">Regístrate</string>
     <string name="have_account_sign_in">¿Ya tienes una cuenta? Inicia sesión</string>
@@ -127,6 +132,7 @@
     <string name="login_error_wrong_credentials_username">Nombre de usuario o contraseña incorrectos.</string>
     <string name="login_error_other_sign_in_method">Esta cuenta inicia sesión de otra forma. Usa la opción con la que iniciaste sesión por primera vez.</string>
     <string name="login_error_email_login_disabled">Este servidor no permite iniciar sesión con correo electrónico y contraseña.</string>
+    <string name="login_error_email_not_verified">Verifica tu correo antes de iniciar sesión.</string>
     <string name="login_error_missing_fields">Introduce tu correo electrónico y tu contraseña.</string>
     <string name="login_error_missing_fields_username">Introduce tu nombre de usuario y tu contraseña.</string>
     <string name="login_error_invalid_email">Introduce una dirección de correo electrónico válida.</string>

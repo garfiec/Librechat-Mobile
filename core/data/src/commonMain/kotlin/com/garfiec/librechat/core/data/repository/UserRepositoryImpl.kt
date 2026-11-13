@@ -11,7 +11,6 @@ import com.garfiec.librechat.core.model.User
 import com.garfiec.librechat.core.model.auth.RequestEmailChangeRequest
 import com.garfiec.librechat.core.model.request.ResendVerificationRequest
 import com.garfiec.librechat.core.model.request.UserPreferencesRequest
-import com.garfiec.librechat.core.model.request.VerifyEmailRequest
 import com.garfiec.librechat.core.model.response.TermsAcceptResponse
 import com.garfiec.librechat.core.model.response.TermsResponse
 import com.garfiec.librechat.core.network.api.UserApi
@@ -45,10 +44,6 @@ class UserRepositoryImpl(
     override suspend fun requestEmailChange(newEmail: String, currentPassword: String): Result<Unit> = safeApiCall {
         userApi.requestEmailChange(RequestEmailChangeRequest(currentPassword = currentPassword, newEmail = newEmail))
         Unit
-    }
-
-    override suspend fun verifyEmail(token: String): Result<Unit> = safeApiCall {
-        userApi.verifyEmail(VerifyEmailRequest(token = token))
     }
 
     override suspend fun resendVerification(email: String): Result<Unit> = safeApiCall {

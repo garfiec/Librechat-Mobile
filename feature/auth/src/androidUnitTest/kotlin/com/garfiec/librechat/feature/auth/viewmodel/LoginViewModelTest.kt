@@ -313,6 +313,27 @@ class LoginViewModelTest {
         assertThat(state.isLoggedIn).isFalse()
     }
 
+    @Test
+    fun `an unverified-email 422 is its own refusal until the email is edited`() = runTest {
+        coEvery { authRepository.login(any(), any()) } returns Result.Error(
+            exception = ApiException(422, "Email not verified.", serverAuthored = true),
+            message = "Email not verified.",
+        )
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.onEmailChanged("user@example.com")
+        viewModel.onPasswordChanged("password123")
+        viewModel.login()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.refusal).isEqualTo(AuthRefusal.EmailNotVerified)
+        assertThat(viewModel.uiState.value.emailLoginEnabled).isTrue()
+
+        viewModel.onEmailChanged("other@example.com")
+        assertThat(viewModel.uiState.value.refusal).isNull()
+    }
+
     /**
      * Upstream's `validateEmailLogin` answers `403 {"message": "Email login is not allowed."}` — a
      * LibreChat JSON envelope, so the client flags it server-authored. That is the one 403 that may

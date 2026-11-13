@@ -2,9 +2,11 @@
 
 ## Screens and navigation
 - `AuthRoute : NavKey` routes: `ServerUrl`, `Login`, `Register`, `ForgotPassword`, `TwoFactor(tempToken)`,
-  `TwoFactorSetup(tempToken)`, `VerifyEmail(email)`, `ResetPassword(userId, token)`, `Terms`,
-  `SsoLogin(provider)`; entries via `authEntries()`. Flow: `ServerUrl` → `Login` → (2FA if `tempToken`) →
-  `onAuthComplete`. One ViewModel per screen, all on `AuthRepository`.
+  `TwoFactorSetup(tempToken)`, `VerifyEmail(email, sendNow)`, `ResetPassword(userId, token)`, `Terms`,
+  `SsoLogin(provider)`; entries via `authEntries()`, and `signUpEntries()` for `Register` and `VerifyEmail`. Flow:
+  `ServerUrl` → `Login` → (2FA if `tempToken`) → `onAuthComplete`. One ViewModel per screen, all on `AuthRepository`.
+- **Sign-up** ends by `startupConfig.emailEnabled`: on, `VerifyEmail` replaces `Register`; off, Register signs in
+  with the same credentials.
 - A stored server URL skips `ServerUrl` on launch.
 - Login shows only what `GET /api/config` turns on, mapped once in `LoginViewModel` from `authServerConfig`.
 
@@ -125,7 +127,8 @@
 ## Password managers
 - **Android** (autofill framework): Login email `Username + EmailAddress` (`Username` alone in LDAP username mode); Register/Reset `NewUsername`/
   `NewPassword`; password fields recognised from `PasswordVisualTransformation`. Register calls
-  `LocalAutofillManager.commit()` itself because it returns to Login, whose fields keep the session open.
+  `LocalAutofillManager.commit()` itself before handing over, since the next screen's fields can keep the
+  session open.
 - **iOS** (`KeyboardOptions.withIosTextContentType()`, `:core:ui`): `.username` on email fields, `.newPassword`
   on Register/Reset, `.oneTimeCode` on 2FA. The Login password field sets no iOS role.
 - Fields holding other secrets (API keys, gateway tokens, PDF passwords) use `Modifier.excludeFromAutofill()`.

@@ -27,6 +27,11 @@
     <string name="register_title">Create account</string>
     <string name="full_name_label">Full name</string>
     <string name="username_label">Username</string>
+    <string name="username_optional_label">Username (optional)</string>
+    <string name="register_error_missing_fields">Enter your name, email and password.</string>
+    <string name="register_error_password_too_short">Password must be at least %1$d characters.</string>
+    <string name="register_error_password_mismatch">Passwords don't match.</string>
+    <string name="register_error_email_taken">An account with this email already exists. Sign in instead.</string>
     <string name="confirm_password_label">Confirm password</string>
     <string name="sign_up">Sign up</string>
     <string name="have_account_sign_in">Already have an account? Sign in</string>
@@ -131,6 +136,7 @@
     <string name="login_error_wrong_credentials_username">Incorrect username or password.</string>
     <string name="login_error_other_sign_in_method">This account signs in a different way. Use the option you first signed in with.</string>
     <string name="login_error_email_login_disabled">This server doesn't allow sign-in with email and password.</string>
+    <string name="login_error_email_not_verified">Verify your email before signing in.</string>
     <string name="login_error_missing_fields">Enter your email and password.</string>
     <string name="login_error_missing_fields_username">Enter your username and password.</string>
     <string name="login_error_invalid_email">Enter a valid email address.</string>

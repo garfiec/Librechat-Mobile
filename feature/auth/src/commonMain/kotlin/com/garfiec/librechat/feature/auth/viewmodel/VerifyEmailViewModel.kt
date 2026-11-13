@@ -4,6 +4,7 @@ import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.data.repository.AccountSwitcher
 import com.garfiec.librechat.core.data.repository.UserRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -17,14 +18,15 @@ data class VerifyEmailUiState(
     val email: String = "",
     val isLoading: Boolean = false,
     val error: String? = null,
-    val isVerified: Boolean = false,
     val resendCooldownSeconds: Int = 0,
     val resendSuccess: Boolean = false,
 )
 
 class VerifyEmailViewModel(
     private val userRepository: UserRepository,
+    private val accountSwitcher: AccountSwitcher,
     initialEmail: String? = null,
+    sendNow: Boolean = false,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(
@@ -34,30 +36,8 @@ class VerifyEmailViewModel(
 
     private var cooldownJob: Job? = null
 
-    fun verifyEmail(token: String) {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-            when (val result = userRepository.verifyEmail(token)) {
-                is Result.Success -> {
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        isVerified = true,
-                    )
-                }
-                is Result.Error -> {
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        error = result.rateLimitMessageOrNull()
-                            ?: "Verification failed. The link may have expired.",
-                    )
-                }
-                is Result.Loading -> { /* no-op */ }
-            }
-        }
-    }
-
-    fun consumeVerified() {
-        _uiState.value = _uiState.value.copy(isVerified = false)
+    init {
+        if (sendNow) resendVerification()
     }
 
     fun resendVerification() {
@@ -66,7 +46,9 @@ class VerifyEmailViewModel(
 
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null, resendSuccess = false)
-            when (val result = userRepository.resendVerification(email)) {
+            // From an add-account sign-in, the link comes from the server being added.
+            val result = accountSwitcher.withPendingIdentity { userRepository.resendVerification(email) }
+            when (result) {
                 is Result.Success -> {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
