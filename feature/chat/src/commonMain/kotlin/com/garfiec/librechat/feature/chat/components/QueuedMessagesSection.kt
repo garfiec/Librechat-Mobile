@@ -46,6 +46,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import com.garfiec.librechat.core.ui.components.AdaptiveChipDefaults
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_cancel_queued_message
 import com.garfiec.librechat.feature.chat.resources.cd_reorder_queued_message
@@ -225,8 +226,8 @@ private fun QueuedMessageRow(
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (isDragging) 0.95f else 0.55f),
-        tonalElevation = if (isDragging) 6.dp else 0.dp,
+        color = AdaptiveChipDefaults.overlayContainerColor(),
+        shadowElevation = if (isDragging) 6.dp else 0.dp,
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
