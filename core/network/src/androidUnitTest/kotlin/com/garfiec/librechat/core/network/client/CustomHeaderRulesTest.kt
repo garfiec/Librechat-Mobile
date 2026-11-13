@@ -51,7 +51,10 @@ class CustomHeaderRulesTest {
 
     @Test
     fun `rejects names the transport or the app owns`() {
-        listOf("Authorization", "user-agent", "Host", "Accept", "Content-Length", "TE").forEach { name ->
+        listOf(
+            "Authorization", "user-agent", "Host", "Accept", "Content-Length", "TE",
+            "Origin", "Sec-Fetch-Site", "sec-fetch-mode", "Sec-Fetch-Dest", "Sec-Fetch-User",
+        ).forEach { name ->
             assertThat(CustomHeaderRules.validateName(name)).isEqualTo(HeaderRejection.ReservedName)
         }
     }

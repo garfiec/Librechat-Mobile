@@ -63,9 +63,9 @@
   (the refresh token can't recreate it).
 
 ## Coded refusals (rc1)
-- `AuthRefusal` (`viewmodel/AuthRefusal.kt`) maps the pre-auth coded 403s (`TENANT_CONTEXT_REQUIRED`,
-  `TWO_FACTOR_FEDERATED_LOGIN_BLOCKED`). Key on the body's code, never the status, so the UA soft-ban, bans,
-  `terms_not_accepted` and proxy 403s keep their own handling.
+- `AuthRefusal` (`viewmodel/AuthRefusal.kt`) maps the pre-auth coded refusals. Key a 403 on the body's code,
+  never the status alone, so the UA soft-ban, `terms_not_accepted` and proxy 403s keep their own handling.
+  Login's `loginRefusalOrNull` is the one mapping that also reads status.
 - Login, Register, ForgotPassword, ResetPassword, TwoFactor (via `VerifyTwoFactorOutcome.NotEvaluated.code`) set
   `refusal`; screens show `authErrorText(refusal, error)`. SSO words the callback `code` with the same string.
   Required 2FA setup doesn't: a 403 there ends the setup credential and sends the user to sign-in.

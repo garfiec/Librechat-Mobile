@@ -51,7 +51,9 @@ import com.garfiec.librechat.core.ui.components.withIosTextContentType
 import com.garfiec.librechat.feature.auth.diagnostics.DiagnosticLogLink
 import com.garfiec.librechat.feature.auth.resources.*
 import com.garfiec.librechat.feature.auth.resources.Res
+import com.garfiec.librechat.feature.auth.viewmodel.LoginInputError
 import com.garfiec.librechat.feature.auth.viewmodel.LoginViewModel
+import com.garfiec.librechat.feature.auth.viewmodel.MAX_PASSWORD_LENGTH
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -225,7 +227,8 @@ fun LoginScreen(
                     )
                 }
 
-                val errorText = authErrorText(uiState.refusal, uiState.error)
+                val errorText = uiState.inputError?.let { loginInputErrorText(it, uiState.usernameLogin, uiState.minPasswordLength) }
+                    ?: authErrorText(uiState.refusal, uiState.error, uiState.usernameLogin)
                 if (errorText != null) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
@@ -338,4 +341,14 @@ internal fun oAuthProviderLabel(provider: String): String {
         else -> provider.replaceFirstChar { it.uppercase() }
     }
     return stringResource(Res.string.continue_with_provider, name)
+}
+
+@Composable
+private fun loginInputErrorText(error: LoginInputError, usernameLogin: Boolean, minPasswordLength: Int): String = when (error) {
+    LoginInputError.MissingFields -> stringResource(
+        if (usernameLogin) Res.string.login_error_missing_fields_username else Res.string.login_error_missing_fields,
+    )
+    LoginInputError.InvalidEmail -> stringResource(Res.string.login_error_invalid_email)
+    LoginInputError.PasswordTooShort -> stringResource(Res.string.login_error_password_too_short, minPasswordLength)
+    LoginInputError.PasswordTooLong -> stringResource(Res.string.login_error_password_too_long, MAX_PASSWORD_LENGTH)
 }

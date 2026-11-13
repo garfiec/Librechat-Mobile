@@ -112,7 +112,7 @@ class TwoFactorViewModel(
                 )
                 is VerifyTwoFactorOutcome.ConnectionFailure -> applyVerifyFailure(
                     generation,
-                    "Couldn't reach the server. Check your connection and try again.",
+                    outcome.message,
                     clearEntry = false,
                     offerDiagnosticLog = true,
                 )

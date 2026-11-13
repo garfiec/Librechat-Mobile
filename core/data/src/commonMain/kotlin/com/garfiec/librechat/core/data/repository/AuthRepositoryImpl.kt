@@ -9,6 +9,7 @@ import com.garfiec.librechat.core.common.identity.currentAccountId
 import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.common.result.apiCallCatching
+import com.garfiec.librechat.core.common.result.message
 import com.garfiec.librechat.core.common.result.safeApiCall
 import com.garfiec.librechat.core.data.datastore.AccountRegistry
 import com.garfiec.librechat.core.data.util.SessionTaskRunner
@@ -216,7 +217,7 @@ class AuthRepositoryImpl(
         }
         val loginResult = when (wire) {
             is Result.Success -> wire.data
-            is Result.Error -> return classifyVerifyFailure(wire.exception)
+            is Result.Error -> return classifyVerifyFailure(wire)
             is Result.Loading -> error("safeApiCall never returns Loading")
         }
 
@@ -510,28 +511,26 @@ class AuthRepositoryImpl(
  * - A 2xx whose body couldn't be decoded means the server accepted (consumed) the single-use code
  *   without yielding a usable session.
  *
- * Only wire exceptions reach here (the session commit is classified separately, in phase 2 of
- * [verifyTwoFactor]). Top-level and internal so unit tests exercise the mapping directly.
+ * Only wire failures reach here (the session commit is classified separately, in phase 2 of
+ * [verifyTwoFactor]). Top-level and internal so unit tests exercise the mapping directly. The
+ * outcome carries [Result.Error.message], which `toSafeError` has screened, never the raw
+ * exception text: a responder in front of the server can put markup or a URL there.
  */
-internal fun classifyVerifyFailure(e: Throwable?): VerifyTwoFactorOutcome = when {
-    // A 2xx the client couldn't decode into a session. Ktor's ContentNegotiation wraps every
-    // response-body decode failure in ContentConvertException (JsonConvertException) — which does
-    // NOT extend kotlinx SerializationException, so we key on the Ktor type. The single-use code was
-    // consumed server-side, so the entry must clear, not invite a doomed retry.
-    //
-    // Deliberate boundary: this treats EVERY undecodable JSON-typed 2xx as "code consumed", including
-    // the rarer case where a proxy/gateway truncates a response that never reached the 2FA controller
-    // (so the code was NOT actually consumed). Clearing is still safe there because the temp token is a
-    // reusable JWT — only the TOTP/backup code is single-use — so the user just enters a fresh code and
-    // the same tempToken re-verifies within seconds. Keeping the entry instead would reintroduce the
-    // spent-code retry this PR set out to remove for the (more likely) genuine backend-consumed case.
-    // A `200 text/html` from a proxy throws NoTransformationFoundException, not a ContentConvertException,
-    // and falls to ConnectionFailure — an HTML 200 usually means the request never reached the backend.
-    e is ContentConvertException -> VerifyTwoFactorOutcome.SessionIncomplete(INCOMPLETE_AUTH_MESSAGE)
-    e is ApiException && e.statusCode == 401 -> VerifyTwoFactorOutcome.CodeRejected(e.message)
-    e is ApiException -> VerifyTwoFactorOutcome.NotEvaluated(
-        e.message,
-        code = if (e.statusCode == HTTP_FORBIDDEN) ServerErrorCode.from(e.body) else null,
-    )
-    else -> VerifyTwoFactorOutcome.ConnectionFailure
+internal fun classifyVerifyFailure(error: Result.Error): VerifyTwoFactorOutcome {
+    val e = error.exception
+    val message = error.message ?: error.kind.message()
+    return when {
+        // An undecodable 2xx means the single-use code was consumed, so the entry clears. Ktor wraps
+        // body decode failures in ContentConvertException, which is not a kotlinx SerializationException.
+        // A proxy-truncated 2xx lands here too; clearing is still safe, as only the code is single-use
+        // and the tempToken re-verifies a fresh one. A `200 text/html` throws
+        // NoTransformationFoundException instead and reads as ConnectionFailure.
+        e is ContentConvertException -> VerifyTwoFactorOutcome.SessionIncomplete(INCOMPLETE_AUTH_MESSAGE)
+        e is ApiException && e.statusCode == 401 -> VerifyTwoFactorOutcome.CodeRejected(message)
+        e is ApiException -> VerifyTwoFactorOutcome.NotEvaluated(
+            message,
+            code = if (e.statusCode == HTTP_FORBIDDEN) ServerErrorCode.from(e.body) else null,
+        )
+        else -> VerifyTwoFactorOutcome.ConnectionFailure(message)
+    }
 }
