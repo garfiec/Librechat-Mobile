@@ -133,6 +133,7 @@
     <string name="login_error_password_too_short">As senhas neste servidor têm pelo menos %1$d caracteres.</string>
     <string name="login_error_password_too_long">As senhas não podem ter mais de %1$d caracteres.</string>
     <string name="sso_error_exchange_rejected">O login não foi concluído. Tente novamente.</string>
+    <string name="auth_error_session_cookie_missing">O servidor iniciou sua sessão, mas o cookie de sessão nunca chegou ao app, então não é possível manter a sessão. Um proxy na frente do servidor pode estar removendo-o. Fale com o administrador do servidor.</string>
     <string name="login_two_factor_setup_required">Este servidor agora exige autenticação de dois fatores para %1$s. Entre para configurá-la.</string>
     <string name="use_another_account">Usar outra conta</string>
     <string name="server_url_known_servers">Seus servidores</string>

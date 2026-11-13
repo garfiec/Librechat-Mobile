@@ -1,6 +1,7 @@
 package com.garfiec.librechat.feature.auth.viewmodel
 
 import androidx.compose.runtime.Immutable
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.garfiec.librechat.core.common.extensions.serverHostLabel
@@ -28,6 +29,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 
 /**
  * A rejected header row, as the row index plus the machine-readable reason. Deliberately not a
@@ -109,6 +112,7 @@ class ServerUrlViewModel(
     private val configRepository: ConfigRepository,
     private val accountSwitcher: AccountSwitcher,
     private val accountRoster: AccountRoster,
+    private val savedStateHandle: SavedStateHandle,
     private val addAccount: Boolean = false,
     private val cleartextBlockedForDomainNames: Boolean = platformBlocksCleartextToDomainNames,
 ) : ViewModel() {
@@ -127,6 +131,7 @@ class ServerUrlViewModel(
     private var userEdited = false
 
     init {
+        restoreDraft()
         viewModelScope.launch {
             accountRoster.entriesFlow().collect { entries ->
                 _uiState.value = _uiState.value.copy(knownServers = knownServersOf(entries))
@@ -174,6 +179,7 @@ class ServerUrlViewModel(
             headersLoadFailed = false,
             headersSaveFailure = null,
         )
+        saveDraft()
         validateAndConnect()
     }
 
@@ -182,6 +188,30 @@ class ServerUrlViewModel(
         // throws on partial input. The header set is committed against the final URL on Connect.
         userEdited = true
         _uiState.value = _uiState.value.copy(url = url, error = null)
+        saveDraft()
+    }
+
+    /**
+     * What the user typed outlives the process, header values included: Android may kill it while
+     * the user is in another app copying a gateway secret. Written on every edit, read once in init.
+     */
+    private fun saveDraft() {
+        val state = _uiState.value
+        val draft = ServerUrlDraft(state.url, state.customHeaders.map { SavedHeader(it.name, it.value) }, headersEdited)
+        savedStateHandle[KEY_DRAFT] = Json.encodeToString(ServerUrlDraft.serializer(), draft)
+    }
+
+    private fun restoreDraft() {
+        val raw = savedStateHandle.get<String>(KEY_DRAFT) ?: return
+        val draft = runCatching { Json.decodeFromString(ServerUrlDraft.serializer(), raw) }.getOrNull() ?: return
+        userEdited = true
+        headersEdited = draft.headersEdited
+        _uiState.value = _uiState.value.copy(
+            url = draft.url,
+            customHeaders = draft.headers.map { CustomHeaderRow(it.name, it.value) },
+            // Open after a removal too: Connect will clear the stored headers, which must stay visible.
+            showAdvanced = draft.headersEdited || draft.headers.isNotEmpty(),
+        )
     }
 
     /**
@@ -208,6 +238,7 @@ class ServerUrlViewModel(
             headerError = null,
             headersSaveFailure = null,
         )
+        saveDraft()
     }
 
     fun removeHeaderRow(index: Int) {
@@ -219,6 +250,7 @@ class ServerUrlViewModel(
             headerError = null,
             headersSaveFailure = null,
         )
+        saveDraft()
     }
 
     private fun markHeadersEdited() {
@@ -243,6 +275,7 @@ class ServerUrlViewModel(
             headerError = null,
             headersSaveFailure = null,
         )
+        saveDraft()
     }
 
     fun validateAndConnect() {
@@ -435,3 +468,11 @@ internal fun hostIsQualifiedDomainName(url: String): Boolean {
     val host = authority.substringBefore(':').trimEnd('.').lowercase()
     return '.' in host && !host.all { it.isDigit() || it == '.' } && !host.endsWith(".local")
 }
+
+private const val KEY_DRAFT = "server_url_draft"
+
+@Serializable
+private data class ServerUrlDraft(val url: String, val headers: List<SavedHeader>, val headersEdited: Boolean)
+
+@Serializable
+private data class SavedHeader(val name: String, val value: String)

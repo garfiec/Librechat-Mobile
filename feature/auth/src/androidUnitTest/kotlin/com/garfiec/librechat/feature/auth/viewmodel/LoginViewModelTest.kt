@@ -1,5 +1,6 @@
 package com.garfiec.librechat.feature.auth.viewmodel
 
+import androidx.lifecycle.SavedStateHandle
 import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.AccountEntry
@@ -77,7 +78,7 @@ class LoginViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun createViewModel() = LoginViewModel(
+    private fun createViewModel(savedStateHandle: SavedStateHandle = SavedStateHandle()) = LoginViewModel(
         authRepository = authRepository,
         configRepository = configRepository,
         accountSwitcher = accountSwitcher,
@@ -85,7 +86,23 @@ class LoginViewModelTest {
         serverDataStore = serverDataStore,
         certificateTrust = certificateTrust,
         bannerRepository = bannerRepository,
+        savedStateHandle = savedStateHandle,
     )
+
+    @Test
+    fun `the typed email survives process death and the password does not`() = runTest {
+        val handle = SavedStateHandle()
+        viewModel = createViewModel(handle)
+        viewModel.onEmailChanged("user@example.com")
+        viewModel.onPasswordChanged("password123")
+
+        val restored = createViewModel(handle.restoredAfterProcessDeath())
+        advanceUntilIdle()
+
+        assertThat(restored.uiState.value.email).isEqualTo("user@example.com")
+        assertThat(restored.uiState.value.password).isEmpty()
+        assertThat(handle.keys().map { handle.get<Any>(it) }).doesNotContain("password123")
+    }
 
     @Test
     fun `published policy links reach the footer only when safe, resolved against the server`() = runTest {
@@ -877,4 +894,7 @@ class LoginViewModelTest {
         assertThat(state.inputError).isNull()
         coVerify { authRepository.login("jdoe", "short") }
     }
+
+    private fun SavedStateHandle.restoredAfterProcessDeath(): SavedStateHandle =
+        SavedStateHandle(keys().associateWith<String, Any?> { this[it] })
 }

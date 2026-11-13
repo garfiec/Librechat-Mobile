@@ -103,7 +103,14 @@ class TwoFactorViewModel(
                 // single-use code (rejected it, or accepted it without a usable session) → clear for
                 // a fresh one; it never evaluated the code → keep it for a plain retry. Focus resets
                 // (via codeAttempt) precisely when the boxes are cleared.
-                is VerifyTwoFactorOutcome.CodeConsumed -> applyVerifyFailure(generation, outcome.message, clearEntry = true)
+                is VerifyTwoFactorOutcome.CodeConsumed -> applyVerifyFailure(
+                    generation,
+                    outcome.message,
+                    clearEntry = true,
+                    refusal = AuthRefusal.SessionCookieMissing.takeIf {
+                        (outcome as? VerifyTwoFactorOutcome.SessionIncomplete)?.cookieMissing == true
+                    },
+                )
                 is VerifyTwoFactorOutcome.NotEvaluated -> applyVerifyFailure(
                     generation,
                     outcome.message,

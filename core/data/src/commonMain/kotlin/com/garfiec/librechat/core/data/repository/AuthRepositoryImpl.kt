@@ -40,6 +40,13 @@ private const val HTTP_FORBIDDEN = 403
 
 internal const val INCOMPLETE_AUTH_MESSAGE = "The server's sign-in response was incomplete. Please try again."
 
+/**
+ * A sign-in answered 2xx without its `refreshToken` cookie, typically because a proxy in front of
+ * the server strips `Set-Cookie`. Without it the session can't be renewed, so it isn't kept.
+ */
+class MissingRefreshCookieException :
+    IllegalStateException("The server's session cookie never reached the app. A proxy in front of the server may be removing it.")
+
 @Suppress("LongParameterList") // debt: constructor dependencies
 class AuthRepositoryImpl(
     private val authApi: AuthApi,
@@ -129,22 +136,9 @@ class AuthRepositoryImpl(
         ) { userApi.getUser() }
     }
 
-    private suspend fun stageAuthenticatedSession(result: LoginResult): User {
-        val user = result.response.user ?: throw incompleteAuthResponse("user")
-        val token = result.response.token ?: throw incompleteAuthResponse("token")
-        if (result.refreshToken == null) {
-            Logger.w { "Auth response carried no refresh token; this session cannot be renewed" }
-        }
-        tokenManager.setTokens(accessToken = token, refreshToken = result.refreshToken ?: "")
-        return user
-    }
-
-    // A missing user/token on a 2xx is caught by phase 2's `catch (e: Exception)` (verify) or by
-    // safeApiCall (login/OAuth) exactly as any other Exception — no caller ever discriminates the
-    // type, so a plain IllegalStateException carries the same behaviour with no bespoke class to trace.
-    private fun incompleteAuthResponse(missingField: String): IllegalStateException {
-        Logger.w { "Auth response was missing '$missingField'" }
-        return IllegalStateException(INCOMPLETE_AUTH_MESSAGE)
+    private suspend fun stageAuthenticatedSession(session: AcceptedSession): User {
+        tokenManager.setTokens(accessToken = session.accessToken, refreshToken = session.refreshToken)
+        return session.user
     }
 
     override suspend fun login(email: String, password: String): Result<LoginOutcome> {
@@ -166,7 +160,8 @@ class AuthRepositoryImpl(
                             ?: throw IllegalStateException("Server indicated 2FA required but tempToken was null"),
                     )
                 } else {
-                    LoginOutcome.Success(commitSession(pending) { stageAuthenticatedSession(result) })
+                    val session = acceptedSession(result)
+                    LoginOutcome.Success(commitSession(pending) { stageAuthenticatedSession(session) })
                 }
             }
         }.fireSessionTasksIfLoggedIn(previousAccountId) { outcome ->
@@ -228,7 +223,10 @@ class AuthRepositoryImpl(
         // retry of a consumed code.
         return when (val committed = commitAcceptedSession(pending, previousAccountId, loginResult)) {
             is Result.Success -> VerifyTwoFactorOutcome.Success(committed.data)
-            else -> VerifyTwoFactorOutcome.SessionIncomplete(INCOMPLETE_AUTH_MESSAGE)
+            else -> VerifyTwoFactorOutcome.SessionIncomplete(
+                INCOMPLETE_AUTH_MESSAGE,
+                cookieMissing = (committed as? Result.Error)?.exception is MissingRefreshCookieException,
+            )
         }
     }
 
@@ -244,13 +242,15 @@ class AuthRepositoryImpl(
         loginResult: LoginResult,
     ): Result<User> =
         try {
-            val user = commitSession(pending) { stageAuthenticatedSession(loginResult) }
+            val session = acceptedSession(loginResult)
+            val user = commitSession(pending) { stageAuthenticatedSession(session) }
             Result.Success(user).fireSessionTasksIfLoggedIn(previousAccountId)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             Logger.w(e) { "2FA accepted but session commit failed" }
-            Result.Error(IllegalStateException(INCOMPLETE_AUTH_MESSAGE), INCOMPLETE_AUTH_MESSAGE)
+            val cause = e as? MissingRefreshCookieException ?: IllegalStateException(INCOMPLETE_AUTH_MESSAGE)
+            Result.Error(cause, INCOMPLETE_AUTH_MESSAGE)
         }
 
     /**
@@ -534,3 +534,28 @@ internal fun classifyVerifyFailure(error: Result.Error): VerifyTwoFactorOutcome 
         else -> VerifyTwoFactorOutcome.ConnectionFailure(message)
     }
 }
+
+/**
+ * The session a 2xx sign-in carries. Checked before `commitSession`: a refusal there would roll
+ * back through `TokenManager.clearTokens` and unbind the account a re-auth is signing back in to.
+ */
+private fun acceptedSession(result: LoginResult): AcceptedSession {
+    val user = result.response.user ?: throw incompleteAuthResponse("user")
+    val token = result.response.token ?: throw incompleteAuthResponse("token")
+    val refreshToken = result.refreshToken
+    if (refreshToken.isNullOrBlank()) {
+        Logger.w { "Auth response carried no refresh token; not keeping a session that cannot be renewed" }
+        throw MissingRefreshCookieException()
+    }
+    return AcceptedSession(user, token, refreshToken)
+}
+
+// A missing user/token on a 2xx is caught by phase 2's `catch (e: Exception)` (verify) or by
+// safeApiCall (login/OAuth) exactly as any other Exception — no caller ever discriminates the
+// type, so a plain IllegalStateException carries the same behaviour with no bespoke class to trace.
+private fun incompleteAuthResponse(missingField: String): IllegalStateException {
+    Logger.w { "Auth response was missing '$missingField'" }
+    return IllegalStateException(INCOMPLETE_AUTH_MESSAGE)
+}
+
+private class AcceptedSession(val user: User, val accessToken: String, val refreshToken: String)

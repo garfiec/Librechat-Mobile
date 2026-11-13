@@ -28,9 +28,10 @@ sealed interface VerifyTwoFactorOutcome {
     /**
      * 2xx — the server accepted (consumed) the single-use code but no usable session came back
      * (missing user/token, or an unparseable body). Clear the entry; retrying the same code
-     * would be rejected as reused.
+     * would be rejected as reused. [cookieMissing] when the session came back without its
+     * `refreshToken` cookie, which the screen words itself.
      */
-    data class SessionIncomplete(override val message: String) : CodeConsumed
+    data class SessionIncomplete(override val message: String, val cookieMissing: Boolean = false) : CodeConsumed
 
     /**
      * The server answered without judging the code: 400 malformed, 429 rate-limited, any other

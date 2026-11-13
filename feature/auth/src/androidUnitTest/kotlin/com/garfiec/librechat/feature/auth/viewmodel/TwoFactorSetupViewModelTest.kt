@@ -3,6 +3,7 @@ package com.garfiec.librechat.feature.auth.viewmodel
 import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.AuthRepository
+import com.garfiec.librechat.core.data.repository.MissingRefreshCookieException
 import com.garfiec.librechat.core.model.User
 import com.garfiec.librechat.core.model.response.TwoFactorSetupConfirmResponse
 import com.garfiec.librechat.core.model.response.TwoFactorSetupResponse
@@ -112,6 +113,22 @@ class TwoFactorSetupViewModelTest {
 
             assertThat(viewModel.uiState.value.mustSignInAgain).isTrue()
         }
+    }
+
+    @Test
+    fun `a finalize with no refresh cookie names the cookie`() = runTest {
+        stubHappyPath()
+        coEvery { authRepository.finalizeTwoFactorSetup("fin") } returns
+            Result.Error(MissingRefreshCookieException(), "incomplete")
+        val viewModel = createViewModel()
+
+        toBackupCodes(viewModel)
+        viewModel.onCodesSaved()
+        viewModel.complete()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.error).isEqualTo(TwoFactorSetupError.SessionCookieMissing)
+        assertThat(viewModel.uiState.value.isComplete).isFalse()
     }
 
     @Test

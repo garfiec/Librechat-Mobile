@@ -69,6 +69,8 @@
 - Login, Register, ForgotPassword, ResetPassword, TwoFactor (via `VerifyTwoFactorOutcome.NotEvaluated.code`) set
   `refusal`; screens show `authErrorText(refusal, error)`. SSO words the callback `code` with the same string.
   Required 2FA setup doesn't: a 403 there ends the setup credential and sends the user to sign-in.
+- `SessionCookieMissing` is the one client-side refusal (`MissingRefreshCookieException`, `:core:data`): TwoFactor
+  reads it from `SessionIncomplete.cookieMissing`, setup as `TwoFactorSetupError.SessionCookieMissing`.
 
 ## Policy links
 - `PolicyLinksFooter` on Login, Register, ForgotPassword, ResetPassword (upstream `Auth/Footer.tsx`), from

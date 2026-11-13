@@ -1,5 +1,6 @@
 package com.garfiec.librechat
 
+import androidx.lifecycle.SavedStateHandle
 import com.garfiec.librechat.core.common.identity.deriveServerId
 import com.garfiec.librechat.core.data.datastore.AccountRoster
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
@@ -105,6 +106,7 @@ class ServerHeaderEditorContractTest {
                 configRepository = configRepository,
                 accountSwitcher = accountSwitcher,
                 accountRoster = mockk<AccountRoster> { every { entriesFlow() } returns flowOf(emptyList()) },
+                savedStateHandle = SavedStateHandle(),
                 addAccount = true,
             )
             advanceUntilIdle()
