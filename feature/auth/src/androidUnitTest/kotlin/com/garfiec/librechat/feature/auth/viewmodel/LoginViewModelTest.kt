@@ -10,6 +10,7 @@ import com.garfiec.librechat.core.data.repository.AuthRepository
 import com.garfiec.librechat.core.data.repository.BannerRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.PendingAddSession
+import com.garfiec.librechat.core.model.Banner
 import com.garfiec.librechat.core.model.LoginOutcome
 import com.garfiec.librechat.core.model.User
 import com.garfiec.librechat.core.model.config.InterfaceConfig
@@ -135,17 +136,19 @@ class LoginViewModelTest {
     }
 
     @Test
-    fun `the add-account flow reads title, address and trust for the pending server, not the live one`() = runTest {
+    fun `the add-account flow reads title, address, banner and trust for the pending server, not the live one`() = runTest {
         val pending = mockk<PendingAddSession>(relaxed = true)
         every { pending.serverUrl } returns "https://pending.example.com:8443"
         every { pending.startupConfig } returns MutableStateFlow(StartupConfig(appTitle = "Pending Chat"))
         every { accountSwitcher.pendingAdd } returns pending
         configFlow.value = StartupConfig(appTitle = "Live Chat")
+        coEvery { bannerRepository.getBanner() } returns Result.Success(Banner(bannerId = "b1", isPublic = true))
         viewModel = createViewModel()
         certificateTrust.record("chat.example.com", 443, CertificateAuthority.UserInstalled)
         advanceUntilIdle()
-        assertThat(viewModel.uiState.value.appTitle to viewModel.uiState.value.serverLabel)
-            .isEqualTo("Pending Chat" to "pending.example.com:8443")
+        val state = viewModel.uiState.value
+        assertThat(Triple(state.appTitle, state.serverLabel, state.banner?.bannerId))
+            .isEqualTo(Triple("Pending Chat", "pending.example.com:8443", "b1"))
         assertThat(viewModel.uiState.value.trustedViaUserCa).isFalse()
 
         certificateTrust.record("pending.example.com", 8443, CertificateAuthority.UserInstalled)
