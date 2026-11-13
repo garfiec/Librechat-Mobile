@@ -1175,7 +1175,6 @@
     <string name="notifications_permission">الإشعارات</string>
     <string name="notifications_on">مفعّلة</string>
     <string name="notifications_off">متوقفة</string>
-    <string name="notifications_turn_on">تفعيل</string>
     <string name="notifications_replies">الردود</string>
     <string name="notifications_replies_description">عند اكتمال رد أثناء ابتعادك</string>
     <string name="notifications_replies_server_off">أوقفها الخادم</string>

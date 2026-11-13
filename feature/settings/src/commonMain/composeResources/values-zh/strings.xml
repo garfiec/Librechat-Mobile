@@ -1095,7 +1095,6 @@
     <string name="notifications_permission">通知</string>
     <string name="notifications_on">开</string>
     <string name="notifications_off">关</string>
-    <string name="notifications_turn_on">开启</string>
     <string name="notifications_replies">回复</string>
     <string name="notifications_replies_description">离开时回复完成</string>
     <string name="notifications_replies_server_off">已被你的服务器关闭</string>

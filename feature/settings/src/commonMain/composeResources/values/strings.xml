@@ -1126,7 +1126,6 @@
     <string name="notifications_permission">Notifications</string>
     <string name="notifications_on">On</string>
     <string name="notifications_off">Off</string>
-    <string name="notifications_turn_on">Turn on</string>
     <string name="notifications_replies">Replies</string>
     <string name="notifications_replies_description">When a reply finishes while you're away</string>
     <string name="notifications_replies_server_off">Turned off by your server</string>

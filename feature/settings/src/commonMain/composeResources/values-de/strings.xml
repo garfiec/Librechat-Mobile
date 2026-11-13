@@ -1111,7 +1111,6 @@
     <string name="notifications_permission">Benachrichtigungen</string>
     <string name="notifications_on">An</string>
     <string name="notifications_off">Aus</string>
-    <string name="notifications_turn_on">Einschalten</string>
     <string name="notifications_replies">Antworten</string>
     <string name="notifications_replies_description">Wenn eine Antwort fertig ist, während du weg bist</string>
     <string name="notifications_replies_server_off">Von deinem Server deaktiviert</string>

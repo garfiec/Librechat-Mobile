@@ -1143,7 +1143,6 @@
     <string name="notifications_permission">Уведомления</string>
     <string name="notifications_on">Вкл.</string>
     <string name="notifications_off">Выкл.</string>
-    <string name="notifications_turn_on">Включить</string>
     <string name="notifications_replies">Ответы</string>
     <string name="notifications_replies_description">Когда ответ готов, пока вас нет</string>
     <string name="notifications_replies_server_off">Отключено вашим сервером</string>

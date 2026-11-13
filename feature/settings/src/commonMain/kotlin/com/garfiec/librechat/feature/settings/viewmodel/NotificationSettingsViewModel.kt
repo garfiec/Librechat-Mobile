@@ -26,7 +26,7 @@ data class NotificationSettingsUiState(
     /** The server offers scheduled chats; the Scheduled chats row is shown only then. */
     val schedulesAvailable: Boolean = false,
 ) {
-    /** What the Settings home row says. */
+    /** The page's master switch and what the Settings home row says. */
     val on: Boolean
         get() = permission == NotificationPermissionStatus.Allowed && serverAllowsReplies &&
             (repliesEnabled || (schedulesAvailable && scheduledEnabled))
@@ -59,6 +59,13 @@ class NotificationSettingsViewModel(
 
     fun setScheduledEnabled(enabled: Boolean) {
         viewModelScope.launch { preferences.set(AppPreferences.ScheduledChatNotifications, enabled) }
+    }
+
+    fun setAllEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            preferences.set(AppPreferences.ReplyNotifications, enabled)
+            preferences.set(AppPreferences.ScheduledChatNotifications, enabled)
+        }
     }
 
     fun openSystemSettings() = permission.openSystemSettings()
