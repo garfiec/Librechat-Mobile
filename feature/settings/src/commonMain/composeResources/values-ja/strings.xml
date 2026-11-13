@@ -1095,7 +1095,6 @@
     <string name="notifications_permission">通知</string>
     <string name="notifications_on">オン</string>
     <string name="notifications_off">オフ</string>
-    <string name="notifications_turn_on">オンにする</string>
     <string name="notifications_replies">返信</string>
     <string name="notifications_replies_description">離れている間に返信が完了したとき</string>
     <string name="notifications_replies_server_off">サーバーによりオフになっています</string>

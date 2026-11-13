@@ -1112,7 +1112,6 @@
     <string name="notifications_permission">Notificações</string>
     <string name="notifications_on">Ativadas</string>
     <string name="notifications_off">Desativadas</string>
-    <string name="notifications_turn_on">Ativar</string>
     <string name="notifications_replies">Respostas</string>
     <string name="notifications_replies_description">Quando uma resposta termina enquanto você está fora</string>
     <string name="notifications_replies_server_off">Desativadas pelo seu servidor</string>

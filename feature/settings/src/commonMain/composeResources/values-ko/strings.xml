@@ -1095,7 +1095,6 @@
     <string name="notifications_permission">알림</string>
     <string name="notifications_on">켜짐</string>
     <string name="notifications_off">꺼짐</string>
-    <string name="notifications_turn_on">켜기</string>
     <string name="notifications_replies">답변</string>
     <string name="notifications_replies_description">떠나 있는 동안 답변이 완료되면</string>
     <string name="notifications_replies_server_off">서버에서 꺼 두었습니다</string>
