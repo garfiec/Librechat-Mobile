@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -77,7 +78,8 @@ fun ResetPasswordScreen(
                 .padding(innerPadding)
                 .imePadding(),
         ) {
-            AuthBanner(uiState.banner)
+            // The scaffold padding holds the bar column without consuming it; the banner pads that column itself.
+            AuthBanner(uiState.banner, Modifier.consumeWindowInsets(innerPadding))
             Column(
                 modifier = Modifier
                     .weight(1f)

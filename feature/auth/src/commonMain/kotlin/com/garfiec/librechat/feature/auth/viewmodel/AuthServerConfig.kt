@@ -33,8 +33,15 @@ private const val DEFAULT_APP_TITLE = "LibreChat"
 
 internal fun appTitleOf(config: StartupConfig): String = config.appTitle.ifBlank { DEFAULT_APP_TITLE }
 
-/** A server URL as the sign-in screens name it: no scheme, port and path kept so two subpath servers differ. */
-internal fun serverLabel(url: String): String = url.substringAfter("://").trimEnd('/')
+/**
+ * A server URL as the sign-in screens name it: no scheme, port and path kept so two subpath servers differ.
+ * Userinfo is dropped: a `user:pass@` in the stored URL is a credential, and this label is always on screen.
+ */
+internal fun serverLabel(url: String): String {
+    val rest = url.substringAfter("://")
+    val authorityEnd = rest.indexOf('/').let { if (it < 0) rest.length else it }
+    return (rest.substring(0, authorityEnd).substringAfterLast('@') + rest.substring(authorityEnd)).trimEnd('/')
+}
 
 /**
  * The banner the server shows before sign-in, fetched from the PENDING server in an add-account flow.

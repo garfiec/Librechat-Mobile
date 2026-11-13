@@ -61,4 +61,9 @@ class AuthServerConfigTest {
         assertThat(serverLabel("https://chat.example.com:8443/team-a/")).isEqualTo("chat.example.com:8443/team-a")
         assertThat(serverLabel("http://10.0.2.2:3080")).isEqualTo("10.0.2.2:3080")
     }
+
+    @Test
+    fun `the server label never shows credentials in the URL`() {
+        assertThat(serverLabel("https://admin:s3cret@chat.example.com/team-a")).isEqualTo("chat.example.com/team-a")
+    }
 }
