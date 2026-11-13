@@ -98,7 +98,7 @@ class TwoFactorViewModelTest {
     @Test
     fun `a kept entry edited below six and back re-submits`() = runTest {
         coEvery { authRepository.verifyTwoFactor(any(), any(), any()) } returns
-            VerifyTwoFactorOutcome.ConnectionFailure
+            VerifyTwoFactorOutcome.ConnectionFailure(NETWORK_MESSAGE)
 
         val viewModel = createViewModel()
         viewModel.enterDigits("123456")
@@ -117,7 +117,7 @@ class TwoFactorViewModelTest {
     @Test
     fun `a fresh code pasted over a kept entry submits it`() = runTest {
         coEvery { authRepository.verifyTwoFactor(any(), any(), any()) } returns
-            VerifyTwoFactorOutcome.ConnectionFailure
+            VerifyTwoFactorOutcome.ConnectionFailure(NETWORK_MESSAGE)
 
         val viewModel = createViewModel()
         viewModel.onCodeChanged("123456")
@@ -135,7 +135,7 @@ class TwoFactorViewModelTest {
     @Test
     fun `the kept code delivered again does not re-submit`() = runTest {
         coEvery { authRepository.verifyTwoFactor(any(), any(), any()) } returns
-            VerifyTwoFactorOutcome.ConnectionFailure
+            VerifyTwoFactorOutcome.ConnectionFailure(NETWORK_MESSAGE)
 
         val viewModel = createViewModel()
         viewModel.onCodeChanged("123456")
@@ -181,14 +181,14 @@ class TwoFactorViewModelTest {
     @Test
     fun `a connection failure is not reported as a bad code and keeps the entry`() = runTest {
         coEvery { authRepository.verifyTwoFactor(any(), any(), any()) } returns
-            VerifyTwoFactorOutcome.ConnectionFailure
+            VerifyTwoFactorOutcome.ConnectionFailure(NETWORK_MESSAGE)
 
         val viewModel = createViewModel()
         viewModel.enterDigits("123456")
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
-        assertThat(state.error).isEqualTo("Couldn't reach the server. Check your connection and try again.")
+        assertThat(state.error).isEqualTo(NETWORK_MESSAGE)
         assertThat(state.code).isEqualTo("123456")
         assertThat(state.codeAttempt).isEqualTo(0)
     }
@@ -196,7 +196,7 @@ class TwoFactorViewModelTest {
     @Test
     fun `retrying after a connection failure resubmits the retained code`() = runTest {
         coEvery { authRepository.verifyTwoFactor(any(), any(), any()) } returns
-            VerifyTwoFactorOutcome.ConnectionFailure
+            VerifyTwoFactorOutcome.ConnectionFailure(NETWORK_MESSAGE)
 
         val viewModel = createViewModel()
         viewModel.enterDigits("123456")
@@ -245,6 +245,18 @@ class TwoFactorViewModelTest {
         assertThat(state.code).isEqualTo("123456")
         assertThat(state.codeAttempt).isEqualTo(0)
         assertThat(state.isVerified).isFalse()
+    }
+
+    @Test
+    fun `a cross-site 403 is worded as a refusal`() = runTest {
+        coEvery { authRepository.verifyTwoFactor(any(), any(), any()) } returns
+            VerifyTwoFactorOutcome.NotEvaluated("Cross-site request rejected", code = "auth_cross_origin")
+
+        val viewModel = createViewModel()
+        viewModel.enterDigits("123456")
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.refusal).isEqualTo(AuthRefusal.CrossOrigin)
     }
 
     @Test
@@ -313,7 +325,7 @@ class TwoFactorViewModelTest {
     fun `a verify that fails after a mode switch is dropped, not repainted`() = runTest {
         coEvery { authRepository.verifyTwoFactor(any(), any(), any()) } coAnswers {
             delay(10_000)
-            VerifyTwoFactorOutcome.ConnectionFailure
+            VerifyTwoFactorOutcome.ConnectionFailure(NETWORK_MESSAGE)
         }
 
         val viewModel = createViewModel()
@@ -334,6 +346,7 @@ class TwoFactorViewModelTest {
     }
 
     private companion object {
+        const val NETWORK_MESSAGE = "Network unavailable. Check your connection."
         const val TEMP_TOKEN = "temp-abc"
         val USER = User(mongoId = "u1", email = "a@b.com")
     }
@@ -341,7 +354,7 @@ class TwoFactorViewModelTest {
     @Test
     fun `only a connection failure offers the diagnostic log`() = runTest {
         coEvery { authRepository.verifyTwoFactor(any(), any(), any()) } returns
-            VerifyTwoFactorOutcome.ConnectionFailure
+            VerifyTwoFactorOutcome.ConnectionFailure(NETWORK_MESSAGE)
         val viewModel = createViewModel()
         viewModel.onCodeChanged("123456")
         advanceUntilIdle()

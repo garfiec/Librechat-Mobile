@@ -80,6 +80,8 @@ object CustomHeaderRules {
      * - `Accept`, `Accept-Encoding`, `Content-Type` — the iOS SSE transport hand-writes `Accept` and
      *   `Accept-Encoding`; a user value emits a second, ambiguous line rather than replacing them.
      * - `Expect`, `Proxy-Authorization` — engine-level semantics the client does not model.
+     * - `Origin`, `Sec-Fetch-*` — the server's same-origin guard rejects sign-in when they don't match
+     *   it, so the app never sends them (see `UserAgentGuardTest`).
      *
      * `Cookie` is deliberately **absent**: Cloudflare Access, Authelia, Authentik and oauth2-proxy all
      * authenticate on a session cookie, so reserving it would make the "any static-header gateway"
@@ -100,6 +102,11 @@ object CustomHeaderRules {
         "content-type",
         "expect",
         "proxy-authorization",
+        "origin",
+        "sec-fetch-site",
+        "sec-fetch-mode",
+        "sec-fetch-dest",
+        "sec-fetch-user",
     )
 
     // RFC 7230 token characters. Anything else in a header name is malformed on the wire.

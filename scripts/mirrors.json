@@ -4974,6 +4974,34 @@
       "failure_mode": "Upstream renames it and a tenant refusal reads as email login being disabled, which hides the sign-in form."
     },
     {
+      "id": "ldap-auth-failed-message",
+      "upstream": {
+        "file": "packages/data-provider/src/config.ts",
+        "symbol": "ErrorTypes",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/auth/src/commonMain/kotlin/com/garfiec/librechat/feature/auth/viewmodel/AuthRefusal.kt",
+        "symbol": "AUTH_FAILED_CODE"
+      },
+      "why": "ErrorTypes.AUTH_FAILED ('auth_failed') is what the LDAP strategy puts in the login 404's message when the account was created with another provider, and the SSO callback's generic ?error= value. Login words it as 'signs in a different way' and the SSO error pane hides it as uninformative.",
+      "failure_mode": "Upstream renames it: an LDAP account made with another provider reads as a wrong password, and the SSO pane shows the raw code."
+    },
+    {
+      "id": "login-schema-bounds",
+      "upstream": {
+        "file": "api/strategies/validators.js",
+        "symbol": "loginSchema",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/auth/src/commonMain/kotlin/com/garfiec/librechat/feature/auth/viewmodel/LoginViewModel.kt",
+        "symbol": "inputErrorOrNull"
+      },
+      "why": "The local strategy validates the raw login body with loginSchema before trimming it: z.string().email(), a password of MIN_PASSWORD_LENGTH (default 8, served as minPasswordLength) to 128. The sign-in form checks the same bounds before sending, so the user sees a field message instead of a generic wrong-credentials line. EMAIL_PATTERN is zod 4's email regex, which loginSchema reaches through z.string().email(); LDAP skips loginSchema, so the password bounds are skipped there.",
+      "failure_mode": "Upstream loosens a bound and the form refuses a sign-in the server would accept, with no way past it; it tightens one and the user gets the generic wrong-credentials line instead of the field message."
+    },
+    {
       "id": "safe-link-url",
       "upstream": {
         "file": "packages/data-provider/src/config.ts",

@@ -41,8 +41,8 @@ sealed interface VerifyTwoFactorOutcome {
     data class NotEvaluated(val message: String, val code: String? = null) : VerifyTwoFactorOutcome
 
     /**
-     * No usable response at all (IO/timeout). Keep the entry; the UI supplies its own
-     * connectivity wording.
+     * No usable response at all (IO, timeout, gateway, TLS). Keep the entry. [message] is the one
+     * email sign-in shows for the same failure.
      */
-    data object ConnectionFailure : VerifyTwoFactorOutcome
+    data class ConnectionFailure(val message: String) : VerifyTwoFactorOutcome
 }

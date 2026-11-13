@@ -41,6 +41,7 @@ import org.junit.Before
 import org.junit.Test
 import java.io.IOException
 
+@Suppress("LargeClass")
 @OptIn(ExperimentalCoroutinesApi::class)
 class LoginViewModelTest {
 
@@ -220,7 +221,7 @@ class LoginViewModelTest {
         viewModel.login()
         advanceUntilIdle()
 
-        assertThat(viewModel.uiState.value.error).isEqualTo("Please enter email and password")
+        assertThat(viewModel.uiState.value.inputError).isEqualTo(LoginInputError.MissingFields)
         assertThat(viewModel.uiState.value.isLoading).isFalse()
     }
 
@@ -233,7 +234,7 @@ class LoginViewModelTest {
         viewModel.login()
         advanceUntilIdle()
 
-        assertThat(viewModel.uiState.value.error).isEqualTo("Please enter email and password")
+        assertThat(viewModel.uiState.value.inputError).isEqualTo(LoginInputError.MissingFields)
     }
 
     @Test
@@ -295,14 +296,14 @@ class LoginViewModelTest {
 
     @Test
     fun `login failure shows error message`() = runTest {
-        coEvery { authRepository.login("user@example.com", "wrong") } returns
+        coEvery { authRepository.login("user@example.com", "wrong-password") } returns
             Result.Error(message = "Invalid credentials")
 
         viewModel = createViewModel()
         advanceUntilIdle()
 
         viewModel.onEmailChanged("user@example.com")
-        viewModel.onPasswordChanged("wrong")
+        viewModel.onPasswordChanged("wrong-password")
         viewModel.login()
         advanceUntilIdle()
 
@@ -319,7 +320,7 @@ class LoginViewModelTest {
      */
     @Test
     fun `a server-authored 403 hides the email form`() = runTest {
-        coEvery { authRepository.login("user@example.com", "pw") } returns Result.Error(
+        coEvery { authRepository.login("user@example.com", "pass-word") } returns Result.Error(
             exception = ApiException(403, "Email login is not allowed.", serverAuthored = true),
             message = "Email login is not allowed.",
         )
@@ -328,13 +329,13 @@ class LoginViewModelTest {
         advanceUntilIdle()
 
         viewModel.onEmailChanged("user@example.com")
-        viewModel.onPasswordChanged("pw")
+        viewModel.onPasswordChanged("pass-word")
         viewModel.login()
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
         assertThat(state.emailLoginEnabled).isFalse()
-        assertThat(state.error).isEqualTo("Email and password sign-in is disabled on this server.")
+        assertThat(state.refusal).isEqualTo(AuthRefusal.EmailLoginDisabled)
         assertThat(state.offerDiagnosticLog).isFalse()
     }
 
@@ -344,7 +345,7 @@ class LoginViewModelTest {
      */
     @Test
     fun `a 403 that is not LibreChat's keeps the email form`() = runTest {
-        coEvery { authRepository.login("user@example.com", "pw") } returns Result.Error(
+        coEvery { authRepository.login("user@example.com", "pass-word") } returns Result.Error(
             exception = ApiException(403, "Access denied", serverAuthored = false),
             message = "Access denied",
         )
@@ -353,7 +354,7 @@ class LoginViewModelTest {
         advanceUntilIdle()
 
         viewModel.onEmailChanged("user@example.com")
-        viewModel.onPasswordChanged("pw")
+        viewModel.onPasswordChanged("pass-word")
         viewModel.login()
         advanceUntilIdle()
 
@@ -365,13 +366,13 @@ class LoginViewModelTest {
 
     @Test
     fun `login requiring 2FA setup navigates to setup, not the code challenge`() = runTest {
-        coEvery { authRepository.login("user@example.com", "pw") } returns
+        coEvery { authRepository.login("user@example.com", "pass-word") } returns
             Result.Success(LoginOutcome.TwoFactorSetupRequired("setup-token"))
 
         viewModel = createViewModel()
         advanceUntilIdle()
         viewModel.onEmailChanged("user@example.com")
-        viewModel.onPasswordChanged("pw")
+        viewModel.onPasswordChanged("pass-word")
         viewModel.login()
         advanceUntilIdle()
 
@@ -392,14 +393,14 @@ class LoginViewModelTest {
                 AuthRefusal.TenantRequired,
         )
         bodies.forEach { (body, refusal) ->
-            coEvery { authRepository.login("user@example.com", "pw") } returns Result.Error(
+            coEvery { authRepository.login("user@example.com", "pass-word") } returns Result.Error(
                 exception = ApiException(403, "server message", body = body, serverAuthored = true),
                 message = "server message",
             )
             viewModel = createViewModel()
             advanceUntilIdle()
             viewModel.onEmailChanged("user@example.com")
-            viewModel.onPasswordChanged("pw")
+            viewModel.onPasswordChanged("pass-word")
             viewModel.login()
             advanceUntilIdle()
 
@@ -413,8 +414,8 @@ class LoginViewModelTest {
 
     /** A ban is also a server-authored 403 and must keep the form; `isBanned` is that discriminator. */
     @Test
-    fun `a ban keeps the email form and the server's own message`() = runTest {
-        coEvery { authRepository.login("user@example.com", "pw") } returns Result.Error(
+    fun `a ban keeps the email form and gets its own wording`() = runTest {
+        coEvery { authRepository.login("user@example.com", "pass-word") } returns Result.Error(
             exception = ApiException(403, "Your account has been temporarily banned", isBanned = true, serverAuthored = true),
             message = "Your account has been temporarily banned",
         )
@@ -423,30 +424,14 @@ class LoginViewModelTest {
         advanceUntilIdle()
 
         viewModel.onEmailChanged("user@example.com")
-        viewModel.onPasswordChanged("pw")
+        viewModel.onPasswordChanged("pass-word")
         viewModel.login()
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
         assertThat(state.emailLoginEnabled).isTrue()
-        assertThat(state.error).isEqualTo("Your account has been temporarily banned")
+        assertThat(state.refusal).isEqualTo(AuthRefusal.Banned)
         assertThat(state.offerDiagnosticLog).isFalse()
-    }
-
-    @Test
-    fun `login failure with null message uses default`() = runTest {
-        coEvery { authRepository.login("user@example.com", "wrong") } returns
-            Result.Error(message = null)
-
-        viewModel = createViewModel()
-        advanceUntilIdle()
-
-        viewModel.onEmailChanged("user@example.com")
-        viewModel.onPasswordChanged("wrong")
-        viewModel.login()
-        advanceUntilIdle()
-
-        assertThat(viewModel.uiState.value.error).isEqualTo("Login failed")
     }
 
     private val defaultSocialLogins = listOf("google", "facebook", "openid", "github", "discord", "saml")
@@ -559,11 +544,11 @@ class LoginViewModelTest {
         assertThat(stateFor(StartupConfig()).usernameLogin).isFalse()
         assertThat(stateFor(StartupConfig(ldap = LdapConfig(enabled = true, username = true))).usernameLogin).isTrue()
 
-        viewModel.onPasswordChanged("pw")
+        viewModel.onPasswordChanged("pass-word")
         viewModel.login()
         advanceUntilIdle()
 
-        assertThat(viewModel.uiState.value.error).isEqualTo("Please enter username and password")
+        assertThat(viewModel.uiState.value.inputError).isEqualTo(LoginInputError.MissingFields)
     }
 
     private val autoRedirectConfig = StartupConfig(openidLoginEnabled = true, openidAutoRedirect = true)
@@ -764,7 +749,7 @@ class LoginViewModelTest {
 
     @Test
     fun `a wrong password does not offer the diagnostic log`() = runTest {
-        coEvery { authRepository.login("user@example.com", "wrong") } returns Result.Error(
+        coEvery { authRepository.login("user@example.com", "wrong-password") } returns Result.Error(
             exception = ApiException(401, "Incorrect password.", serverAuthored = true),
             message = "Incorrect password.",
         )
@@ -772,7 +757,7 @@ class LoginViewModelTest {
         advanceUntilIdle()
 
         viewModel.onEmailChanged("user@example.com")
-        viewModel.onPasswordChanged("wrong")
+        viewModel.onPasswordChanged("wrong-password")
         viewModel.login()
         advanceUntilIdle()
 
@@ -781,13 +766,13 @@ class LoginViewModelTest {
 
     @Test
     fun `a connection failure offers the log, and a later input error withdraws it`() = runTest {
-        coEvery { authRepository.login("user@example.com", "pw") } returns
+        coEvery { authRepository.login("user@example.com", "pass-word") } returns
             Result.Error(exception = IOException("unreachable"), message = "Network unavailable.")
         viewModel = createViewModel()
         advanceUntilIdle()
 
         viewModel.onEmailChanged("user@example.com")
-        viewModel.onPasswordChanged("pw")
+        viewModel.onPasswordChanged("pass-word")
         viewModel.login()
         advanceUntilIdle()
         assertThat(viewModel.uiState.value.offerDiagnosticLog).isTrue()
@@ -796,7 +781,100 @@ class LoginViewModelTest {
         viewModel.login()
         advanceUntilIdle()
 
-        assertThat(viewModel.uiState.value.error).isEqualTo("Please enter email and password")
+        assertThat(viewModel.uiState.value.inputError).isEqualTo(LoginInputError.MissingFields)
         assertThat(viewModel.uiState.value.offerDiagnosticLog).isFalse()
+    }
+
+    private fun TestScope.loginWith(email: String, password: String, error: Result.Error? = null): LoginUiState {
+        if (error != null) coEvery { authRepository.login(any(), any()) } returns error
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        viewModel.onEmailChanged(email)
+        viewModel.onPasswordChanged(password)
+        viewModel.login()
+        advanceUntilIdle()
+        return viewModel.uiState.value
+    }
+
+    private fun apiError(status: Int, message: String, body: String? = null, serverAuthored: Boolean = true) =
+        Result.Error(ApiException(status, message, body = body, serverAuthored = serverAuthored), message)
+
+    @Test
+    fun `an unknown email and a wrong password read the same`() = runTest {
+        listOf("Email does not exist.", "Incorrect password.", "Invalid username/password").forEach { text ->
+            val state = loginWith("user@example.com", "pass-word", apiError(404, text, """{"message":"$text"}"""))
+            assertThat(state.refusal).isEqualTo(AuthRefusal.WrongCredentials)
+            assertThat(state.error).isNotNull()
+            assertThat(state.emailLoginEnabled).isTrue()
+        }
+    }
+
+    @Test
+    fun `an LDAP account made with another provider gets its own wording`() = runTest {
+        val error = apiError(404, "auth_failed", """{"message":"auth_failed"}""")
+        val state = loginWith("user@example.com", "pass-word", error)
+        assertThat(state.refusal).isEqualTo(AuthRefusal.OtherSignInMethod)
+    }
+
+    @Test
+    fun `a 404 that is not LibreChat's is not wrong credentials`() = runTest {
+        val state = loginWith("user@example.com", "pass-word", apiError(404, "Not found", serverAuthored = false))
+        assertThat(state.refusal).isNull()
+        assertThat(state.error).isEqualTo("Not found")
+    }
+
+    @Test
+    fun `a cross-site 403 keeps the form and says so`() = runTest {
+        val body = """{"message":"Cross-site request rejected","code":"auth_cross_origin"}"""
+        val state = loginWith("user@example.com", "pass-word", apiError(403, "Cross-site request rejected", body))
+        assertThat(state.refusal).isEqualTo(AuthRefusal.CrossOrigin)
+        assertThat(state.emailLoginEnabled).isTrue()
+    }
+
+    @Test
+    fun `too many attempts gets its own wording`() = runTest {
+        val text = "Too many login attempts, please try again after 5 minutes."
+        val state = loginWith("user@example.com", "pass-word", apiError(429, text, """{"message":"$text"}"""))
+        assertThat(state.refusal).isEqualTo(AuthRefusal.RateLimited)
+    }
+
+    @Test
+    fun `the email is trimmed before it is checked and sent`() = runTest {
+        coEvery { authRepository.login(any(), any()) } returns Result.Success(LoginOutcome.Success(User(email = "user@example.com")))
+        val state = loginWith(" user@example.com ", "pass-word")
+        coVerify { authRepository.login("user@example.com", "pass-word") }
+        assertThat(state.isLoggedIn).isTrue()
+    }
+
+    @Test
+    fun `a malformed email is caught before sending`() = runTest {
+        val state = loginWith("user@example", "pass-word")
+        assertThat(state.inputError).isEqualTo(LoginInputError.InvalidEmail)
+        coVerify(exactly = 0) { authRepository.login(any(), any()) }
+        viewModel.onEmailChanged("user@example.com")
+        assertThat(viewModel.uiState.value.inputError).isNull()
+    }
+
+    @Test
+    fun `the password must fit the server's bounds`() = runTest {
+        configFlow.value = StartupConfig(minPasswordLength = 10)
+        assertThat(loginWith("user@example.com", "123456789").inputError).isEqualTo(LoginInputError.PasswordTooShort)
+        assertThat(viewModel.uiState.value.minPasswordLength).isEqualTo(10)
+        assertThat(loginWith("user@example.com", "x".repeat(129)).inputError).isEqualTo(LoginInputError.PasswordTooLong)
+        coVerify(exactly = 0) { authRepository.login(any(), any()) }
+    }
+
+    @Test
+    fun `the password bounds default to eight when the server names none`() = runTest {
+        assertThat(loginWith("user@example.com", "1234567").inputError).isEqualTo(LoginInputError.PasswordTooShort)
+        assertThat(viewModel.uiState.value.minPasswordLength).isEqualTo(8)
+    }
+
+    @Test
+    fun `LDAP skips the password bounds, and username mode the email format`() = runTest {
+        configFlow.value = StartupConfig(ldap = LdapConfig(enabled = true, username = true))
+        val state = loginWith("jdoe", "short")
+        assertThat(state.inputError).isNull()
+        coVerify { authRepository.login("jdoe", "short") }
     }
 }

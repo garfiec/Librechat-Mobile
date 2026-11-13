@@ -1,5 +1,6 @@
 package com.garfiec.librechat.feature.auth.viewmodel
 
+import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.repository.AccountSwitcher
@@ -134,6 +135,20 @@ class SsoLoginViewModelTest {
         advanceUntilIdle()
 
         assertThat(viewModel.uiState.value.error).isEqualTo(SsoLoginError.Exchange(null))
+    }
+
+    @Test
+    fun `a refresh the server rejects reads as a sign-in that didn't complete`() = runTest {
+        listOf(401 to "Request failed (HTTP 401)", 403 to "Access denied", 302 to "Request failed (HTTP 302)").forEach { (status, text) ->
+            coEvery { authRepository.loginWithOAuthToken(AuthCookies(TOKEN)) } returns
+                Result.Error(ApiException(status, text), text)
+            val viewModel = createViewModel()
+
+            viewModel.onTokenCapture(AuthCookies(TOKEN))
+            advanceUntilIdle()
+
+            assertThat(viewModel.uiState.value.error).isEqualTo(SsoLoginError.ExchangeRejected)
+        }
     }
 
     @Test

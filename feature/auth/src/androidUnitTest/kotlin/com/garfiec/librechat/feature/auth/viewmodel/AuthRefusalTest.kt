@@ -70,6 +70,15 @@ class AuthRefusalTest {
     }
 
     @Test
+    fun `the server's sign-in codes name their refusals`() {
+        assertThat(authRefusalOf(403, """{"message":"Cross-site request rejected","code":"auth_cross_origin"}"""))
+            .isEqualTo(AuthRefusal.CrossOrigin)
+        assertThat(authRefusalOfCode("auth_banned")).isEqualTo(AuthRefusal.Banned)
+        assertThat(authRefusalOfCode("auth_rate_limited")).isEqualTo(AuthRefusal.RateLimited)
+        assertThat(authRefusalOfCode("auth_failed")).isNull()
+    }
+
+    @Test
     fun `the soft-ban, ban, terms and proxy 403s are not refusals`() {
         // The ua-parser-js soft-ban and the ban response are a bare message.
         assertThat(authRefusalOf(403, """{"message":"Illegal request"}""")).isNull()
