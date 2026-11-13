@@ -44,6 +44,8 @@ import com.garfiec.librechat.core.model.queuedturn.QueuedTurnOutcome
 import com.garfiec.librechat.core.model.queuedturn.QueuedTurnStatus
 import com.garfiec.librechat.core.model.response.ChatAbortResponse
 import com.garfiec.librechat.core.model.response.ChatStatusResponse
+import com.garfiec.librechat.core.model.response.StatusResumeState
+import com.garfiec.librechat.core.model.response.StatusResumeUserMessage
 import com.garfiec.librechat.core.model.response.SteerResponse
 import com.garfiec.librechat.feature.chat.util.DraftItem
 import com.garfiec.librechat.feature.chat.util.restore
@@ -1643,6 +1645,72 @@ class ChatViewModelQueuedTurnTest {
 
             assertThat(vm.uiState.value.displayMessages.map { it.message.messageId })
                 .contains("assistant-queued")
+        }
+
+    @Test
+    fun `a turn the server admits shows its user message while it streams, once`() =
+        queuedTurnTest { vm ->
+            vm.onInputChanged(TEXT)
+            vm.queueMessage()
+            runCurrent()
+
+            val previousReply = Message(
+                messageId = "assistant-1",
+                conversationId = CONVERSATION_ID,
+                parentMessageId = USER_MESSAGE_ID,
+                text = "done",
+                isCreatedByUser = false,
+            )
+            resumedStream.emit(StreamEvent.Final(responseMessage = previousReply))
+            runCurrent()
+
+            // The server re-parents the turn onto the reply and runs it under an id of its own;
+            // the screen doesn't reload while the reply streams, so its rows stay as they were.
+            coEvery { chatRepository.checkStreamStatus(eq(CONVERSATION_ID), any()) } returns
+                ChatStatusResponse(
+                    active = true,
+                    createdAt = EPOCH + 1,
+                    resumeState = StatusResumeState(
+                        userMessage = StatusResumeUserMessage(
+                            messageId = "user-queued",
+                            conversationId = CONVERSATION_ID,
+                            parentMessageId = "assistant-1",
+                            text = TEXT,
+                        ),
+                    ),
+                )
+            serverRows[0] = serverRows[0].copy(status = QueuedTurnStatus.ADMITTED)
+            advanceTimeBy(3_000)
+            runCurrent()
+
+            assertThat(vm.uiState.value.isStreaming).isTrue()
+            val tail = vm.uiState.value.displayMessages.last().message
+            assertThat(tail.messageId).isEqualTo("user-queued")
+            assertThat(tail.text).isEqualTo(TEXT)
+            assertThat(tail.isCreatedByUser).isTrue()
+
+            val request = Message(
+                messageId = "user-queued",
+                conversationId = CONVERSATION_ID,
+                parentMessageId = "assistant-1",
+                text = TEXT,
+                isCreatedByUser = true,
+            )
+            val reply = Message(
+                messageId = "assistant-queued",
+                conversationId = CONVERSATION_ID,
+                parentMessageId = "user-queued",
+                text = "Here is the summary.",
+                isCreatedByUser = false,
+            )
+            resumedStream.emit(StreamEvent.Final(requestMessage = request, responseMessage = reply))
+            runCurrent()
+
+            assertThat(vm.uiState.value.displayMessages.map { it.message.messageId })
+                .containsExactly(
+                    "user-0", "assistant-0", USER_MESSAGE_ID, "assistant-1", "user-queued", "assistant-queued",
+                )
+                .inOrder()
         }
 
     private fun receiptFor(request: EnqueueQueuedTurnRequest) = AgentQueuedTurnReceipt(

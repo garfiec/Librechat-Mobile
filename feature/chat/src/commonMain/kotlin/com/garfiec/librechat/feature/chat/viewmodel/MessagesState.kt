@@ -34,10 +34,11 @@ data class MessagesState(
     val messages: List<Message> = emptyList(),
     val displayMessages: List<MessageNode> = emptyList(),
     /**
-     * A just-sent optimistic user message handed off from the NewChat landing VM, kept on screen
-     * until the server persists its own copy. `loadConversation` drops it once the server's copy
-     * arrives, matched by id or by content ([isServerCopyOf] — rc3+ re-mints the id). Null in every
-     * other case. See [NewChatSelectionHandoff].
+     * A user message the server has not saved yet, kept on screen until it persists its own copy:
+     * the optimistic one handed off from the NewChat landing VM ([NewChatSelectionHandoff]), or the
+     * request of an attached run this screen never sent (`attachedTo`). `loadConversation` drops it
+     * once the server's copy arrives, matched by id or by content ([isServerCopyOf] — rc3+ re-mints
+     * the id). Null in every other case.
      */
     val pendingResumeUserMessage: Message? = null,
     val activeBranches: Map<String, Int> = emptyMap(),
