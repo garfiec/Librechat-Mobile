@@ -13,6 +13,7 @@
 
     <!-- Login -->
     <string name="login_title">登录</string>
+    <string name="login_title_server">登录 %1$s</string>
     <string name="email_label">电子邮箱</string>
     <string name="password_label">密码</string>
     <string name="cd_show_password">显示密码</string>

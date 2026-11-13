@@ -13,6 +13,7 @@
 
     <!-- Login -->
     <string name="login_title">Вход</string>
+    <string name="login_title_server">Вход в %1$s</string>
     <string name="email_label">Эл. почта</string>
     <string name="password_label">Пароль</string>
     <string name="cd_show_password">Показать пароль</string>

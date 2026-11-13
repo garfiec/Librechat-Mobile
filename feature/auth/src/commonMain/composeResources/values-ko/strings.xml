@@ -13,6 +13,7 @@
 
     <!-- Login -->
     <string name="login_title">로그인</string>
+    <string name="login_title_server">%1$s에 로그인</string>
     <string name="email_label">이메일</string>
     <string name="password_label">비밀번호</string>
     <string name="cd_show_password">비밀번호 표시</string>

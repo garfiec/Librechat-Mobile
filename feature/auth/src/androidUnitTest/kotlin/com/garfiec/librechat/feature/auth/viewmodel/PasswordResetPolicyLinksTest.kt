@@ -1,14 +1,18 @@
 package com.garfiec.librechat.feature.auth.viewmodel
 
+import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.repository.AccountSwitcher
 import com.garfiec.librechat.core.data.repository.AuthRepository
+import com.garfiec.librechat.core.data.repository.BannerRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
+import com.garfiec.librechat.core.model.Banner
 import com.garfiec.librechat.core.model.config.InterfaceConfig
 import com.garfiec.librechat.core.model.config.PrivacyPolicyConfig
 import com.garfiec.librechat.core.model.config.StartupConfig
 import com.garfiec.librechat.core.model.config.TermsOfServiceConfig
 import com.google.common.truth.Truth.assertThat
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
@@ -31,10 +35,17 @@ class PasswordResetPolicyLinksTest {
     private val authRepository = mockk<AuthRepository>(relaxed = true)
     private val configFlow = MutableStateFlow<StartupConfig?>(null)
     private val configRepository = mockk<ConfigRepository> { every { startupConfig } returns configFlow }
-    private val accountSwitcher = mockk<AccountSwitcher> { every { pendingAdd } returns null }
+    private val accountSwitcher = mockk<AccountSwitcher> {
+        every { pendingAdd } returns null
+        coEvery { withPendingIdentity<Any?>(any()) } coAnswers { firstArg<suspend () -> Any?>().invoke() }
+    }
+    private val bannerRepository = mockk<BannerRepository> { coEvery { getBanner() } returns Result.Success(null) }
     private val serverDataStore = mockk<ServerDataStore> {
         every { currentUrlFlow } returns MutableStateFlow("https://chat.example.com")
     }
+
+    private fun forgotPassword() =
+        ForgotPasswordViewModel(authRepository, configRepository, accountSwitcher, serverDataStore, bannerRepository)
 
     @Before
     fun setup() = Dispatchers.setMain(testDispatcher)
@@ -51,7 +62,7 @@ class PasswordResetPolicyLinksTest {
 
     @Test
     fun `forgot password shows the safe links once the config arrives`() = runTest {
-        val viewModel = ForgotPasswordViewModel(authRepository, configRepository, accountSwitcher, serverDataStore)
+        val viewModel = forgotPassword()
         advanceUntilIdle()
         assertThat(viewModel.uiState.value.policyLinks).isEqualTo(PolicyLinks())
 
@@ -69,6 +80,7 @@ class PasswordResetPolicyLinksTest {
             configRepository,
             accountSwitcher,
             serverDataStore,
+            bannerRepository,
             initialUserId = "u1",
             initialToken = "t1",
         )
@@ -76,5 +88,17 @@ class PasswordResetPolicyLinksTest {
 
         assertThat(viewModel.uiState.value.policyLinks)
             .isEqualTo(PolicyLinks(privacyPolicyUrl = "https://x.example/privacy"))
+    }
+
+    @Test
+    fun `the server's public banner shows on forgot and reset password`() = runTest {
+        val banner = Banner(bannerId = "b1", message = "Maintenance tonight", isPublic = true)
+        coEvery { bannerRepository.getBanner() } returns Result.Success(banner)
+        val forgot = forgotPassword()
+        val reset =
+            ResetPasswordViewModel(authRepository, configRepository, accountSwitcher, serverDataStore, bannerRepository)
+        advanceUntilIdle()
+        assertThat(forgot.uiState.value.banner).isEqualTo(banner)
+        assertThat(reset.uiState.value.banner).isEqualTo(banner)
     }
 }

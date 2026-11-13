@@ -7,6 +7,7 @@ import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SsoRiskDataStore
 import com.garfiec.librechat.core.data.repository.AccountSwitcher
 import com.garfiec.librechat.core.data.repository.AuthRepository
+import com.garfiec.librechat.core.data.repository.BannerRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.ServerRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
@@ -25,6 +26,7 @@ class AuthModuleVerificationTest {
                 ServerDataStore::class,
                 ServerRepository::class,
                 AuthRepository::class,
+                BannerRepository::class,
                 ConfigRepository::class,
                 CertificateTrustRegistry::class,
                 UserRepository::class,

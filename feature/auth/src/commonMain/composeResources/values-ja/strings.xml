@@ -13,6 +13,7 @@
 
     <!-- Login -->
     <string name="login_title">サインイン</string>
+    <string name="login_title_server">%1$s にサインイン</string>
     <string name="email_label">メールアドレス</string>
     <string name="password_label">パスワード</string>
     <string name="cd_show_password">パスワードを表示</string>

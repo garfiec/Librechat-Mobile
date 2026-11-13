@@ -13,6 +13,7 @@
 
     <!-- Login -->
     <string name="login_title">Anmelden</string>
+    <string name="login_title_server">Bei %1$s anmelden</string>
     <string name="email_label">E-Mail</string>
     <string name="password_label">Passwort</string>
     <string name="cd_show_password">Passwort anzeigen</string>

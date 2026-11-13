@@ -5,8 +5,10 @@ import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.repository.AccountSwitcher
 import com.garfiec.librechat.core.data.repository.AuthRepository
+import com.garfiec.librechat.core.data.repository.BannerRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.PendingAddSession
+import com.garfiec.librechat.core.model.Banner
 import com.garfiec.librechat.core.model.config.InterfaceConfig
 import com.garfiec.librechat.core.model.config.PrivacyPolicyConfig
 import com.garfiec.librechat.core.model.config.StartupConfig
@@ -41,6 +43,7 @@ class RegisterViewModelTest {
     }
 
     private val configFlow = MutableStateFlow<StartupConfig?>(null)
+    private val bannerRepository = mockk<BannerRepository>()
 
     private lateinit var viewModel: RegisterViewModel
 
@@ -49,6 +52,8 @@ class RegisterViewModelTest {
         Dispatchers.setMain(testDispatcher)
         every { configRepository.startupConfig } returns configFlow
         every { accountSwitcher.pendingAdd } returns null
+        coEvery { bannerRepository.getBanner() } returns Result.Success(null)
+        coEvery { accountSwitcher.withPendingIdentity<Any?>(any()) } coAnswers { firstArg<suspend () -> Any?>().invoke() }
     }
 
     @After
@@ -61,7 +66,17 @@ class RegisterViewModelTest {
         configRepository = configRepository,
         accountSwitcher = accountSwitcher,
         serverDataStore = serverDataStore,
+        bannerRepository = bannerRepository,
     )
+
+    @Test
+    fun `the server's public banner shows on register`() = runTest {
+        val banner = Banner(bannerId = "b1", message = "Maintenance tonight", isPublic = true)
+        coEvery { bannerRepository.getBanner() } returns Result.Success(banner)
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.banner).isEqualTo(banner)
+    }
 
     @Test
     fun `the server's policy links reach the register footer, resolved against the server`() = runTest {

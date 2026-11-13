@@ -13,6 +13,7 @@
 
     <!-- Login -->
     <string name="login_title">تسجيل الدخول</string>
+    <string name="login_title_server">تسجيل الدخول إلى %1$s</string>
     <string name="email_label">البريد الإلكتروني</string>
     <string name="password_label">كلمة المرور</string>
     <string name="cd_show_password">إظهار كلمة المرور</string>

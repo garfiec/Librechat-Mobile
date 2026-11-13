@@ -11,7 +11,9 @@ import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SsoRiskDataStore
 import com.garfiec.librechat.core.data.repository.AccountSwitcher
 import com.garfiec.librechat.core.data.repository.AuthRepository
+import com.garfiec.librechat.core.data.repository.BannerRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
+import com.garfiec.librechat.core.model.Banner
 import com.garfiec.librechat.core.model.LoginOutcome
 import com.garfiec.librechat.core.model.config.StartupConfig
 import com.garfiec.librechat.core.model.config.absoluteLinkUrl
@@ -65,6 +67,11 @@ data class LoginUiState(
      * for the notice; null when there are none. Signing in to one runs the setup flow.
      */
     val twoFactorSetupAccounts: String? = null,
+    /** The server's `appTitle`, for the heading; null until its config is known. */
+    val appTitle: String? = null,
+    /** The address being signed in to, always shown under the heading: [appTitle] is the operator's to set. */
+    val serverLabel: String? = null,
+    val banner: Banner? = null,
 )
 
 /**
@@ -127,6 +134,7 @@ class LoginViewModel(
     private val ssoRiskDataStore: SsoRiskDataStore,
     serverDataStore: ServerDataStore,
     certificateTrust: CertificateTrustRegistry,
+    bannerRepository: BannerRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LoginUiState())
@@ -160,6 +168,8 @@ class LoginViewModel(
                     passwordResetEnabled = config.emailLoginEnabled && config.passwordResetEnabled,
                     usernameLogin = config.ldap?.username == true,
                     policyLinks = PolicyLinks.from(config, url),
+                    appTitle = appTitleOf(config),
+                    serverLabel = url?.takeIf { it.isNotBlank() }?.let(::serverLabel),
                 )
                 if (config.openidLoginEnabled && config.openidAutoRedirect && !autoRedirected) {
                     autoRedirected = true
@@ -174,6 +184,10 @@ class LoginViewModel(
         }
         observeCertificateTrust(serverDataStore, certificateTrust)
         observeTwoFactorSetupMarkers(serverDataStore)
+        viewModelScope.launch {
+            val banner = publicBanner(bannerRepository, accountSwitcher)
+            _uiState.update { it.copy(banner = banner) }
+        }
     }
 
     /**
