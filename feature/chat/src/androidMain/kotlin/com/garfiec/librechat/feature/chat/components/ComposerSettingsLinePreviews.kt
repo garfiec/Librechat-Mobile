@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -13,6 +14,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.common.ToolConstants
@@ -22,7 +24,15 @@ import com.garfiec.librechat.core.model.usage.ContextDetailPreset
 import com.garfiec.librechat.core.model.usage.ContextUsage
 import com.garfiec.librechat.core.model.usage.ContextUsageTotals
 import com.garfiec.librechat.core.model.usage.TokenBudgetBreakdown
+import com.garfiec.librechat.core.ui.components.topbar.AdaptiveSideRail
+import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
+import com.garfiec.librechat.core.ui.components.topbar.BarAction
+import com.garfiec.librechat.core.ui.components.topbar.BarIcons
+import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
+import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.core.ui.contextusage.ContextBreakdownModel
+import com.garfiec.librechat.core.ui.platform.BarSide
+import com.garfiec.librechat.core.ui.platform.VerticalBars
 import com.garfiec.librechat.core.ui.preview.PreviewNarrowScreens
 import com.garfiec.librechat.core.ui.theme.LibreChatTheme
 import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
@@ -50,6 +60,48 @@ private fun ComposerBoxMaterialPreview() = LineSurface(UiStyle.MATERIAL) { BoxCo
 @PreviewNarrowScreens
 @Composable
 private fun ComposerBoxGlassPreview() = LineSurface(UiStyle.LIQUID_GLASS) { BoxComposerHost() }
+
+/** iPhone Duo's cover screen: the chat's side rail, with background tasks and the ring at its bottom. */
+@PreviewNarrowScreens
+@Composable
+private fun ChatRailMaterialPreview() = LineSurface(UiStyle.MATERIAL) { ChatRail() }
+
+@PreviewNarrowScreens
+@Composable
+private fun ChatRailGlassPreview() = LineSurface(UiStyle.LIQUID_GLASS) { ChatRail() }
+
+@Composable
+private fun ChatRail() {
+    val ring = ContextRingState(
+        details = gauge(used = 98_000, nudge = null),
+        onCompact = {},
+        onSnoozeCompact = {},
+        dialogs = ContextRingDialogs(),
+    )
+    val spec = AdaptiveTopBarSpec(
+        navigation = BarNavigation(BarIcons.Menu, "Open drawer") {},
+        title = BarTitle("Trip planning for the Lisbon offsite"),
+        actions = listOf(
+            BarAction.Icon(id = "new_chat", icon = BarIcons.NewChat, label = "New Chat", onClick = {}),
+            BarAction.Icon(id = "find", icon = BarIcons.Search, label = "Search", onClick = {}),
+            BarAction.Menu(id = "overflow", icon = BarIcons.More, label = "More options", sections = emptyList()),
+        ),
+        bottomActions = listOf(
+            BarAction.Icon(
+                id = "background_tasks",
+                icon = BarIcons.BackgroundTasks,
+                label = "Background tasks, 2 running",
+                badge = "2",
+                onClick = {},
+            ),
+            BarAction.Custom(id = "context_ring", label = "Context usage") { ContextRing(ring) },
+        ),
+    )
+    val bars = VerticalBars(side = BarSide.RIGHT, columnWidth = 84.dp, systemZoneHeight = 174.dp)
+    Box(Modifier.fillMaxWidth().height(678.dp)) {
+        AdaptiveSideRail(spec = spec, bars = bars, modifier = Modifier.align(AbsoluteAlignment.TopRight))
+    }
+}
 
 @Composable
 private fun BoxComposerHost() {
@@ -109,7 +161,12 @@ private fun SettingsLineStates() {
                 ),
             ),
             onChipTap = {},
-            ring = ContextRingState(gauge(used = 52_000, nudge = null), onCompact = {}, onSnoozeCompact = {}),
+            ring = ContextRingState(
+                details = gauge(used = 52_000, nudge = null),
+                onCompact = {},
+                onSnoozeCompact = {},
+                dialogs = ContextRingDialogs(),
+            ),
         )
         // Locked by a spec, with Thinking staged for the next message and a compact suggestion due.
         ComposerSettingsLine(
@@ -126,6 +183,7 @@ private fun SettingsLineStates() {
                 details = gauge(used = 117_000, nudge = CompactNudge(band = 1, percent = 91)),
                 onCompact = {},
                 onSnoozeCompact = {},
+                dialogs = ContextRingDialogs(),
             ),
         )
         ComposerSettingsLine(
@@ -147,7 +205,12 @@ private fun SettingsLineStates() {
         ComposerSettingsLine(
             chips = SettingChips.EMPTY,
             onChipTap = {},
-            ring = ContextRingState(gauge(used = 8_000, nudge = null), onCompact = null, onSnoozeCompact = {}),
+            ring = ContextRingState(
+                details = gauge(used = 8_000, nudge = null),
+                onCompact = null,
+                onSnoozeCompact = {},
+                dialogs = ContextRingDialogs(),
+            ),
         )
     }
 }

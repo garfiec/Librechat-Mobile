@@ -1,5 +1,6 @@
 package com.garfiec.librechat.core.ui.components.topbar
 
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
@@ -39,6 +40,11 @@ sealed interface BarAction {
         val enabled: Boolean = true,
         /** Shows a progress indicator in place of the icon (and disables the action). */
         val busy: Boolean = false,
+        /**
+         * A short status (a count) drawn on the icon's corner by the Compose bars and the side rail.
+         * The native iOS bar draws none, so [label] must say it in words too.
+         */
+        val badge: String? = null,
         val onClick: () -> Unit,
     ) : BarAction
 
@@ -95,6 +101,18 @@ sealed interface BarAction {
         override val label: String,
         val sections: List<BarMenuSection>,
         val dragToSelect: Boolean = true,
+    ) : BarAction
+
+    /**
+     * A live control that can't be bar data (a usage gauge), drawn by [content] in an item's place and
+     * describing itself to screen readers. The Compose renderers only: the native iOS bar leaves it
+     * out, and the side rail's ⋯ can't hold it, so keep it in [AdaptiveTopBarSpec.bottomActions].
+     */
+    @Immutable
+    data class Custom(
+        override val id: String,
+        override val label: String,
+        val content: @Composable () -> Unit,
     ) : BarAction
 }
 
@@ -153,6 +171,11 @@ data class AdaptiveTopBarSpec(
     val actions: List<BarAction> = emptyList(),
     /** Lights the edge of the simulated glass bar's actions capsule. Ignored by the other renderers. */
     val actionsFlare: GlassFlare? = null,
+    /**
+     * Status controls (badged items) the side rail keeps at its bottom, apart from [actions]. A
+     * horizontal bar draws them after [actions], before a trailing menu.
+     */
+    val bottomActions: List<BarAction> = emptyList(),
 )
 
 /**
@@ -170,3 +193,28 @@ data class MaterialBarStyle(
      */
     val translucent: Boolean = false,
 )
+
+internal fun AdaptiveTopBarSpec.withCompactTextActions() = copy(
+    actions = actions.map { it.compact() },
+    bottomActions = bottomActions.map { it.compact() },
+)
+
+private fun BarAction.compact(): BarAction = if (this is BarAction.Text) {
+    BarAction.Icon(
+        id = id,
+        icon = compactIcon,
+        label = accessibilityLabel ?: label,
+        enabled = enabled,
+        onClick = onClick,
+    )
+} else {
+    this
+}
+
+/** The spec a horizontal bar draws: [AdaptiveTopBarSpec.bottomActions] join the actions, ahead of a trailing menu. */
+internal fun AdaptiveTopBarSpec.forHorizontalBar(): AdaptiveTopBarSpec {
+    if (bottomActions.isEmpty()) return this
+    val menu = actions.lastOrNull() as? BarAction.Menu
+    val merged = if (menu != null) actions.dropLast(1) + bottomActions + menu else actions + bottomActions
+    return copy(actions = merged, bottomActions = emptyList())
+}

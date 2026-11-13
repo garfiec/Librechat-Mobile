@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -68,6 +69,8 @@ import com.garfiec.librechat.core.ui.components.pressBounce
 import com.garfiec.librechat.core.ui.components.rememberMenuDragSelection
 import com.garfiec.librechat.core.ui.components.rememberPressBounce
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
+import com.garfiec.librechat.core.ui.components.topbar.MaterialBarStyle
+import com.garfiec.librechat.core.ui.platform.verticalBarColumn
 import com.garfiec.librechat.core.ui.theme.isLiquidGlass
 import com.garfiec.librechat.feature.chat.components.mcpapp.LocalMcpApps
 import com.garfiec.librechat.feature.chat.components.veil.LocalModeVeil
@@ -105,6 +108,9 @@ import org.jetbrains.compose.resources.stringResource
  *
  * On a [widePane] (the chat pane, not the window, at least 600dp) the chat's pull request is a chip
  * in the bar and leaves the ⋮ menu; on a narrow one it stays in the menu (and above the composer).
+ *
+ * In [railMode] (an `AdaptiveRailBox`'s `RailTopBar` with vertical bars), either style draws only the
+ * title here and its controls go to the side rail, in [chatBarItems]' order.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -114,17 +120,20 @@ internal fun ChatFloatingTopBar(
     onLoadPreset: () -> Unit,
     onSavePreset: () -> Unit,
     onRename: () -> Unit,
+    contextRingDialogs: ContextRingDialogs,
     modifier: Modifier = Modifier,
     onOpenDrawer: (() -> Unit)? = null,
     onShowAllMedia: (() -> Unit)? = null,
     onOpenPromptsLibrary: (() -> Unit)? = null,
     widePane: Boolean = false,
+    railMode: Boolean = false,
+    onNewChat: (() -> Unit)? = null,
 ) {
     var showContextSheet by remember { mutableStateOf(false) }
     var showCompactConfirm by remember { mutableStateOf(false) }
     var showTraceViewer by remember { mutableStateOf(false) }
-    // Exactly one of the bar chip and the ⋮ item exists at a time.
-    val showPullRequestChip = widePane && uiState.pullRequest.pullRequest != null
+    // Exactly one of the bar chip and the ⋮ item exists at a time; the rail keeps it in ⋮.
+    val showPullRequestChip = !railMode && widePane && uiState.pullRequest.pullRequest != null
     val conversationId = uiState.conversationId
     val conversationTitle = uiState.conversationTitle
     // Interactive on the new-chat landing; once a temporary chat is active it stays visible (ON) as
@@ -157,6 +166,7 @@ internal fun ChatFloatingTopBar(
         isTemporaryChat = uiState.isTemporaryChat,
         hasPullRequest = uiState.pullRequest.pullRequest != null && !showPullRequestChip,
         openApps = openApps,
+        findInRail = railMode,
     )
     val overflowSections = remember(overflowGates) { chatOverflowSections(overflowGates) }
     val onOverflowItem: (ChatOverflowItem) -> Unit = { item ->
@@ -192,7 +202,9 @@ internal fun ChatFloatingTopBar(
     val toggleContext = rememberUpdatedState(
         uiState.isTemporaryChat to (conversationId == null && !uiState.temporaryChatEnforced),
     )
-    val barActions = remember(viewModel, veil, haptics) {
+    val currentOnNewChat by rememberUpdatedState(onNewChat)
+    val hasNewChat = onNewChat != null
+    val barActions = remember(viewModel, veil, haptics, hasNewChat) {
         ChatTopBarActions(
             onRename = viewModel::renameConversation,
             onOpenModelSheet = viewModel::openModelSheet,
@@ -209,8 +221,20 @@ internal fun ChatFloatingTopBar(
             onNextMatch = viewModel::nextSearchMatch,
             onCloseSearch = viewModel::closeSearch,
             onOpenPullRequest = viewModel::openPullRequestSheet,
+            onNewChat = if (hasNewChat) ({ currentOnNewChat?.invoke() }) else null,
+            onFind = viewModel::openSearch,
         )
     }
+    val contextRing = uiState.contextGaugeDetails?.let { details ->
+        ContextRingState(
+            details,
+            viewModel::compactConversation.takeIf { uiState.canCompactNow },
+            viewModel::snoozeCompactNudge,
+            contextRingDialogs,
+        )
+    }
+    // Temporary chats are never persisted, so they have no server-side task list.
+    val backgroundTasks = if (uiState.isTemporaryChat) null else rememberBackgroundTasks(conversationId, uiState.isStreaming)
 
     // Back closes find-in-page before it leaves the chat, as the bar's close button does. A sheet
     // over the chat registers later, so its own back still wins while it is up.
@@ -220,8 +244,8 @@ internal fun ChatFloatingTopBar(
         viewModel.closeSearch()
     }
 
-    if (isLiquidGlass) {
-        GlassChatTopBar(
+    if (isLiquidGlass || railMode) {
+        SpecChatTopBar(
             uiState = uiState,
             actions = barActions,
             sections = overflowSections,
@@ -230,6 +254,9 @@ internal fun ChatFloatingTopBar(
             showTempChatToggle = showTempChatToggle,
             showPullRequestChip = showPullRequestChip,
             openApps = openApps,
+            rail = railMode,
+            backgroundTasks = backgroundTasks,
+            contextRing = contextRing,
             modifier = modifier,
         )
     } else {
@@ -242,9 +269,13 @@ internal fun ChatFloatingTopBar(
             showTempChatToggle = showTempChatToggle,
             showPullRequestChip = showPullRequestChip,
             openApps = openApps,
+            backgroundTasks = backgroundTasks,
             modifier = modifier,
         )
     }
+    backgroundTasks?.let { BackgroundTasksSheetHost(it) }
+    // Every context ring's dialogs, the composer's included.
+    contextRing?.let { ContextRingDialogsHost(it) }
 
     // The context-usage gauge's default home is just above the composer (Settings → Chat picks
     // its placement); see CommonChatInputCore. When the user routes it to the overflow menu, the
@@ -299,9 +330,12 @@ internal fun ChatFloatingTopBar(
     }
 }
 
-/** The Liquid Glass bar, with the in-conversation search field pinned beneath it. */
+/**
+ * The bar drawn from [rememberChatTopBarSpec]: the Liquid Glass bar, or in either style the side rail
+ * and its title heading ([rail]), with the in-conversation search field pinned beneath it.
+ */
 @Composable
-private fun GlassChatTopBar(
+private fun SpecChatTopBar(
     uiState: ChatUiState,
     actions: ChatTopBarActions,
     sections: List<List<ChatOverflowItem>>,
@@ -310,6 +344,9 @@ private fun GlassChatTopBar(
     showTempChatToggle: Boolean,
     showPullRequestChip: Boolean,
     openApps: Int,
+    rail: Boolean,
+    backgroundTasks: BackgroundTasksState?,
+    contextRing: ContextRingState?,
     modifier: Modifier = Modifier,
 ) {
     val spec = rememberChatTopBarSpec(
@@ -321,10 +358,15 @@ private fun GlassChatTopBar(
         showTempChatToggle = showTempChatToggle,
         showPullRequestChip = showPullRequestChip,
         openApps = openApps,
+        rail = rail,
+        backgroundTasks = backgroundTasks,
+        contextRing = contextRing,
     )
     AdaptiveTopBar(
         spec = spec,
         modifier = modifier,
+        // Material's heading scrolls the thread under it, as the floating bar does.
+        materialStyle = MaterialBarStyle(translucent = true),
         belowBar = {
             AnimatedVisibility(
                 visible = uiState.isSearchOpen,
@@ -356,6 +398,7 @@ private fun MaterialChatTopBar(
     showTempChatToggle: Boolean,
     showPullRequestChip: Boolean,
     openApps: Int,
+    backgroundTasks: BackgroundTasksState?,
     modifier: Modifier = Modifier,
 ) {
     var showOverflowMenu by remember { mutableStateOf(false) }
@@ -376,6 +419,7 @@ private fun MaterialChatTopBar(
                 .then(rememberChatTopBarScrim(barVeil.crossed))
                 .consumeUnhandledTouches()
                 .statusBarsPadding()
+                .windowInsetsPadding(WindowInsets.verticalBarColumn)
                 .padding(horizontal = 16.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -439,10 +483,7 @@ private fun MaterialChatTopBar(
                 Spacer(modifier = Modifier.width(8.dp))
             }
 
-            // Temporary chats are never persisted, so they have no server-side task list.
-            if (!uiState.isTemporaryChat) {
-                BackgroundTasksChip(conversationId = conversationId, isStreaming = uiState.isStreaming)
-            }
+            backgroundTasks?.let { BackgroundTasksChip(it) }
 
             if (showTempChatToggle) {
                 val tempChatBounce = rememberPressBounce()
@@ -507,6 +548,7 @@ private fun MaterialChatTopBar(
         // In-conversation search bar, pinned directly under the floating bar.
         AnimatedVisibility(
             visible = uiState.isSearchOpen,
+            modifier = Modifier.windowInsetsPadding(WindowInsets.verticalBarColumn),
             enter = expandVertically(),
             exit = shrinkVertically(),
         ) {
@@ -698,4 +740,7 @@ internal class ChatTopBarActions(
     val onNextMatch: () -> Unit,
     val onCloseSearch: () -> Unit,
     val onOpenPullRequest: () -> Unit,
+    /** The side rail's New chat; null leaves it out. */
+    val onNewChat: (() -> Unit)?,
+    val onFind: () -> Unit,
 )

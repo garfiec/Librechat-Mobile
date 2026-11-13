@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -20,6 +21,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyListState
@@ -97,6 +99,7 @@ import com.garfiec.librechat.core.ui.datetime.LocalDateTimeFormat
 import com.garfiec.librechat.core.ui.datetime.LocalRelativeTimeReference
 import com.garfiec.librechat.core.ui.datetime.resolve
 import com.garfiec.librechat.core.ui.glass.LocalGlassBackdrop
+import com.garfiec.librechat.core.ui.platform.verticalBarColumn
 import com.garfiec.librechat.feature.conversations.resources.Res
 import com.garfiec.librechat.feature.conversations.resources.back
 import com.garfiec.librechat.feature.conversations.resources.cd_clear_search
@@ -201,8 +204,12 @@ fun SearchScreen(
                             TextToggleGroup(state.options, viewModel::onOptionsChange)
                         }
                     }
+                    // The bar slot gets no side insets from the scaffold: these rows keep out of the bar column.
                     if (advanced && wide) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Row(
+                            modifier = Modifier.windowInsetsPadding(WindowInsets.verticalBarColumn),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
                             ScopeTabs(
                                 state = state,
                                 selectedIndex = pagerState.selectedTabIndex(),
@@ -216,7 +223,7 @@ fun SearchScreen(
                             state = state,
                             selectedIndex = pagerState.selectedTabIndex(),
                             onSelect = onSelectScope,
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier.fillMaxWidth().windowInsetsPadding(WindowInsets.verticalBarColumn),
                         )
                     }
                 }
@@ -365,7 +372,7 @@ private fun SearchTopRow(
             belowBar = { fieldRow(Modifier) },
         )
     } else {
-        fieldRow(Modifier.statusBarsPadding())
+        fieldRow(Modifier.statusBarsPadding().windowInsetsPadding(WindowInsets.verticalBarColumn))
     }
 }
 
@@ -567,7 +574,13 @@ private fun CenteredHint(text: String) {
 @Composable
 private fun SearchFooter(state: SearchUiState) {
     if (!state.searched) return
-    Column(modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 12.dp, vertical = 8.dp)) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .navigationBarsPadding()
+            .windowInsetsPadding(WindowInsets.verticalBarColumn)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+    ) {
         val note = state.note
         note?.let { SearchNoteCard(it, modifier = Modifier.padding(bottom = 6.dp)) }
         val source = when {

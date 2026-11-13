@@ -8,10 +8,12 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Info
@@ -37,6 +39,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.Banner
+import com.garfiec.librechat.core.ui.platform.verticalBarColumn
 import com.garfiec.librechat.core.ui.resources.Res
 import com.garfiec.librechat.core.ui.resources.banner_dismiss
 import com.garfiec.librechat.core.ui.resources.banner_show_less
@@ -93,6 +96,7 @@ private fun BannerCard(
     Card(
         modifier = modifier
             .fillMaxWidth()
+            .windowInsetsPadding(WindowInsets.verticalBarColumn)
             .padding(horizontal = 16.dp, vertical = 4.dp)
             .semantics { liveRegion = LiveRegionMode.Polite },
         colors = CardDefaults.cardColors(

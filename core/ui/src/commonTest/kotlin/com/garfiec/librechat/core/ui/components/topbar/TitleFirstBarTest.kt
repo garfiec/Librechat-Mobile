@@ -54,4 +54,26 @@ class TitleFirstBarTest {
         assertEquals(1, BarTitle("Chat", rename = rename).lines)
         assertEquals(1, BarTitle("Chat", style = BarTitleStyle.CHIP).lines)
     }
+
+    @Test
+    fun compactingAlsoTurnsBottomTextActionsIntoIcons() {
+        val text = BarAction.Text(id = "save", label = "Save", compactIcon = BarIcons.Confirm, onClick = save)
+
+        val compact = spec().copy(bottomActions = listOf(text)).withCompactTextActions()
+
+        assertEquals(BarIcons.Confirm, assertIs<BarAction.Icon>(compact.bottomActions.single()).icon)
+    }
+
+    @Test
+    fun aHorizontalBarDrawsBottomActionsAheadOfItsTrailingMenu() {
+        val search = BarAction.Icon(id = "search", icon = BarIcons.Search, label = "Find", onClick = {})
+        val tasks = BarAction.Icon(id = "tasks", icon = BarIcons.History, label = "Tasks", badge = "2", onClick = {})
+
+        val withMenu = spec(search, more).copy(bottomActions = listOf(tasks)).forHorizontalBar()
+        val withoutMenu = spec(search).copy(bottomActions = listOf(tasks)).forHorizontalBar()
+
+        assertEquals(listOf("search", "tasks", "more"), withMenu.actions.map { it.id })
+        assertEquals(listOf("search", "tasks"), withoutMenu.actions.map { it.id })
+        assertEquals(emptyList(), withMenu.bottomActions)
+    }
 }

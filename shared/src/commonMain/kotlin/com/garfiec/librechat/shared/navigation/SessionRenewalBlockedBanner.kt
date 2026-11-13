@@ -9,11 +9,13 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.Card
@@ -29,6 +31,7 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.ui.platform.verticalBarColumn
 import com.garfiec.librechat.shared.resources.Res
 import com.garfiec.librechat.shared.resources.session_renewal_blocked_message
 import com.garfiec.librechat.shared.resources.session_renewal_sign_in_again
@@ -59,6 +62,7 @@ internal fun SessionRenewalBlockedBanner(
                 // It is the topmost thing in the shell, above the screen's own app bar, so it has to
                 // clear the status bar itself or the clock and icons draw over it.
                 .statusBarsPadding()
+                .windowInsetsPadding(WindowInsets.verticalBarColumn)
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 4.dp)
                 .semantics { liveRegion = LiveRegionMode.Polite },

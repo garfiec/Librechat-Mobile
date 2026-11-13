@@ -26,10 +26,12 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.Stable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
@@ -52,33 +54,67 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
- * The chat header's Background Tasks chip (v0.8.8). Renders nothing until the conversation has
- * tasks, so it costs one read per conversation open and per settled run — see
+ * The chat's Background Tasks (v0.8.8), shared by the Material chip, the glass bar's icon and the side
+ * rail: the list of the conversation's tasks, and whether its sheet is open. Nothing shows until the
+ * conversation has tasks, so it costs one read per conversation open and per settled run; see
  * [BackgroundTasksViewModel] for when it polls.
  */
+@Stable
+internal class BackgroundTasksState(
+    val onStop: (String) -> Unit,
+    val onStopAll: () -> Unit,
+    private val conversationId: String?,
+    private val ui: State<BackgroundTasksUiState>,
+    private val sheet: MutableState<Boolean>,
+) {
+    val uiState: BackgroundTasksUiState get() = ui.value
+
+    val visible: Boolean get() = conversationId != null && uiState.conversationId == conversationId && uiState.isVisible
+
+    /** A result failed to arrive, or the list could not be read whole. */
+    val alert: Boolean get() = uiState.failedDeliveryCount > 0 || uiState.incomplete
+
+    val sheetOpen: Boolean get() = sheet.value
+
+    fun openSheet() {
+        sheet.value = true
+    }
+
+    fun closeSheet() {
+        sheet.value = false
+    }
+}
+
 @Composable
-internal fun BackgroundTasksChip(
+internal fun rememberBackgroundTasks(
     conversationId: String?,
     isStreaming: Boolean,
     viewModel: BackgroundTasksViewModel = koinViewModel(),
-) {
+): BackgroundTasksState {
     LaunchedEffect(conversationId, isStreaming) { viewModel.bind(conversationId, isStreaming) }
     LifecycleStartEffect(viewModel) {
         viewModel.setActive(true)
         onStopOrDispose { viewModel.setActive(false) }
     }
-    val state by viewModel.uiState.collectAsStateWithLifecycle()
-    var sheetOpen by rememberSaveable { mutableStateOf(false) }
-    LaunchedEffect(sheetOpen) { viewModel.setSheetOpen(sheetOpen) }
+    val ui = viewModel.uiState.collectAsStateWithLifecycle()
+    val sheet = rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(sheet.value) { viewModel.setSheetOpen(sheet.value) }
+    return remember(viewModel, conversationId, ui, sheet) {
+        BackgroundTasksState(viewModel::stop, viewModel::stopAll, conversationId, ui, sheet)
+    }
+}
 
-    val visible = conversationId != null && state.conversationId == conversationId && state.isVisible
-    // One emitting root; the sheet is a window of its own and takes no space here.
+/** The Material chat header's chip: the hourglass and the running count, once the conversation has tasks. */
+@Composable
+internal fun BackgroundTasksChip(tasks: BackgroundTasksState) {
+    // One emitting root.
     Row(verticalAlignment = Alignment.CenterVertically) {
-        if (visible) {
+        if (tasks.visible) {
+            val state = tasks.uiState
             val chipCd = stringResource(Res.string.background_tasks_cd_chip, state.runningCount)
             FloatingBarChip(
                 modifier = Modifier.height(FloatingBarChipSize).semantics { contentDescription = chipCd },
-                onClick = { sheetOpen = true },
+                onClick = tasks::openSheet,
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 12.dp),
@@ -88,11 +124,7 @@ internal fun BackgroundTasksChip(
                         Icons.Default.HourglassTop,
                         contentDescription = null,
                         modifier = Modifier.size(18.dp),
-                        tint = if (state.failedDeliveryCount > 0 || state.incomplete) {
-                            MaterialTheme.colorScheme.error
-                        } else {
-                            MaterialTheme.colorScheme.onSurface
-                        },
+                        tint = if (tasks.alert) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
                     )
                     if (state.runningCount > 0) {
                         Spacer(Modifier.width(6.dp))
@@ -102,14 +134,19 @@ internal fun BackgroundTasksChip(
             }
             Spacer(modifier = Modifier.width(8.dp))
         }
-        if (sheetOpen && visible) {
-            BackgroundTasksSheet(
-                state = state,
-                onStop = viewModel::stop,
-                onStopAll = viewModel::stopAll,
-                onDismiss = { sheetOpen = false },
-            )
-        }
+    }
+}
+
+/** The task list, opened from whichever control shows [tasks]. */
+@Composable
+internal fun BackgroundTasksSheetHost(tasks: BackgroundTasksState) {
+    if (tasks.sheetOpen && tasks.visible) {
+        BackgroundTasksSheet(
+            state = tasks.uiState,
+            onStop = tasks.onStop,
+            onStopAll = tasks.onStopAll,
+            onDismiss = tasks::closeSheet,
+        )
     }
 }
 

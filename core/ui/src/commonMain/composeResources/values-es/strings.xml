@@ -416,4 +416,5 @@
     <string name="artifacts_mode_shadcnui_desc">Además enseña a la IA un conjunto de botones, formularios y tarjetas listos para usar (shadcn/ui), para apps interactivas más vistosas. Cada mensaje es más largo de leer para la IA, así que las respuestas pueden tardar más.</string>
     <string name="artifacts_mode_custom">Solo mis instrucciones</string>
     <string name="artifacts_mode_custom_desc">Desactiva la guía integrada, así la IA solo sigue las instrucciones personalizadas que hayas escrito. Puede que no cree artefactos si tus instrucciones no explican cómo.</string>
+    <string name="topbar_more_options">Más opciones</string>
 </resources>

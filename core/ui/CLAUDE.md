@@ -130,7 +130,13 @@ Rules — follow these when writing or reviewing UI:
 7. **Bars are data.** `AdaptiveTopBar(AdaptiveTopBarSpec(...))`: the iOS 26 renderer is a UIKit
    `UINavigationBar` that can't host composables; Compose-only extras go in `belowBar`. A status label
    is `BarAction.Text(...)`; the native bar draws no dot, so its `accessibilityLabel` must carry the
-   state.
+   state. While `LocalWindowFeatures` has vertical bars (iPhone Duo), only an `AdaptiveTopBar` in an
+   `AdaptiveScaffold`'s `topBar` or an `AdaptiveRailBox`'s `RailTopBar` moves its controls to the side
+   rail, keeping its title as a heading; any other stays horizontal. Key Duo layout on
+   `LocalWindowFeatures`, never on a device model, and use absolute left/right for the column's side.
+   Content that skips the horizontal safe-drawing inset (a raw `Scaffold` body, the bar slots, a
+   status-bar-only overlay) pads `windowInsetsPadding(WindowInsets.verticalBarColumn)`, never an
+   `AdaptiveScaffold` body, whose padding already holds the column; backgrounds keep filling under it.
 8. **Escape hatch, used sparingly.** Bespoke chrome (chat composer, chat top bar, drawer / sidebar,
    chat backdrop plumbing) may branch on `isLiquidGlass`. A branch that shows up a second time belongs
    in a new `Adaptive*` component.

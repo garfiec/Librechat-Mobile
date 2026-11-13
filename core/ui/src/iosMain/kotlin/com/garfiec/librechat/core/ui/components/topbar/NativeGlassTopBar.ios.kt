@@ -152,7 +152,7 @@ internal fun AdaptiveTopBarSpec.snapshot() = BarSnapshot(
     titleStyle = title.style,
     titleAlignment = title.alignment,
     titleTappable = title.onClick != null || title.rename != null,
-    actions = actions.map { action ->
+    actions = actions.mapNotNull { action ->
         when (action) {
             is BarAction.Icon -> ActionSnapshot(
                 action.id, "icon", action.icon.sfSymbol, action.label, false, action.tint, action.enabled && !action.busy,
@@ -170,6 +170,7 @@ internal fun AdaptiveTopBarSpec.snapshot() = BarSnapshot(
                 checkedTint = action.checkedTint,
             )
             is BarAction.Menu -> ActionSnapshot(action.id, "menu", action.icon.sfSymbol, action.label, false, BarTint.DEFAULT, true)
+            is BarAction.Custom -> null
         }
     },
 )
@@ -407,7 +408,7 @@ private class NativeBarContainer(
             is BarAction.Icon -> action.onClick()
             is BarAction.Toggle -> action.onCheckedChange(!action.checked)
             is BarAction.Text -> action.onClick()
-            is BarAction.Menu, null -> Unit
+            is BarAction.Menu, is BarAction.Custom, null -> Unit
         }
     }
 

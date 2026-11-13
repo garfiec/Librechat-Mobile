@@ -194,6 +194,14 @@ class Navigator(
         backStack.add(route)
     }
 
+    /**
+     * New chat (the sidebar's, the chat rail's): the plain landing, unless it is already on top. A
+     * project's landing is not the plain one, so New chat still leaves it.
+     */
+    fun navigateToNewChat() {
+        if ((currentRoute as? NewChat)?.isPlainLanding != true) navigateToTopLevel(NewChat())
+    }
+
     /** Navigate to a top-level destination, popping to root first. Dedupes by VALUE
      *  (not class) so a payload-carrying route replaces a same-class root that differs:
      *  e.g. NewChat("agent_X") must replace the bare landing NewChat() so the agent id

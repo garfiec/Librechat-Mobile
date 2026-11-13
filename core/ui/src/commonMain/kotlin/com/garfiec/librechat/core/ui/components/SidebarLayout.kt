@@ -8,7 +8,8 @@ import androidx.compose.ui.unit.dp
 
 val SidebarWidth = 320.dp
 
-private val MinContentWidth = 360.dp
+/** The narrowest the content beside the sidebar may be: a small phone's width. */
+val MinContentWidth = 360.dp
 
 // The compact-height window size class's upper bound.
 private val MinSidebarWindowHeight = 480.dp

@@ -3,6 +3,12 @@ package com.garfiec.librechat.feature.chat.components
 import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.core.model.usage.ContextUsage
 import com.garfiec.librechat.core.model.usage.TokenBudgetBreakdown
+import com.garfiec.librechat.feature.chat.components.ChatBarItem.BACKGROUND_TASKS
+import com.garfiec.librechat.feature.chat.components.ChatBarItem.CONTEXT_RING
+import com.garfiec.librechat.feature.chat.components.ChatBarItem.FIND
+import com.garfiec.librechat.feature.chat.components.ChatBarItem.NEW_CHAT
+import com.garfiec.librechat.feature.chat.components.ChatBarItem.OVERFLOW
+import com.garfiec.librechat.feature.chat.components.ChatBarItem.TEMPORARY_CHAT
 import com.garfiec.librechat.feature.chat.components.ChatOverflowItem.ARCHIVE
 import com.garfiec.librechat.feature.chat.components.ChatOverflowItem.BOOKMARKS
 import com.garfiec.librechat.feature.chat.components.ChatOverflowItem.COMPARE
@@ -21,6 +27,7 @@ import com.garfiec.librechat.feature.chat.components.ChatOverflowItem.TRACE
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 /**
  * The Material dropdown and the native iOS menu both render this list, so its gating and order are
@@ -48,11 +55,32 @@ class ChatOverflowSectionsTest {
         isTemporaryChat: Boolean = false,
         hasPullRequest: Boolean = false,
         openApps: Int = 0,
+        findInRail: Boolean = false,
     ) = chatOverflowSections(
         ChatOverflowGates(
             conversationId, hasShowAllMedia, presetsEnabled, hasPromptsLibrary, promptsEnabled, multiConvoEnabled,
             traceViewerAvailable, contextUsage, contextUsageEnabled, contextBarPlacement, sharedLinksEnabled,
             compactNudgeVisible, firstTurnStreaming, bookmarksEnabled, isTemporaryChat, hasPullRequest, openApps,
+            findInRail,
+        ),
+    )
+
+    private fun bar(
+        rail: Boolean = true,
+        hasDrawer: Boolean = true,
+        sidebarOpen: Boolean = false,
+        conversationId: String? = "c1",
+        hasNewChat: Boolean = true,
+        showTempChatToggle: Boolean = false,
+        showPullRequestChip: Boolean = false,
+        backgroundTasksVisible: Boolean = false,
+        contextUsageEnabled: Boolean = true,
+        contextBarPlacement: ContextBarPlacement = ContextBarPlacement.OPTIONS_SHEET,
+        usedTokens: Int = 250,
+    ) = chatBarItems(
+        ChatBarGates(
+            rail, hasDrawer, sidebarOpen, conversationId, hasNewChat, showTempChatToggle, showPullRequestChip, backgroundTasksVisible,
+            contextUsageEnabled, contextBarPlacement, usedTokens,
         ),
     )
 
@@ -163,5 +191,66 @@ class ChatOverflowSectionsTest {
         assertEquals(listOf(ChatOverflowItem.OPEN_APPS), sections(conversationId = null, hasShowAllMedia = false, presetsEnabled = false,
             hasPromptsLibrary = false, multiConvoEnabled = false, traceViewerAvailable = false, contextUsage = null, openApps = 1).first())
         assertFalse(ChatOverflowItem.OPEN_APPS in sections(openApps = 0).flatten())
+    }
+
+    @Test
+    fun findLeavesTheMenuOnlyWhileTheRailShowsIt() {
+        assertTrue(SEARCH in sections().flatten())
+        assertFalse(SEARCH in sections(findInRail = true).flatten())
+        assertEquals(listOf(SHOW_ALL_MEDIA, LOAD_PRESET), sections(findInRail = true)[0].take(2))
+    }
+
+    @Test
+    fun railTopGroupIsNewChatFindToggleThenOverflow() {
+        assertEquals(listOf(NEW_CHAT, FIND, TEMPORARY_CHAT, OVERFLOW), bar(showTempChatToggle = true).actions)
+        assertEquals(listOf(NEW_CHAT, FIND, OVERFLOW), bar().actions)
+    }
+
+    @Test
+    fun railLeavesOutFindOnTheLandingAndNewChatWithoutAHandler() {
+        assertEquals(listOf(NEW_CHAT, TEMPORARY_CHAT, OVERFLOW), bar(conversationId = null, showTempChatToggle = true).actions)
+        assertEquals(listOf(FIND, OVERFLOW), bar(hasNewChat = false).actions)
+    }
+
+    @Test
+    fun railLeadsWithNoDrawerButtonBesideTheOpenSidebar() {
+        assertTrue(bar().drawer)
+        assertFalse(bar(sidebarOpen = true).drawer)
+        assertFalse(bar(hasDrawer = false).drawer)
+    }
+
+    @Test
+    fun horizontalBarKeepsTheSidebarToggleWhileTheSidebarIsOpen() {
+        assertTrue(bar(rail = false, sidebarOpen = true).drawer)
+        assertFalse(bar(rail = false, hasDrawer = false).drawer)
+    }
+
+    @Test
+    fun railKeepsThePullRequestChipOffItsTopGroup() {
+        assertFalse(ChatBarItem.PULL_REQUEST in bar(showPullRequestChip = true).actions)
+    }
+
+    @Test
+    fun railBottomGroupIsBackgroundTasksThenTheRing() {
+        assertEquals(listOf(BACKGROUND_TASKS, CONTEXT_RING), bar(backgroundTasksVisible = true).status)
+        assertEquals(listOf(CONTEXT_RING), bar().status)
+    }
+
+    @Test
+    fun railRingNeedsUsageEnabledTokensUsedAndAVisiblePlacement() {
+        assertEquals(emptyList(), bar(contextUsageEnabled = false).status)
+        assertEquals(emptyList(), bar(usedTokens = 0).status)
+        assertEquals(emptyList(), bar(contextBarPlacement = ContextBarPlacement.HIDDEN).status)
+        assertEquals(listOf(CONTEXT_RING), bar(contextBarPlacement = ContextBarPlacement.ABOVE_INPUT).status)
+        assertEquals(listOf(CONTEXT_RING), bar(contextBarPlacement = ContextBarPlacement.OVERFLOW_MENU).status)
+    }
+
+    @Test
+    fun horizontalBarAddsBackgroundTasksBeforeTheToggleAndNothingElse() {
+        val items =
+            bar(rail = false, showTempChatToggle = true, showPullRequestChip = true, backgroundTasksVisible = true)
+        assertEquals(listOf(ChatBarItem.PULL_REQUEST, BACKGROUND_TASKS, TEMPORARY_CHAT, OVERFLOW), items.actions)
+        assertEquals(emptyList(), items.status)
+        assertEquals(listOf(OVERFLOW), bar(rail = false).actions)
     }
 }

@@ -125,6 +125,8 @@ fun EntryProviderScope<NavKey>.chatEntries(
     onRemove: (NavKey) -> Unit,
     onNavigateToChat: (conversationId: String, isTemporary: Boolean) -> Unit,
     onOpenDrawer: (() -> Unit)? = null,
+    /** Starts a new chat as the drawer's New chat does; the chat's side rail offers it. */
+    onNewChat: (() -> Unit)? = null,
     /**
      * Deep-link target for the user-provided-key error CTA snackbar and
      * the model-selector "Add key" action on greyed endpoint groups. The host navigates
@@ -166,6 +168,7 @@ fun EntryProviderScope<NavKey>.chatEntries(
                 onNavigateToChat(conversationId, isTemporary)
             },
             onOpenDrawer = onOpenDrawer,
+            onNewChat = onNewChat,
             onNavigateToPromptsLibrary = { onNavigate(PromptsLibrary) },
             onNavigateToProviderKeys = onNavigateToProviderKeys,
             onAttachFromServer = onAttachFromServer,
@@ -184,6 +187,7 @@ fun EntryProviderScope<NavKey>.chatEntries(
                 highlightQuery = key.highlightQuery,
                 targetInReasoning = key.targetInReasoning,
                 onOpenDrawer = onOpenDrawer,
+                onNewChat = onNewChat,
                 onNavigateToPromptsLibrary = { onNavigate(PromptsLibrary) },
                 onNavigateBack = onBack,
                 // Fork/duplicate produce real (non-temp) conversations.

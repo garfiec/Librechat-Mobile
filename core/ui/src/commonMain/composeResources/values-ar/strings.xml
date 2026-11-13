@@ -434,4 +434,5 @@
     <string name="artifacts_mode_shadcnui_desc">يعلّم الذكاء الاصطناعي أيضًا مجموعة جاهزة من الأزرار والنماذج والبطاقات (shadcn/ui) لتطبيقات تفاعلية أجمل. تصبح كل رسالة أطول على الذكاء الاصطناعي، لذا قد تتأخر الردود.</string>
     <string name="artifacts_mode_custom">تعليماتي فقط</string>
     <string name="artifacts_mode_custom_desc">يوقف الإرشادات المدمجة، فيتبع الذكاء الاصطناعي التعليمات المخصصة التي كتبتها فقط. قد لا ينشئ عناصر ما لم تشرح تعليماتك ذلك.</string>
+    <string name="topbar_more_options">خيارات إضافية</string>
 </resources>

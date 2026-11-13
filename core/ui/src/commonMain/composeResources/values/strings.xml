@@ -458,4 +458,5 @@
     <string name="artifacts_mode_shadcnui_desc">Also teaches the AI a set of ready-made buttons, forms and cards (shadcn/ui) for better-looking interactive apps. Every message gets longer for the AI to read, so replies can be slower.</string>
     <string name="artifacts_mode_custom">Only my instructions</string>
     <string name="artifacts_mode_custom_desc">Turns off the built-in guidance, so the AI follows only the custom instructions you've written. It may not make artifacts unless your instructions explain how.</string>
+    <string name="topbar_more_options">More options</string>
 </resources>

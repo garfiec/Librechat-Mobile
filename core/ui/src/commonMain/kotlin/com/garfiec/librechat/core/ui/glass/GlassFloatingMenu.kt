@@ -45,6 +45,7 @@ import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.DpOffset
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.ui.components.DRAG_HIGHLIGHT_ALPHA
 import com.garfiec.librechat.core.ui.components.MenuDragSelection
@@ -53,6 +54,8 @@ import com.garfiec.librechat.core.ui.components.drawHighlight
 import com.garfiec.librechat.core.ui.components.rememberMenuDragEffects
 import com.garfiec.librechat.core.ui.components.scrollFadingEdges
 import com.garfiec.librechat.core.ui.components.topbar.CoversNativeBars
+import com.garfiec.librechat.core.ui.platform.BarSide
+import com.garfiec.librechat.core.ui.platform.LocalWindowFeatures
 import com.garfiec.librechat.core.ui.theme.LocalDarkTheme
 
 /** Opens a glass menu in [host] while [expanded], anchored to this call's parent layout, as an M3 `DropdownMenu` is. */
@@ -137,6 +140,7 @@ private fun GlassFloatingMenu(
     val highlightColor = MaterialTheme.colorScheme.onSurface.copy(alpha = DRAG_HIGHLIGHT_ALPHA)
     val fill = containerColor ?: GlassDefaults.panelThickening(MaterialTheme.colorScheme.surface, LocalDarkTheme.current)
     val safeArea = WindowInsets.safeDrawing
+    val bars = LocalWindowFeatures.current.verticalBars
 
     Box(Modifier.fillMaxSize().onPlaced { hostOrigin = it.positionInRoot() }) {
         Box(
@@ -192,10 +196,15 @@ private fun GlassFloatingMenu(
             val margin = MenuMargin.roundToPx()
             val top = safeArea.getTop(this) + margin
             val bottom = constraints.maxHeight - safeArea.getBottom(this) - margin
+            // Clear of a cutout or the vertical bar column on either side (absolute sides: the column ignores RTL).
+            val column = bars?.columnWidth?.roundToPx() ?: 0
+            val start = maxOf(safeArea.getLeft(this, LayoutDirection.Ltr), if (bars?.side == BarSide.LEFT) column else 0) + margin
+            val end = constraints.maxWidth -
+                maxOf(safeArea.getRight(this, LayoutDirection.Ltr), if (bars?.side == BarSide.RIGHT) column else 0) - margin
             val placeable = measurables.first().measure(
                 Constraints(
                     minWidth = MenuMinWidth.roundToPx(),
-                    maxWidth = minOf(MenuMaxWidth.roundToPx(), constraints.maxWidth - 2 * margin),
+                    maxWidth = minOf(MenuMaxWidth.roundToPx(), (end - start).coerceAtLeast(MenuMinWidth.roundToPx())),
                     maxHeight = (bottom - top).coerceAtLeast(0),
                 ),
             )
@@ -203,7 +212,7 @@ private fun GlassFloatingMenu(
             val alignEnd = local.center.x > constraints.maxWidth / 2f
             val preferredX = if (alignEnd) local.right - placeable.width else local.left
             val x = (preferredX + offset.x.roundToPx()).toInt()
-                .coerceIn(margin, (constraints.maxWidth - placeable.width - margin).coerceAtLeast(margin))
+                .coerceIn(start, (end - placeable.width).coerceAtLeast(start))
             val below = local.bottom.toInt() + offset.y.roundToPx()
             val above = local.top.toInt() - offset.y.roundToPx() - placeable.height
             val opensDown = below + placeable.height <= bottom || above < top

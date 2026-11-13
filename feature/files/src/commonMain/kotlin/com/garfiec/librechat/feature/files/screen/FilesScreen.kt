@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -54,6 +56,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -186,6 +189,7 @@ fun FilesScreen(
     // long as the screen, letting an in-flight save/share survive the viewer being dismissed.
     val saveImage = rememberSaveImageToGallery()
     val shareImage = rememberShareImage()
+    val layoutDirection = LocalLayoutDirection.current
     // Resolved once here (not inside the per-item actions slot) so paging doesn't re-resolve
     // string resources on every swipe.
     val saveDescription = stringResource(Res.string.cd_save_image)
@@ -497,7 +501,11 @@ fun FilesScreen(
                     filename = uiState.uploadFilename,
                     progress = uiState.uploadProgress,
                     onCancel = viewModel::cancelUpload,
-                    modifier = Modifier.align(Alignment.TopCenter).padding(top = padding.calculateTopPadding()),
+                    modifier = Modifier.align(Alignment.TopCenter).padding(
+                        top = padding.calculateTopPadding(),
+                        start = padding.calculateStartPadding(layoutDirection),
+                        end = padding.calculateEndPadding(layoutDirection),
+                    ),
                 )
             }
         }

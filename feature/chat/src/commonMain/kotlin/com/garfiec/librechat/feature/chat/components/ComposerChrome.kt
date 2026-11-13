@@ -71,4 +71,8 @@ data class ComposerChrome(
     val compactSuggested: Boolean = false,
     /** Where the context gauge is surfaced; the composer draws it only for [ContextBarPlacement.ABOVE_INPUT]. */
     val contextBarPlacement: ContextBarPlacement = ContextBarPlacement.OPTIONS_SHEET,
+    /** The side rail shows the context ring, so the composer doesn't. */
+    val contextRingInRail: Boolean = false,
+    /** The screen's hold on the ring's dialogs, shared with the rail's ring; without it the composer draws no ring. */
+    val contextRingDialogs: ContextRingDialogs? = null,
 )

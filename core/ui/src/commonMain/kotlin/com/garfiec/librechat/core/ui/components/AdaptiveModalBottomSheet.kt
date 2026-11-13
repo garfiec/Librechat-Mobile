@@ -1,6 +1,7 @@
 package com.garfiec.librechat.core.ui.components
 
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.union
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -23,6 +24,7 @@ import com.garfiec.librechat.core.ui.glass.GlassFloatingSheet
 import com.garfiec.librechat.core.ui.glass.GlassPortal
 import com.garfiec.librechat.core.ui.glass.GlassSheetHost
 import com.garfiec.librechat.core.ui.glass.LocalGlassSheetHost
+import com.garfiec.librechat.core.ui.platform.rememberBarColumnCover
 import com.garfiec.librechat.core.ui.theme.isLiquidGlass
 import kotlinx.coroutines.launch
 
@@ -174,15 +176,19 @@ private fun AdaptiveModalBottomSheetImpl(
         )
         return
     }
+    val barColumn = rememberBarColumnCover()
     ModalBottomSheet(
         onDismissRequest = onMaterialHide,
-        modifier = modifier,
+        modifier = modifier.then(barColumn.modifier),
         sheetState = sheetState,
         sheetMaxWidth = sheetMaxWidth,
         shape = shape,
         containerColor = if (glass) MaterialTheme.colorScheme.surfaceContainerLow else BottomSheetDefaults.ContainerColor,
         tonalElevation = if (glass) 0.dp else BottomSheetDefaults.Elevation,
         dragHandle = dragHandle,
+        // M3 insets only top and bottom. The sheet is centred and capped at SheetMaxWidth unless the caller
+        // fills the width, so its content keeps out of only the part of the bar column it covers.
+        contentWindowInsets = { BottomSheetDefaults.windowInsets.union(barColumn.inset) },
         properties = secureSheetProperties(windowSecure),
     ) {
         // Provides a local and emits nothing, so the content still lays out in the sheet's own column.

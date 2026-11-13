@@ -1,8 +1,10 @@
 package com.garfiec.librechat.feature.auth.screen
 
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
@@ -12,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.ui.platform.verticalBarColumn
 import com.garfiec.librechat.feature.auth.resources.Res
 import com.garfiec.librechat.feature.auth.resources.back
 import org.jetbrains.compose.resources.stringResource
@@ -30,6 +33,7 @@ fun BoxScope.BackAffordanceOverlay(onBack: (() -> Unit)?, modifier: Modifier = M
             modifier = modifier
                 .align(Alignment.TopStart)
                 .statusBarsPadding()
+                .windowInsetsPadding(WindowInsets.verticalBarColumn)
                 .padding(4.dp),
         ) {
             Icon(

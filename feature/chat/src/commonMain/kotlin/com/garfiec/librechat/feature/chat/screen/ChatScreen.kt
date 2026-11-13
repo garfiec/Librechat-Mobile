@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
@@ -43,12 +44,16 @@ import com.garfiec.librechat.core.model.response.pickerMimeTypes
 import com.garfiec.librechat.core.notifications.ReplyNotificationAsk
 import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
 import com.garfiec.librechat.core.ui.components.PdfPasswordDialog
+import com.garfiec.librechat.core.ui.components.topbar.AdaptiveRailBox
+import com.garfiec.librechat.core.ui.components.topbar.RailTopBar
 import com.garfiec.librechat.core.ui.glass.glassBackdropSource
 import com.garfiec.librechat.core.ui.mcp.McpVariablesSheet
 import com.garfiec.librechat.core.ui.platform.rememberReduceMotion
+import com.garfiec.librechat.core.ui.platform.verticalBarColumn
 import com.garfiec.librechat.core.ui.theme.chatColors
 import com.garfiec.librechat.core.ui.websearch.WebSearchKeysSheet
 import com.garfiec.librechat.feature.chat.components.AskUserQuestionPanel
+import com.garfiec.librechat.feature.chat.components.CONTEXT_RING_ACTION_ID
 import com.garfiec.librechat.feature.chat.components.ChatComposer
 import com.garfiec.librechat.feature.chat.components.ChatFloatingTopBar
 import com.garfiec.librechat.feature.chat.components.ChatOptionsPage
@@ -57,6 +62,7 @@ import com.garfiec.librechat.feature.chat.components.CodeWorkspaceComposer
 import com.garfiec.librechat.feature.chat.components.ComposerChrome
 import com.garfiec.librechat.feature.chat.components.ComposerComparison
 import com.garfiec.librechat.feature.chat.components.ComposerComparisonHint
+import com.garfiec.librechat.feature.chat.components.ContextRingDialogs
 import com.garfiec.librechat.feature.chat.components.LandingStarters
 import com.garfiec.librechat.feature.chat.components.LocalCodeRunHost
 import com.garfiec.librechat.feature.chat.components.LocalCodeWorkspaceComposer
@@ -158,6 +164,8 @@ fun ChatScreen(
     onConversationStart: ((conversationId: String, isTemporary: Boolean) -> Unit)? = null,
     onNavigateToConversation: ((String) -> Unit)? = null,
     onOpenDrawer: (() -> Unit)? = null,
+    /** Starts a new chat, as the drawer's New chat does; shown in the side rail. Null leaves it out. */
+    onNewChat: (() -> Unit)? = null,
     onNavigateToPromptsLibrary: (() -> Unit)? = null,
     onNavigateBack: (() -> Unit)? = null,
     /** Opens the "Show all media" gallery for the current conversation. Null (and the menu item
@@ -232,6 +240,7 @@ fun ChatScreen(
     var mcpVariablesServer by rememberSaveable { mutableStateOf<String?>(null) }
     var showSavePresetDialog by remember { mutableStateOf(false) }
     var showSecondaryModelSheet by remember { mutableStateOf(false) }
+    val contextRingDialogs = remember { ContextRingDialogs() }
     var activeComparisonTab by remember { mutableIntStateOf(0) }
     val compareSetupPick = rememberCompareSetupPick(uiState.comparisonState.isSettingUp)
     val compareSetupActions = remember(viewModel) { viewModel.compareSetupActions() }
@@ -474,7 +483,9 @@ fun ChatScreen(
         // snackbar); the composer handles its own nav-bar padding.
         contentWindowInsets = WindowInsets.navigationBars,
         containerColor = chatColors().canvas,
-        snackbarHost = { AdaptiveSnackbarHost(snackbarHostState) },
+        snackbarHost = {
+            AdaptiveSnackbarHost(snackbarHostState, modifier = Modifier.windowInsetsPadding(WindowInsets.verticalBarColumn))
+        },
     ) { _ ->
         // The composer overlays the message list at the bottom; the list reserves a scrollable
         // bottom inset so its latest content rests above the bar. We measure the bar's actual
@@ -494,11 +505,7 @@ fun ChatScreen(
         val topContentPadding = with(LocalDensity.current) {
             maxOf(statusBarTop + 56.dp, topBarHeightPx.toDp())
         }
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .onSizeChanged { chatWidthPx = it.width },
-        ) {
+        Box(modifier = Modifier.fillMaxSize()) {
             val pullUp = rememberChatPullUpSheetState()
             // Temporary chat's transition: the band and (Material) the retone draw over and behind
             // the landing, the composer and the top bar, which all react to it through LocalModeVeil.
@@ -515,7 +522,7 @@ fun ChatScreen(
                 // Run Code on reply fences, behind RUN_CODE.USE (web `MarkdownComponents` `canRunCode`).
                 LocalCodeRunHost provides viewModel.codeRunHost.takeIf { uiState.runCodeEnabled },
             ) {
-                Box(
+                AdaptiveRailBox(
                     Modifier
                         .fillMaxSize()
                         .glassBackdropSource(pullUp.backdrop.takeIf { pullUp.visible })
@@ -528,6 +535,10 @@ fun ChatScreen(
                         // would silently drop the excerpts.
                         modifier = Modifier
                             .fillMaxSize()
+                            // The thread keeps out of the bar column (iPhone Duo) while the backdrop around
+                            // it fills under it; the panes' width gates measure what's left.
+                            .windowInsetsPadding(WindowInsets.verticalBarColumn)
+                            .onSizeChanged { chatWidthPx = it.width }
                             .addToChatSelectionItem(
                                 enabled = uiState.quoteCaptureAvailable,
                                 onAddToChat = viewModel::addPendingQuote,
@@ -654,6 +665,9 @@ fun ChatScreen(
                         onSnoozeCompact = viewModel::snoozeCompactNudge,
                         compactSuggested = uiState.compactNudgeOnToolsButton,
                         contextBarPlacement = uiState.contextBarPlacement,
+                        // A rail shortened by the keyboard drops the ring; the composer then draws it.
+                        contextRingInRail = railShowsBottomAction(CONTEXT_RING_ACTION_ID),
+                        contextRingDialogs = contextRingDialogs,
                     )
                     Box(
                         modifier = Modifier
@@ -673,7 +687,9 @@ fun ChatScreen(
                                             onOpenWhatsNew()
                                         },
                                         onDismiss = { updateBannerViewModel.acknowledge(update) },
-                                        modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 8.dp),
+                                        modifier = Modifier
+                                            .windowInsetsPadding(WindowInsets.verticalBarColumn)
+                                            .padding(start = 12.dp, end = 12.dp, top = 8.dp),
                                     )
                                 }
                             }
@@ -690,6 +706,7 @@ fun ChatScreen(
                                     // landing, so they carry its pull-up drag too.
                                     modifier = Modifier
                                         .weight(1f, fill = false)
+                                        .windowInsetsPadding(WindowInsets.verticalBarColumn)
                                         .then(pullUp.landingModifier),
                                 )
                             }
@@ -710,6 +727,7 @@ fun ChatScreen(
                                     // gets only the height it leaves.
                                     modifier = Modifier
                                         .weight(1f, fill = false)
+                                        .windowInsetsPadding(WindowInsets.verticalBarColumn)
                                         .padding(start = 12.dp, end = 12.dp, top = 8.dp),
                                 )
                             }
@@ -732,6 +750,7 @@ fun ChatScreen(
                                     resumeFailed = uiState.pendingActionResumeFailed,
                                     modifier = Modifier
                                         .navigationBarsPadding()
+                                        .windowInsetsPadding(WindowInsets.verticalBarColumn)
                                         .padding(horizontal = 12.dp, vertical = 8.dp),
                                 )
                             } else {
@@ -759,21 +778,22 @@ fun ChatScreen(
                                             onSelectApprovalMode = viewModel::selectCodeApprovalMode,
                                         )
                                     }
-                                    // The pull request row: narrow panes only (a wide one has the bar chip),
-                                    // out of the way of a tool-approval pause, and folded to its glyph
+                                    // The pull request row: narrow panes and the rail only (a wide bar has the
+                                    // chip), out of the way of a tool-approval pause, and folded to its glyph
                                     // while a run streams.
                                     val pullRequestState = uiState.pullRequest
                                     val toolPausePending = toolPause != null
+                                    val barHasPullRequestChip = comparisonWide && !this@AdaptiveRailBox.inRail
                                     val pullRequestComposer = remember(
                                         pullRequestState,
-                                        comparisonWide,
+                                        barHasPullRequestChip,
                                         toolPausePending,
                                         isAnyStreaming,
                                         viewModel,
                                     ) {
                                         val pr = pullRequestState.pullRequest
                                         val presentation = pullRequestState.presentation
-                                        if (comparisonWide || toolPausePending || pr == null || presentation == null) {
+                                        if (barHasPullRequestChip || toolPausePending || pr == null || presentation == null) {
                                             null
                                         } else {
                                             PullRequestComposer(
@@ -878,31 +898,36 @@ fun ChatScreen(
 
                     // Floating top bar overlays the message list (drawn last so it sits above content),
                     // measured so ChatContent can reserve a matching scrollable top inset.
-                    ChatFloatingTopBar(
-                        uiState = uiState,
-                        viewModel = viewModel,
-                        onLoadPreset = {
-                            viewModel.reloadPresetsIfFailed()
-                            showPresetPicker = true
-                        },
-                        onSavePreset = { showSavePresetDialog = true },
-                        onRename = viewModel::showRenameDialog,
-                        onOpenDrawer = onOpenDrawer,
-                        onShowAllMedia = onShowAllMedia,
-                        onOpenPromptsLibrary = onNavigateToPromptsLibrary,
-                        // The same 600dp of chat pane that splits Compare and the pause panels.
-                        widePane = comparisonWide,
-                        modifier = Modifier
-                            .align(Alignment.TopCenter)
-                            .onSizeChanged { topBarHeightPx = it.height }
-                            .onGloballyPositioned { bar ->
-                                // The native iOS bar's toggle has no Compose layout: aim at its usual slot.
-                                val bounds = bar.boundsInRoot()
-                                modeVeil.reportFallbackOrigin(
-                                    Offset(bounds.right - fallbackToggleEnd, bounds.bottom - fallbackToggleBottom),
-                                )
+                    RailTopBar {
+                        ChatFloatingTopBar(
+                            uiState = uiState,
+                            viewModel = viewModel,
+                            onLoadPreset = {
+                                viewModel.reloadPresetsIfFailed()
+                                showPresetPicker = true
                             },
-                    )
+                            onSavePreset = { showSavePresetDialog = true },
+                            onRename = viewModel::showRenameDialog,
+                            onOpenDrawer = onOpenDrawer,
+                            onShowAllMedia = onShowAllMedia,
+                            onOpenPromptsLibrary = onNavigateToPromptsLibrary,
+                            // The same 600dp of chat pane that splits Compare and the pause panels.
+                            widePane = comparisonWide,
+                            railMode = inRail,
+                            onNewChat = onNewChat,
+                            contextRingDialogs = contextRingDialogs,
+                            modifier = Modifier
+                                .align(Alignment.TopCenter)
+                                .onSizeChanged { topBarHeightPx = it.height }
+                                .onGloballyPositioned { bar ->
+                                    // The native iOS bar's toggle has no Compose layout: aim at its usual slot.
+                                    val bounds = bar.boundsInRoot()
+                                    modeVeil.reportFallbackOrigin(
+                                        Offset(bounds.right - fallbackToggleEnd, bounds.bottom - fallbackToggleBottom),
+                                    )
+                                },
+                        )
+                    }
                 }
             }
 
@@ -1068,6 +1093,7 @@ fun NewChatScreen(
     chatProjectId: String? = null,
     chatProjectName: String? = null,
     onOpenDrawer: (() -> Unit)? = null,
+    onNewChat: (() -> Unit)? = null,
     onNavigateToPromptsLibrary: (() -> Unit)? = null,
     onAttachFromServer: () -> Unit = {},
     onOpenWhatsNew: () -> Unit = {},
@@ -1083,6 +1109,7 @@ fun NewChatScreen(
         chatProjectName = chatProjectName,
         onConversationStart = onConversationStart,
         onOpenDrawer = onOpenDrawer,
+        onNewChat = onNewChat,
         onNavigateToPromptsLibrary = onNavigateToPromptsLibrary,
         onNavigateToProviderKeys = onNavigateToProviderKeys,
         onAttachFromServer = onAttachFromServer,

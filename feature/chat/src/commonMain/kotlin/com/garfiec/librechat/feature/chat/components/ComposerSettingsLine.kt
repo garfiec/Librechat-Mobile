@@ -29,6 +29,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -144,13 +145,25 @@ internal data class ContextRingState(
     /** Null when the server does not offer compaction, or nothing can be compacted right now. */
     val onCompact: (() -> Unit)?,
     val onSnoozeCompact: () -> Unit,
+    val dialogs: ContextRingDialogs,
 )
+
+/**
+ * Which of the context ring's dialogs is open. The screen holds it above every ring it draws (rail and
+ * composer) and [ContextRingDialogsHost] draws them, so a dialog outlives its ring moving between the two.
+ */
+@Stable
+class ContextRingDialogs {
+    var usageOpen by mutableStateOf(false)
+    var compactOpen by mutableStateOf(false)
+}
 
 internal fun ComposerChrome.contextRing(): ContextRingState? {
     val details = contextGauge ?: return null
-    if (contextBarPlacement != ContextBarPlacement.ABOVE_INPUT || !contextUsageEnabled) return null
+    val dialogs = contextRingDialogs ?: return null
+    if (contextBarPlacement != ContextBarPlacement.ABOVE_INPUT || !contextUsageEnabled || contextRingInRail) return null
     if (details.usage.usedTokens <= 0) return null
-    return ContextRingState(details, onCompact, onSnoozeCompact)
+    return ContextRingState(details, onCompact, onSnoozeCompact, dialogs)
 }
 
 @Composable
@@ -293,11 +306,9 @@ internal fun lockedByMessage(lockedBy: String?): StringResource =
 @Composable
 internal fun lockedByText(lockedBy: String?): String = stringResource(lockedByMessage(lockedBy), lockedBy.orEmpty())
 
-/** While compacting is suggested a tap opens the compact confirmation, whose "See usage" reaches the breakdown without snoozing. */
+/** While compacting is suggested a tap opens the compact confirmation, else the breakdown; [ContextRingDialogsHost] draws both. */
 @Composable
 internal fun ContextRing(state: ContextRingState, modifier: Modifier = Modifier) {
-    var showSheet by remember { mutableStateOf(false) }
-    var confirmCompact by remember { mutableStateOf(false) }
     val details = state.details
     val usage = details.usage
     val percent = percentOf(usage.usedTokens, usage.windowTokens)
@@ -310,7 +321,9 @@ internal fun ContextRing(state: ContextRingState, modifier: Modifier = Modifier)
         modifier = modifier
             .minimumInteractiveComponentSize()
             .clip(CircleShape)
-            .clickable(role = Role.Button) { if (nudge != null) confirmCompact = true else showSheet = true }
+            .clickable(role = Role.Button) {
+                if (nudge != null) state.dialogs.compactOpen = true else state.dialogs.usageOpen = true
+            }
             .semantics(mergeDescendants = true) {
                 contentDescription = description
                 if (nudgeState != null) stateDescription = nudgeState
@@ -348,25 +361,32 @@ internal fun ContextRing(state: ContextRingState, modifier: Modifier = Modifier)
             )
         }
     }
-    if (showSheet) {
-        ContextUsageSheet(details = details, onDismiss = { showSheet = false }, onCompact = state.onCompact)
+}
+
+/** The sheet and confirmation a [ContextRing] opens; composed by the screen whether or not a ring is showing. */
+@Composable
+internal fun ContextRingDialogsHost(state: ContextRingState) {
+    val dialogs = state.dialogs
+    if (dialogs.usageOpen) {
+        ContextUsageSheet(details = state.details, onDismiss = { dialogs.usageOpen = false }, onCompact = state.onCompact)
     }
     val onCompact = state.onCompact
-    if (confirmCompact && nudge != null && onCompact != null) {
+    val nudge = state.details.nudge
+    if (dialogs.compactOpen && nudge != null && onCompact != null) {
         CompactConfirmDialog(
             percent = nudge.percent,
-            onDismiss = { confirmCompact = false },
+            onDismiss = { dialogs.compactOpen = false },
             onNotNow = {
-                confirmCompact = false
+                dialogs.compactOpen = false
                 state.onSnoozeCompact()
             },
             onCompact = {
-                confirmCompact = false
+                dialogs.compactOpen = false
                 onCompact()
             },
             onSeeUsage = {
-                confirmCompact = false
-                showSheet = true
+                dialogs.compactOpen = false
+                dialogs.usageOpen = true
             },
         )
     }
