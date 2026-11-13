@@ -163,6 +163,7 @@ private fun TwoFactorSetupError.message(): StringResource = when (this) {
     TwoFactorSetupError.RateLimited -> Res.string.two_factor_setup_error_rate_limited
     TwoFactorSetupError.FinalizeFailed -> Res.string.two_factor_setup_error_finalize
     TwoFactorSetupError.Connection -> Res.string.two_factor_setup_error_connection
+    TwoFactorSetupError.SessionCookieMissing -> Res.string.auth_error_session_cookie_missing
 }
 
 /** One phase's content, as a single emitter. */

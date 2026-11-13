@@ -1,6 +1,7 @@
 package com.garfiec.librechat.feature.auth.viewmodel
 
 import androidx.compose.runtime.Immutable
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.garfiec.librechat.core.common.identity.cleanServerUrl
@@ -159,9 +160,11 @@ class LoginViewModel(
     serverDataStore: ServerDataStore,
     certificateTrust: CertificateTrustRegistry,
     bannerRepository: BannerRepository,
+    private val savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(LoginUiState())
+    /** The typed email is restored after process death; the password is never saved. */
+    private val _uiState = MutableStateFlow(LoginUiState(email = savedStateHandle[KEY_EMAIL] ?: ""))
     val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
 
     /**
@@ -289,6 +292,7 @@ class LoginViewModel(
     }
 
     fun onEmailChanged(email: String) {
+        savedStateHandle[KEY_EMAIL] = email
         _uiState.value = _uiState.value.copy(email = email, error = null, refusal = null, inputError = null)
     }
 
@@ -359,5 +363,9 @@ class LoginViewModel(
 
     fun consumeTwoFactorSetupNavigation() {
         _uiState.value = _uiState.value.copy(twoFactorSetupTempToken = null)
+    }
+
+    private companion object {
+        const val KEY_EMAIL = "login_email"
     }
 }

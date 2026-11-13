@@ -2,6 +2,7 @@ package com.garfiec.librechat.feature.auth.di
 
 import android.app.Application
 import android.content.Context
+import androidx.lifecycle.SavedStateHandle
 import com.garfiec.librechat.core.data.datastore.AccountRoster
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SsoRiskDataStore
@@ -34,6 +35,8 @@ class AuthModuleVerificationTest {
                 AccountSwitcher::class,
                 AccountRoster::class,
                 DiagnosticLogRepository::class,
+                // Supplied by a ViewModel's CreationExtras at resolution time, never declared.
+                SavedStateHandle::class,
                 // ServerUrlViewModel's addAccount mode flag, injected via parametersOf.
                 Boolean::class,
             ),

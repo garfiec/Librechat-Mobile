@@ -231,6 +231,19 @@ class TwoFactorViewModelTest {
     }
 
     @Test
+    fun `a session with no refresh cookie is worded as the cookie refusal`() = runTest {
+        coEvery { authRepository.verifyTwoFactor(any(), any(), any()) } returns
+            VerifyTwoFactorOutcome.SessionIncomplete("incomplete", cookieMissing = true)
+
+        val viewModel = createViewModel()
+        viewModel.enterDigits("123456")
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.refusal).isEqualTo(AuthRefusal.SessionCookieMissing)
+        assertThat(viewModel.uiState.value.code).isEmpty()
+    }
+
+    @Test
     fun `a server error keeps the entry and is not reported as a bad code`() = runTest {
         // A 5xx never evaluated the code, so the entry stays intact for a plain retry.
         coEvery { authRepository.verifyTwoFactor(any(), any(), any()) } returns

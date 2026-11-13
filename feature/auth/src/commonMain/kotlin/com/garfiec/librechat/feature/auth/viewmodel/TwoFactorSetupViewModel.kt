@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.AuthRepository
+import com.garfiec.librechat.core.data.repository.MissingRefreshCookieException
 import com.garfiec.librechat.core.ui.components.OTP_LENGTH
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -32,6 +33,9 @@ enum class TwoFactorSetupError {
 
     /** No answer from the server. */
     Connection,
+
+    /** 2FA was enabled, but the session came back without its `refreshToken` cookie and wasn't kept. */
+    SessionCookieMissing,
 }
 
 @Immutable
@@ -188,6 +192,9 @@ class TwoFactorSetupViewModel(
         val api = error.exception as? ApiException
         val status = api?.statusCode
         when {
+            error.exception is MissingRefreshCookieException -> _uiState.update {
+                it.copy(isLoading = false, error = TwoFactorSetupError.SessionCookieMissing)
+            }
             status != null && status in setupCredentialDeadOn -> restart()
             status == HTTP_TOO_MANY_REQUESTS -> _uiState.update {
                 it.copy(isLoading = false, error = TwoFactorSetupError.RateLimited)

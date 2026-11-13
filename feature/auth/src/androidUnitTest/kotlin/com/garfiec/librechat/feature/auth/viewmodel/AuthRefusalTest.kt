@@ -2,11 +2,13 @@ package com.garfiec.librechat.feature.auth.viewmodel
 
 import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.common.result.toSafeError
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.repository.AccountSwitcher
 import com.garfiec.librechat.core.data.repository.AuthRepository
 import com.garfiec.librechat.core.data.repository.BannerRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
+import com.garfiec.librechat.core.data.repository.MissingRefreshCookieException
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
 import io.mockk.every
@@ -86,6 +88,12 @@ class AuthRefusalTest {
         assertThat(authRefusalOf(403, """{"code":"terms_not_accepted"}""")).isNull()
         assertThat(authRefusalOf(403, "<html><body>Forbidden</body></html>")).isNull()
         assertThat(authRefusalOf(403, null)).isNull()
+    }
+
+    @Test
+    fun `a sign-in kept from its refresh cookie is the cookie refusal`() {
+        assertThat(MissingRefreshCookieException().toSafeError().loginRefusalOrNull())
+            .isEqualTo(AuthRefusal.SessionCookieMissing)
     }
 
     @Test

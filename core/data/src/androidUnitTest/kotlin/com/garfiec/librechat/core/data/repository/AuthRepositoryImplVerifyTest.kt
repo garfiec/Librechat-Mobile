@@ -108,11 +108,16 @@ class AuthRepositoryImplVerifyTest {
         )
     }
 
-    private fun jsonHeaders() = headersOf(HttpHeaders.ContentType, "application/json")
-
-    private fun engineReturning(content: String, status: HttpStatusCode) = MockEngine {
-        respond(content = content, status = status, headers = jsonHeaders())
-    }
+    private fun engineReturning(content: String, status: HttpStatusCode, setCookie: String? = REFRESH_COOKIE) =
+        MockEngine {
+            val headers = headersOf(
+                *listOfNotNull(
+                    HttpHeaders.ContentType to listOf("application/json"),
+                    setCookie?.let { HttpHeaders.SetCookie to listOf(it) },
+                ).toTypedArray(),
+            )
+            respond(content = content, status = status, headers = headers)
+        }
 
     @Test
     fun `an undecodable 2xx body reports SessionIncomplete, not a connectivity failure`() = runTest {
@@ -208,7 +213,40 @@ class AuthRepositoryImplVerifyTest {
         coVerify(exactly = 0) { tokenManager.clearTokens() }
     }
 
+    @Test
+    fun `a password sign-in with no refresh cookie fails and stages nothing`() = runTest {
+        for (cookie in listOf(null, "refreshToken=; Path=/")) {
+            val result = repo(engineReturning(VALID_SESSION_BODY, HttpStatusCode.OK, setCookie = cookie))
+                .login("a@b.com", "pw")
+
+            assertThat((result as Result.Error).exception).isInstanceOf(MissingRefreshCookieException::class.java)
+        }
+        coVerify(exactly = 0) { tokenManager.setTokens(any(), any()) }
+        coVerify(exactly = 0) { accountSessionEstablisher.establish(any()) }
+        // Nothing was staged, so nothing is rolled back: a re-auth keeps its account bound.
+        coVerify(exactly = 0) { tokenManager.clearTokens() }
+    }
+
+    @Test
+    fun `a 2FA verify with no refresh cookie reports SessionIncomplete naming the cookie`() = runTest {
+        val outcome = repo(engineReturning(VALID_SESSION_BODY, HttpStatusCode.OK, setCookie = null))
+            .verifyTwoFactor(tempToken = "temp-abc", code = "123456")
+
+        assertThat((outcome as VerifyTwoFactorOutcome.SessionIncomplete).cookieMissing).isTrue()
+        coVerify(exactly = 0) { tokenManager.setTokens(any(), any()) }
+    }
+
+    @Test
+    fun `a 2FA setup finalize with no refresh cookie fails naming the cookie`() = runTest {
+        val result = repo(engineReturning(VALID_SESSION_BODY, HttpStatusCode.OK, setCookie = null))
+            .finalizeTwoFactorSetup("finalization-token")
+
+        assertThat((result as Result.Error).exception).isInstanceOf(MissingRefreshCookieException::class.java)
+        coVerify(exactly = 0) { tokenManager.setTokens(any(), any()) }
+    }
+
     private companion object {
+        const val REFRESH_COOKIE = "refreshToken=rt-1; Path=/; HttpOnly"
         const val VALID_SESSION_BODY = """{"token":"jwt-1","user":{"_id":"u1","email":"a@b.com"}}"""
     }
 }

@@ -1,5 +1,6 @@
 package com.garfiec.librechat.feature.auth.viewmodel
 
+import androidx.lifecycle.SavedStateHandle
 import com.garfiec.librechat.core.common.result.FailureKind
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.common.result.message
@@ -40,6 +41,7 @@ import org.junit.Test
  * publish/cache (that's the srv:-key poisoning). In both modes nothing is stored until the server
  * has been found, and what is stored is the address that answered.
  */
+@Suppress("LargeClass") // debt: 886-line file
 @OptIn(ExperimentalCoroutinesApi::class)
 class ServerUrlViewModelTest {
 
@@ -77,16 +79,70 @@ class ServerUrlViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun createViewModel(addAccount: Boolean, cleartextBlockedForDomainNames: Boolean = false) =
-        ServerUrlViewModel(
-            serverDataStore = serverDataStore,
-            serverRepository = serverRepository,
-            configRepository = configRepository,
-            accountSwitcher = accountSwitcher,
-            accountRoster = accountRoster,
-            addAccount = addAccount,
-            cleartextBlockedForDomainNames = cleartextBlockedForDomainNames,
-        )
+    private fun createViewModel(
+        addAccount: Boolean,
+        cleartextBlockedForDomainNames: Boolean = false,
+        savedStateHandle: SavedStateHandle = SavedStateHandle(),
+    ) = ServerUrlViewModel(
+        serverDataStore = serverDataStore,
+        serverRepository = serverRepository,
+        configRepository = configRepository,
+        accountSwitcher = accountSwitcher,
+        accountRoster = accountRoster,
+        savedStateHandle = savedStateHandle,
+        addAccount = addAccount,
+        cleartextBlockedForDomainNames = cleartextBlockedForDomainNames,
+    )
+
+    @Test
+    fun `a typed address and header rows survive process death over the stored server's prefill`() =
+        runTest(testDispatcher) {
+            coEvery { serverDataStore.awaitBaseUrl() } returns liveUrl
+            coEvery { serverRepository.headersForServer(liveUrl) } returns liveHeaders
+            val handle = SavedStateHandle()
+            val first = createViewModel(addAccount = false, savedStateHandle = handle)
+            advanceUntilIdle()
+            first.onUrlChanged(pendingUrl)
+            first.addHeaderRow()
+            first.onHeaderNameChanged(1, "X-Gateway-Key")
+            first.onHeaderValueChanged(1, "secret-1")
+
+            val restored = createViewModel(addAccount = false, savedStateHandle = handle.restoredAfterProcessDeath())
+            advanceUntilIdle()
+
+            val state = restored.uiState.value
+            assertThat(state.url).isEqualTo(pendingUrl)
+            assertThat(state.customHeaders).containsExactly(
+                CustomHeaderRow("CF-Access-Client-Id", "id-value"),
+                CustomHeaderRow("X-Gateway-Key", "secret-1"),
+            ).inOrder()
+            assertThat(state.showAdvanced).isTrue()
+
+            restored.validateAndConnect()
+            advanceUntilIdle()
+            coVerify {
+                serverRepository.setHeaders(
+                    pendingUrl,
+                    mapOf("CF-Access-Client-Id" to "id-value", "X-Gateway-Key" to "secret-1"),
+                )
+            }
+        }
+
+    @Test
+    fun `a restored removal of every stored header keeps the editor open`() = runTest(testDispatcher) {
+        coEvery { serverDataStore.awaitBaseUrl() } returns liveUrl
+        coEvery { serverRepository.headersForServer(liveUrl) } returns liveHeaders
+        val handle = SavedStateHandle()
+        val first = createViewModel(addAccount = false, savedStateHandle = handle)
+        advanceUntilIdle()
+        first.removeHeaderRow(0)
+
+        val restored = createViewModel(addAccount = false, savedStateHandle = handle.restoredAfterProcessDeath())
+        advanceUntilIdle()
+
+        assertThat(restored.uiState.value.customHeaders).isEmpty()
+        assertThat(restored.uiState.value.showAdvanced).isTrue()
+    }
 
     @Test
     fun `normal mode does not publish config when detaching the old session fails`() = runTest(testDispatcher) {
@@ -806,4 +862,24 @@ class ServerUrlViewModelTest {
 
     private fun entry(id: String, serverUrl: String, lastActiveAt: Long) =
         AccountEntry(accountId = id, serverUrl = serverUrl, displayLabel = id, lastActiveAt = lastActiveAt)
+
+    @Test
+    fun `a one-tap known server leaves no typed header rows to restore`() = runTest(testDispatcher) {
+        val handle = SavedStateHandle()
+        val first = createViewModel(addAccount = true, savedStateHandle = handle)
+        first.addHeaderRow()
+        first.onHeaderNameChanged(0, "X-Gateway-Key")
+        first.onHeaderValueChanged(0, "for-another-server")
+        first.connectTo(liveUrl)
+        advanceUntilIdle()
+
+        val restored = createViewModel(addAccount = true, savedStateHandle = handle.restoredAfterProcessDeath())
+        advanceUntilIdle()
+
+        assertThat(restored.uiState.value.url).isEqualTo(liveUrl)
+        assertThat(restored.uiState.value.customHeaders).isEmpty()
+    }
+
+    private fun SavedStateHandle.restoredAfterProcessDeath(): SavedStateHandle =
+        SavedStateHandle(keys().associateWith<String, Any?> { this[it] })
 }

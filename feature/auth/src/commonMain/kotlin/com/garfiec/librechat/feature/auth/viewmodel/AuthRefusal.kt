@@ -2,6 +2,7 @@ package com.garfiec.librechat.feature.auth.viewmodel
 
 import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.data.repository.MissingRefreshCookieException
 import com.garfiec.librechat.core.model.error.ServerErrorCode
 import com.garfiec.librechat.core.model.error.StreamErrorType
 
@@ -47,6 +48,12 @@ enum class AuthRefusal {
     Banned,
 
     RateLimited,
+
+    /**
+     * The server signed the user in, but its `refreshToken` cookie never arrived, so no session was
+     * kept. Not a server code: read from [MissingRefreshCookieException].
+     */
+    SessionCookieMissing,
 }
 
 /** The refusal a 403 [body] carries, or null for any other answer. */
@@ -75,6 +82,7 @@ internal fun Result.Error.authRefusalOrNull(): AuthRefusal? =
  * proxy or WAF answers this route with a 404 or 403 page too, and that is not the user's password.
  */
 internal fun Result.Error.loginRefusalOrNull(): AuthRefusal? {
+    if (exception is MissingRefreshCookieException) return AuthRefusal.SessionCookieMissing
     val api = exception as? ApiException ?: return null
     return when (api.statusCode) {
         HTTP_FORBIDDEN -> authRefusalOf(api.statusCode, api.body) ?: when {

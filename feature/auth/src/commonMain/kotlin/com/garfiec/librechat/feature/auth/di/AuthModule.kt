@@ -28,6 +28,7 @@ val authModule = module {
             configRepository = get(),
             accountSwitcher = get(),
             accountRoster = get(),
+            savedStateHandle = get(),
             addAccount = params.getOrNull() ?: false,
         )
     }
