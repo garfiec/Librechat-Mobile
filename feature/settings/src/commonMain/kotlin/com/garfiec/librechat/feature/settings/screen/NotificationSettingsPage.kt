@@ -87,6 +87,9 @@ fun NotificationSettingsPage(
                     )
                 }
             }
+        }
+        item(key = "system_settings_gap") { Spacer(modifier = Modifier.height(24.dp)) }
+        adaptiveSection {
             row(key = "system_settings_row") {
                 SettingsRow(
                     icon = Icons.Default.Tune,
