@@ -22,7 +22,7 @@ interface UserRepository {
      */
     suspend fun requestEmailChange(newEmail: String, currentPassword: String): Result<Unit>
 
-    suspend fun verifyEmail(token: String): Result<Unit>
+    /** Mails [email] a fresh verification link, which voids the one sent before. */
     suspend fun resendVerification(email: String): Result<Unit>
 
     /** The default stateful workspace scope new agents get (Settings › Code execution). */

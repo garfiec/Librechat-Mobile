@@ -51,6 +51,7 @@ import com.garfiec.librechat.core.ui.components.withIosTextContentType
 import com.garfiec.librechat.feature.auth.diagnostics.DiagnosticLogLink
 import com.garfiec.librechat.feature.auth.resources.*
 import com.garfiec.librechat.feature.auth.resources.Res
+import com.garfiec.librechat.feature.auth.viewmodel.AuthRefusal
 import com.garfiec.librechat.feature.auth.viewmodel.LoginInputError
 import com.garfiec.librechat.feature.auth.viewmodel.LoginViewModel
 import com.garfiec.librechat.feature.auth.viewmodel.MAX_PASSWORD_LENGTH
@@ -66,6 +67,8 @@ fun LoginScreen(
     onNavigateToTwoFactor: (String) -> Unit = {},
     onNavigateToTwoFactorSetup: (String) -> Unit = {},
     onNavigateToSso: (String) -> Unit = {},
+    /** Opens the check-your-email screen, sending a fresh link to the given address. */
+    onNavigateToVerifyEmail: (String) -> Unit = {},
     onBack: (() -> Unit)? = null,
     /** Opens the switcher on the other signed-in accounts; null hides it. */
     onUseAnotherAccount: (() -> Unit)? = null,
@@ -238,6 +241,11 @@ fun LoginScreen(
                         modifier = Modifier.testTag("login_error"),
                     )
                     if (uiState.offerDiagnosticLog) DiagnosticLogLink()
+                    if (uiState.refusal == AuthRefusal.EmailNotVerified) {
+                        TextButton(onClick = { onNavigateToVerifyEmail(uiState.email.trim()) }) {
+                            Text(stringResource(Res.string.resend_verification_email))
+                        }
+                    }
                 }
 
                 if (uiState.emailLoginEnabled) {

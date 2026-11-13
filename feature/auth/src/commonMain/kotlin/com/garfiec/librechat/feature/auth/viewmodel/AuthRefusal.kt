@@ -7,6 +7,7 @@ import com.garfiec.librechat.core.model.error.StreamErrorType
 
 private const val HTTP_FORBIDDEN = 403
 private const val HTTP_NOT_FOUND = 404
+private const val HTTP_UNPROCESSABLE = 422
 private const val HTTP_TOO_MANY_REQUESTS = 429
 
 /** Upstream `ErrorTypes.AUTH_FAILED`. LDAP sends it as the 404's `message`, not as a `code`. */
@@ -38,6 +39,9 @@ enum class AuthRefusal {
     OtherSignInMethod,
 
     EmailLoginDisabled,
+
+    /** The login route's 422: the address isn't verified yet. The screen offers a resend. */
+    EmailNotVerified,
 
     /** The account or the network is banned. */
     Banned,
@@ -83,6 +87,7 @@ internal fun Result.Error.loginRefusalOrNull(): AuthRefusal? {
             api.message == AUTH_FAILED_CODE -> AuthRefusal.OtherSignInMethod
             else -> AuthRefusal.WrongCredentials
         }
+        HTTP_UNPROCESSABLE -> AuthRefusal.EmailNotVerified.takeIf { api.serverAuthored }
         HTTP_TOO_MANY_REQUESTS -> AuthRefusal.RateLimited
         else -> null
     }

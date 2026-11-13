@@ -9,6 +9,8 @@ import com.garfiec.librechat.core.data.repository.BannerRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.PendingAddSession
 import com.garfiec.librechat.core.model.Banner
+import com.garfiec.librechat.core.model.LoginOutcome
+import com.garfiec.librechat.core.model.User
 import com.garfiec.librechat.core.model.config.InterfaceConfig
 import com.garfiec.librechat.core.model.config.PrivacyPolicyConfig
 import com.garfiec.librechat.core.model.config.StartupConfig
@@ -104,6 +106,7 @@ class RegisterViewModelTest {
         every { pending.startupConfig } returns MutableStateFlow(
             StartupConfig(
                 minPasswordLength = 12,
+                emailEnabled = false,
                 interfaceConfig = InterfaceConfig(termsOfService = TermsOfServiceConfig(externalUrl = "/terms")),
             ),
         )
@@ -113,6 +116,7 @@ class RegisterViewModelTest {
 
         assertThat(viewModel.uiState.value.policyLinks.termsOfServiceUrl).isEqualTo("https://pending.example.com/terms")
         assertThat(viewModel.uiState.value.minPasswordLength).isEqualTo(12)
+        assertThat(viewModel.uiState.value.emailEnabled).isFalse()
     }
 
     private fun fillValidFields() {
@@ -141,7 +145,7 @@ class RegisterViewModelTest {
         viewModel.onConfirmPasswordChanged("mismatch")
         viewModel.register()
         assertThat(viewModel.uiState.value.refusal).isNull()
-        assertThat(viewModel.uiState.value.error).isEqualTo("Passwords do not match")
+        assertThat(viewModel.uiState.value.registerError).isEqualTo(RegisterError.PasswordMismatch)
     }
 
     @Test
@@ -157,7 +161,7 @@ class RegisterViewModelTest {
         assertThat(state.confirmPassword).isEmpty()
         assertThat(state.isLoading).isFalse()
         assertThat(state.error).isNull()
-        assertThat(state.isRegistered).isFalse()
+        assertThat(state.outcome).isNull()
     }
 
     @Test
@@ -189,7 +193,7 @@ class RegisterViewModelTest {
         viewModel.register()
         advanceUntilIdle()
 
-        assertThat(viewModel.uiState.value.error).isEqualTo("All fields are required")
+        assertThat(viewModel.uiState.value.registerError).isEqualTo(RegisterError.MissingFields)
     }
 
     @Test
@@ -204,7 +208,7 @@ class RegisterViewModelTest {
         viewModel.register()
         advanceUntilIdle()
 
-        assertThat(viewModel.uiState.value.error).isEqualTo("All fields are required")
+        assertThat(viewModel.uiState.value.registerError).isEqualTo(RegisterError.MissingFields)
     }
 
     @Test
@@ -220,7 +224,7 @@ class RegisterViewModelTest {
         viewModel.register()
         advanceUntilIdle()
 
-        assertThat(viewModel.uiState.value.error).isEqualTo("Password must be at least 8 characters")
+        assertThat(viewModel.uiState.value.registerError).isEqualTo(RegisterError.PasswordTooShort)
     }
 
     @Test
@@ -236,11 +240,12 @@ class RegisterViewModelTest {
         viewModel.register()
         advanceUntilIdle()
 
-        assertThat(viewModel.uiState.value.error).isEqualTo("Passwords do not match")
+        assertThat(viewModel.uiState.value.registerError).isEqualTo(RegisterError.PasswordMismatch)
     }
 
     @Test
-    fun `successful registration sets isRegistered true`() = runTest {
+    fun `with email on, a registration leads to verifying the email and does not sign in`() = runTest {
+        configFlow.value = StartupConfig(emailEnabled = true)
         coEvery {
             authRepository.register("Test User", "test@example.com", "testuser", "password123")
         } returns Result.Success(Unit)
@@ -253,9 +258,10 @@ class RegisterViewModelTest {
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
-        assertThat(state.isRegistered).isTrue()
+        assertThat(state.outcome).isEqualTo(RegisterOutcome.VerifyEmail("test@example.com"))
         assertThat(state.isLoading).isFalse()
         assertThat(state.error).isNull()
+        coVerify(exactly = 0) { authRepository.login(any(), any()) }
     }
 
     @Test
@@ -273,7 +279,7 @@ class RegisterViewModelTest {
 
         val state = viewModel.uiState.value
         assertThat(state.error).isEqualTo("Email already exists")
-        assertThat(state.isRegistered).isFalse()
+        assertThat(state.outcome).isNull()
         assertThat(state.isLoading).isFalse()
     }
 
@@ -320,7 +326,7 @@ class RegisterViewModelTest {
         viewModel.register()
         advanceUntilIdle()
 
-        assertThat(viewModel.uiState.value.error).isEqualTo("Password must be at least 12 characters")
+        assertThat(viewModel.uiState.value.registerError).isEqualTo(RegisterError.PasswordTooShort)
     }
 
     @Test
@@ -340,16 +346,118 @@ class RegisterViewModelTest {
     }
 
     @Test
+    fun `a blank username registers, sent empty`() = runTest {
+        coEvery { authRepository.register(any(), any(), any(), any()) } returns Result.Success(Unit)
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        fillValidFields()
+        viewModel.onUsernameChanged("")
+        viewModel.register()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.registerError).isNull()
+        coVerify { authRepository.register("Test User", "test@example.com", "", "password123") }
+    }
+
+    @Test
+    fun `with email off, a registration signs in with the same credentials`() = runTest {
+        configFlow.value = StartupConfig(emailEnabled = false)
+        coEvery { authRepository.register(any(), any(), any(), any()) } returns Result.Success(Unit)
+        coEvery { authRepository.login("test@example.com", "password123") } returns
+            Result.Success(LoginOutcome.Success(mockk<User>(relaxed = true)))
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        fillValidFields()
+        viewModel.register()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.outcome).isEqualTo(RegisterOutcome.SignedIn)
+        assertThat(viewModel.uiState.value.isLoading).isFalse()
+    }
+
+    @Test
+    fun `with email off, a sign-in that needs 2FA setup hands over its setup token`() = runTest {
+        configFlow.value = StartupConfig(emailEnabled = false)
+        coEvery { authRepository.register(any(), any(), any(), any()) } returns Result.Success(Unit)
+        coEvery { authRepository.login(any(), any()) } returns
+            Result.Success(LoginOutcome.TwoFactorSetupRequired("setup-token"))
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        fillValidFields()
+        viewModel.register()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.outcome).isEqualTo(RegisterOutcome.TwoFactorSetup("setup-token"))
+    }
+
+    @Test
+    fun `with email off and email sign-in disabled, a registration returns to sign in`() = runTest {
+        configFlow.value = StartupConfig(emailEnabled = false, emailLoginEnabled = false)
+        coEvery { authRepository.register(any(), any(), any(), any()) } returns Result.Success(Unit)
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        fillValidFields()
+        viewModel.register()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.outcome).isEqualTo(RegisterOutcome.SignIn)
+        coVerify(exactly = 0) { authRepository.login(any(), any()) }
+    }
+
+    @Test
+    fun `a wrong-password sign-in after registering means the email was already registered`() = runTest {
+        configFlow.value = StartupConfig(emailEnabled = false)
+        coEvery { authRepository.register(any(), any(), any(), any()) } returns Result.Success(Unit)
+        coEvery { authRepository.login(any(), any()) } returns Result.Error(
+            exception = ApiException(404, "Incorrect password.", serverAuthored = true),
+            message = "Incorrect password.",
+        )
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        fillValidFields()
+        viewModel.register()
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertThat(state.registerError).isEqualTo(RegisterError.EmailTaken)
+        assertThat(state.outcome).isNull()
+        assertThat(state.isLoading).isFalse()
+    }
+
+    @Test
+    fun `another sign-in failure after registering stays on the form with its message`() = runTest {
+        configFlow.value = StartupConfig(emailEnabled = false)
+        coEvery { authRepository.register(any(), any(), any(), any()) } returns Result.Success(Unit)
+        coEvery { authRepository.login(any(), any()) } returns Result.Error(message = "Network unavailable")
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        fillValidFields()
+        viewModel.register()
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertThat(state.error).isEqualTo("Network unavailable")
+        assertThat(state.registerError).isNull()
+        assertThat(state.outcome).isNull()
+    }
+
+    @Test
     fun `changing field after error clears the error`() = runTest {
         viewModel = createViewModel()
         advanceUntilIdle()
 
-        viewModel.register() // triggers "All fields are required"
+        viewModel.register()
         advanceUntilIdle()
-        assertThat(viewModel.uiState.value.error).isNotNull()
+        assertThat(viewModel.uiState.value.registerError).isNotNull()
 
         viewModel.onNameChanged("Test")
-        assertThat(viewModel.uiState.value.error).isNull()
+        assertThat(viewModel.uiState.value.registerError).isNull()
     }
 
     private companion object {

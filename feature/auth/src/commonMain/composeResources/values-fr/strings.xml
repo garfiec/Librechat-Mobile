@@ -27,6 +27,11 @@
     <string name="register_title">Créer un compte</string>
     <string name="full_name_label">Nom complet</string>
     <string name="username_label">Nom d'utilisateur</string>
+    <string name="username_optional_label">Nom d'utilisateur (facultatif)</string>
+    <string name="register_error_missing_fields">Saisissez votre nom, votre e-mail et un mot de passe.</string>
+    <string name="register_error_password_too_short">Le mot de passe doit contenir au moins %1$d caractères.</string>
+    <string name="register_error_password_mismatch">Les mots de passe ne correspondent pas.</string>
+    <string name="register_error_email_taken">Un compte existe déjà avec cet e-mail. Connectez-vous plutôt.</string>
     <string name="confirm_password_label">Confirmer le mot de passe</string>
     <string name="sign_up">S'inscrire</string>
     <string name="have_account_sign_in">Vous avez déjà un compte ? Connectez-vous</string>
@@ -127,6 +132,7 @@
     <string name="login_error_wrong_credentials_username">Nom d'utilisateur ou mot de passe incorrect.</string>
     <string name="login_error_other_sign_in_method">Ce compte se connecte d'une autre manière. Utilisez l'option avec laquelle vous vous êtes connecté la première fois.</string>
     <string name="login_error_email_login_disabled">Ce serveur n'autorise pas la connexion par e-mail et mot de passe.</string>
+    <string name="login_error_email_not_verified">Vérifiez votre e-mail avant de vous connecter.</string>
     <string name="login_error_missing_fields">Saisissez votre adresse e-mail et votre mot de passe.</string>
     <string name="login_error_missing_fields_username">Saisissez votre nom d'utilisateur et votre mot de passe.</string>
     <string name="login_error_invalid_email">Saisissez une adresse e-mail valide.</string>

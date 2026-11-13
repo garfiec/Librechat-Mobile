@@ -41,7 +41,9 @@ val authModule = module {
     viewModel { params ->
         VerifyEmailViewModel(
             userRepository = get(),
-            initialEmail = params.getOrNull(),
+            accountSwitcher = get(),
+            initialEmail = params.getOrNull<String>(),
+            sendNow = params.getOrNull<Boolean>() ?: false,
         )
     }
     viewModelOf(::ForgotPasswordViewModel)

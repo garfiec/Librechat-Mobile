@@ -27,6 +27,11 @@
     <string name="register_title">Создать аккаунт</string>
     <string name="full_name_label">Полное имя</string>
     <string name="username_label">Имя пользователя</string>
+    <string name="username_optional_label">Имя пользователя (необязательно)</string>
+    <string name="register_error_missing_fields">Введите имя, адрес почты и пароль.</string>
+    <string name="register_error_password_too_short">Пароль должен содержать не менее %1$d символов.</string>
+    <string name="register_error_password_mismatch">Пароли не совпадают.</string>
+    <string name="register_error_email_taken">Аккаунт с этим адресом уже существует. Войдите в него.</string>
     <string name="confirm_password_label">Подтвердите пароль</string>
     <string name="sign_up">Зарегистрироваться</string>
     <string name="have_account_sign_in">Уже есть аккаунт? Войти</string>
@@ -127,6 +132,7 @@
     <string name="login_error_wrong_credentials_username">Неверное имя пользователя или пароль.</string>
     <string name="login_error_other_sign_in_method">Эта учётная запись входит другим способом. Используйте вариант, которым вы вошли в первый раз.</string>
     <string name="login_error_email_login_disabled">Этот сервер не разрешает вход по электронной почте и паролю.</string>
+    <string name="login_error_email_not_verified">Подтвердите адрес почты, прежде чем войти.</string>
     <string name="login_error_missing_fields">Введите адрес электронной почты и пароль.</string>
     <string name="login_error_missing_fields_username">Введите имя пользователя и пароль.</string>
     <string name="login_error_invalid_email">Введите корректный адрес электронной почты.</string>

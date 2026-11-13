@@ -6,7 +6,6 @@ import com.garfiec.librechat.core.model.auth.RequestEmailChangeRequest
 import com.garfiec.librechat.core.model.request.OtpVerificationRequest
 import com.garfiec.librechat.core.model.request.ResendVerificationRequest
 import com.garfiec.librechat.core.model.request.UserPreferencesRequest
-import com.garfiec.librechat.core.model.request.VerifyEmailRequest
 import com.garfiec.librechat.core.model.response.AvatarUploadResponse
 import com.garfiec.librechat.core.model.response.TermsAcceptResponse
 import com.garfiec.librechat.core.model.response.TermsResponse
@@ -37,13 +36,6 @@ class UserApi constructor(
             if (token != null || backupCode != null) {
                 setBody(OtpVerificationRequest(token = token, backupCode = backupCode))
             }
-        }
-    }
-
-    suspend fun verifyEmail(request: VerifyEmailRequest) {
-        client.post {
-            url { path("api/user/verify") }
-            setBody(request)
         }
     }
 

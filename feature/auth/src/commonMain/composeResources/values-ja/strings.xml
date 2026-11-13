@@ -27,6 +27,11 @@
     <string name="register_title">アカウントを作成</string>
     <string name="full_name_label">氏名</string>
     <string name="username_label">ユーザー名</string>
+    <string name="username_optional_label">ユーザー名（任意）</string>
+    <string name="register_error_missing_fields">名前、メールアドレス、パスワードを入力してください。</string>
+    <string name="register_error_password_too_short">パスワードは %1$d 文字以上にしてください。</string>
+    <string name="register_error_password_mismatch">パスワードが一致しません。</string>
+    <string name="register_error_email_taken">このメールアドレスのアカウントは既に存在します。サインインしてください。</string>
     <string name="confirm_password_label">パスワードの確認</string>
     <string name="sign_up">サインアップ</string>
     <string name="have_account_sign_in">すでにアカウントをお持ちですか？サインイン</string>
@@ -127,6 +132,7 @@
     <string name="login_error_wrong_credentials_username">ユーザー名またはパスワードが正しくありません。</string>
     <string name="login_error_other_sign_in_method">このアカウントは別の方法でサインインします。最初にサインインしたときの方法を使ってください。</string>
     <string name="login_error_email_login_disabled">このサーバーではメールアドレスとパスワードによるサインインは許可されていません。</string>
+    <string name="login_error_email_not_verified">サインインする前にメールアドレスを確認してください。</string>
     <string name="login_error_missing_fields">メールアドレスとパスワードを入力してください。</string>
     <string name="login_error_missing_fields_username">ユーザー名とパスワードを入力してください。</string>
     <string name="login_error_invalid_email">有効なメールアドレスを入力してください。</string>
