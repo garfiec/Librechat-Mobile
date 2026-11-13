@@ -51,6 +51,7 @@ val authModule = module {
             configRepository = get(),
             accountSwitcher = get(),
             serverDataStore = get(),
+            bannerRepository = get(),
             initialUserId = params.getOrNull(),
             initialToken = params.getOrNull(),
         )

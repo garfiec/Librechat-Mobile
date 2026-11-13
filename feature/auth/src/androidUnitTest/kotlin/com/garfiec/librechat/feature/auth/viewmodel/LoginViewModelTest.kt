@@ -7,8 +7,10 @@ import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SsoRiskDataStore
 import com.garfiec.librechat.core.data.repository.AccountSwitcher
 import com.garfiec.librechat.core.data.repository.AuthRepository
+import com.garfiec.librechat.core.data.repository.BannerRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.PendingAddSession
+import com.garfiec.librechat.core.model.Banner
 import com.garfiec.librechat.core.model.LoginOutcome
 import com.garfiec.librechat.core.model.User
 import com.garfiec.librechat.core.model.config.InterfaceConfig
@@ -52,6 +54,7 @@ class LoginViewModelTest {
         every { currentUrlFlow } returns MutableStateFlow("https://chat.example.com")
     }
     private val certificateTrust = CertificateTrustRegistry()
+    private val bannerRepository = mockk<BannerRepository>()
 
     private val configFlow = MutableStateFlow<StartupConfig?>(null)
 
@@ -64,6 +67,8 @@ class LoginViewModelTest {
         // No add-account flow pending: the VM reads the global config + live server URL.
         every { accountSwitcher.pendingAdd } returns null
         every { ssoRiskDataStore.acknowledged } returns flowOf(false)
+        coEvery { bannerRepository.getBanner() } returns Result.Success(null)
+        coEvery { accountSwitcher.withPendingIdentity<Any?>(any()) } coAnswers { firstArg<suspend () -> Any?>().invoke() }
     }
 
     @After
@@ -78,6 +83,7 @@ class LoginViewModelTest {
         ssoRiskDataStore = ssoRiskDataStore,
         serverDataStore = serverDataStore,
         certificateTrust = certificateTrust,
+        bannerRepository = bannerRepository,
     )
 
     @Test
@@ -130,14 +136,19 @@ class LoginViewModelTest {
     }
 
     @Test
-    fun `the add-account flow reads trust for the pending server, not the live one`() = runTest {
+    fun `the add-account flow reads title, address, banner and trust for the pending server, not the live one`() = runTest {
         val pending = mockk<PendingAddSession>(relaxed = true)
         every { pending.serverUrl } returns "https://pending.example.com:8443"
-        every { pending.startupConfig } returns MutableStateFlow(null)
+        every { pending.startupConfig } returns MutableStateFlow(StartupConfig(appTitle = "Pending Chat"))
         every { accountSwitcher.pendingAdd } returns pending
+        configFlow.value = StartupConfig(appTitle = "Live Chat")
+        coEvery { bannerRepository.getBanner() } returns Result.Success(Banner(bannerId = "b1", isPublic = true))
         viewModel = createViewModel()
         certificateTrust.record("chat.example.com", 443, CertificateAuthority.UserInstalled)
         advanceUntilIdle()
+        val state = viewModel.uiState.value
+        assertThat(Triple(state.appTitle, state.serverLabel, state.banner?.bannerId))
+            .isEqualTo(Triple("Pending Chat", "pending.example.com:8443", "b1"))
         assertThat(viewModel.uiState.value.trustedViaUserCa).isFalse()
 
         certificateTrust.record("pending.example.com", 8443, CertificateAuthority.UserInstalled)

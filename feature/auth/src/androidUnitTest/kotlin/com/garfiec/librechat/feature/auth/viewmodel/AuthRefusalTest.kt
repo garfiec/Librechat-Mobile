@@ -5,6 +5,7 @@ import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.repository.AccountSwitcher
 import com.garfiec.librechat.core.data.repository.AuthRepository
+import com.garfiec.librechat.core.data.repository.BannerRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
@@ -33,18 +34,24 @@ class AuthRefusalTest {
     private val testDispatcher = StandardTestDispatcher()
     private val authRepository = mockk<AuthRepository>(relaxed = true)
     private val configRepository = mockk<ConfigRepository> { every { startupConfig } returns MutableStateFlow(null) }
-    private val accountSwitcher = mockk<AccountSwitcher> { every { pendingAdd } returns null }
+    private val accountSwitcher = mockk<AccountSwitcher> {
+        every { pendingAdd } returns null
+        coEvery { withPendingIdentity<Any?>(any()) } coAnswers { firstArg<suspend () -> Any?>().invoke() }
+    }
+    private val bannerRepository = mockk<BannerRepository> { coEvery { getBanner() } returns Result.Success(null) }
     private val serverDataStore = mockk<ServerDataStore> {
         every { currentUrlFlow } returns flowOf("https://chat.example.com")
     }
 
-    private fun forgotPassword() = ForgotPasswordViewModel(authRepository, configRepository, accountSwitcher, serverDataStore)
+    private fun forgotPassword() =
+        ForgotPasswordViewModel(authRepository, configRepository, accountSwitcher, serverDataStore, bannerRepository)
 
     private fun resetPassword() = ResetPasswordViewModel(
         authRepository,
         configRepository,
         accountSwitcher,
         serverDataStore,
+        bannerRepository,
         initialUserId = "u1",
         initialToken = "t1",
     )

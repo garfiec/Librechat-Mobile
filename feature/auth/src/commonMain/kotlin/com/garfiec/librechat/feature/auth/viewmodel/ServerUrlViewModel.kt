@@ -80,7 +80,7 @@ internal fun knownServersOf(entries: List<AccountEntry>): List<KnownServer> =
         .map { (url, accounts) ->
             KnownServer(
                 url = url,
-                label = url.substringAfter("://").trimEnd('/'),
+                label = serverLabel(url),
                 host = url.serverHostLabel(),
                 accountCount = accounts.size,
             )

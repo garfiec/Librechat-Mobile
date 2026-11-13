@@ -7,7 +7,9 @@ import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.repository.AccountSwitcher
 import com.garfiec.librechat.core.data.repository.AuthRepository
+import com.garfiec.librechat.core.data.repository.BannerRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
+import com.garfiec.librechat.core.model.Banner
 import com.garfiec.librechat.feature.auth.diagnostics.offersDiagnosticLog
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -28,6 +30,7 @@ data class ResetPasswordUiState(
     val isReset: Boolean = false,
     /** The server's published policy links, as the sign-in footer shows them; null hides each. */
     val policyLinks: PolicyLinks = PolicyLinks(),
+    val banner: Banner? = null,
 )
 
 class ResetPasswordViewModel(
@@ -35,6 +38,7 @@ class ResetPasswordViewModel(
     configRepository: ConfigRepository,
     accountSwitcher: AccountSwitcher,
     serverDataStore: ServerDataStore,
+    bannerRepository: BannerRepository,
     initialUserId: String? = null,
     initialToken: String? = null,
 ) : ViewModel() {
@@ -50,6 +54,10 @@ class ResetPasswordViewModel(
             authServerConfig(configRepository, accountSwitcher, serverDataStore).collect { (config, url) ->
                 _uiState.update { it.copy(policyLinks = PolicyLinks.from(config, url)) }
             }
+        }
+        viewModelScope.launch {
+            val banner = publicBanner(bannerRepository, accountSwitcher)
+            _uiState.update { it.copy(banner = banner) }
         }
     }
 

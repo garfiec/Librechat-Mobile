@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -75,108 +76,116 @@ fun ResetPasswordScreen(
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
                 .padding(innerPadding)
-                .imePadding()
-                .verticalScroll(rememberScrollState())
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
+                .imePadding(),
         ) {
-            if (uiState.isReset) {
-                Text(
-                    text = stringResource(Res.string.password_reset_successful),
-                    style = MaterialTheme.typography.headlineMedium,
-                    modifier = Modifier.semantics { heading() },
-                )
+            // The scaffold padding holds the bar column without consuming it; the banner pads that column itself.
+            AuthBanner(uiState.banner, Modifier.consumeWindowInsets(innerPadding))
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+            ) {
+                if (uiState.isReset) {
+                    Text(
+                        text = stringResource(Res.string.password_reset_successful),
+                        style = MaterialTheme.typography.headlineMedium,
+                        modifier = Modifier.semantics { heading() },
+                    )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                Text(
-                    text = stringResource(Res.string.password_reset_message),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                    Text(
+                        text = stringResource(Res.string.password_reset_message),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
 
-                Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(24.dp))
 
-                AdaptiveButton(
-                    onClick = onResetComplete,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(stringResource(Res.string.back_to_sign_in))
-                }
-            } else {
-                Text(
-                    text = stringResource(Res.string.set_new_password),
-                    style = MaterialTheme.typography.headlineMedium,
-                    modifier = Modifier.semantics { heading() },
-                )
+                    AdaptiveButton(
+                        onClick = onResetComplete,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(stringResource(Res.string.back_to_sign_in))
+                    }
+                } else {
+                    Text(
+                        text = stringResource(Res.string.set_new_password),
+                        style = MaterialTheme.typography.headlineMedium,
+                        modifier = Modifier.semantics { heading() },
+                    )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
-                Text(
-                    text = stringResource(Res.string.enter_new_password_hint),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                    Text(
+                        text = stringResource(Res.string.enter_new_password_hint),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
 
-                Spacer(modifier = Modifier.height(32.dp))
+                    Spacer(modifier = Modifier.height(32.dp))
 
-                AdaptiveOutlinedTextField(
-                    value = uiState.password,
-                    onValueChange = viewModel::onPasswordChanged,
-                    label = { Text(stringResource(Res.string.new_password_label)) },
-                    modifier = Modifier.fillMaxWidth().semantics { contentType = ContentType.NewPassword },
-                    singleLine = true,
-                    visualTransformation = PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Password,
-                        autoCorrectEnabled = false,
-                    ).withIosTextContentType(IosTextContentType.NewPassword),
-                    enabled = !uiState.isLoading,
-                )
+                    AdaptiveOutlinedTextField(
+                        value = uiState.password,
+                        onValueChange = viewModel::onPasswordChanged,
+                        label = { Text(stringResource(Res.string.new_password_label)) },
+                        modifier = Modifier.fillMaxWidth().semantics { contentType = ContentType.NewPassword },
+                        singleLine = true,
+                        visualTransformation = PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Password,
+                            autoCorrectEnabled = false,
+                        ).withIosTextContentType(IosTextContentType.NewPassword),
+                        enabled = !uiState.isLoading,
+                    )
 
-                Spacer(modifier = Modifier.height(12.dp))
-
-                AdaptiveOutlinedTextField(
-                    value = uiState.confirmPassword,
-                    onValueChange = viewModel::onConfirmPasswordChanged,
-                    label = { Text(stringResource(Res.string.confirm_new_password_label)) },
-                    modifier = Modifier.fillMaxWidth().semantics { contentType = ContentType.NewPassword },
-                    singleLine = true,
-                    visualTransformation = PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Password,
-                        autoCorrectEnabled = false,
-                    ).withIosTextContentType(IosTextContentType.NewPassword),
-                    enabled = !uiState.isLoading,
-                )
-
-                val errorText = authErrorText(uiState.refusal, uiState.error)
-                if (errorText != null) {
                     Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = errorText,
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall,
+
+                    AdaptiveOutlinedTextField(
+                        value = uiState.confirmPassword,
+                        onValueChange = viewModel::onConfirmPasswordChanged,
+                        label = { Text(stringResource(Res.string.confirm_new_password_label)) },
+                        modifier = Modifier.fillMaxWidth().semantics { contentType = ContentType.NewPassword },
+                        singleLine = true,
+                        visualTransformation = PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Password,
+                            autoCorrectEnabled = false,
+                        ).withIosTextContentType(IosTextContentType.NewPassword),
+                        enabled = !uiState.isLoading,
                     )
-                    if (uiState.offerDiagnosticLog) DiagnosticLogLink()
+
+                    val errorText = authErrorText(uiState.refusal, uiState.error)
+                    if (errorText != null) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = errorText,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                        if (uiState.offerDiagnosticLog) DiagnosticLogLink()
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    AdaptiveButton(
+                        onClick = viewModel::resetPassword,
+                        modifier = Modifier.fillMaxWidth(),
+                        loading = uiState.isLoading,
+                    ) {
+                        Text(
+                            stringResource(
+                                if (uiState.isLoading) Res.string.progress_resetting_password else Res.string.reset_password_button,
+                            ),
+                        )
+                    }
+
+                    PolicyLinksFooter(uiState.policyLinks, modifier = Modifier.padding(top = 16.dp))
                 }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                AdaptiveButton(
-                    onClick = viewModel::resetPassword,
-                    modifier = Modifier.fillMaxWidth(),
-                    loading = uiState.isLoading,
-                ) {
-                    Text(
-                        stringResource(
-                            if (uiState.isLoading) Res.string.progress_resetting_password else Res.string.reset_password_button,
-                        ),
-                    )
-                }
-
-                PolicyLinksFooter(uiState.policyLinks, modifier = Modifier.padding(top = 16.dp))
             }
         }
     }

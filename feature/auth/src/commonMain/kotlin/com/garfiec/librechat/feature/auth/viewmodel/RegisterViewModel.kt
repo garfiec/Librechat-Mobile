@@ -7,11 +7,14 @@ import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.repository.AccountSwitcher
 import com.garfiec.librechat.core.data.repository.AuthRepository
+import com.garfiec.librechat.core.data.repository.BannerRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
+import com.garfiec.librechat.core.model.Banner
 import com.garfiec.librechat.feature.auth.diagnostics.offersDiagnosticLog
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 @Immutable
@@ -31,6 +34,7 @@ data class RegisterUiState(
     val minPasswordLength: Int = 8,
     /** The server's published policy links, as the sign-in footer shows them; null hides each. */
     val policyLinks: PolicyLinks = PolicyLinks(),
+    val banner: Banner? = null,
 )
 
 class RegisterViewModel(
@@ -38,6 +42,7 @@ class RegisterViewModel(
     configRepository: ConfigRepository,
     accountSwitcher: AccountSwitcher,
     serverDataStore: ServerDataStore,
+    bannerRepository: BannerRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(RegisterUiState())
@@ -52,6 +57,10 @@ class RegisterViewModel(
                     policyLinks = PolicyLinks.from(config, url),
                 )
             }
+        }
+        viewModelScope.launch {
+            val banner = publicBanner(bannerRepository, accountSwitcher)
+            _uiState.update { it.copy(banner = banner) }
         }
     }
 
