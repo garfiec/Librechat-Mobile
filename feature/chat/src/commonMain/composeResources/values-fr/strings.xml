@@ -1129,6 +1129,7 @@
     <string name="mcp_app_location_allow">Autoriser</string>
     <string name="mcp_app_location_deny">Ne pas autoriser</string>
     <string name="mcp_app_expand">Agrandir l'app</string>
+    <string name="mcp_app_show_full">Afficher toute l'app</string>
     <string name="mcp_app_minimize">Retour à la discussion</string>
     <string name="mcp_app_tap_to_resume">Touchez pour reprendre</string>
     <string name="mcp_app_return">Revenir à l'app</string>

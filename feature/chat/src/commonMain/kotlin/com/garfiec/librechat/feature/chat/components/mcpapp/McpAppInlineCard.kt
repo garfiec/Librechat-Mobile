@@ -51,11 +51,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.model.mcp.McpAppOccurrence
 import com.garfiec.librechat.core.ui.components.AdaptiveCard
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
+import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.mcp_app_close_named
 import com.garfiec.librechat.feature.chat.resources.mcp_app_expand
 import com.garfiec.librechat.feature.chat.resources.mcp_app_in_panel
 import com.garfiec.librechat.feature.chat.resources.mcp_app_return
+import com.garfiec.librechat.feature.chat.resources.mcp_app_show_full
 import com.garfiec.librechat.feature.chat.resources.mcp_app_tap_to_resume
 import com.garfiec.librechat.feature.chat.resources.mcp_app_waiting
 import com.garfiec.librechat.feature.chat.viewmodel.McpAppSession
@@ -73,7 +75,8 @@ private val EVICTED_HEIGHT = McpAppSessionRules.MIN_INLINE_HEIGHT_DP.dp
  * An open App in its place in the thread: a header (tool · server · Expand · Close) over the App's
  * live web view, pooled outside the list so scrolling the card away only detaches it. The slot is
  * the App's first reported height, clamped to [McpAppSessionRules.inlineHeightDp] and then frozen
- * (a slot that kept resizing would jump the list); an App wanting more gets a fade and Expand.
+ * (a slot that kept resizing would jump the list); an App wanting more gets a fade and a
+ * "Show full app" row under it.
  * While the App is in the panel the card holds a "Return to app" line instead (one view, one place).
  */
 @Composable
@@ -149,30 +152,40 @@ private fun InlineBody(session: McpAppSession, frozenHeightDp: Int?, controller:
         .let { McpAppSessionRules.inlineHeightDp(it, paneHeightDp) }
     // Later size changes never move the slot; an App that wants more says so with a fade.
     val wantsMore = hostState is McpAppViewState.Ready && (reported ?: 0) > slotDp
-    Box(modifier = Modifier.fillMaxWidth().height(slotDp.dp).clip(CARD_SHAPE)) {
-        McpAppFrame(
-            session = session,
-            pool = controller.pool,
-            inline = true,
-            onHostContext = { viewModel.updateHostContext(session.id, it) },
-            onRetry = { viewModel.retry(session.id) },
-            modifier = Modifier.fillMaxSize(),
-            inlineMaxHeightDp = capDp,
-        )
-        if (wantsMore) {
-            val surface = MaterialTheme.colorScheme.surfaceContainerLow
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .height(FADE_HEIGHT)
-                    .background(Brush.verticalGradient(listOf(Color.Transparent, surface))),
+    Column {
+        Box(modifier = Modifier.fillMaxWidth().height(slotDp.dp).clip(CARD_SHAPE)) {
+            McpAppFrame(
+                session = session,
+                pool = controller.pool,
+                inline = true,
+                onHostContext = { viewModel.updateHostContext(session.id, it) },
+                onRetry = { viewModel.retry(session.id) },
+                modifier = Modifier.fillMaxSize(),
+                inlineMaxHeightDp = capDp,
             )
-            AdaptiveOutlinedButton(
+            if (wantsMore) {
+                val surface = MaterialTheme.colorScheme.surfaceContainerLow
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .height(FADE_HEIGHT)
+                        .background(Brush.verticalGradient(listOf(Color.Transparent, surface))),
+                )
+            }
+        }
+        // Under the App, never over it: a button on the web view hides the App's content and takes its taps.
+        if (wantsMore) {
+            AdaptiveTextButton(
                 onClick = { viewModel.expand(session.id) },
-                modifier = Modifier.align(Alignment.BottomEnd).padding(8.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
             ) {
-                Text(stringResource(Res.string.mcp_app_expand))
+                Icon(
+                    imageVector = Icons.Outlined.OpenInFull,
+                    contentDescription = null,
+                    modifier = Modifier.padding(end = 8.dp).size(18.dp),
+                )
+                Text(stringResource(Res.string.mcp_app_show_full))
             }
         }
     }

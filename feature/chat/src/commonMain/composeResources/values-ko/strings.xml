@@ -1097,6 +1097,7 @@
     <string name="mcp_app_location_allow">허용</string>
     <string name="mcp_app_location_deny">허용 안함</string>
     <string name="mcp_app_expand">앱 확대</string>
+    <string name="mcp_app_show_full">앱 전체 보기</string>
     <string name="mcp_app_minimize">채팅으로 돌아가기</string>
     <string name="mcp_app_tap_to_resume">탭하여 다시 시작</string>
     <string name="mcp_app_return">앱으로 돌아가기</string>

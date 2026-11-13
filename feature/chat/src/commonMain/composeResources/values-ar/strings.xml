@@ -1192,6 +1192,7 @@
     <string name="mcp_app_location_allow">سماح</string>
     <string name="mcp_app_location_deny">عدم السماح</string>
     <string name="mcp_app_expand">توسيع التطبيق</string>
+    <string name="mcp_app_show_full">عرض التطبيق كاملًا</string>
     <string name="mcp_app_minimize">العودة إلى المحادثة</string>
     <string name="mcp_app_tap_to_resume">انقر للاستئناف</string>
     <string name="mcp_app_return">العودة إلى التطبيق</string>
