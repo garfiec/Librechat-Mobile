@@ -181,7 +181,7 @@ class MessageListScrollInstrumentedTest {
                         MessageList(
                             displayMessages = buildActiveMessagePath(THREAD),
                             isStreaming = isStreaming,
-                            streamingContent = if (isStreaming) streamingContent else "",
+                            streamingContent = { if (isStreaming) streamingContent else "" },
                             onSiblingNavigation = { _, _ -> },
                             onEditMessage = {},
                             onRegenerateMessage = {},

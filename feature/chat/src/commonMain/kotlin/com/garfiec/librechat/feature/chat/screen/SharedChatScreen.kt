@@ -354,7 +354,7 @@ internal fun SharedChatScaffold(
                 snapshot != null -> MessageList(
                     displayMessages = state.displayMessages,
                     isStreaming = false,
-                    streamingContent = "",
+                    streamingContent = { "" },
                     onSiblingNavigation = onSwitchBranch,
                     onEditMessage = {},
                     onRegenerateMessage = {},

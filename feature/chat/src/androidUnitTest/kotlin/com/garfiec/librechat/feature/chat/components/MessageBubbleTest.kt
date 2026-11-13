@@ -64,7 +64,7 @@ class MessageBubbleTest {
                             MessageList(
                                 displayMessages = buildActiveMessagePath(thread),
                                 isStreaming = false,
-                                streamingContent = "",
+                                streamingContent = { "" },
                                 onSiblingNavigation = { _, _ -> },
                                 onEditMessage = {},
                                 onRegenerateMessage = {},

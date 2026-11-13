@@ -56,7 +56,7 @@ class SkillCallInstrumentedTest {
                     MessageList(
                         displayMessages = nodes.map { MessageNode(it, emptyList(), 0, 1) },
                         isStreaming = isStreaming,
-                        streamingContent = "",
+                        streamingContent = { "" },
                         onSiblingNavigation = { _, _ -> },
                         onEditMessage = {},
                         onRegenerateMessage = {},

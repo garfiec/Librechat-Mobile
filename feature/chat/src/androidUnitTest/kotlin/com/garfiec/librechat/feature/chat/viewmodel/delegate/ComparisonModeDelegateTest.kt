@@ -48,6 +48,7 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import org.junit.Test
 
+@Suppress("LargeClass") // debt: 806-line file
 class ComparisonModeDelegateTest {
 
     private fun delegateWith(
@@ -86,9 +87,32 @@ class ComparisonModeDelegateTest {
         delegate.routeEvent(StreamEvent.ContentDelta(chunk = "The answer."))
         delegate.routeEvent(StreamEvent.ContentDelta(chunk = "other pane", agentId = "agent_secondary____1"))
 
+        delegate.flushText()
+
         assertThat(delegate.primaryAnswerText()).isEqualTo("The answer.")
         // The pane itself still renders the reasoning.
         assertThat(flow.value.comparisonState.primaryStreamingContent).isEqualTo("pondering. The answer.")
+    }
+
+    @Test
+    fun `lane text waits for the stream's flush, and Final or an error end it`() {
+        val (delegate, flow) = delegateWith(ChatUiState(comparisonState = ComparisonState(isEnabled = true)))
+        delegate.onSendStart()
+        val lanes = { flow.value.comparisonState }
+        repeat(3) { delegate.routeEvent(StreamEvent.ContentDelta(chunk = "a", agentId = "agent_primary")) }
+        delegate.routeEvent(StreamEvent.ContentDelta(chunk = "b", agentId = "agent_secondary____1"))
+        assertThat(lanes().primaryStreamingContent).isEmpty()
+        assertThat(lanes().primaryAgentId).isEqualTo("agent_primary")
+
+        delegate.flushText()
+        assertThat(lanes().primaryStreamingContent to lanes().secondaryStreamingContent).isEqualTo("aaa" to "b")
+        delegate.routeEvent(StreamEvent.ContentDelta(chunk = "c", agentId = "agent_secondary____1"))
+        delegate.endStreaming(clearContent = false)
+        assertThat(lanes().secondaryStreamingContent).isEqualTo("bc")
+
+        delegate.onFinal(null)
+        delegate.flushText()
+        assertThat(lanes().primaryStreamingContent).isEmpty()
     }
 
     @Test

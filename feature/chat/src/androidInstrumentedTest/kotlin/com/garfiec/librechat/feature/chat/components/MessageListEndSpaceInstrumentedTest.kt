@@ -43,7 +43,7 @@ class MessageListEndSpaceInstrumentedTest {
                     MessageList(
                         displayMessages = buildActiveMessagePath(THREAD),
                         isStreaming = false,
-                        streamingContent = "",
+                        streamingContent = { "" },
                         onSiblingNavigation = { _, _ -> },
                         onEditMessage = {},
                         onRegenerateMessage = {},

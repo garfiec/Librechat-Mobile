@@ -52,7 +52,7 @@ class ErrorContentPartInstrumentedTest {
                             ),
                         ),
                         isStreaming = false,
-                        streamingContent = "",
+                        streamingContent = { "" },
                         onSiblingNavigation = { _, _ -> },
                         onEditMessage = {},
                         onRegenerateMessage = {},

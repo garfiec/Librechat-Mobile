@@ -4,11 +4,13 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.structuralEqualityPolicy
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
@@ -44,6 +46,9 @@ import com.garfiec.librechat.feature.chat.viewmodel.ActiveToolCall
 import com.garfiec.librechat.feature.chat.viewmodel.ChatScreenState
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ChatViewModel
+import com.garfiec.librechat.feature.chat.viewmodel.StreamingText
+import com.garfiec.librechat.feature.chat.viewmodel.streamingText
+import com.garfiec.librechat.feature.chat.viewmodel.withoutStreamingText
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -91,7 +96,16 @@ internal fun ColumnScope.ChatContent(
     /** The project a new chat from this landing is filed into, while it still is. */
     projectName: String? = null,
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val fullState = viewModel.uiState.collectAsStateWithLifecycle()
+    // One collector split in two, so both halves of an emission land in the same frame: the finalize
+    // clears the text in the same update that swaps the message in.
+    val uiState by remember(fullState) {
+        derivedStateOf(structuralEqualityPolicy()) { fullState.value.withoutStreamingText() }
+    }
+    val liveText = remember(fullState) {
+        derivedStateOf(structuralEqualityPolicy()) { fullState.value.streamingText() }
+    }
+    val streamingText: () -> StreamingText = { liveText.value }
     val barHeight = bottomBarHeightPx()
     // 160dp stands in for the bar only until it is measured: the folded bar is far shorter.
     val density = LocalDensity.current
@@ -135,6 +149,7 @@ internal fun ColumnScope.ChatContent(
     val comparisonPanes: @Composable () -> Unit = {
         ComparisonPanes(
             uiState = uiState,
+            streamingText = streamingText,
             viewModel = viewModel,
             senderName = senderName,
             fontSizeMultiplier = fontSizeMultiplier,
@@ -223,7 +238,7 @@ internal fun ColumnScope.ChatContent(
                         topContentPadding = topContentPadding,
                         displayMessages = singleDisplayMessages,
                         isStreaming = uiState.isStreaming,
-                        streamingContent = uiState.streamingContent,
+                        streamingText = streamingText,
                         activeToolCalls = uiState.activeToolCalls,
                         streamingSenderName = senderName,
                         bottomContentPadding = bottomContentPadding,
@@ -287,7 +302,7 @@ private fun ChatMessageListPane(
     topContentPadding: Dp,
     displayMessages: List<MessageNode>,
     isStreaming: Boolean,
-    streamingContent: String,
+    streamingText: () -> StreamingText,
     activeToolCalls: List<ActiveToolCall>,
     streamingSenderName: String,
     bottomContentPadding: Dp,
@@ -305,9 +320,9 @@ private fun ChatMessageListPane(
         displayMessages = displayMessages,
         isStreaming = isStreaming,
         justSettledMessageId = uiState.justSettledMessageId,
-        streamingContent = streamingContent,
+        streamingContent = { streamingText().content },
         // Single-stream only: comparison panes fold reasoning into their own buffers.
-        streamingThinking = uiState.streamingThinking,
+        streamingThinking = { streamingText().thinking },
         activeToolCalls = activeToolCalls,
         sandboxStartingToolCallIds = uiState.sandboxStartingToolCallIds,
         streamingAttachments = uiState.streamingAttachments,

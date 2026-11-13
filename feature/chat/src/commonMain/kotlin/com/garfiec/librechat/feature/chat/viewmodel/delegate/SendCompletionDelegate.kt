@@ -208,9 +208,10 @@ class SendCompletionDelegate(
                     // per-agent attribution (added agent suffixed ____N). The Final event doesn't
                     // model that split, so reload from the server to materialize the attributed
                     // message; ChatContent then renders each pane from its own parts, and reopen
-                    // rehydration reads the same attribution. (The live panes were already
-                    // finalized in memory by comparisonDelegate.onFinal.)
-                    treeDelegate.markSettled(event.resolvedResponseMessage()?.messageId)
+                    // rehydration reads the same attribution. Until it lands the reply is put in
+                    // from the Final, where each pane draws its frozen lane text: without it neither
+                    // pane has a reply and both end scrolled to the question.
+                    treeDelegate.finalizeChatDisplay(event, optimisticUserMessageId)
                     reloadConversation(conversationId)
                 } else {
                     // The Final event is authoritative (it echoes the server-adopted ids, PR

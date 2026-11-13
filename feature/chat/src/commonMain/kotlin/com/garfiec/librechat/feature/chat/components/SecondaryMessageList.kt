@@ -40,7 +40,8 @@ import com.garfiec.librechat.feature.chat.viewmodel.ActiveToolCall
 fun SecondaryMessageList(
     displayMessages: List<MessageNode>,
     isStreaming: Boolean,
-    streamingContent: String,
+    /** The lane's live text; read only inside the streaming item, so a flush recomposes that alone. */
+    streamingContent: () -> String,
     modifier: Modifier = Modifier,
     justSettledMessageId: String? = null,
     activeToolCalls: List<ActiveToolCall> = emptyList(),
@@ -77,6 +78,7 @@ fun SecondaryMessageList(
     val isNearBottom = rememberIsNearBottom(listState, extraEndPx)
     // This pane hosts no AskUserQuestionPanel, so an unanswered ask has no affordance to resolve it.
     val renderedToolCalls = remember(activeToolCalls) { activeToolCalls.withoutAnyUnansweredQuestions() }
+    val replyLength = { streamingContent().length }
     // Parsed once per list; `contentType` runs on every measure pass.
     val wakeups = remember(displayMessages) { wakeupsByMessageId(displayMessages) }
 
@@ -202,7 +204,7 @@ fun SecondaryMessageList(
                     item(key = "secondary_$streamingSlotKey") {
                         ProvideMarkdownMedia(liveAttachments, baseUrl) {
                             StreamingMessageBubble(
-                                streamingContent = streamingContent,
+                                streamingContent = streamingContent(),
                                 senderName = streamingSenderName,
                                 avatar = streamingAvatar,
                                 fontSizeMultiplier = fontSizeMultiplier,
@@ -228,7 +230,7 @@ fun SecondaryMessageList(
                                     streamingAttachments = streamingWorkspace.inline,
                                     sandboxStarting = toolCall.id in sandboxStartingToolCallIds,
                                     isLatestStep = toolCall.id == renderedToolCalls.lastOrNull()?.id,
-                                    replyLength = streamingContent.length,
+                                    replyLength = replyLength,
                                 )
                             }
                         }

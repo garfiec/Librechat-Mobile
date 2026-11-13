@@ -107,9 +107,9 @@ class JustSettledMessageTest {
 
     @Test
     fun `rebuilding the display without a finalize settles nothing`() {
-        // Pins the writer set: only a finalize (or the comparison path's explicit markSettled) may
-        // name a message, so a path that merely rebuilds the display leaves the flag alone. Runs a
-        // real rebuild rather than asserting an untouched default, which would pass regardless.
+        // Pins the writer set: only a finalize may name a message, so a path that merely rebuilds
+        // the display leaves the flag alone. Runs a real rebuild rather than asserting an untouched
+        // default, which would pass regardless.
         //
         // This does NOT cover the mount trap that motivated the flag — a UI-side derivation from
         // `!isStreaming` marking the last message of every opened conversation. That bug lived in
@@ -135,7 +135,7 @@ class JustSettledMessageTest {
 
     @Test
     fun `a following turn overwrites the flag with no clear in between`() {
-        // Deliberately no markSettled(null). A drain re-enters beginStreaming inline in the same
+        // Deliberately no clear of the flag. A drain re-enters beginStreaming inline in the same
         // dispatch as the finalize — nothing on that path suspends — so a clear there runs before
         // Compose reads the flag. Persisting until the next finalize is what makes it work.
         //
@@ -158,8 +158,11 @@ class JustSettledMessageTest {
         // earlyAbort removes the optimistic message entirely — there is no reply to suppress on,
         // and this is the one clear that stays.
         val optimistic = message("u1", isUser = true)
-        val (delegate, flow) = delegateWith(streamingState(optimistic))
-        delegate.markSettled("stale-from-a-previous-turn")
+        val (delegate, flow) = delegateWith(
+            streamingState(optimistic).let {
+                it.copy(content = it.content.copy(justSettledMessageId = "stale-from-a-previous-turn"))
+            },
+        )
 
         delegate.unsendOptimisticTurn("u1")
 
@@ -174,16 +177,5 @@ class JustSettledMessageTest {
         delegate.finalizeChatDisplay(finalEvent(optimistic, null))
 
         assertThat(flow.value.justSettledMessageId).isNull()
-    }
-
-    @Test
-    fun `markSettled covers the comparison path that never finalizes`() {
-        // A live comparison rebuilds from a background reload instead of finalizing in memory, so
-        // the id is set before the reload and the message matches when it lands.
-        val (delegate, flow) = delegateWith(streamingState(message("u1", isUser = true)))
-
-        delegate.markSettled("a1")
-
-        assertThat(flow.value.justSettledMessageId).isEqualTo("a1")
     }
 }

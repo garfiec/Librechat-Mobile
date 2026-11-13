@@ -105,7 +105,9 @@ actual fun MarkdownContent(
 ) {
     val isSearchActive = !searchQuery.isNullOrBlank()
     val segments = rememberCitedMarkdownSegments(text, streaming, withoutCitations = isSearchActive)
-    val spokenText = remember(text) { stripCitations(text) }
+    // Not while streaming: the bubble's live region carries the status and the text nodes the words,
+    // and a description of the whole reply would be rebuilt on every flush.
+    val spokenText = if (streaming) null else remember(text) { stripCitations(text) }
 
     // Search draws text segments with its own components (SearchableMarkdown), which don't run the
     // cursor's annotator — so an active query forces the block-level cursor too.
@@ -115,9 +117,7 @@ actual fun MarkdownContent(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .semantics {
-                contentDescription = spokenText
-            },
+            .then(if (spokenText != null) Modifier.semantics { contentDescription = spokenText } else Modifier),
     ) {
         // Per-segment occurrence base offsets, advanced via countSegmentOccurrences so they stay
         // identical to the ViewModel-side numbering in SearchMatchEnumeration (mermaid blocks

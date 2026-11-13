@@ -193,7 +193,7 @@ class MessageSelectionInstrumentedTest {
                             // a real chain; hand-built nodes would all share the NO_PARENT key.
                             displayMessages = buildActiveMessagePath(messages.toList()),
                             isStreaming = isStreaming,
-                            streamingContent = streamingContent,
+                            streamingContent = { streamingContent },
                             onSiblingNavigation = { _, _ -> },
                             onEditMessage = {},
                             onRegenerateMessage = {},
