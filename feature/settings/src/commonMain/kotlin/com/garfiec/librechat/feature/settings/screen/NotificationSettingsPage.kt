@@ -53,6 +53,9 @@ fun NotificationSettingsPage(
                     enabled = uiState.serverAllowsReplies,
                 )
             }
+        }
+        item(key = "kinds_gap") { Spacer(modifier = Modifier.height(24.dp)) }
+        adaptiveSection {
             row(key = "replies_row") {
                 SettingsSwitchRow(
                     icon = Icons.AutoMirrored.Filled.Reply,
