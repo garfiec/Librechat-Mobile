@@ -283,6 +283,7 @@ class ConversationListStateHolder(
             coroutineScope {
                 launch { loadPage(cursor = null) }
                 launch { conversationRepository.syncFavoritesFromServer() }
+                launch { conversationRepository.syncPinnedFromServer() }
             }
             _isRefreshing.value = false
         }

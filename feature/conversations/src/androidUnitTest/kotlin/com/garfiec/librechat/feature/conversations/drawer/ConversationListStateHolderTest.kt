@@ -7,6 +7,7 @@ import com.garfiec.librechat.core.model.ConversationListFilters
 import com.garfiec.librechat.core.model.ConversationPage
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.CompletableDeferred
@@ -55,6 +56,17 @@ class ConversationListStateHolderTest {
         holder.groupedConversations.value
             .flatMap { it.second }
             .mapNotNull { it.conversationId }
+
+    @Test
+    fun `refreshConversations also syncs pins`() = runTest {
+        every { conversationRepository.observeConversations(any()) } returns MutableStateFlow(Result.Success(convos))
+        val holder = ConversationListStateHolder(conversationRepository, scope, dayBoundaries = emptyFlow())
+
+        holder.refreshConversations()
+        advanceUntilIdle()
+
+        coVerify { conversationRepository.syncPinnedFromServer() }
+    }
 
     @Test
     fun `delete during active drawer search removes the row without a query change`() = runTest {

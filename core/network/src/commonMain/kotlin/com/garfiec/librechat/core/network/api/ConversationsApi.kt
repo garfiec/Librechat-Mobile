@@ -54,6 +54,7 @@ class ConversationsApi constructor(
         sortDirection: String? = null,
         projectId: String? = null,
         filters: ConversationListFilters = ConversationListFilters.None,
+        pinned: Boolean = false,
     ): ConversationListResponse =
         client.get {
             url { path("api/convos") }
@@ -69,6 +70,8 @@ class ConversationsApi constructor(
             sortBy?.let { parameter("sortBy", it) }
             sortDirection?.let { parameter("sortDirection", it) }
             appendFilters(filters)
+            // v0.8.8-rc2: pinned chats only. An older server ignores the param and lists everything.
+            if (pinned) parameter("pinned", true)
         }.body()
 
     /**

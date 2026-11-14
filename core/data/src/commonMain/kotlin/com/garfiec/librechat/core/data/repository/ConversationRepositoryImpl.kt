@@ -1,6 +1,7 @@
 package com.garfiec.librechat.core.data.repository
 
 import co.touchlab.kermit.Logger
+import com.garfiec.librechat.core.common.BackendVersion
 import com.garfiec.librechat.core.common.identity.AccountId
 import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.common.identity.currentAccountId
@@ -40,6 +41,7 @@ import kotlinx.serialization.serializer
 import kotlin.time.Clock
 import kotlin.time.Instant
 
+@Suppress("LongParameterList") // debt: constructor dependencies
 class ConversationRepositoryImpl(
     private val conversationsApi: ConversationsApi,
     private val conversationDao: ConversationDao,
@@ -57,6 +59,7 @@ class ConversationRepositoryImpl(
     // and a bookmark's chat list must drop it.
     private val tagRepository: TagRepository,
     private val tagChanges: TagChangeSignal,
+    private val configRepository: ConfigRepository,
 ) : ConversationRepository {
 
     // toModels() decodes each row's tags JSON and formats two timestamps, so the whole cached list
@@ -498,6 +501,36 @@ class ConversationRepositoryImpl(
         }
     }
 
+    // The list pages are ordered by updatedAt and pinning doesn't touch it, so an old pin or an unpin made
+    // elsewhere reaches the cache only through this drain. An UNKNOWN server is asked: one that ignores
+    // `pinned` lists unpinned rows, and the drain stops there before any write from that page or a prune.
+    override suspend fun syncPinnedFromServer(): Result<Unit> = safeApiCall {
+        val support = BackendVersion.featureSupport(
+            configRepository.detectedBackend.value,
+            minVersion = PINNED_FILTER_MIN_VERSION,
+            landedDate = PINNED_FILTER_LANDED_DATE,
+        )
+        if (support.isRuledOut) return@safeApiCall
+        val account = activeAccountProvider.currentAccountId() ?: return@safeApiCall
+        val serverPinnedIds = mutableSetOf<String>()
+        var cursor: String? = null
+        do {
+            val response = conversationsApi.getConversations(cursor = cursor, limit = PINNED_PAGE_SIZE, pinned = true)
+            if (activeAccountProvider.currentAccountId() != account) return@safeApiCall
+            if (response.conversations.any { it.pinned != true }) return@safeApiCall
+            conversationDao.upsertPreservingTags(
+                account.value,
+                response.conversations.map { it.toEntity().copy(accountId = account.value) },
+            )
+            response.conversations.mapNotNullTo(serverPinnedIds) { it.conversationId }
+            cursor = response.nextCursor
+        } while (cursor != null)
+
+        conversationDao.observeConversationsForAccount(account.value, isArchived = false).first()
+            .filter { it.pinned && it.conversationId !in serverPinnedIds }
+            .forEach { conversationDao.updatePinned(it.conversationId, false, account.value) }
+    }
+
     // Best-effort, like the message purge: the server delete already happened, so a failed tag refresh
     // must not flip delete() to an error; the counts catch up on the next refresh. refreshTags returns
     // its failure rather than throwing, and a 403 (bookmarks not permitted) lands there too. The
@@ -520,4 +553,10 @@ class ConversationRepositoryImpl(
 
     private fun encodeTags(tags: List<String>): String =
         json.encodeToString(ListSerializer(serializer<String>()), tags)
+
+    private companion object {
+        const val PINNED_FILTER_MIN_VERSION = "0.8.8-rc2"
+        const val PINNED_FILTER_LANDED_DATE = "2026-08-16"
+        const val PINNED_PAGE_SIZE = 100
+    }
 }

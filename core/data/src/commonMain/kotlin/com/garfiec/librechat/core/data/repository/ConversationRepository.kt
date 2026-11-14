@@ -102,6 +102,12 @@ interface ConversationRepository {
     suspend fun syncFavoritesFromServer(): Result<Unit>
 
     /**
+     * Caches every chat the server lists as pinned and clears the pin on cached rows it no longer
+     * lists (v0.8.8-rc2). Sends nothing once the server's detected version is below that.
+     */
+    suspend fun syncPinnedFromServer(): Result<Unit>
+
+    /**
      * A cursor page of the chats matching [filters] (and the server's [search], when given), newest
      * first (v0.8.9-rc1). Network-direct and never cached: Room can't answer "has files" or
      * "shared", and a filtered page written into the cache would read as the whole list.
