@@ -112,6 +112,7 @@ class DrawerViewModel(
         conversationRepository = conversationRepository,
         scope = viewModelScope,
         remoteTitleSearch = search::remoteTitles,
+        serverSearchEnabled = search::serverSearchOn,
     )
 
     private val messageSearch: Flow<DrawerMessageSearch> =
