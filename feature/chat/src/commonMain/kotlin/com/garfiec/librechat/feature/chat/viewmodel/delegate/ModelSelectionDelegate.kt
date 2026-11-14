@@ -441,8 +441,9 @@ class ModelSelectionDelegate(
         if (!conversationModelLoaded) return
 
         // Validate current selection. An agents selection is not checked against the agents list:
-        // it is one capped page (`/api/agents` defaults to 100), so an agent missing from it may
-        // still exist, and replacing it would reopen the chat on a different agent.
+        // it leaves out agents the user can't view and ones created since it was cached, so absence
+        // from it doesn't prove the agent is gone, and replacing it would reopen the chat on a
+        // different agent.
         //
         // Every endpoint, agents included, keeps the conversation's model while the endpoint itself exists, as
         // the web client does (`useNavigateToConvo` rebuilds a conversation only when its endpoint
@@ -665,8 +666,6 @@ class ModelSelectionDelegate(
             // Hold this explicit agent across the transient empty-agents window until the populated
             // list arrives (see [holdAgentForPopulate]); without it the next (agentsLoaded=true,
             // agents=[]) emission would score the agent INVALID/PENDING and clobber it to a config model.
-            // Unconfirmed gap: the populated list is getAgents()'s first 100, so an agent beyond them
-            // (started from the agent page) may never be confirmed and may fall back to another model.
             holdAgentForPopulate = true
             applySelection(choice, reason = "tier0-agentOverride")
             return true

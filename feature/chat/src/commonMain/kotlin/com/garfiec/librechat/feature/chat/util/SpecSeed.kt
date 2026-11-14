@@ -246,13 +246,10 @@ internal fun ModelSpecs?.laneBSpecFor(
 /**
  * The spec rows the picker lists, ascending by `order` with unordered specs after them in list
  * order. An agent spec is left out once [agentsLoaded] shows its agent is not among [agents], as
- * web's `ModelSelectorContext` does; until then every spec shows. So does every spec while
- * [agents] is a full page: web loads every page, but mobile fetches one, and an agent past it
- * still exists.
+ * web's `ModelSelectorContext` does; until then every spec shows.
  */
 internal fun ModelSpecs?.visibleSpecs(agents: List<Agent>, agentsLoaded: Boolean): List<ModelSpec> {
-    val complete = agentsLoaded && agents.size < AGENTS_LIST_PAGE_SIZE
-    val agentIds = if (complete) agents.mapTo(HashSet()) { it.id } else null
+    val agentIds = if (agentsLoaded) agents.mapTo(HashSet()) { it.id } else null
     return this?.list.orEmpty()
         .filter { spec ->
             val seed = spec.toSeed() ?: return@filter false
@@ -261,9 +258,6 @@ internal fun ModelSpecs?.visibleSpecs(agents: List<Agent>, agentsLoaded: Boolean
         }
         .sortedBy { it.order ?: Double.POSITIVE_INFINITY }
 }
-
-/** The page `/api/agents` returns when asked for no limit, which is all `AgentRepository.getAgents` fetches. */
-private const val AGENTS_LIST_PAGE_SIZE = 100
 
 /**
  * The start POST's refusals of the selection's spec (`buildEndpointOption.js`): under `enforce`, no
