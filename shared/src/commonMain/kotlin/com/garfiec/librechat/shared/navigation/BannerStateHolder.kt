@@ -44,12 +44,11 @@ class BannerStateHolder(
 
     fun fetchBanner() {
         scope.launch {
-            // awaitBaseUrl, not getBaseUrl: the init fetch runs inside the ViewModel constructor on
-            // Main.immediate, before the persisted URL has resolved off "", and deriveServerId("")
-            // throws — which would stamp a null id and silently disable the carry-over guard below.
-            val serverId = suspendRunCatching { deriveServerId(serverUrlProvider.awaitBaseUrl()).value }
-                .getOrNull()
-            when (val result = bannerRepository.getBanner()) {
+            val serverId = liveServerId()
+            val result = bannerRepository.getBanner()
+            // Answered after a switch: the old server's banner, or its failure, says nothing about this one.
+            if (liveServerId() != serverId) return@launch
+            when (result) {
                 is Result.Success -> {
                     bannerServerId = serverId
                     _banner.value = result.data?.takeUnless { it.isDismissed() }
@@ -93,6 +92,12 @@ class BannerStateHolder(
 
     private fun dismissKey(serverId: String?, bannerId: String): String =
         "${serverId.orEmpty()}\u0000$bannerId"
+
+    // awaitBaseUrl, not getBaseUrl: the init fetch runs inside the ViewModel constructor on
+    // Main.immediate, before the persisted URL has resolved off "", and deriveServerId("")
+    // throws — which would stamp a null id and silently disable the carry-over guard.
+    private suspend fun liveServerId(): String? =
+        suspendRunCatching { deriveServerId(serverUrlProvider.awaitBaseUrl()).value }.getOrNull()
 
     private fun clearBanner() {
         _banner.value = null

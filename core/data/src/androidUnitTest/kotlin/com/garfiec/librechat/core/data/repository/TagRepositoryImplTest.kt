@@ -166,6 +166,19 @@ class TagRepositoryImplTest {
     }
 
     @Test
+    fun `refreshTags drops tags that return after an account switch`() = runTest {
+        coEvery { tagsApi.getTags() } coAnswers {
+            activeAccountProvider.set(AccountId("srv:other"))
+            serverTags
+        }
+
+        val result = repository.refreshTags()
+
+        assertThat(result).isInstanceOf(Result.Success::class.java)
+        coVerify(exactly = 0) { tagDao.replaceAllForAccount(any(), any()) }
+    }
+
+    @Test
     fun `refreshTags returns Error when api throws`() = runTest {
         coEvery { tagsApi.getTags() } throws RuntimeException("network down")
 

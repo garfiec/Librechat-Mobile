@@ -465,6 +465,8 @@ class ConversationRepositoryImpl(
                 cursor = cursor,
                 tags = listOf(SAVED_TAG),
             )
+            // A page answered after a switch lists the next account's favorites; skip the strip pass too.
+            if (activeAccountProvider.currentAccountId() != account) return@safeApiCall
             for (convo in response.conversations) {
                 val id = convo.conversationId ?: continue
                 serverFavoriteIds.add(id)

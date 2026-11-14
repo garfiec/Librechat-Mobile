@@ -674,20 +674,62 @@ class ConfigRepositoryImplTest {
     }
 
     @Test
-    fun `the config is tagged with the server it was fetched for, even when a switch lands mid-request`() = runTest {
-        val a = "https://a.example.com"
-        val b = "https://b.example.com"
-        coEvery { serverDataStore.awaitBaseUrl() } returns a
+    fun `a startup config whose server changed mid-request is neither published nor cached`() = runTest {
+        coEvery { serverDataStore.awaitBaseUrl() } returns "https://a.example.com"
+        coEvery { configCache.loadStartupConfig() } returns null
         coEvery { configApi.getStartupConfig() } coAnswers {
-            coEvery { serverDataStore.awaitBaseUrl() } returns b
+            coEvery { serverDataStore.awaitBaseUrl() } returns "https://b.example.com"
             validConfig
         }
         val repo = repository()
 
         repo.fetchStartupConfig()
 
-        assertThat(repo.startupConfigForServer.value).isEqualTo(ServerStartupConfig(deriveServerId(a).value, validConfig))
-        assertThat(repo.startupConfig.value).isEqualTo(validConfig)
+        assertThat(repo.startupConfigForServer.value).isNull()
+        assertThat(repo.startupConfig.value).isNull()
+        coVerify(exactly = 0) { configCache.saveStartupConfig(any()) }
+    }
+
+    @Test
+    fun `fetchEndpoints and fetchModels started on one server and finished on another publish and cache nothing`() = runTest {
+        coEvery { serverDataStore.awaitBaseUrl() } returns "https://a.example.com"
+        coEvery { configCache.loadEndpointConfigs() } returns null
+        coEvery { configCache.loadAvailableModels() } returns null
+        coEvery { configApi.getEndpoints() } coAnswers {
+            coEvery { serverDataStore.awaitBaseUrl() } returns "https://b.example.com"
+            mapOf("openAI" to EndpointConfig())
+        }
+        val repo = repository()
+
+        repo.fetchEndpoints()
+
+        coEvery { serverDataStore.awaitBaseUrl() } returns "https://a.example.com"
+        coEvery { configApi.getModels() } coAnswers {
+            coEvery { serverDataStore.awaitBaseUrl() } returns "https://b.example.com"
+            mapOf("openAI" to listOf("gpt-4o"))
+        }
+
+        repo.fetchModels()
+
+        assertThat(repo.endpointConfigs.value).isEmpty()
+        assertThat(repo.availableModels.value).isEmpty()
+        coVerify(exactly = 0) { configCache.saveEndpointConfigs(any()) }
+        coVerify(exactly = 0) { configCache.saveAvailableModels(any()) }
+    }
+
+    @Test
+    fun `checkBackendVersion does not publish a version detected from a server that is no longer active`() = runTest {
+        coEvery { serverDataStore.awaitBaseUrl() } returns "https://a.example.com"
+        coEvery { configCache.loadStartupConfig() } returns null
+        coEvery { configApi.getStartupConfig() } coAnswers {
+            coEvery { serverDataStore.awaitBaseUrl() } returns "https://b.example.com"
+            StartupConfig(serverDomain = "https://a.example.com", version = "0.8.9-rc1")
+        }
+        val repo = repository()
+
+        repo.checkBackendVersion()
+
+        assertThat(repo.detectedBackend.value).isNull()
     }
 
     @Test

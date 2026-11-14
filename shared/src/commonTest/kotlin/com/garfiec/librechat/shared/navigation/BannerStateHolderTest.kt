@@ -13,7 +13,13 @@ import kotlin.test.assertNull
 class BannerStateHolderTest {
 
     private class FakeBannerRepository(var result: Result<Banner?>) : BannerRepository {
-        override suspend fun getBanner(): Result<Banner?> = result
+        /** Runs while the request is in flight, before it answers. */
+        var onGet: () -> Unit = {}
+
+        override suspend fun getBanner(): Result<Banner?> {
+            onGet()
+            return result
+        }
     }
 
     private class FakeServerUrlProvider(var url: String = "https://one.example") : ServerUrlProvider {
@@ -71,6 +77,31 @@ class BannerStateHolderTest {
         repository.result = Result.Error(RuntimeException("unreachable"), "unreachable")
         holder.fetchBanner()
         assertNull(holder.banner.value)
+    }
+
+    @Test
+    fun fetch_dropsABannerThatReturnsAfterTheServerChanged() {
+        val serverUrlProvider = FakeServerUrlProvider()
+        val (holder, repository) = holderFor(Result.Success(banner()), serverUrlProvider)
+        repository.onGet = {
+            serverUrlProvider.url = "https://two.example"
+            holder.clearForAccountChange()
+        }
+        holder.fetchBanner()
+        assertNull(holder.banner.value)
+    }
+
+    @Test
+    fun fetch_anOldServersFailureDoesNotClearTheNewServersBanner() {
+        val serverUrlProvider = FakeServerUrlProvider("https://two.example")
+        val (holder, repository) = holderFor(Result.Success(banner()), serverUrlProvider)
+        holder.fetchBanner()
+
+        serverUrlProvider.url = "https://one.example"
+        repository.result = Result.Error(RuntimeException("unreachable"), "unreachable")
+        repository.onGet = { serverUrlProvider.url = "https://two.example" }
+        holder.fetchBanner()
+        assertEquals("b1", holder.banner.value?.bannerId)
     }
 
     @Test

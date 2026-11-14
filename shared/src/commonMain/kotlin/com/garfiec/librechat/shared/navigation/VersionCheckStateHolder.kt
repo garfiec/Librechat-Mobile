@@ -4,6 +4,7 @@ import androidx.compose.runtime.Immutable
 import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.identity.deriveServerId
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.common.result.suspendRunCatching
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.network.client.ServerUrlProvider
@@ -39,8 +40,11 @@ class VersionCheckStateHolder(
 
     fun checkBackendVersion() {
         scope.launch {
-            val serverId = runCatching { deriveServerId(serverUrlProvider.getBaseUrl()).value }.getOrNull()
-            when (val result = configRepository.checkBackendVersion()) {
+            val serverId = liveServerId()
+            val result = configRepository.checkBackendVersion()
+            // Answered after a switch: the old server's verdict says nothing about this one.
+            if (liveServerId() != serverId) return@launch
+            when (result) {
                 is Result.Success -> {
                     val checkResult = result.data
                     val detectedVersion = checkResult.backendVersion
@@ -89,6 +93,11 @@ class VersionCheckStateHolder(
             }
         }
     }
+
+    // awaitBaseUrl, not getBaseUrl: a check started while the persisted URL is still "" would
+    // otherwise capture null and be dropped against the resolved id.
+    private suspend fun liveServerId(): String? =
+        suspendRunCatching { deriveServerId(serverUrlProvider.awaitBaseUrl()).value }.getOrNull()
 
     private fun clearBanner() {
         _versionMismatch.value = null
