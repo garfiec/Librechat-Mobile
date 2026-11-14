@@ -81,7 +81,7 @@ robolectric = "4.17"
 
 # Code Quality
 detekt = "1.23.8"
-compose-lint-checks = "1.5.2"
+compose-lint-checks = "1.6.1"
 kover = "0.9.11"
 
 # Build
