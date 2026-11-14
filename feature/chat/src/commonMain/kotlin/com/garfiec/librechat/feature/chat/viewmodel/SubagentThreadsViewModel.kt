@@ -74,7 +74,8 @@ class SubagentThreadsViewModel(
     private var requestedThread: String? = null
 
     /**
-     * Loads the conversation's children, once per conversation.
+     * Reads the conversation's children on every open: each turn can spawn children and move
+     * their status, so an index read earlier would miss them.
      *
      * Skipped entirely on a server KNOWN to predate the routes; an unplaceable one is asked,
      * because it is the population most likely to have them.
@@ -86,17 +87,10 @@ class SubagentThreadsViewModel(
         }
         requestedFocus = focusParentToolCallId
         requestedThread = focusThreadId
-        if (loadedFor == parentConversationId) {
-            // Still reading this conversation's index: there is nothing to focus against yet, and
-            // restarting would throw away a request already in flight. The read lands on
-            // `requestedFocus`, which the line above has just moved to this tap.
-            if (_uiState.value.isLoadingIndex) return
-            // Reopened on a conversation already read. Back to the list first, so dismissing while
-            // a child was open does not reopen onto a stale thread the user did not ask for.
-            backToList()
-            focusChild(parentConversationId, focusParentToolCallId, focusThreadId)
-            return
-        }
+        // Still reading this conversation's index: there is nothing to focus against yet, and
+        // restarting would throw away a request already in flight. The read lands on
+        // `requestedFocus`, which the line above has just moved to this tap.
+        if (loadedFor == parentConversationId && _uiState.value.isLoadingIndex) return
         loadedFor = parentConversationId
         _uiState.value = SubagentThreadsUiState(isLoadingIndex = true)
         viewModelScope.launch {
