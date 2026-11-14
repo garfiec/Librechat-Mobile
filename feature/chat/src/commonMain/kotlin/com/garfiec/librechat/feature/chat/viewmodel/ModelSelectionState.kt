@@ -151,6 +151,9 @@ data class ModelSelectionState(
             mcpServers.filter { it.chatSelectable || it.name in lockedMcpServers }
         }
 
+    /** Listed servers the chat doesn't offer; a stored pick of one stays out of use, as no control can clear it. */
+    private val hiddenMcpServerNames: Set<String> = mcpServers.filterNot { it.chatSelectable }.mapTo(HashSet()) { it.name }
+
     /** What a spec chat starts with on top of the spec's tools: its preset's ([presetTools]). */
     private val initialSpecTools: SpecTools?
         get() = selectedSpec?.let { SpecTools(it, added = activeSpec?.presetTools.orEmpty()) }
@@ -184,7 +187,7 @@ data class ModelSelectionState(
     /** The MCP servers in use, by the same rule as [effectiveTools]. */
     val effectiveMcpServerNames: Set<String>
         get() = if (selectedSpec == null) {
-            selectedMcpServerNames
+            if (hiddenMcpServerNames.isEmpty()) selectedMcpServerNames else selectedMcpServerNames - hiddenMcpServerNames
         } else {
             lockedMcpServers + activeSpecTools?.addedMcp.orEmpty()
         }

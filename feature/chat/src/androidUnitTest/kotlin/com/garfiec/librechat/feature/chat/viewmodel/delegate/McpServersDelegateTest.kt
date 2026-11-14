@@ -640,6 +640,21 @@ class McpServersDelegateTest : McpServersDelegateTestBase() {
     }
 
     @Test
+    fun aStoredPickOfAServerTheChatNoLongerOffersIsNotInUse() = runTest {
+        coEvery { mcpRepository.listServers() } returns
+            Result.Success(listOf(github, McpServer(name = "docs", chatMenu = false)))
+        coEvery { mcpRepository.getConnectionStatus() } returns Result.Success(emptyMap())
+        val (handle, delegate) = newDelegate(
+            modelChat.copy(selection = modelChat.selection.copy(selectedMcpServerNames = setOf("github", "docs"))),
+        )
+
+        delegate.load()
+        advanceUntilIdle()
+
+        assertThat(handle.state.effectiveMcpServerNames).containsExactly("github")
+    }
+
+    @Test
     fun aServerHiddenFromTheChatMenuIsNotOfferedUnlessTheSpecPinsIt() = runTest {
         coEvery { mcpRepository.listServers() } returns
             Result.Success(listOf(github, McpServer(name = "docs", chatMenu = false)))
