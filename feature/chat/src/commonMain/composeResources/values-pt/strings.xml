@@ -1129,6 +1129,7 @@
     <string name="mcp_app_location_allow">Permitir</string>
     <string name="mcp_app_location_deny">Não permitir</string>
     <string name="mcp_app_expand">Expandir app</string>
+    <string name="mcp_app_show_full">Mostrar app inteiro</string>
     <string name="mcp_app_minimize">Voltar ao chat</string>
     <string name="mcp_app_tap_to_resume">Toque para retomar</string>
     <string name="mcp_app_return">Voltar ao app</string>

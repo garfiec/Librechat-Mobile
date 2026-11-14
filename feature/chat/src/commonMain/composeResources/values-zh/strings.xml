@@ -1097,6 +1097,7 @@
     <string name="mcp_app_location_allow">允许</string>
     <string name="mcp_app_location_deny">不允许</string>
     <string name="mcp_app_expand">展开应用</string>
+    <string name="mcp_app_show_full">显示完整应用</string>
     <string name="mcp_app_minimize">返回聊天</string>
     <string name="mcp_app_tap_to_resume">点按以继续</string>
     <string name="mcp_app_return">返回应用</string>

@@ -1154,6 +1154,7 @@
     <string name="mcp_app_location_allow">Разрешить</string>
     <string name="mcp_app_location_deny">Не разрешать</string>
     <string name="mcp_app_expand">Развернуть приложение</string>
+    <string name="mcp_app_show_full">Показать приложение целиком</string>
     <string name="mcp_app_minimize">Назад в чат</string>
     <string name="mcp_app_tap_to_resume">Нажмите, чтобы продолжить</string>
     <string name="mcp_app_return">Вернуться в приложение</string>

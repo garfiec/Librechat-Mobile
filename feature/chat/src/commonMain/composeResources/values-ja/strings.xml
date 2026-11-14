@@ -1097,6 +1097,7 @@
     <string name="mcp_app_location_allow">許可</string>
     <string name="mcp_app_location_deny">許可しない</string>
     <string name="mcp_app_expand">アプリを拡大</string>
+    <string name="mcp_app_show_full">アプリ全体を表示</string>
     <string name="mcp_app_minimize">チャットに戻る</string>
     <string name="mcp_app_tap_to_resume">タップして再開</string>
     <string name="mcp_app_return">アプリに戻る</string>
