@@ -69,6 +69,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
@@ -535,6 +536,9 @@ class DrawerViewModel(
                 // Each tick also retries an unlisted row that wasn't written yet, so a short run isn't missed.
                 fetchUnlistedRunning()
             }
+        }
+        viewModelScope.launch {
+            drawerVisible.filter { it }.collect { conversationListStateHolder.refreshIfStale() }
         }
         // Filters apply once the server is known to take them; the ones restored after process
         // death reload here, and a server that turns out older drops them.
