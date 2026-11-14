@@ -68,7 +68,7 @@ Both platforms derive from the same `versionName`, so they stay in lockstep:
 | Platform | versionName | versionCode | Where |
 |---|---|---|---|
 | Android | `versionName` verbatim | derived YYYYMMPP | `AndroidApplicationConventionPlugin` reads `version.properties` at build |
-| iOS | `CFBundleShortVersionString` | `CFBundleVersion` (same YYYYMMPP) | *Stamp Version* Xcode build phase reads `version.properties` at build |
+| iOS | `CFBundleShortVersionString` | `CFBundleVersion` (same YYYYMMPP; `YYYYMMPP.N` for App Store uploads) | *Stamp Version* Xcode build phase reads `version.properties` at build |
 
 > The "Stamp Version from version.properties" run-script phase runs after Info.plist is in
 > the bundle and before codesign. It, like "Stamp Git SHA", declares the processed Info.plist
@@ -141,8 +141,10 @@ user's update fails with a signature conflict and recovery requires uninstall + 
    Back it up in **2+ secure locations** (password manager / offline). Do **not** commit it
    (`.gitignore` already excludes `*.jks` and `keystore.properties`).
 
-2. **Add GitHub repository secrets** (Settings → Secrets and variables → Actions). Ideally put
-   them in an Environment named `release` with required reviewers, so the release job is gated.
+2. **Add GitHub repository secrets** (Settings → Secrets and variables → Actions). Put them in
+   an Environment named `release`, which the release, Play and App Store upload jobs all use.
+   Required reviewers on that environment are optional: with them, every release and upload
+   waits for an approval.
 
    | Secret | Value |
    |---|---|
@@ -202,6 +204,46 @@ The release workflow exercises this path on every cut (see below), since nothing
 Ordinary CI deliberately does not: a release cut is the only time the unsigned build matters,
 and that job already pays for one R8 run, so the check is nearly free there and would be a
 second full shrink on every pull request.
+
+## One-time App Store Connect setup
+
+TestFlight and the App Store are fed by the **Apple App Store Upload** workflow
+(`.github/workflows/appstore.yml`). It signs with **Xcode cloud signing**: an App Store
+Connect API key is the only Apple credential, and `-allowProvisioningUpdates` creates and
+manages the distribution certificate and provisioning profile in Apple's cloud. No `.p12`,
+no `.mobileprovision`, nothing to back up — revoking the cloud-managed certificate just makes
+the next run create another. A paid Apple Developer Program membership is required.
+
+1. **Create the app record** in [App Store Connect](https://appstoreconnect.apple.com) →
+   *My Apps* → `+` → *New App*: platform iOS, bundle ID `com.garfiec.librechat.ios`. If the
+   bundle ID is not offered, register it first under *Certificates, Identifiers & Profiles* →
+   *Identifiers* as an explicit App ID with no extra capabilities (the app is a plain network
+   client). The workflow cannot check for the record: without it the run fails at the export
+   step, after the ~30-minute Kotlin/Native build.
+
+2. **Generate an App Store Connect API key**: *Users and Access* → *Integrations* →
+   *App Store Connect API* → *Team Keys* → *Generate*. Give it the **Admin** role: the first
+   run has to create the distribution certificate, which the narrower roles cannot do.
+   Download the `.p8` **immediately** — Apple shows it exactly once — and note the **Key ID**
+   and the **Issuer ID** from the same page. The **Team ID** is under *Membership details*
+   on the developer account.
+
+3. **Add the secrets to the `release` environment**, the same environment as the Android
+   signing secrets, so any protection rules on it apply to uploads too:
+
+   | Secret | Value |
+   |---|---|
+   | `ASC_API_KEY_P8_BASE64` | `openssl base64 -A < AuthKey_<KEYID>.p8` |
+   | `ASC_API_KEY_ID` | the 10-character Key ID |
+   | `ASC_API_ISSUER_ID` | the Issuer ID (a UUID) |
+   | `APPLE_TEAM_ID` | the 10-character Team ID |
+
+   The workflow checks all four for presence before it checks anything out, so a missing
+   one fails in seconds rather than after the build.
+
+Export compliance is already answered in `Info.plist` (`ITSAppUsesNonExemptEncryption =
+false` — the app uses only the OS's standard TLS), so a processed build never waits on the
+manual compliance prompt. Revisit that key before shipping any cryptography of our own.
 
 ## Cutting a release
 
@@ -295,11 +337,38 @@ second full shrink on every pull request.
 > as the repo owner (already a bypass actor); without it the run fails fast at the
 > *Verify signing secrets* step.
 
+## Uploading to TestFlight / the App Store
+
+Uploading is **separate from cutting a release** and never automatic: a GitHub release
+never contacts Apple, and any existing tag can be uploaded or re-uploaded on its own.
+
+1. Cut the release first (above) — the workflow builds a **tag**, not a branch.
+2. Actions → **Apple App Store Upload** → *Run workflow* → enter the tag (e.g. `v2026.10.1`).
+3. The job archives the tagged commit with cloud signing, using the `iosApp AppStore` scheme
+   and the `Release-AppStore` configuration, and fails unless the archived `Info.plist` says
+   `SwitchboardChannel=appstore`. Plain `Release` is the open-source build attached to GitHub
+   releases and must never reach App Store Connect. It saves the dSYMs as a 90-day artifact
+   (`dSYMs-<tag>-<run>-<attempt>`), then uploads during `xcodebuild -exportArchive`
+   (`method: app-store-connect`, `destination: upload`). The *Stamp Version* build phase sets `CFBundleShortVersionString` to the numeric calver core
+   (`-rcN` stripped — App Store Connect only accepts dot-separated integers) and
+   `CFBundleVersion` to `YYYYMMPP.N`, where `N` is `run_number × 100 + run_attempt`. App
+   Store Connect **permanently** rejects a reused build number within a version train, so
+   every run and every re-run of a failed run gets a fresh one; nothing has to be bumped.
+4. Apple processes the build for roughly 5–15 minutes, after which it appears under
+   **TestFlight** in App Store Connect. From there, add it to an internal group (no review)
+   or an external group (Beta App Review), and/or attach it to an App Store version and
+   submit for review — both start from this same upload.
+
+A release candidate and the stable it is promoted to share a marketing version (the `-rcN`
+is stripped) and differ only in build number, which is exactly how App Store Connect
+expects a TestFlight train to look.
+
 ## Installing the iOS IPA
 
-The iOS asset (`switchboard-vX.ipa`) is **unsigned** — there is no Apple Developer account or
-App Store path. iOS refuses to run unsigned code, so every install route below re-signs the
-app on (or for) your device. Pick whichever your device supports:
+The iOS asset (`switchboard-vX.ipa`) attached to a GitHub Release is **unsigned** — it is
+built with no Apple account at all (the TestFlight / App Store build is a separate, manual
+upload; see above). iOS refuses to run unsigned code, so every install route below re-signs
+the app on (or for) your device. Pick whichever your device supports:
 
 - **AltStore / SideStore / Sideloadly** (any non-jailbroken iPhone). These re-sign the IPA
   with your **free Apple ID** on install. The free tier means a **7-day** signature that the
@@ -423,8 +492,10 @@ flavor's package changes.
   server the user chose, and Google counts that as collected;
   [`PRIVACY-NOTES.md`](PRIVACY-NOTES.md) section A has the form answers. Privacy-policy URL:
   `https://github.com/garfiec/Librechat-Mobile/blob/develop/docs/PRIVACY.md`.
-- **App Store** — `.github/workflows/appstore.yml`, archived with the `Release-AppStore`
-  configuration (see .github/CLAUDE.md).
+- **TestFlight / App Store** — a manual, per-tag upload via the *Apple App Store Upload*
+  workflow (`.github/workflows/appstore.yml`), archived with the `Release-AppStore`
+  configuration; never triggered by cutting a release. Setup and runbook: *One-time App Store
+  Connect setup* and *Uploading to TestFlight / the App Store*.
 - **Obtainium** — tracks GitHub Releases directly (see the README install section). Stable
   releases are full releases; `-rcN` candidate tags are marked pre-release.
 - **F-Droid** (future) — developer-signed, verified by reproducible build (`Binaries:` +
@@ -443,5 +514,5 @@ flavor's package changes.
   `AllowedAPKSigningKeys`. Use the *same* key. Reproducible builds earn a verification badge.
 - **iOS sideloading** — the unsigned `.ipa` is attached to every GitHub Release for
   AltStore / SideStore / Sideloadly / TrollStore installs (see *Installing the iOS IPA*). There
-  is no App Store or Obtainium-equivalent auto-update channel; users re-download on each release
+  is no Obtainium-equivalent auto-update channel; users re-download on each release
   (a SideStore/AltStore source manifest is a possible future follow-up).

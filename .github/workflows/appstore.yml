@@ -28,7 +28,7 @@ jobs:
   upload:
     name: Build, sign & upload to App Store Connect
     runs-on: xcode-27
-    # Same reviewer-gated environment as the Android signing secrets; holds the four
+    # Same environment as the Android signing secrets; holds the four
     # ASC_/APPLE_ secrets (docs/RELEASING.md "One-time App Store Connect setup").
     environment: release
 
