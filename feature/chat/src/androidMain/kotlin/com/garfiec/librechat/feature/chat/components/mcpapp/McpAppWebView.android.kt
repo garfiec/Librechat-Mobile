@@ -11,6 +11,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.net.http.SslError
+import android.view.View
 import android.view.ViewGroup
 import android.webkit.GeolocationPermissions
 import android.webkit.RenderProcessGoneDetail
@@ -43,9 +44,10 @@ import com.garfiec.librechat.feature.chat.viewmodel.McpAppSession
 private const val SNAPSHOT_SCALE = 0.5f
 
 /**
- * Pooled App web views. Every view is software-rendered ([configureLazyListWebView]): a view that
- * detaches when its card scrolls away is exactly the recycle that crashes the hardware (GL functor)
- * path, and the same view moves into the panel on Expand, so the panel is software too.
+ * Pooled App web views, software-rendered ([configureLazyListWebView]) everywhere but the panel: a
+ * view detaching when its card scrolls away crashes the hardware (GL functor) path, and a panel-sized
+ * software layer squashes the App. Every path that takes a view off its parent ([attach]'s move,
+ * [detach], [destroy]) puts it back on software first ([toSoftware]).
  */
 private class AndroidMcpAppViewPool(
     /** The Activity's, never a dialog's: a view outlives the panel's window. */
@@ -59,14 +61,20 @@ private class AndroidMcpAppViewPool(
         var lastPicture: ImageBitmap? = null
     }
 
-    fun attach(container: FrameLayout, session: McpAppSession, page: McpAppPage) {
+    fun attach(container: FrameLayout, session: McpAppSession, page: McpAppPage, inline: Boolean) {
         val pooled = views[session.id] ?: create(session, page).also { views[session.id] = it }
         val view = pooled.webView
         if (view.parent === container) return
+        toSoftware(view)
         (view.parent as? ViewGroup)?.removeView(view)
         container.removeAllViews()
         container.addView(view, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+        if (!inline) view.setLayerType(View.LAYER_TYPE_NONE, null)
         snapshots.remove(session.occurrence.key)
+    }
+
+    private fun toSoftware(view: WebView) {
+        if (view.layerType != View.LAYER_TYPE_SOFTWARE) configureLazyListWebView(view)
     }
 
     /** The container is going: keep a picture (inline only) and let the view go, still running. */
@@ -75,6 +83,7 @@ private class AndroidMcpAppViewPool(
         if (view != null && keepPicture) {
             views.values.firstOrNull { it.webView === view }?.let { it.lastPicture = picture(view) ?: it.lastPicture }
         }
+        view?.let(::toSoftware)
         container.removeAllViews()
     }
 
@@ -111,6 +120,7 @@ private class AndroidMcpAppViewPool(
 
     private fun destroy(pooled: PooledView) {
         pooled.session.host.send = null
+        toSoftware(pooled.webView)
         (pooled.webView.parent as? ViewGroup)?.removeView(pooled.webView)
         pooled.bridge.release()
         safelyDestroyWebView(pooled.webView)
@@ -243,7 +253,7 @@ internal actual fun McpAppWebView(
     AndroidView(
         modifier = modifier,
         factory = { context -> FrameLayout(context) },
-        update = { container -> androidPool.attach(container, session, page) },
+        update = { container -> androidPool.attach(container, session, page, inline) },
         onReset = { container -> androidPool.detach(container, keepPicture.value) },
         onRelease = { container -> androidPool.detach(container, keepPicture.value) },
     )

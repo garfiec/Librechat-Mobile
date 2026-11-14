@@ -972,7 +972,8 @@ Never let a preview pass for the whole call.
   destroy. `host.pageAttached()` runs once per **new** view, never on a reattach (it drops the queue
   and grants), and `host.send` stays wired while detached. A view is destroyed only when its session closes or the pool leaves composition. Build
   views with the Activity context, never the dialog's.
-- **Android views are software-rendered, panel included** (a detach on scroll SIGSEGVs the GL path).
+- **Android views are software-rendered except in the panel** (a detach on scroll SIGSEGVs the GL
+  path; a panel-sized software layer squashes the App).
   `onRenderProcessGone` returns true and fails that App with Retry.
 - The inline height is **frozen** after the first report (`McpAppsState.inlineHeights`, not
   `remember`), so the list doesn't jump. While its App is in the panel the card shows "Return to app"
