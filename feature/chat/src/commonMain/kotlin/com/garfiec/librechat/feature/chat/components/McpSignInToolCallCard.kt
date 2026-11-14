@@ -32,18 +32,21 @@ import org.jetbrains.compose.resources.stringResource
 private val CardShape = RoundedCornerShape(8.dp)
 
 /**
- * A live tool call the run is holding until the user signs in to an MCP server (upstream
- * `ToolCall.tsx`'s OAuth button). The button binds and opens the sign-in; nothing launches on its
- * own, since the redirect hands a third-party provider this session. Without a known server
- * ([serverName] null) or a host ([LocalMcpSignIn] null) the prompt shows without the action.
+ * A live tool call the run is holding until the user signs in to an MCP server or an agent action's
+ * OAuth provider (upstream `ToolCall.tsx`'s OAuth button). The button binds and opens the sign-in;
+ * nothing launches on its own, since the redirect hands a third-party provider this session.
+ * Without a known server or action ([serverName] and [actionId] null) or a host ([LocalMcpSignIn]
+ * null) the prompt shows without the action.
  */
 @Composable
 internal fun McpSignInToolCallCard(
     serverName: String?,
     authUrl: String,
     modifier: Modifier = Modifier,
+    actionId: String? = null,
 ) {
     val signIn = LocalMcpSignIn.current
+    val target = serverName ?: actionId
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
@@ -75,10 +78,12 @@ internal fun McpSignInToolCallCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            if (signIn != null && serverName != null) {
-                val preparing = signIn.preparingServer == serverName
+            if (signIn != null && target != null) {
+                val preparing = signIn.preparingServer == target
                 AdaptiveFilledTonalButton(
-                    onClick = { signIn.signIn(serverName, authUrl) },
+                    onClick = {
+                        if (serverName != null) signIn.signIn(serverName, authUrl) else signIn.signInAction(target, authUrl)
+                    },
                     enabled = signIn.preparingServer == null,
                 ) {
                     Box(contentAlignment = Alignment.Center) {

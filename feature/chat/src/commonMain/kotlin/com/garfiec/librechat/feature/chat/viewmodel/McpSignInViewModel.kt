@@ -49,11 +49,18 @@ class McpSignInViewModel(
      * Returns false, opening nothing, while another sign-in is binding or on screen; no
      * [McpSignInUiState.ended] will come for this one, so the caller reloads itself.
      */
-    fun signIn(serverName: String, authorizationUrl: String): Boolean {
+    fun signIn(serverName: String, authorizationUrl: String): Boolean =
+        start(serverName) { launcher.prepare(serverName, authorizationUrl) }
+
+    /** [signIn] for an agent action's OAuth prompt; [McpSignInUiState.preparingServer] holds [actionId] meanwhile. */
+    fun signInAction(actionId: String, authorizationUrl: String): Boolean =
+        start(actionId) { launcher.prepareAction(actionId, authorizationUrl) }
+
+    private fun start(key: String, prepare: suspend () -> Result<McpOAuthLaunch>): Boolean {
         if (_uiState.value.preparingServer != null || _uiState.value.launch != null) return false
-        _uiState.update { it.copy(preparingServer = serverName, failed = false, awaitingReturn = false) }
+        _uiState.update { it.copy(preparingServer = key, failed = false, awaitingReturn = false) }
         viewModelScope.launch {
-            when (val result = launcher.prepare(serverName, authorizationUrl)) {
+            when (val result = prepare()) {
                 is Result.Success -> _uiState.update { it.copy(preparingServer = null, launch = result.data) }
                 is Result.Error -> _uiState.update {
                     it.copy(preparingServer = null, failed = true, ended = true)

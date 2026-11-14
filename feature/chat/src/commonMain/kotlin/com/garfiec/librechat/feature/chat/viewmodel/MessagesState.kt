@@ -250,6 +250,8 @@ data class ActiveToolCall(
     val authUrl: String? = null,
     /** The MCP server [authUrl] signs in to; null when neither the URL nor the call names one. */
     val authServerName: String? = null,
+    /** The agent action [authUrl] signs in to, when the prompt is an action's rather than an MCP server's. */
+    val authActionId: String? = null,
     /** Server epoch ms the prompt expires at. Display only; never compared to the device clock. */
     val authExpiresAt: Long? = null,
     /**

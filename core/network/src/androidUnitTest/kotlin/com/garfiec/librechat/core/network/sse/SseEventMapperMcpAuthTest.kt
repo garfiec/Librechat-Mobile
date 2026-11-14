@@ -53,6 +53,22 @@ class SseEventMapperMcpAuthTest {
     }
 
     @Test
+    fun `an agent action's auth delta names the action, not a server`() {
+        val actionAuthUrl =
+            "https://auth.example.com/authorize?client_id=x&redirect_uri=https%3A%2F%2Fchat.example.com%2Fapi%2Factions%2Fact_abc%2Foauth%2Fcallback&state=s"
+        val event = mapper.map(
+            SseEvent(
+                event = "",
+                data = """{"event":"on_run_step_delta","data":{"id":"step_1","delta":{"type":"tool_calls","tool_calls":[{"id":"call_1","name":"getUser_action_api---example---com","type":"tool_call_chunk","args":""}],"auth":"$actionAuthUrl","expires_at":1704067200000}}}""",
+            ),
+        ) as StreamEvent.ToolCallAuthRequired
+
+        assertThat(event.toolCallId).isEqualTo("call_1")
+        assertThat(event.serverName).isNull()
+        assertThat(event.actionId).isEqualTo("act_abc")
+    }
+
+    @Test
     fun `a delta without auth is still dropped`() {
         mapper.map(runStep())
         val event = mapper.map(

@@ -106,10 +106,11 @@ sealed interface StreamEvent {
     }
 
     /**
-     * The run is waiting on the user to sign in to an MCP server: an `on_run_step_delta` whose
-     * delta carries `auth` (the provider's authorization URL) and `expires_at`. Sent at turn start,
-     * or on the first tool call of a server configured with `oauthPrompt: on_use`. The run resumes
-     * by itself once the callback lands; the step then completes like any tool call.
+     * The run is waiting on the user to sign in to an MCP server or an agent action's OAuth provider:
+     * an `on_run_step_delta` whose delta carries `auth` (the provider's authorization URL) and
+     * `expires_at`. Sent at turn start, or on the first tool call of a server configured with
+     * `oauthPrompt: on_use`. The run resumes by itself once the callback lands; the step then
+     * completes like any tool call.
      *
      * [expiresAt] is the server's epoch milliseconds, carried for display only: compared against
      * the device clock, skew would expire a two-minute prompt early. The server is the judge.
@@ -121,6 +122,8 @@ sealed interface StreamEvent {
         val expiresAt: Long? = null,
         val agentId: String? = null,
         val groupId: Int? = null,
+        /** The agent action the prompt signs in to, when it is an action's rather than an MCP server's. */
+        val actionId: String? = null,
     ) : StreamEvent
 
     /**

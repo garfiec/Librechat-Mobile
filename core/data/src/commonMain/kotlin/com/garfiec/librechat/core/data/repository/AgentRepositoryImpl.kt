@@ -221,6 +221,9 @@ class AgentRepositoryImpl(
         }
     }
 
+    override suspend fun bindActionOAuth(actionId: String): Result<List<String>> =
+        safeApiCall { agentsApi.bindActionOAuth(actionId) }
+
     // --- Tools ---
 
     override suspend fun getAvailableTools(): Result<List<AgentTool>> {

@@ -348,7 +348,7 @@ internal fun List<ActiveToolCall>.withoutSubagentAuthFor(childToolCallId: String
     } else {
         map {
             if (it.authToolCallId == childToolCallId) {
-                it.copy(authUrl = null, authServerName = null, authExpiresAt = null, authToolCallId = null)
+                it.copy(authUrl = null, authServerName = null, authActionId = null, authExpiresAt = null, authToolCallId = null)
             } else {
                 it
             }
@@ -385,9 +385,15 @@ internal fun List<ActiveToolCall>.preparedBy(event: StreamEvent.ToolCallPreparat
     }
 }
 
-/** The run is waiting on the user to sign in to an MCP server. Shared with the comparison panes. */
+/** The run is waiting on the user to sign in to an MCP server or an action. Shared with the comparison panes. */
 internal fun ActiveToolCall.authRequiredBy(event: StreamEvent.ToolCallAuthRequired) =
-    copy(authUrl = event.authUrl, authServerName = event.serverName, authExpiresAt = event.expiresAt, authToolCallId = null)
+    copy(
+        authUrl = event.authUrl,
+        authServerName = event.serverName,
+        authActionId = event.actionId,
+        authExpiresAt = event.expiresAt,
+        authToolCallId = null,
+    )
 
 internal fun ActiveToolCall.closedBy(event: StreamEvent.ToolCallClosed) =
     copy(isComplete = true, closedStatus = event.status, durationMs = event.durationMs ?: durationMs)
