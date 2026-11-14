@@ -125,14 +125,45 @@ class SubagentThreadsViewModelTest {
     }
 
     @Test
-    fun a_successful_index_is_read_once_per_conversation() = runTest(dispatcher) {
+    fun a_reopen_reads_the_index_again_and_reaches_a_later_child() = runTest(dispatcher) {
+        val laterChild = SubagentSummary(
+            threadId = "child-3",
+            parentToolCallId = "call_later",
+            subagentType = "researcher",
+            title = "Follow-up",
+            origin = "tool",
+            status = "running",
+        )
+        val vm = SubagentThreadsViewModel(repository)
+        vm.openFor("convo-1", null)
+
+        // A later turn spawns another child; its card then opens the sheet again.
+        coEvery { repository.getChildren("convo-1") } returns
+            Result.Success(SubagentIndex(children = listOf(toolChild, eventChild, laterChild)))
+        vm.openFor("convo-1", "call_later")
+
+        coVerify(exactly = 2) { repository.getChildren("convo-1") }
+        coVerify(exactly = 1) { repository.getThread("convo-1", "child-3") }
+        assertThat(vm.uiState.value.openThreadId).isEqualTo("child-3")
+        assertThat(vm.uiState.value.children.map { it.threadId }).contains("child-3")
+    }
+
+    @Test
+    fun a_reopen_while_the_index_is_in_flight_does_not_read_twice() = runTest(dispatcher) {
+        val gate = CompletableDeferred<Unit>()
+        coEvery { repository.getChildren("convo-1") } coAnswers {
+            gate.await()
+            Result.Success(SubagentIndex(children = listOf(toolChild, eventChild)))
+        }
         val vm = SubagentThreadsViewModel(repository)
 
         vm.openFor("convo-1", null)
-        vm.openFor("convo-1", null)
+        vm.openFor("convo-1", "call_abc")
+        gate.complete(Unit)
+        runCurrent()
 
         coVerify(exactly = 1) { repository.getChildren("convo-1") }
-        assertThat(vm.uiState.value.children).hasSize(2)
+        coVerify(exactly = 1) { repository.getThread("convo-1", "child-1") }
     }
 
     @Test
@@ -265,9 +296,6 @@ class SubagentThreadsViewModelTest {
 
         assertThat(vm.uiState.value.hasNoChildView).isFalse()
         assertThat(vm.uiState.value.children.map { it.threadId }).containsExactly("child-9")
-        // B stays loaded: a stale failure must not re-arm the once-per-conversation read either.
-        vm.openFor("convo-2", null)
-        coVerify(exactly = 1) { repository.getChildren("convo-2") }
     }
 
     @Test
