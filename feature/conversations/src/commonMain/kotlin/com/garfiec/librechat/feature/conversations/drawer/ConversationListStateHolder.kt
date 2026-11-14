@@ -37,6 +37,8 @@ class ConversationListStateHolder(
      * section's job.
      */
     private val remoteTitleSearch: (suspend (String) -> List<Conversation>?)? = null,
+    /** Whether a filtered list may ask the server; a server that can't search answers 500. */
+    private val serverSearchEnabled: suspend () -> Boolean = { false },
 ) {
 
     companion object {
@@ -319,6 +321,7 @@ class ConversationListStateHolder(
                         remoteTitleSearch ?: return@collectLatest
                     }
                     if (query.trim().length < MIN_REMOTE_QUERY_CHARS) return@collectLatest
+                    if (filters != null && !serverSearchEnabled()) return@collectLatest
                     val remote = search(query.trim()) ?: return@collectLatest
                     if (_filters.value != filters) return@collectLatest
                     // A reply for a query the user has since changed (or that a reset blanked on an
