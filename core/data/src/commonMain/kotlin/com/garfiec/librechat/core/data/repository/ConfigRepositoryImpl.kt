@@ -61,9 +61,9 @@ class ConfigRepositoryImpl(
     override val startupConfigRefreshes: Flow<StartupConfig> = _startupConfigRefreshes.asSharedFlow()
 
     /**
-     * The one writer of both config flows. [serverId] is the server the config was read from or
-     * fetched for, captured before the read or request so a switch landing mid-way tags it with the
-     * server it came from.
+     * The one writer of both config flows. [serverId] is captured before the cache read or request:
+     * a cached config is tagged with the server whose cache it came from, and a fetched one must be
+     * dropped, not passed here, when the active server changed while it was in flight.
      */
     private fun setStartupConfig(config: StartupConfig?, serverId: String?) {
         _startupConfigForServer.value = if (config != null && serverId != null) ServerStartupConfig(serverId, config) else null
