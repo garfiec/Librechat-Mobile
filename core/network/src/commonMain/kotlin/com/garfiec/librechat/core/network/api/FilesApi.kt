@@ -67,9 +67,7 @@ class FilesApi constructor(
         width: Int? = null,
         height: Int? = null,
         onProgress: ((Float) -> Unit)? = null,
-        /** The chat the file is attached in; the server fixes the file's retention deadline from it at upload. */
         conversationId: String? = null,
-        /** The file is attached in a temporary chat, so the server gives it the temporary-chat expiry at upload. */
         isTemporary: Boolean = false,
     ): FileObject {
         // The one place the part's Content-Type is written, so the one place a platform spelling
