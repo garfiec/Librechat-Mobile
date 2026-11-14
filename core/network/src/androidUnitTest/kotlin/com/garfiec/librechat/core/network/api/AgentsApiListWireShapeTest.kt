@@ -11,6 +11,7 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.http.headers
+import io.ktor.http.headersOf
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
@@ -134,5 +135,29 @@ class AgentsApiListWireShapeTest {
         val request = requests.single()
         assertThat(request.method).isEqualTo(HttpMethod.Post)
         assertThat(request.url.encodedPath).isEqualTo("/api/actions/act_abc/oauth/bind")
+    }
+
+    @Test
+    fun `getAgents walks every page at limit 1000`() = runTest {
+        val engine = MockEngine { request ->
+            requests += request
+            val body = if (request.url.parameters["cursor"] == null) {
+                """{"object":"list","data":[{"id":"agent_1","name":"One"}],"has_more":true,"after":"c1"}"""
+            } else {
+                """{"object":"list","data":[{"id":"agent_2","name":"Two"}],"has_more":false,"after":null}"""
+            }
+            respond(content = body, headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()))
+        }
+        val api = AgentsApi(HttpClient(engine) { install(ContentNegotiation) { json(librechatJson) } })
+
+        val all = api.getAgents(category = "education")
+
+        assertThat(requests.first().url.parameters["limit"]).isEqualTo("1000")
+        assertThat(requests).hasSize(2)
+        assertThat(requests.map { it.url.parameters["limit"] }).containsExactly("1000", "1000")
+        assertThat(requests.map { it.url.parameters["cursor"] }).containsExactly(null, "c1").inOrder()
+        assertThat(requests.map { it.url.parameters["category"] }).containsExactly("education", "education")
+        assertThat(all.data.map { it.id }).containsExactly("agent_1", "agent_2").inOrder()
+        assertThat(all.hasMore).isFalse()
     }
 }
