@@ -95,15 +95,20 @@ The app registers the `librechat://` URL scheme for deep linking (conversations,
 
 ## TestFlight / App Store Distribution
 
-Store builds are produced by the **App Store Upload** workflow
-(`.github/workflows/appstore.yml`), not by hand: it archives a tagged release with Xcode
-cloud signing (an App Store Connect API key is the only credential — no certificates or
+Store builds are produced by the **Apple App Store Upload** workflow
+(`.github/workflows/appstore.yml`), not by hand: it archives a tagged release with the
+`iosApp AppStore` scheme and Xcode cloud signing (an App Store Connect API key is the only credential — no certificates or
 profiles are stored anywhere) and uploads during export. The one-time App Store Connect
 setup and the per-release runbook are in [`docs/RELEASING.md`](../docs/RELEASING.md)
 ("One-time App Store Connect setup" and "Uploading to TestFlight / the App Store").
 
 Things that are already handled, so there is nothing to bump or declare per build:
 
+- **Channel**: the `Release-AppStore` configuration (the `iosApp AppStore` scheme's archive
+  configuration) stamps `SwitchboardChannel=appstore` into `Info.plist`, which turns off the
+  update check and GitHub release notes. Plain `Release` (the `iosApp` scheme) is the
+  open-source build attached to GitHub releases; never upload it to App Store Connect. The
+  workflow fails unless the archive says `appstore`.
 - **Versions** come from `version.properties` via the *Stamp Version* build phase, which
   overwrites the committed `Info.plist` literals at build time. `CFBundleShortVersionString`
   is the numeric calver core (`-rcN` stripped); `CFBundleVersion` is `YYYYMMPP`, or
@@ -112,24 +117,27 @@ Things that are already handled, so there is nothing to bump or declare per buil
 - **Export compliance** is declared once in `Info.plist` (`ITSAppUsesNonExemptEncryption =
   false`): the app only uses the OS's standard TLS, so uploads never wait on the manual
   compliance prompt. Revisit the key if the app ever ships its own cryptography.
-- **Signing identity** stays `Apple Development` in both configurations. The archive is
+- **Signing identity** stays `Apple Development` in every configuration. The archive is
   development-signed and `xcodebuild -exportArchive` re-signs it for distribution, which
-  is the standard automatic-signing flow; do not switch the Release config to
-  `Apple Distribution`, and do not commit a `DEVELOPMENT_TEAM`.
+  is the standard automatic-signing flow; do not switch `Release-AppStore` (or any other
+  configuration) to `Apple Distribution`, and do not commit a `DEVELOPMENT_TEAM`.
+- **dSYMs** are kept as a 90-day workflow artifact (`dSYMs-<tag>-<run>-<attempt>`); after
+  that, App Store Connect's copy is the only one.
 
 ### Local archive (optional)
 
 For a one-off upload from a Mac with a paid developer account, set your Team under
-*Signing & Capabilities* (leave it uncommitted), then **Product → Archive** and distribute
-from the Organizer. The Kotlin framework is built by the *Compile Kotlin Framework* build
-phase inside the archive, so no separate Gradle step is needed. A local archive stamps a
-plain `YYYYMMPP` build number, which collides with any workflow upload of the same version;
-prefer the workflow, or give the CLI archive an explicit suffix:
+*Signing & Capabilities* (leave it uncommitted), select the **`iosApp AppStore`** scheme,
+then **Product → Archive** and distribute from the Organizer. The Kotlin framework is built
+by the *Compile Kotlin Framework* build phase inside the archive, so no separate Gradle step
+is needed. A local archive stamps a plain `YYYYMMPP` build number, so a second local upload
+of the same version is rejected; prefer the workflow, or give a CLI archive its own suffix
+below 100 (workflow uploads use 101 and up, so the two never collide):
 
 ```bash
 IOS_BUILD_NUMBER_SUFFIX=1 xcodebuild archive \
-  -project iosApp/iosApp.xcodeproj -scheme iosApp \
-  -configuration Release -destination 'generic/platform=iOS' \
+  -project iosApp/iosApp.xcodeproj -scheme 'iosApp AppStore' \
+  -configuration Release-AppStore -destination 'generic/platform=iOS' \
   -archivePath iosApp/build/iosApp.xcarchive \
   -allowProvisioningUpdates DEVELOPMENT_TEAM=<your-10-char-team-id>
 ```

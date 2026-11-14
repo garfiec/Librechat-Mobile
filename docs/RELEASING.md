@@ -68,7 +68,7 @@ Both platforms derive from the same `versionName`, so they stay in lockstep:
 | Platform | versionName | versionCode | Where |
 |---|---|---|---|
 | Android | `versionName` verbatim | derived YYYYMMPP | `AndroidApplicationConventionPlugin` reads `version.properties` at build |
-| iOS | `CFBundleShortVersionString` | `CFBundleVersion` (same YYYYMMPP) | *Stamp Version* Xcode build phase reads `version.properties` at build |
+| iOS | `CFBundleShortVersionString` | `CFBundleVersion` (same YYYYMMPP; `YYYYMMPP.N` for App Store uploads) | *Stamp Version* Xcode build phase reads `version.properties` at build |
 
 > The "Stamp Version from version.properties" run-script phase runs after Info.plist is in
 > the bundle and before codesign. It, like "Stamp Git SHA", declares the processed Info.plist
@@ -205,7 +205,7 @@ second full shrink on every pull request.
 
 ## One-time App Store Connect setup
 
-TestFlight and the App Store are fed by the **App Store Upload** workflow
+TestFlight and the App Store are fed by the **Apple App Store Upload** workflow
 (`.github/workflows/appstore.yml`). It signs with **Xcode cloud signing**: an App Store
 Connect API key is the only Apple credential, and `-allowProvisioningUpdates` creates and
 manages the distribution certificate and provisioning profile in Apple's cloud. No `.p12`,
@@ -226,8 +226,8 @@ the next run create another. A paid Apple Developer Program membership is requir
    and the **Issuer ID** from the same page. The **Team ID** is under *Membership details*
    on the developer account.
 
-3. **Add the secrets to the `release` environment** (the same reviewer-gated environment
-   as the Android signing secrets, so an upload needs the same approval as a release):
+3. **Add the secrets to the `release` environment**, the same environment as the Android
+   signing secrets, so any protection rules on it apply to uploads too:
 
    | Secret | Value |
    |---|---|
@@ -341,11 +341,13 @@ Uploading is **separate from cutting a release** and never automatic: a GitHub r
 never contacts Apple, and any existing tag can be uploaded or re-uploaded on its own.
 
 1. Cut the release first (above) — the workflow builds a **tag**, not a branch.
-2. Actions → **App Store Upload** → *Run workflow* → enter the tag (e.g. `v2026.10.1`).
-   The `release` environment's reviewers must approve the run.
-3. The job archives the tagged commit with cloud signing and uploads during
-   `xcodebuild -exportArchive` (`method: app-store-connect`, `destination: upload`). The
-   *Stamp Version* build phase sets `CFBundleShortVersionString` to the numeric calver core
+2. Actions → **Apple App Store Upload** → *Run workflow* → enter the tag (e.g. `v2026.10.1`).
+3. The job archives the tagged commit with cloud signing, using the `iosApp AppStore` scheme
+   and the `Release-AppStore` configuration, and fails unless the archived `Info.plist` says
+   `SwitchboardChannel=appstore`. Plain `Release` is the open-source build attached to GitHub
+   releases and must never reach App Store Connect. It saves the dSYMs as a 90-day artifact
+   (`dSYMs-<tag>-<run>-<attempt>`), then uploads during `xcodebuild -exportArchive`
+   (`method: app-store-connect`, `destination: upload`). The *Stamp Version* build phase sets `CFBundleShortVersionString` to the numeric calver core
    (`-rcN` stripped — App Store Connect only accepts dot-separated integers) and
    `CFBundleVersion` to `YYYYMMPP.N`, where `N` is `run_number × 100 + run_attempt`. App
    Store Connect **permanently** rejects a reused build number within a version train, so
@@ -488,8 +490,10 @@ flavor's package changes.
   server the user chose, and Google counts that as collected;
   [`PRIVACY-NOTES.md`](PRIVACY-NOTES.md) section A has the form answers. Privacy-policy URL:
   `https://github.com/garfiec/Librechat-Mobile/blob/develop/docs/PRIVACY.md`.
-- **App Store** — `.github/workflows/appstore.yml`, archived with the `Release-AppStore`
-  configuration (see .github/CLAUDE.md).
+- **TestFlight / App Store** — a manual, per-tag upload via the *Apple App Store Upload*
+  workflow (`.github/workflows/appstore.yml`), archived with the `Release-AppStore`
+  configuration; never triggered by cutting a release. Setup and runbook: *One-time App Store
+  Connect setup* and *Uploading to TestFlight / the App Store*.
 - **Obtainium** — tracks GitHub Releases directly (see the README install section). Stable
   releases are full releases; `-rcN` candidate tags are marked pre-release.
 - **F-Droid** (future) — developer-signed, verified by reproducible build (`Binaries:` +
@@ -510,5 +514,3 @@ flavor's package changes.
   AltStore / SideStore / Sideloadly / TrollStore installs (see *Installing the iOS IPA*). There
   is no Obtainium-equivalent auto-update channel; users re-download on each release
   (a SideStore/AltStore source manifest is a possible future follow-up).
-- **TestFlight / App Store** — a manual, per-tag upload via the *App Store Upload* workflow
-  (see *Uploading to TestFlight / the App Store*); never triggered by cutting a release.
