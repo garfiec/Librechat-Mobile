@@ -1,8 +1,12 @@
 package com.garfiec.librechat.core.data.repository
 
+import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
+import com.garfiec.librechat.core.common.identity.currentAccountId
 import com.garfiec.librechat.core.common.network.ConnectivityObserver
 import com.garfiec.librechat.core.common.result.ApiException
+import com.garfiec.librechat.core.common.result.FailureKind
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.common.result.failureKind
 import com.garfiec.librechat.core.common.result.safeApiCall
 import com.garfiec.librechat.core.model.FileReference
 import com.garfiec.librechat.core.model.PendingSteer
@@ -25,6 +29,7 @@ import com.garfiec.librechat.core.model.response.SteerCancelResponse
 import com.garfiec.librechat.core.model.response.SteerResponse
 import com.garfiec.librechat.core.network.api.ChatApi
 import com.garfiec.librechat.core.network.sse.SseClient
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -45,6 +50,7 @@ class ChatRepositoryImpl(
     private val dispatcher: CoroutineDispatcher,
     private val json: Json,
     private val projectChanges: ProjectChangeSignal,
+    private val activeAccountProvider: ActiveAccountProvider,
 ) : ChatRepository {
 
     // New chats sent with a chatProjectId whose first reply hasn't finished. The server saves the
@@ -121,25 +127,11 @@ class ChatRepositoryImpl(
             reasoningOverride = reasoningOverride,
             codeWorkspace = codeWorkspace,
         )
-        // A send whose parent response is still being written now 409s ("Cannot submit a
-        // follow-up while the selected parent response is still being saved"), which an
-        // immediate send after an abort or a stream end reaches legitimately. It clears in
-        // milliseconds, so retrying is the correct handling; surfacing it would tell the user
-        // their message failed when nothing is wrong.
-        //
-        // Retried ONLY when the 409 carries no `code`. That is the discriminator, not a message
-        // match: every other 409 on this route is coded (RESOURCE_RECOVERY_REQUIRED needs the
-        // user to reattach files, RUN_REPLACED is a deduplication, GENERATION_PREDECESSOR_MISMATCH
-        // and RECOVERY_PAYLOAD_MISMATCH answer request fields mobile does not send), and retrying
-        // any of them would either loop or paper over something the user must act on.
-        //
-        // Read via generationCodeOf, NOT ServerErrorCode.from: this body puts an English sentence
-        // under `error`, which from()'s MCP fallback would hand back as a code.
-        val startResponse = retryWhileThrowing(
-            retryable = { it.statusCode == HTTP_CONFLICT && it.generationErrorCode == null },
-        ) {
-            chatApi.startChat(endpoint, ChatPayloadBuilder.toBody(json, request, modelParams))
-        }
+        // Every retry re-sends this one body: the server deduplicates a start by its
+        // `clientRequestId`, so a re-sent start resumes the run the first one began instead of
+        // starting a second. Rebuilding the request per attempt would mint a new id.
+        val body = ChatPayloadBuilder.toBody(json, request, modelParams)
+        val startResponse = retryStart { chatApi.startChat(endpoint, body) }
         val streamId = startResponse.conversationId
         if (chatProjectId != null) filedChatsPending.update { it + streamId }
 
@@ -155,10 +147,67 @@ class ChatRepositoryImpl(
         // Phase 2: GET the SSE stream using the streamId
         val streamUrl = "api/agents/chat/stream/$streamId"
         emitAll(
-            sseClient.connect(streamUrl, connectivityFlow = connectivityObserver.isConnected)
-                .announcingFiledChat(streamId),
+            // A deduplicated start answers `resumed`: the run already streamed, so replay it.
+            sseClient.connect(
+                streamUrl,
+                resume = startResponse.status == START_STATUS_RESUMED,
+                connectivityFlow = connectivityObserver.isConnected,
+            ).announcingFiledChat(streamId),
         )
     }.flowOn(dispatcher)
+
+    /**
+     * Runs the start POST [block] again on the failures that leave the send's fate unknown or
+     * merely early, so the same body reaches the server once it can answer:
+     * - an uncoded 409: the parent response is still being saved and clears in milliseconds.
+     *   Only the uncoded one: every other 409 on this route is coded and needs the user or is a
+     *   deduplication, so retrying it would loop or hide it. Read via [generationErrorCode], not
+     *   `ServerErrorCode.from`, whose `error` fallback hands this body's English sentence back as
+     *   a code;
+     * - 503 `SERVER_NOT_READY`: retried for up to [START_READINESS_WINDOW_MS], each wait the
+     *   server's `Retry-After` capped at [MAX_START_READINESS_DELAY_MS];
+     * - a dropped connection or a timeout (the response may have been lost after the server
+     *   started the run): [START_NETWORK_RETRIES] more attempts.
+     *
+     * Never retries once the active account changed: the client resolves the server and token per
+     * request, so the retry would send this account's message to the other account's server.
+     */
+    @Suppress("TooGenericExceptionCaught") // Transport failures arrive as many unrelated types.
+    private suspend fun <T> retryStart(block: suspend () -> T): T {
+        val origin = activeAccountProvider.currentAccountId()
+        var conflictRetries = 0
+        var networkRetries = 0
+        var readinessWaited = 0L
+        while (true) {
+            val (failure, wait) = try {
+                return block()
+            } catch (e: ApiException) {
+                e to when {
+                    e.statusCode == HTTP_CONFLICT && e.generationErrorCode == null ->
+                        retryDelayMillis(e).takeIf { conflictRetries++ < MAX_TRANSIENT_RETRIES }
+
+                    e.statusCode == HTTP_SERVICE_UNAVAILABLE &&
+                        e.generationErrorCode == ServerErrorCode.SERVER_NOT_READY ->
+                        (START_READINESS_WINDOW_MS - readinessWaited).takeIf { it > 0 }
+                            ?.let { left -> minOf(startReadinessDelayMillis(e), left) }
+                            ?.also { readinessWaited += it }
+
+                    else -> null
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                val retryable = e.failureKind() in RETRYABLE_START_FAILURES && networkRetries < START_NETWORK_RETRIES
+                e to if (retryable) START_NETWORK_BACKOFF_MS * ++networkRetries else null
+            }
+            delay(wait ?: throw failure)
+            if (activeAccountProvider.currentAccountId() != origin) throw failure
+        }
+    }
+
+    private fun startReadinessDelayMillis(exception: ApiException): Long =
+        (exception.retryAfterSeconds?.times(1000) ?: DEFAULT_START_READINESS_DELAY_MS)
+            .coerceIn(DEFAULT_RETRY_DELAY_MS, MAX_START_READINESS_DELAY_MS)
 
     override suspend fun abortChat(
         streamId: String?,
@@ -305,6 +354,7 @@ class ChatRepositoryImpl(
         )
         const val HTTP_CONFLICT = 409
         const val HTTP_SERVICE_UNAVAILABLE = 503
+        const val START_STATUS_RESUMED = "resumed"
 
         /**
          * Extra attempts after the first. Three covers the status route's own three-read epoch
@@ -314,5 +364,15 @@ class ChatRepositoryImpl(
         const val MAX_TRANSIENT_RETRIES = 3
         const val DEFAULT_RETRY_DELAY_MS = 500L
         const val MAX_RETRY_DELAY_MS = 2_000L
+
+        /** How long a send waits for a starting server, as the web client does. */
+        const val START_READINESS_WINDOW_MS = 120_000L
+        const val DEFAULT_START_READINESS_DELAY_MS = 1_000L
+        const val MAX_START_READINESS_DELAY_MS = 30_000L
+
+        /** A start whose response was lost: 3 attempts in all, 1 s then 2 s apart, as the web client does. */
+        val RETRYABLE_START_FAILURES = setOf(FailureKind.Network, FailureKind.Timeout)
+        const val START_NETWORK_RETRIES = 2
+        const val START_NETWORK_BACKOFF_MS = 1_000L
     }
 }

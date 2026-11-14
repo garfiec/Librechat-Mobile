@@ -1,5 +1,8 @@
 package com.garfiec.librechat.core.data.repository
 
+import com.garfiec.librechat.core.common.identity.AccountId
+import com.garfiec.librechat.core.common.identity.AccountState
+import com.garfiec.librechat.core.common.identity.InMemoryActiveAccountProvider
 import com.garfiec.librechat.core.common.network.ConnectivityObserver
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.model.PendingSteer
@@ -34,6 +37,7 @@ class ChatRepositoryClaimOnReadTest {
         dispatcher = UnconfinedTestDispatcher(),
         json = Json,
         projectChanges = ProjectChangeSignal(),
+        activeAccountProvider = InMemoryActiveAccountProvider(AccountState.Resolved(AccountId("acct-a"))),
     )
 
     private val parked = listOf(
