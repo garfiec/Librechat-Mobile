@@ -69,7 +69,12 @@ fun StreamingToolCallCard(
     // while the step runs; the completion that follows the callback flips isComplete and hides it.
     val authUrl = toolCall.authUrl
     if (authUrl != null && !toolCall.isComplete) {
-        McpSignInToolCallCard(serverName = toolCall.authServerName, authUrl = authUrl, modifier = modifier)
+        McpSignInToolCallCard(
+            serverName = toolCall.authServerName,
+            authUrl = authUrl,
+            modifier = modifier,
+            actionId = toolCall.authActionId,
+        )
         return
     }
 

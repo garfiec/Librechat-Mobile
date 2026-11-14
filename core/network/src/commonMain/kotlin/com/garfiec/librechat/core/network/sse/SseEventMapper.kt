@@ -12,6 +12,7 @@ import com.garfiec.librechat.core.model.StreamErrorCodes
 import com.garfiec.librechat.core.model.StreamEvent
 import com.garfiec.librechat.core.model.SubagentPhase
 import com.garfiec.librechat.core.model.content.MessageContentPart
+import com.garfiec.librechat.core.model.mcp.actionOAuthId
 import com.garfiec.librechat.core.model.mcp.mcpOAuthServerName
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -431,7 +432,7 @@ class SseEventMapper(private val json: Json) {
             "on_message_delta" -> mapMessageDelta(data, agentId, groupId)
             "on_reasoning_delta" -> mapReasoningDelta(data, agentId, groupId)
             "on_run_step" -> mapRunStep(data, agentId, groupId)
-            // Argument streaming is not tracked; a delta carrying `auth` is an MCP sign-in prompt.
+            // Argument streaming is not tracked; a delta carrying `auth` is an MCP or action sign-in prompt.
             "on_run_step_delta" -> mapRunStepAuthDelta(data, agentId, groupId)
             // A call's arguments started streaming / it was handed to execution. They drive the live
             // card's "Preparing" state; the durations they yield are stamped on the persisted call
@@ -678,6 +679,7 @@ class SseEventMapper(private val json: Json) {
             expiresAt = (delta["expires_at"] as? JsonPrimitive)?.longOrNull,
             agentId = agentId,
             groupId = groupId,
+            actionId = actionOAuthId(authUrl),
         )
     }
 

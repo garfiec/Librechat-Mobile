@@ -15,6 +15,7 @@ import com.garfiec.librechat.core.model.request.RevertAgentRequest
 import com.garfiec.librechat.core.model.request.UpdateAgentRequest
 import com.garfiec.librechat.core.model.response.AgentListResponse
 import com.garfiec.librechat.core.model.response.DuplicateAgentResponse
+import com.garfiec.librechat.core.network.client.CookieHelper
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.delete
@@ -27,6 +28,7 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.Headers
 import io.ktor.http.HttpHeaders
+import io.ktor.http.appendPathSegments
 import io.ktor.http.path
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -170,6 +172,18 @@ class AgentsApi constructor(
         client.delete {
             url { path("api/agents/actions/$agentId/$actionId") }
         }
+    }
+
+    /**
+     * POST /api/actions/:action_id/oauth/bind — sets `oauth_csrf` (Path `/api/actions`) and
+     * `oauth_session`, which the action's OAuth callback requires. Returned as `Set-Cookie` values
+     * for the in-app sign-in WebView to seed; empty when the server set none.
+     */
+    suspend fun bindActionOAuth(actionId: String): List<String> {
+        val response = client.post {
+            url { appendPathSegments("api", "actions", actionId, "oauth", "bind") }
+        }
+        return CookieHelper.setCookieValues(response.headers, MCP_OAUTH_BINDING_COOKIES)
     }
 
     // --- Agent Avatar ---

@@ -21,14 +21,16 @@ import org.jetbrains.compose.resources.stringResource
 
 /**
  * The Sign in action of a live tool call waiting on an MCP OAuth, and of a settings chip whose
- * server needs sign-in. [preparingServer] is the server whose sign-in is being bound, so only its
- * button shows progress.
+ * server needs sign-in, and of a live tool call waiting on an agent action's OAuth ([signInAction]).
+ * [preparingServer] is the server (or action id) whose sign-in is being bound, so only its button
+ * shows progress.
  */
 @Immutable
 data class McpSignIn(
     val preparingServer: String?,
     /** Whether it opened: false while another sign-in is binding or on screen. */
     val signIn: (serverName: String, authorizationUrl: String) -> Boolean,
+    val signInAction: (actionId: String, authorizationUrl: String) -> Boolean,
 )
 
 /**
@@ -75,5 +77,7 @@ fun rememberMcpSignIn(
         viewModel.consumeEnded()
         currentOnSignInEnd()
     }
-    return remember(viewModel, state.preparingServer) { McpSignIn(state.preparingServer, viewModel::signIn) }
+    return remember(viewModel, state.preparingServer) {
+        McpSignIn(state.preparingServer, viewModel::signIn, viewModel::signInAction)
+    }
 }

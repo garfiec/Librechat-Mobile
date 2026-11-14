@@ -58,6 +58,21 @@ class LiveReplyMcpSignInTest {
     }
 
     @Test
+    fun `an agent action's auth delta puts its action id on the call`() = runTest {
+        val flow = MutableStateFlow(ChatUiState())
+        val live = delegate(flow, backgroundScope)
+        live.apply(StreamEvent.ToolCallStart(toolCallId = "call_1", toolName = "getUser_action_api---example---com", input = ""))
+
+        live.apply(
+            StreamEvent.ToolCallAuthRequired(toolCallId = "call_1", authUrl = "https://auth", serverName = null, actionId = "act_abc"),
+        )
+
+        val waiting = flow.value.activeToolCalls.single()
+        assertThat(waiting.authActionId).isEqualTo("act_abc")
+        assertThat(waiting.authServerName).isNull()
+    }
+
+    @Test
     fun `an auth delta for an unknown call changes nothing`() = runTest {
         val flow = MutableStateFlow(ChatUiState())
         val live = delegate(flow, backgroundScope)
@@ -138,6 +153,36 @@ class LiveReplyMcpSignInTest {
         assertThat(after.authUrl).isNull()
         assertThat(after.authToolCallId).isNull()
         assertThat(after.isComplete).isFalse()
+    }
+
+    @Test
+    fun `a subagent child's action sign-in leaves the subagent call when the child call completes`() = runTest {
+        val flow = MutableStateFlow(ChatUiState())
+        val live = delegateWithTraces(flow, backgroundScope)
+        live.apply(StreamEvent.ToolCallStart(toolCallId = "call_sub", toolName = "subagent", input = ""))
+        live.apply(
+            StreamEvent.SubagentUpdate(
+                phase = SubagentPhase.RUN_STEP,
+                parentToolCallId = "call_sub",
+                subagentRunId = "run_1",
+                inner = StreamEvent.ToolCallStart(toolCallId = "call_child", toolName = "getUser_action_api---example---com", input = ""),
+            ),
+        )
+        live.apply(
+            StreamEvent.ToolCallAuthRequired(toolCallId = "call_child", authUrl = "https://auth", serverName = null, actionId = "act_abc"),
+        )
+        assertThat(flow.value.activeToolCalls.single().authActionId).isEqualTo("act_abc")
+
+        live.apply(
+            StreamEvent.SubagentUpdate(
+                phase = SubagentPhase.RUN_STEP_COMPLETED,
+                parentToolCallId = "call_sub",
+                subagentRunId = "run_1",
+                inner = StreamEvent.ToolCallComplete(toolCallId = "call_child", output = "ok"),
+            ),
+        )
+
+        assertThat(flow.value.activeToolCalls.single().authActionId).isNull()
     }
 
     @Test
