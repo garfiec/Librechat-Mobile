@@ -11,8 +11,8 @@ import com.garfiec.librechat.core.model.Agent
  * Two deliberate divergences:
  * - **An incomplete agent graph does not by itself require a workspace.** Web counts a linked agent
  *   it has not loaded as "maybe needs a machine" and answers `unavailable`, which with the decision
- *   version seals the chat as "No workspace". Mobile loads one page of agents, so a plain agent
- *   linking one past it would be sealed that way on every new chat. The server's
+ *   version seals the chat as "No workspace". Mobile's cached agent list can lag the server,
+ *   so a plain agent linking one missing from it would be sealed that way on every new chat. The server's
  *   `code_workspace_unavailable` / `required` rejection is the backstop instead.
  * - **Nothing is pre-selected into a send when the user has to choose** (`CHOOSE`): web sends
  *   "No workspace" there, which a phone has no way to undo (see [Resolution.canSubmit]).

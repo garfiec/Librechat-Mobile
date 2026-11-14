@@ -265,8 +265,8 @@ class ModelSelectionDelegateTest {
         delegate.refilterModels(isNewConversation = false)
         advanceUntilIdle()
 
-        // Kept: the agents list is one capped page, so absence from it does not prove the id
-        // is stale, and refilter must not swap the chat onto another model.
+        // Kept: the cached agents list can lag the server, so absence from it does not prove the
+        // id is stale, and refilter must not swap the chat onto another model.
         assertThat(handle.state.selectedEndpoint).isEqualTo(EndpointConstants.AGENTS)
         assertThat(handle.state.selectedModel).isEqualTo("gpt-4o")
     }
