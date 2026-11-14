@@ -4,6 +4,10 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    ignore:
+      # 0.5.0+ is built against detekt 2.x and cannot load on detekt 1.x.
+      - dependency-name: "io.nlopez.compose.rules:detekt"
+        versions: [">= 0.5.0"]
 
   # Third-party actions in the release workflow are pinned to commit SHAs (not moving
   # tags) so a compromised action can't slip into the secret-bearing job; this keeps
