@@ -15,6 +15,8 @@ data class McpServerDisplayData(
     val signInBusy: Boolean = false,
     /** What the user must enter before it connects; the variables sheet's fields. */
     val userVars: List<McpUserVar> = emptyList(),
+    /** Whether the chat may offer it: not hidden from the chat menu and not reachable only through an agent. */
+    val chatSelectable: Boolean = true,
 ) {
     val label: String get() = title?.takeIf { it.isNotBlank() } ?: name
 

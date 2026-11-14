@@ -13,7 +13,7 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 
-/** Who may change a server rests on `dbId` and `consumeOnly`, so their decoding is pinned here. */
+/** Who may change a server rests on `dbId` and `consumeOnly`, and the chat offers it by `chatMenu`, so their decoding is pinned here. */
 class McpApiListServersTest {
 
     private fun client(response: String): HttpClient = HttpClient(
@@ -48,6 +48,22 @@ class McpApiListServersTest {
         assertThat(server.dbId).isNull()
         assertThat(server.consumeOnly).isFalse()
         assertThat(server.requestScoped).isFalse()
+    }
+
+    @Test
+    fun `a server hidden from the chat menu decodes chatMenu false`() = runTest {
+        val api = McpApi(
+            client(
+                """{"hidden":{"type":"streamable-http","url":"https://a.example.test/mcp","chatMenu":false},""" +
+                    """"shown":{"type":"streamable-http","url":"https://b.example.test/mcp"}}""",
+            ),
+            librechatJson,
+        )
+
+        val servers = api.listServers().associateBy { it.name }
+
+        assertThat(servers.getValue("hidden").chatMenu).isFalse()
+        assertThat(servers.getValue("shown").chatMenu).isTrue()
     }
 
     @Test

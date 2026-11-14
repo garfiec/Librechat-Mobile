@@ -140,6 +140,17 @@ data class ModelSelectionState(
     /** The MCP servers the spec adds, likewise. */
     val lockedMcpServers: Set<String> get() = activeSpec?.forcedMcpServers.orEmpty()
 
+    /**
+     * The [mcpServers] the chat's pickers and chips offer (the server drops the rest from a chat's
+     * selection). Servers the spec pins stay, so their locked chip still draws.
+     */
+    val offeredMcpServers: List<McpServerDisplayData> =
+        if (mcpServers.all { it.chatSelectable }) {
+            mcpServers
+        } else {
+            mcpServers.filter { it.chatSelectable || it.name in lockedMcpServers }
+        }
+
     /** What a spec chat starts with on top of the spec's tools: its preset's ([presetTools]). */
     private val initialSpecTools: SpecTools?
         get() = selectedSpec?.let { SpecTools(it, added = activeSpec?.presetTools.orEmpty()) }

@@ -591,14 +591,14 @@ fun ChatScreen(
                         }
                     }
                     val pickerMcpServers = remember(
-                        uiState.mcpServers,
+                        uiState.offeredMcpServers,
                         uiState.effectiveMcpServerNames,
                         uiState.lockedMcpServers,
                         uiState.toolbarShown,
                         uiState.mcpServersEnabled,
                     ) {
                         pickerMcpServersOf(
-                            servers = uiState.mcpServers,
+                            servers = uiState.offeredMcpServers,
                             on = uiState.effectiveMcpServerNames,
                             locked = uiState.lockedMcpServers,
                             toolbarShown = uiState.toolbarShown,

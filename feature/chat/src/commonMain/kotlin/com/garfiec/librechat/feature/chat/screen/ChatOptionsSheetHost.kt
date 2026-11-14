@@ -89,7 +89,7 @@ internal fun ChatOptionsSheetHost(
             onToggleTool = viewModel::toggleTool,
             artifactsMode = uiState.selection.artifactsMode,
             onSetArtifactsMode = viewModel::setArtifactsMode,
-            mcpServers = uiState.mcpServers,
+            mcpServers = uiState.offeredMcpServers,
             selectedMcpServerNames = uiState.effectiveMcpServerNames,
             onToggleMcpServer = viewModel::toggleMcpServer,
             onAttachFiles = onAttachFiles,

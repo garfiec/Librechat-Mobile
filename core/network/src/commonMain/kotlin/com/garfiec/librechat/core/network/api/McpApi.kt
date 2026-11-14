@@ -151,6 +151,7 @@ class McpApi constructor(
                     ?.let(::McpOboConfig),
                 dbId = (config["dbId"] as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() },
                 consumeOnly = (config["consumeOnly"] as? JsonPrimitive)?.booleanOrNull ?: false,
+                chatMenu = (config["chatMenu"] as? JsonPrimitive)?.booleanOrNull ?: true,
                 requestScoped = (config["requestScoped"] as? JsonPrimitive)?.booleanOrNull ?: false,
                 customUserVars = (config["customUserVars"] as? JsonObject)?.let(::parseUserVars).orEmpty(),
             )
