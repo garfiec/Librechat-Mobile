@@ -65,7 +65,7 @@ kermit = "2.2.0"
 okio = "3.18.2"
 
 # KMP / iOS
-skie = "0.10.15"
+skie = "0.10.16"
 
 # Testing
 junit = "4.13.2"
