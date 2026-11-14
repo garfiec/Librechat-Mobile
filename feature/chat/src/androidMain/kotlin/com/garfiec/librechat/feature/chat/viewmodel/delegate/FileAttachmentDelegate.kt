@@ -255,6 +255,8 @@ class FileAttachmentDelegate(
                     height = imageHeight,
                     onProgress = { pct -> updateFileProgress(key, pct) },
                     pdfPassword = pdfPassword,
+                    conversationId = state.conversationId,
+                    isTemporary = state.isTemporaryChat,
                 )
 
                 when (result) {

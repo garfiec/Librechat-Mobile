@@ -46,7 +46,11 @@ class FilesApiMimeNormalizationTest {
         channel.readRemaining().readByteArray().decodeToString()
     }
 
-    private suspend fun uploadWithType(type: String): String {
+    private suspend fun uploadWithType(
+        type: String,
+        conversationId: String? = null,
+        isTemporary: Boolean = false,
+    ): String {
         var body: String? = null
         val engine = MockEngine { request ->
             body = renderBody(request.body)
@@ -61,6 +65,8 @@ class FilesApiMimeNormalizationTest {
             bytes = "#!/bin/sh\n".encodeToByteArray(),
             filename = "deploy.sh",
             type = type,
+            conversationId = conversationId,
+            isTemporary = isTemporary,
         )
         return body!!
     }
@@ -91,6 +97,22 @@ class FilesApiMimeNormalizationTest {
         val body = uploadWithType("text/markdown")
 
         assertThat(body).contains("text/markdown")
+    }
+
+    @Test
+    fun `a temporary chat upload carries isTemporary and the conversation id`() = runTest {
+        val body = uploadWithType("text/plain", conversationId = "convo-1", isTemporary = true)
+
+        assertThat(body).containsMatch("name=\"?conversationId\"?\r\n(?:[^\r\n]+\r\n)*\r\nconvo-1\r\n")
+        assertThat(body).containsMatch("name=\"?isTemporary\"?\r\n(?:[^\r\n]+\r\n)*\r\ntrue\r\n")
+    }
+
+    @Test
+    fun `an upload outside a chat sends neither retention field`() = runTest {
+        val body = uploadWithType("text/plain")
+
+        assertThat(body).doesNotContain("conversationId")
+        assertThat(body).doesNotContain("isTemporary")
     }
 
     @Test

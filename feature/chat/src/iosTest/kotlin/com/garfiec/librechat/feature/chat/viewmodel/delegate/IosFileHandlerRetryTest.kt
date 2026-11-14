@@ -52,6 +52,8 @@ class IosFileHandlerRetryTest {
             height: Int?,
             onProgress: ((Float) -> Unit)?,
             pdfPassword: String?,
+            conversationId: String?,
+            isTemporary: Boolean,
         ): Result<FileObject> {
             uploads += Upload(bytes, filename, toolResource)
             if (failed.add(filename)) return Result.Error(message = "offline")
