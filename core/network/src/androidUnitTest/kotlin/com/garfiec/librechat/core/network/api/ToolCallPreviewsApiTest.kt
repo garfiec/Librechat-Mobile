@@ -103,9 +103,19 @@ class ToolCallPreviewsApiTest {
     fun `fork, duplicate and shared fork opt in to previews`() = runTest {
         val convos = ConversationsApi(client("""{"conversation":{"conversationId":"c2"},"messages":[]}"""))
         convos.forkConversation(ForkConversationRequest(conversationId = "c", messageId = "m"))
-        ConversationsApi(client("""{"conversationId":"c3"}""")).duplicateConversation("c", null)
+        ConversationsApi(client("""{"conversation":{"conversationId":"c3"},"messages":[]}""")).duplicateConversation("c", null)
         ShareApi(client("""{"conversation":{"conversationId":"c4"},"messages":[]}""")).forkSharedConversation("share-1")
         assertThat(requests.map { it.url.parameters["toolPreviews"] }).containsExactly("1", "1", "1")
+    }
+
+    @Test
+    fun `duplicate returns the copy from the server's conversation and messages wrapper`() = runTest {
+        val api = ConversationsApi(
+            client(
+                """{"conversation":{"conversationId":"c3","title":"Copy of x"},"messages":[{"messageId":"m1","text":"hello"}]}""",
+            ),
+        )
+        assertThat(api.duplicateConversation("c", "Copy of x").conversationId).isEqualTo("c3")
     }
 
     @Test
