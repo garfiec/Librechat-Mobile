@@ -365,12 +365,12 @@ class ChatRepositoryImpl(
         const val DEFAULT_RETRY_DELAY_MS = 500L
         const val MAX_RETRY_DELAY_MS = 2_000L
 
-        /** How long a send waits for a starting server, as the web client does. */
+        /** The total of the Retry-After waits a send spends on a starting server; request time is not counted. */
         const val START_READINESS_WINDOW_MS = 120_000L
         const val DEFAULT_START_READINESS_DELAY_MS = 1_000L
         const val MAX_START_READINESS_DELAY_MS = 30_000L
 
-        /** A start whose response was lost: 3 attempts in all, 1 s then 2 s apart, as the web client does. */
+        /** A start whose response was lost: 3 attempts in all, 1 s then 2 s apart, the web client's network-retry schedule. */
         val RETRYABLE_START_FAILURES = setOf(FailureKind.Network, FailureKind.Timeout)
         const val START_NETWORK_RETRIES = 2
         const val START_NETWORK_BACKOFF_MS = 1_000L
