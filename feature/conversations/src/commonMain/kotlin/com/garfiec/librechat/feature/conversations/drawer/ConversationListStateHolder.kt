@@ -302,8 +302,8 @@ class ConversationListStateHolder(
     }
 
     /**
-     * Re-reads the unfiltered first page when it is older than [STALE_AFTER] or failed, so
-     * chats started elsewhere reach the cache. No spinner, and once the list has loaded it never
+     * Re-reads the unfiltered first page when its last successful load is older than [STALE_AFTER]
+     * or there has been none since launch or an account switch, so chats started elsewhere reach the cache. No spinner, and once the list has loaded it never
      * moves the cursor: rewinding it would re-page rows already scrolled past.
      */
     fun refreshIfStale() {
