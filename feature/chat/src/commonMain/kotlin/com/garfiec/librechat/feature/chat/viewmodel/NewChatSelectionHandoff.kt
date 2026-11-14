@@ -40,12 +40,11 @@ class NewChatSelectionHandoff {
         val conversationId: String,
         val choice: ModelChoice,
         /**
-         * The optimistic user message the landing VM minted and sent (its id is adopted by the
-         * server, PR #139). Handed off because the server persists the request message only when
-         * the reply finishes (see `agents/request.js`) — so until then the just-created Chat(id)
-         * VM's `getMessages` returns no user message, and the optimistic copy lived only in the
-         * now-reset landing VM. Seeding it keeps the user's own message on screen for the whole
-         * resumed stream instead of vanishing until completion.
+         * The optimistic user message the landing VM minted and sent. Handed off because the
+         * server may save the request message, under an id of its own, after the just-created
+         * Chat(id) VM's first `getMessages`, and the optimistic copy lived only in the now-reset
+         * landing VM. Seeding it keeps the user's own message on screen until the server's row
+         * arrives.
          */
         val optimisticUserMessage: Message? = null,
         /**

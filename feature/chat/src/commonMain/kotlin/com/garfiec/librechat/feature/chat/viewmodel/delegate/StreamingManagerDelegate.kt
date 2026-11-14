@@ -254,10 +254,14 @@ class StreamingManagerDelegate(
      * The id a queued turn may anchor to when [messageId] is the visible branch tail, or null
      * when the server's id for it is not known yet. The tail of a run this client started is
      * the optimistic user message, an id the server never stored: a queued turn anchored there is
-     * dead-lettered `PARENT_NOT_FOUND` when the run ends instead of being sent.
+     * dead-lettered `PARENT_NOT_FOUND` when the run ends instead of being sent. A seed handed off
+     * from the landing is such a message too; its server id is the attached run's request id.
      */
-    fun queueAnchorFor(messageId: String): String? =
-        if (messageId in serverUserMessageIds) serverUserMessageIds[messageId] else messageId
+    fun queueAnchorFor(messageId: String): String? {
+        if (messageId in serverUserMessageIds) return serverUserMessageIds[messageId]
+        val content = handle.state.content
+        return if (messageId == content.pendingResumeUserMessage?.messageId) content.attachedRun?.requestId else messageId
+    }
 
     /**
      * Whether this turn reached the server's `created` milestone. Below that line nothing is
