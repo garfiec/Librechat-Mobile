@@ -419,6 +419,29 @@ class ConversationRepositoryImplTest {
     }
 
     @Test
+    fun `syncFavoritesFromServer writes nothing from a page that returns after an account switch`() = runTest {
+        coEvery {
+            conversationsApi.getConversations(null, any(), any(), any(), any(), any(), any())
+        } returns ConversationListResponse(conversations = listOf(Conversation(conversationId = "c1")), nextCursor = "cursor-2")
+        // Page 2 was sent as the next account, so it lists that account's favorites.
+        coEvery {
+            conversationsApi.getConversations("cursor-2", any(), any(), any(), any(), any(), any())
+        } coAnswers {
+            activeAccountProvider.set(AccountId("srv:other"))
+            ConversationListResponse(conversations = listOf(Conversation(conversationId = "c2")), nextCursor = null)
+        }
+        coEvery { conversationDao.getByIdForAccount(any(), any()) } returns null
+        coEvery {
+            conversationDao.observeConversationsForAccount(account.value, false)
+        } returns flowOf(listOf(entity("c-saved", """["Saved"]""")))
+
+        repository.syncFavoritesFromServer()
+
+        coVerify(exactly = 0) { conversationDao.upsert(match { it.conversationId == "c2" }) }
+        coVerify(exactly = 0) { conversationDao.updateTags(any(), any(), any(), any()) }
+    }
+
+    @Test
     fun `syncFavoritesFromServer no-op when local and server match`() = runTest {
         val serverConvo = Conversation(conversationId = "convo-1")
         coEvery {

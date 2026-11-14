@@ -91,6 +91,16 @@ class EndpointTokenRepositoryImplTest {
     }
 
     @Test
+    fun `a token-config that returns after a server switch is not saved for the new server`() = runTest {
+        coEvery { configCache.serverId() } returnsMany listOf("srv:a", "srv:b")
+        coEvery { api.getTokenConfig() } returns liveConfig
+
+        repository(null).getTokenConfig()
+
+        coVerify(exactly = 0) { configCache.saveTokenConfig(any()) }
+    }
+
+    @Test
     fun `offline, the saved token-config stands in for the network`() = runTest {
         coEvery { api.getTokenConfig() } throws RuntimeException("offline")
         coEvery { configCache.loadTokenConfig() } returns savedConfig
