@@ -49,7 +49,6 @@ class ConversationListStateHolder(
         /** Shorter queries stay local: upstream doesn't rate-limit search, so the client does. */
         private const val MIN_REMOTE_QUERY_CHARS = 3
 
-        /** The unfiltered first page is re-read on [refreshIfStale] once it is older than this. */
         private val STALE_AFTER = 5.minutes
     }
 
