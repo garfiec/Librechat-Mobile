@@ -4,7 +4,7 @@ Setup runbooks for every release workflow: `docs/RELEASING.md`.
 
 ## Apple App Store upload — `.github/workflows/appstore.yml`
 - **Manual only** (`workflow_dispatch`, required `tag`); cutting a GitHub release never uploads to Apple.
-- One `upload` job on `xcode-27` (Xcode pinned, see Environment), `environment: release` (reviewer-gated secrets).
+- One `upload` job on `xcode-27` (Xcode pinned, see Environment), `environment: release` (holds the secrets).
 - Xcode **cloud signing** via an App Store Connect API key: no certificates or profiles stored anywhere;
   `-allowProvisioningUpdates` manages them.
 - Archives the tag with scheme `iosApp AppStore`, configuration `Release-AppStore`

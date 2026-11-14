@@ -141,8 +141,10 @@ user's update fails with a signature conflict and recovery requires uninstall + 
    Back it up in **2+ secure locations** (password manager / offline). Do **not** commit it
    (`.gitignore` already excludes `*.jks` and `keystore.properties`).
 
-2. **Add GitHub repository secrets** (Settings → Secrets and variables → Actions). Ideally put
-   them in an Environment named `release` with required reviewers, so the release job is gated.
+2. **Add GitHub repository secrets** (Settings → Secrets and variables → Actions). Put them in
+   an Environment named `release`, which the release, Play and App Store upload jobs all use.
+   Required reviewers on that environment are optional: with them, every release and upload
+   waits for an approval.
 
    | Secret | Value |
    |---|---|
