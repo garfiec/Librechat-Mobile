@@ -81,7 +81,6 @@ robolectric = "4.17"
 
 # Code Quality
 detekt = "1.23.8"
-ktlint = "12.1.2"
 compose-lint-checks = "1.5.2"
 kover = "0.9.11"
 
@@ -279,5 +278,4 @@ ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 room = { id = "androidx.room", version.ref = "room" }
 skie = { id = "co.touchlab.skie", version.ref = "skie" }
 detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
-ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint" }
 kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
