@@ -209,7 +209,7 @@ room-gradlePlugin = { group = "androidx.room", name = "room-gradle-plugin", vers
 # Code Quality
 detekt-formatting = { group = "io.gitlab.arturbosch.detekt", name = "detekt-formatting", version.ref = "detekt" }
 detekt-koin = { group = "dev.androidbroadcast.rules.koin", name = "detekt-koin4-rules", version = "1.1.1" }
-detekt-compose = { group = "io.nlopez.compose.rules", name = "detekt", version = "0.4.28" }
+detekt-compose = { group = "io.nlopez.compose.rules", name = "detekt", version = "0.6.8" }
 detekt-gradlePlugin = { group = "io.gitlab.arturbosch.detekt", name = "detekt-gradle-plugin", version.ref = "detekt" }
 detekt-api = { group = "io.gitlab.arturbosch.detekt", name = "detekt-api", version.ref = "detekt" }
 detekt-test = { group = "io.gitlab.arturbosch.detekt", name = "detekt-test", version.ref = "detekt" }
