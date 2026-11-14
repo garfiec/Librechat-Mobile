@@ -13,6 +13,7 @@ import com.garfiec.librechat.core.model.response.toolResource
 import com.garfiec.librechat.feature.chat.components.AttachedFile
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
+import com.garfiec.librechat.feature.chat.viewmodel.ConversationMetaState
 import com.garfiec.librechat.feature.chat.viewmodel.ErrorOnlyHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ModelChoice
 import com.garfiec.librechat.feature.chat.viewmodel.ModelSelectionState
@@ -56,7 +57,7 @@ class FileAttachmentDelegateTest {
         var cancelled = false
         val repository = mockk<FileRepository> {
             coEvery {
-                uploadFile(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
+                uploadFile(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
             } coAnswers {
                 try {
                     awaitCancellation()
@@ -82,7 +83,7 @@ class FileAttachmentDelegateTest {
         var calls = 0
         val repository = mockk<FileRepository> {
             coEvery {
-                uploadFile(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
+                uploadFile(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
             } answers {
                 toolResources += arg<String?>(7)
                 val name = arg<String>(1)
@@ -116,7 +117,7 @@ class FileAttachmentDelegateTest {
         val cancelled = mutableListOf<String>()
         val repository = mockk<FileRepository> {
             coEvery {
-                uploadFile(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
+                uploadFile(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
             } coAnswers {
                 val fileId = arg<String>(3)
                 try {
@@ -144,7 +145,7 @@ class FileAttachmentDelegateTest {
         var calls = 0
         val repository = mockk<FileRepository> {
             coEvery {
-                uploadFile(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
+                uploadFile(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
             } answers {
                 when (++calls) {
                     1 -> Result.Error(message = "offline")
@@ -174,7 +175,7 @@ class FileAttachmentDelegateTest {
         var calls = 0
         val repository = mockk<FileRepository> {
             coEvery {
-                uploadFile(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
+                uploadFile(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
             } answers {
                 toolResources += arg<String?>(7)
                 if (++calls == 1) Result.Error(message = "offline") else Result.Success(serverRecord(arg(1)))
@@ -195,6 +196,41 @@ class FileAttachmentDelegateTest {
 
         assertThat(toolResources).containsExactly(null, UploadRoute.TEXT.toolResource()).inOrder()
         assertThat(delegate.attachedFiles.value.single().route).isEqualTo(UploadRoute.TEXT)
+    }
+
+    @Test
+    fun `an upload in a temporary chat passes the conversation and the temporary flag`() {
+        val (conversationId, isTemporary) = uploadRetentionFields(
+            selectionOn("openAI").copy(
+                conversation = ConversationMetaState(conversationId = "convo-1", isTemporaryChat = true),
+            ),
+        )
+
+        assertThat(conversationId).isEqualTo("convo-1")
+        assertThat(isTemporary).isTrue()
+    }
+
+    @Test
+    fun `an upload in a new regular chat passes neither retention field`() {
+        val (conversationId, isTemporary) = uploadRetentionFields(selectionOn("openAI"))
+
+        assertThat(conversationId).isNull()
+        assertThat(isTemporary).isFalse()
+    }
+
+    private fun uploadRetentionFields(state: ChatUiState): Pair<String?, Boolean> {
+        var sent: Pair<String?, Boolean>? = null
+        val repository = mockk<FileRepository> {
+            coEvery {
+                uploadFile(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
+            } answers {
+                sent = arg<String?>(13) to arg<Boolean>(14)
+                Result.Success(serverRecord(arg(1)))
+            }
+        }
+        uploadingDelegate(repository, MutableStateFlow(state))
+            .onFilesSelected(listOf(RoutedFile(PickedFile(mockk<Uri>(), "notes.txt", "text/plain"), UploadRoute.TEXT)))
+        return sent!!
     }
 
     private fun selectionOn(endpoint: String, agentProvider: String? = null) = ChatUiState(
