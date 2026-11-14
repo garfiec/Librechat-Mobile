@@ -441,8 +441,9 @@ class ModelSelectionDelegate(
         if (!conversationModelLoaded) return
 
         // Validate current selection. An agents selection is not checked against the agents list:
-        // the cached list can lag the server, so an agent missing from it may still exist, and
-        // replacing it would reopen the chat on a different agent.
+        // it leaves out agents the user can't view and ones created since it was cached, so absence
+        // from it doesn't prove the agent is gone, and replacing it would reopen the chat on a
+        // different agent.
         //
         // Every endpoint, agents included, keeps the conversation's model while the endpoint itself exists, as
         // the web client does (`useNavigateToConvo` rebuilds a conversation only when its endpoint
