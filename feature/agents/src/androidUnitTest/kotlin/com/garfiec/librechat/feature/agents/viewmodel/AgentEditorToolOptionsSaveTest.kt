@@ -95,6 +95,22 @@ class AgentEditorToolOptionsSaveTest {
     }
 
     @Test
+    fun `removing every conversation starter sends an empty list on update`() {
+        val agent = Agent(id = "agent-1", conversationStarters = listOf("s1", "s2"))
+        val state = editing(agent).copy(conversationStarters = emptyList())
+
+        assertThat(state.toUpdateAgentRequest().conversationStarters).isEqualTo(emptyList<String>())
+    }
+
+    @Test
+    fun `removing every tool sends an empty list on update`() {
+        val agent = Agent(id = "agent-1", tools = listOf("wolfram"))
+        val state = editing(agent).copy(selectedTools = emptyList())
+
+        assertThat(state.toUpdateAgentRequest().tools).isEqualTo(emptyList<String>())
+    }
+
+    @Test
     fun `an agent that never had options sends none`() {
         val agent = Agent(id = "agent-1", tools = listOf("create_issue_mcp_github"))
 

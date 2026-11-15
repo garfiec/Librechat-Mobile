@@ -44,8 +44,9 @@ internal fun AgentEditorUiState.toUpdateAgentRequest(): UpdateAgentRequest {
         hideSequentialOutputs = capabilities.hideSequentialOutputs,
         endAfterTools = capabilities.endAfterTools,
         category = category.ifBlank { null },
-        tools = fields.tools.ifEmpty { null },
-        conversationStarters = conversationStarters.ifEmpty { null },
+        // Empty lists are sent, not omitted: the update route keeps any key it isn't sent.
+        tools = fields.tools,
+        conversationStarters = conversationStarters,
         isPublic = fields.isPublic,
         isCollaborative = fields.isCollaborative,
         supportContact = fields.supportContact,
