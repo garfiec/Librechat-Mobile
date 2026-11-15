@@ -24,6 +24,7 @@ import com.garfiec.librechat.core.model.response.ArchiveAllConversationsResponse
 import com.garfiec.librechat.core.model.response.ConversationListResponse
 import com.garfiec.librechat.core.model.response.ConvoSeenResponse
 import com.garfiec.librechat.core.model.response.ConvoUnreadResponse
+import com.garfiec.librechat.core.model.response.DuplicateConversationResponse
 import com.garfiec.librechat.core.model.response.ForkConversationResponse
 import com.garfiec.librechat.core.model.response.GenerateTitleResponse
 import io.ktor.client.HttpClient
@@ -211,7 +212,7 @@ class ConversationsApi constructor(
             url { path("api/convos/duplicate") }
             withToolCallPreviews()
             setBody(DuplicateConversationRequest(conversationId = conversationId, title = title))
-        }.body()
+        }.body<DuplicateConversationResponse>().conversation
 
     /** GET /api/convos/:conversationId/background-tasks (v0.8.8). */
     suspend fun getBackgroundTasks(conversationId: String): BackgroundTaskIndex =
