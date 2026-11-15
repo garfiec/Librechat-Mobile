@@ -310,7 +310,7 @@ private fun FailedOverlay(reason: McpAppLoadFailure, onRetry: () -> Unit) {
  * never fit one row on a phone.
  */
 @Composable
-private fun McpAppActionDialog(
+internal fun McpAppActionDialog(
     action: McpAppAction,
     onApprove: (dontAskAgain: Boolean) -> Unit,
     onCancel: () -> Unit,
@@ -399,8 +399,6 @@ private fun McpAppActionDialog(
                 }
             }
         },
-        // The arguments block scrolls itself; the text slot must not wrap it in a second scroll.
-        scrollableText = false,
     )
 }
 
@@ -523,6 +521,5 @@ internal fun LegacyUiMessageDialog(text: String, onAnswer: (send: Boolean) -> Un
         dismissButton = {
             AdaptiveTextButton(onClick = { onAnswer(false) }) { Text(stringResource(Res.string.cancel)) }
         },
-        scrollableText = false,
     )
 }
