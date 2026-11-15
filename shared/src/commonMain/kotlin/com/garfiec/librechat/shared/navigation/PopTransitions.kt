@@ -34,6 +34,7 @@ import androidx.compose.ui.graphics.GraphicsLayerScope
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
+import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavEntryDecorator
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.scene.Scene
@@ -130,14 +131,20 @@ internal fun <T : NavKey> rememberPredictiveBackCardDecorator(backStack: List<T>
         }
     }
     val scrimAlpha = if (LocalDarkTheme.current) SCRIM_ALPHA_DARK else SCRIM_ALPHA_LIGHT
-    // Entries keep the default contentKey, the key's toString(). Derived once for every entry.
-    val stackKeys = remember(backStack) { derivedStateOf { backStack.map<T, Any> { it.toString() } } }
+    // Derived once for every entry.
+    val stackKeys = remember(backStack) { derivedStateOf { backStack.map(::defaultContentKey) } }
     return remember(stackKeys, scrimAlpha) {
         NavEntryDecorator { entry ->
             PredictiveBackCard(entry.contentKey, stackKeys, finger, scrimAlpha) { entry.Content() }
         }
     }
 }
+
+/**
+ * The contentKey NavDisplay gives the entry for [key], since no entry sets its own. Taken from the
+ * library rather than rebuilt here: its default format changes between releases.
+ */
+internal fun defaultContentKey(key: Any): Any = NavEntry(key) {}.contentKey
 
 @Composable
 private fun PredictiveBackCard(
