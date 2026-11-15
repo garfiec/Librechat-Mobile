@@ -2,10 +2,13 @@ package com.garfiec.librechat.feature.chat.viewmodel.delegate
 
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.StreamEvent
+import com.garfiec.librechat.core.model.request.NO_PARENT
+import com.garfiec.librechat.feature.chat.util.branchSelectionFor
 import com.garfiec.librechat.feature.chat.util.buildActiveMessagePath
 import com.garfiec.librechat.feature.chat.viewmodel.ChatScreenState
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
+import com.garfiec.librechat.feature.chat.viewmodel.ConversationMetaState
 import com.garfiec.librechat.feature.chat.viewmodel.MessageTreeHandle
 import com.garfiec.librechat.feature.chat.viewmodel.MessagesState
 import com.garfiec.librechat.feature.chat.viewmodel.RetryInfo
@@ -149,6 +152,152 @@ class MessageTreeDelegateTest {
         assertThat(turn.map { it.messageId }).containsExactly("u1", "a1").inOrder()
         assertThat(turn.first().sender).isEqualTo("User")
         assertThat(turn.first().createdAt).isEqualTo("t0")
+    }
+
+    @Test
+    fun `finalizeChatDisplay shows a regenerated reply over a search-jump pin and drops only that pin in a temp chat`() {
+        val rows = listOf(
+            message("u1", isUser = true),
+            message("u2", isUser = true),
+            message("a1", parentId = "u1"),
+            message("a2", parentId = "u1"),
+        )
+        val (delegate, flow) = delegateWith(
+            ChatUiState(
+                content = MessagesState(
+                    messages = rows,
+                    activeBranches = branchSelectionFor(rows, "a1")!!,
+                    isStreaming = true,
+                ),
+                conversation = ConversationMetaState(conversationId = "conv-1", isTemporaryChat = true),
+            ),
+        )
+
+        delegate.finalizeChatDisplay(StreamEvent.Final(responseMessage = message("a3", parentId = "u1")))
+
+        assertThat(flow.value.displayMessages.map { it.message.messageId }).containsExactly("u1", "a3").inOrder()
+        assertThat(flow.value.activeBranches).isEqualTo(mapOf(NO_PARENT to 0))
+    }
+
+    @Test
+    fun `finalizeChatDisplay shows an edited version over a pinned branch without writing the pin in a normal chat`() {
+        val rows = listOf(
+            message("u1", isUser = true),
+            message("a1", parentId = "u1"),
+            message("u1e", isUser = true),
+        )
+        val pins = branchSelectionFor(rows, "a1")!!
+        val (delegate, flow) = delegateWith(
+            ChatUiState(
+                content = MessagesState(messages = rows, activeBranches = pins, isStreaming = true),
+                conversation = ConversationMetaState(conversationId = "conv-1"),
+            ),
+        )
+
+        delegate.finalizeChatDisplay(
+            StreamEvent.Final(
+                requestMessage = message("u1e", isUser = true),
+                responseMessage = message("a1e", parentId = "u1e"),
+            ),
+            optimisticUserMessageId = "u1e",
+        )
+
+        assertThat(flow.value.displayMessages.map { it.message.messageId }).containsExactly("u1e", "a1e").inOrder()
+        // Room still holds the pre-turn rows; a branch write here would rebuild from them.
+        assertThat(flow.value.activeBranches).isEqualTo(pins)
+    }
+
+    @Test
+    fun `finalizeChatDisplay shows an edit stopped before its reply was saved over a pinned branch`() {
+        val rows = listOf(
+            message("u1", isUser = true),
+            message("a1", parentId = "u1"),
+            message("u1e", isUser = true),
+        )
+        val pins = branchSelectionFor(rows, "a1")!!
+        val (delegate, flow) = delegateWith(
+            ChatUiState(
+                content = MessagesState(messages = rows, activeBranches = pins, isStreaming = true),
+                conversation = ConversationMetaState(conversationId = "conv-1"),
+            ),
+        )
+
+        delegate.finalizeChatDisplay(
+            StreamEvent.Final(requestMessage = message("u1e", isUser = true)),
+            optimisticUserMessageId = "u1e",
+        )
+
+        assertThat(flow.value.displayMessages.map { it.message.messageId }).containsExactly("u1e")
+    }
+
+    @Test
+    fun `finalizeChatDisplay shows a re-attached edit over a pinned branch with no optimistic id`() {
+        val rows = listOf(
+            message("u1", isUser = true),
+            message("a1", parentId = "u1"),
+            message("u1e", isUser = true),
+        )
+        val (delegate, flow) = delegateWith(
+            ChatUiState(
+                content = MessagesState(messages = rows, activeBranches = branchSelectionFor(rows, "a1")!!, isStreaming = true),
+                conversation = ConversationMetaState(conversationId = "conv-1"),
+            ),
+        )
+
+        delegate.finalizeChatDisplay(
+            StreamEvent.Final(
+                requestMessage = message("u1e", isUser = true),
+                responseMessage = message("a1e", parentId = "u1e"),
+            ),
+        )
+
+        assertThat(flow.value.displayMessages.map { it.message.messageId }).containsExactly("u1e", "a1e").inOrder()
+    }
+
+    @Test
+    fun `finalizeChatDisplay keeps a compaction summary on the pinned branch it was made on`() {
+        val rows = listOf(
+            message("u1", isUser = true),
+            message("a1", parentId = "u1"),
+            message("a2", parentId = "u1"),
+        )
+        val pins = mapOf("u1" to 0)
+        val (delegate, flow) = delegateWith(
+            ChatUiState(
+                content = MessagesState(messages = rows, activeBranches = pins, isStreaming = true, isCompacting = true),
+                conversation = ConversationMetaState(conversationId = "conv-1"),
+            ),
+        )
+
+        delegate.finalizeChatDisplay(
+            StreamEvent.Final(
+                requestMessage = message("a1", parentId = "u1", text = ""),
+                responseMessage = message("s1", parentId = "a1"),
+            ),
+        )
+
+        assertThat(flow.value.displayMessages.map { it.message.messageId }).containsExactly("u1", "a1", "s1").inOrder()
+    }
+
+    @Test
+    fun `finalizeChatDisplay keeps the pin when the reply was already in the tree`() {
+        val rows = listOf(
+            message("u1", isUser = true),
+            message("a1", parentId = "u1"),
+            message("a2", parentId = "u1"),
+        )
+        val pins = branchSelectionFor(rows, "a1")!!
+        val (delegate, flow) = delegateWith(
+            ChatUiState(
+                content = MessagesState(messages = rows, activeBranches = pins, isStreaming = true),
+                conversation = ConversationMetaState(conversationId = "conv-1", isTemporaryChat = true),
+            ),
+        )
+
+        delegate.finalizeChatDisplay(StreamEvent.Final(responseMessage = message("a1", parentId = "u1", text = "more")))
+
+        assertThat(flow.value.displayMessages.map { it.message.messageId }).containsExactly("u1", "a1").inOrder()
+        assertThat(flow.value.activeBranches).isEqualTo(pins)
     }
 
     @Test

@@ -43,6 +43,12 @@ data class MessagesState(
     val pendingResumeUserMessage: Message? = null,
     val activeBranches: Map<String, Int> = emptyMap(),
     /**
+     * Pins a finalized turn made stale (its new sibling's parent keys), dropped from [activeBranches]
+     * by the Room reconcile once its read holds [PendingUnpin.messageId]. Dropping them at Final
+     * instead would rebuild the path from the pre-turn Room rows and hide the finished reply.
+     */
+    val unpinWhenCached: PendingUnpin? = null,
+    /**
      * The response message that just took over from the streaming bubble, or null.
      *
      * Written in the same atomic update as the swap, so by the time the finalized message is
@@ -210,6 +216,12 @@ data class MessagesState(
     val toolActiveCallId: String? = null,
     /** The docked tool-approval panel is minimized to its header. */
     val toolPanelCollapsed: Boolean = false,
+)
+
+@Immutable
+data class PendingUnpin(
+    val messageId: String,
+    val keys: Set<String>,
 )
 
 @Immutable
