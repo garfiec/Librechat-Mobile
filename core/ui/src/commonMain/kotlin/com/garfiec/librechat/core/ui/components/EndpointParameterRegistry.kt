@@ -587,7 +587,7 @@ object EndpointParameterRegistry {
         key = "resendFiles",
         label = "Resend Files",
         type = ParameterType.SWITCH,
-        default = "false",
+        default = "true",
         description = "Resend previously attached files with every message.",
     )
 
@@ -852,7 +852,7 @@ object EndpointParameterRegistry {
             key = "resendFiles",
             label = "Resend Files",
             type = ParameterType.SWITCH,
-            default = "false",
+            default = "true",
             description = "Resend previously attached files with every message.",
         ),
         ParameterDefinition(
@@ -1006,7 +1006,7 @@ object EndpointParameterRegistry {
             key = "resendFiles",
             label = "Resend Files",
             type = ParameterType.SWITCH,
-            default = "false",
+            default = "true",
             description = "Resend previously attached files with every message.",
         ),
         ParameterDefinition(
@@ -1139,7 +1139,7 @@ object EndpointParameterRegistry {
             key = "resendFiles",
             label = "Resend Files",
             type = ParameterType.SWITCH,
-            default = "false",
+            default = "true",
             description = "Resend previously attached files with every message.",
         ),
         ParameterDefinition(
@@ -1248,7 +1248,7 @@ object EndpointParameterRegistry {
             key = "resendFiles",
             label = "Resend Files",
             type = ParameterType.SWITCH,
-            default = "false",
+            default = "true",
             description = "Resend previously attached files with every message.",
         ),
         ParameterDefinition(
