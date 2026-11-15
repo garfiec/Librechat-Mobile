@@ -766,6 +766,8 @@ neither `codeEnvironmentMode` nor `codeWorkspaces` is sealed "No workspace" for 
   workspaces to pick and none picked, the send is held; with nothing to pick it sends "No workspace"
   and says so (`CODE_WORKSPACE_SENT_WITHOUT`). A failed status read is not "nothing to pick": only a
   machine that answered (offline, not ready, no workspaces) or a 404 is.
+- **Every run-starting path refuses while `codeWorkspace.holdsSend`** (send, edit rerun, regenerate,
+  continue, compact, retry without files, queue drain): a no-field turn on an undecided chat seals it.
 - The saved decision is read live (no Room), only when a coding agent is in the chat, and again when
   a run ends. Read the live value before re-fetching (`combine` can hand a superseded `Pending`).
 - Poll every 10 s only while visible and foregrounded; 30 s after a 429/503/504; never after a 404; read

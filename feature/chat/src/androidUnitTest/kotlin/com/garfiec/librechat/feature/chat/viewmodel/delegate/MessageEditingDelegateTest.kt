@@ -1,18 +1,25 @@
 package com.garfiec.librechat.feature.chat.viewmodel.delegate
 
+import com.garfiec.librechat.core.common.EndpointConstants
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.MessageRepository
 import com.garfiec.librechat.core.model.ContentType
 import com.garfiec.librechat.core.model.FileReference
 import com.garfiec.librechat.core.model.Message
+import com.garfiec.librechat.core.model.code.CodeWorkspaceSubmission
 import com.garfiec.librechat.core.model.content.MessageContentPart
+import com.garfiec.librechat.feature.chat.util.buildActiveMessagePath
 import com.garfiec.librechat.feature.chat.viewmodel.ChatNotice
 import com.garfiec.librechat.feature.chat.viewmodel.ChatRequestBuilder
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
+import com.garfiec.librechat.feature.chat.viewmodel.CodeWorkspaceUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ConversationMetaState
+import com.garfiec.librechat.feature.chat.viewmodel.FeatureGatesState
 import com.garfiec.librechat.feature.chat.viewmodel.MessageEditingHandle
 import com.garfiec.librechat.feature.chat.viewmodel.MessagesState
+import com.garfiec.librechat.feature.chat.viewmodel.ModelChoice
+import com.garfiec.librechat.feature.chat.viewmodel.ModelSelectionState
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -56,15 +63,25 @@ class MessageEditingDelegateTest {
         messages: List<Message>,
         isStreaming: Boolean = false,
         refuseSend: Boolean = false,
+        holdsSend: Boolean = false,
+        codeWorkspace: () -> CodeWorkspaceSubmission? = { CodeWorkspaceSubmission.NONE },
         val messageRepository: MessageRepository = mockk(relaxed = true),
     ) {
         val flow = MutableStateFlow(
             ChatUiState(
                 conversation = ConversationMetaState(conversationId = "c1"),
-                content = MessagesState(messages = messages, isStreaming = isStreaming),
+                content = MessagesState(
+                    messages = messages,
+                    displayMessages = buildActiveMessagePath(messages),
+                    isStreaming = isStreaming,
+                ),
+                codeWorkspace = CodeWorkspaceUiState(holdsSend = holdsSend),
+                gates = FeatureGatesState(compactionEnabled = true),
+                selection = ModelSelectionState(choice = ModelChoice.Raw(EndpointConstants.AGENTS, "agent_dev")),
             ),
         )
         val chatRepository = RecordingChatRepository()
+        var readinessWaits = 0
         val delegate = MessageEditingDelegate(
             handle = MessageEditingHandle(ChatStateHandle(flow, CoroutineScope(Dispatchers.Unconfined))),
             chatRepository = chatRepository,
@@ -74,9 +91,13 @@ class MessageEditingDelegateTest {
             requestBuilder = mockk<ChatRequestBuilder>(relaxed = true),
             // The readiness gate normally lets the send through; `refuseSend` exercises the path
             // where it does not (no model selected, a readiness timeout, Compare setup opening).
-            runWhenSendReady = { onRefused, action -> if (refuseSend) onRefused() else action() },
+            runWhenSendReady = { onRefused, action ->
+                readinessWaits++
+                if (refuseSend) onRefused() else action()
+            },
             onComparisonSendStart = {},
             buildAddedConvo = { _, _, _ -> null },
+            codeWorkspace = codeWorkspace,
         )
         val state get() = flow.value
     }
@@ -186,6 +207,68 @@ class MessageEditingDelegateTest {
         assertThat(f.state.editingMessageId).isEqualTo("u1")
         assertThat(f.state.editingText).isEqualTo("edited")
         assertThat(f.chatRepository.sent).isEmpty()
+    }
+
+    // ── Code workspace hold ──────────────────────────────────────────
+
+    @Test
+    fun `a held workspace starts nothing from regenerate, continue, retry without files or compact`() = runTest {
+        val actions = mapOf<String, (MessageEditingDelegate) -> Unit>(
+            "regenerate" to { it.regenerateMessage("a1") },
+            "continue" to { it.continueGeneration() },
+            "retry without files" to { it.retryWithoutFiles("a1") },
+            "compact" to { it.compactConversation() },
+        )
+        val started = actions.filter { (_, action) ->
+            val f = Fixture(listOf(userTurn, reply()), holdsSend = true)
+            assertThat(f.state.canCompactNow).isTrue()
+            action(f.delegate)
+            f.readinessWaits > 0 || f.chatRepository.sent.isNotEmpty()
+        }.keys
+
+        assertThat(started).isEmpty()
+    }
+
+    @Test
+    fun `a held workspace keeps the edit open on rerun`() = runTest {
+        val f = Fixture(listOf(userTurn, reply(textPart("answer"))), holdsSend = true)
+
+        f.delegate.startEditing("u1")
+        f.delegate.onEditTextChanged("summarize this briefly")
+        f.delegate.rerunEdit()
+        assertThat(f.state.editingMessageId).isEqualTo("u1")
+        assertThat(f.state.editingText).isEqualTo("summarize this briefly")
+
+        f.delegate.cancelEditing()
+        f.delegate.startEditing("a1")
+        f.delegate.onEditPartTextChanged(0, "a better answer")
+        f.delegate.rerunEdit()
+        assertThat(f.state.editingMessageId).isEqualTo("a1")
+        assertThat(f.state.editing.partDrafts[0]).isEqualTo("a better answer")
+
+        assertThat(f.readinessWaits).isEqualTo(0)
+        assertThat(f.chatRepository.sent).isEmpty()
+    }
+
+    @Test
+    fun `a held workspace keeps a flat-text reply edit open on rerun`() = runTest {
+        val f = Fixture(listOf(userTurn, reply()), holdsSend = true)
+
+        f.delegate.startEditing("a1")
+        f.delegate.rerunEdit()
+
+        assertThat(f.state.editingMessageId).isEqualTo("a1")
+        assertThat(f.chatRepository.sent).isEmpty()
+    }
+
+    @Test
+    fun `a recorded decision reruns with no workspace fields`() = runTest {
+        val f = Fixture(listOf(userTurn, reply()), codeWorkspace = { CodeWorkspaceSubmission.NONE })
+
+        f.delegate.regenerateMessage("a1")
+
+        val sent = f.chatRepository.sent.single()
+        assertThat(sent.codeWorkspace).isNull()
     }
 
     // ── Seeding ──────────────────────────────────────────────────────

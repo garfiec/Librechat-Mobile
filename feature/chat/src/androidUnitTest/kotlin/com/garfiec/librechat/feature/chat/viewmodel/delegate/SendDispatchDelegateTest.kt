@@ -5,11 +5,13 @@ import com.garfiec.librechat.core.common.ToolConstants
 import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.endpoint.EndpointDispatch
-import com.garfiec.librechat.core.data.repository.ChatRepository
 import com.garfiec.librechat.core.data.repository.DraftRepository
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.Preset
 import com.garfiec.librechat.core.model.ReasoningOverride
+import com.garfiec.librechat.core.model.code.CodeEnvironmentMode
+import com.garfiec.librechat.core.model.code.CodeWorkspaceSelection
+import com.garfiec.librechat.core.model.code.CodeWorkspaceSubmission
 import com.garfiec.librechat.core.model.config.ModelSpec
 import com.garfiec.librechat.core.model.config.ModelSpecs
 import com.garfiec.librechat.feature.chat.components.AttachedFile
@@ -17,6 +19,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.ChatRequestBuilder
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ComposerState
+import com.garfiec.librechat.feature.chat.viewmodel.ConversationMetaState
 import com.garfiec.librechat.feature.chat.viewmodel.DraftUndo
 import com.garfiec.librechat.feature.chat.viewmodel.FeatureGatesState
 import com.garfiec.librechat.feature.chat.viewmodel.MessagesState
@@ -77,7 +80,7 @@ class SendDispatchDelegateTest {
         val recorder = Recorder()
         val delegate = SendDispatchDelegate(
             handle = SendDispatchHandle(ChatStateHandle(flow, scope)),
-            chatRepository = mockk<ChatRepository>(relaxed = true),
+            chatRepository = recorder.chatRepository,
             draftRepository = mockk<DraftRepository>(relaxed = true),
             settingsDataStore = settingsDataStore,
             fileHandler = fileHandler,
@@ -88,6 +91,8 @@ class SendDispatchDelegateTest {
             onComparisonSendStart = {},
             buildAddedConvo = { _, _, _ -> null },
             turnSkillsOn = { recorder.skillsTurnedOn++ },
+            codeWorkspace = { recorder.liveWorkspace },
+            onDrainHeld = { recorder.drainHeld += it },
         )
         try {
             scope.body(flow, delegate, recorder)
@@ -101,6 +106,9 @@ class SendDispatchDelegateTest {
     private class Recorder {
         val begun = mutableListOf<QueuedMessage>()
         var skillsTurnedOn = 0
+        val chatRepository = RecordingChatRepository()
+        var liveWorkspace: CodeWorkspaceSubmission? = CodeWorkspaceSubmission.NONE
+        val drainHeld = mutableListOf<QueuedMessage>()
     }
 
     @Test
@@ -198,6 +206,43 @@ class SendDispatchDelegateTest {
             assertThat(sent).isTrue()
             testScheduler.runCurrent()
             coVerify(exactly = 0) { settingsDataStore.incrementModelUsage(any(), any(), any(), any()) }
+        }
+
+    private fun heldDrain(flow: MutableStateFlow<ChatUiState>) = QueuedMessage(
+        localId = "q1",
+        text = "hi",
+        choice = ModelChoice.Raw(EndpointConstants.AGENTS, "agent_dev"),
+        dispatch = dispatch(EndpointConstants.AGENTS),
+        codeWorkspace = null,
+    ).also { flow.value = flow.value.copy(conversation = ConversationMetaState(conversationId = "c1")) }
+
+    @Test
+    fun `a drained turn whose workspace is held is handed back, not sent`() =
+        dispatchTest(streaming = false) { flow, delegate, recorder ->
+            val spec = heldDrain(flow)
+            recorder.liveWorkspace = null
+
+            val sent = delegate.doSendWithSpec(spec)
+
+            assertThat(sent).isFalse()
+            assertThat(recorder.drainHeld).containsExactly(spec)
+            assertThat(recorder.chatRepository.sent).isEmpty()
+            assertThat(recorder.begun).isEmpty()
+        }
+
+    @Test
+    fun `a drained turn held when queued sends the decision the chat holds now`() =
+        dispatchTest(streaming = false) { flow, delegate, recorder ->
+            val spec = heldDrain(flow)
+            val attached = CodeWorkspaceSubmission(
+                mode = CodeEnvironmentMode.ATTACHED,
+                workspaces = listOf(CodeWorkspaceSelection("garfie-mbp", "switchboard")),
+            )
+            recorder.liveWorkspace = attached
+
+            assertThat(delegate.doSendWithSpec(spec)).isTrue()
+            assertThat(recorder.chatRepository.sent.single().codeWorkspace).isEqualTo(attached)
+            assertThat(recorder.drainHeld).isEmpty()
         }
 
     private fun withReasoning(flow: MutableStateFlow<ChatUiState>, model: String, override: ReasoningOverride) {

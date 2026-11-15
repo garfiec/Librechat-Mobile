@@ -834,6 +834,11 @@ class ChatViewModel(
         loadSkillCatalog = { skillPickerDelegate.ensureLoaded(newTrigger = true) },
         codeWorkspace = codeWorkspaceDelegate::submissionForSend,
         sendsWithoutWorkspace = codeWorkspaceDelegate::sendsWithoutWorkspace,
+        // Requeue first: pause() does nothing on an empty queue.
+        onDrainHeld = { spec ->
+            queueDelegate.requeueRefusedDrain(spec)
+            queueDelegate.pause()
+        },
     )
 
     private val draftItemsDelegate = DraftItemsDelegate(

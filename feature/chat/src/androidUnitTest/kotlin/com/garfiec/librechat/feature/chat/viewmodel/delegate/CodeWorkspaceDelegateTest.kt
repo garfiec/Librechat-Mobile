@@ -45,6 +45,7 @@ import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -90,6 +91,7 @@ class CodeWorkspaceDelegateTest {
         var status: Result<CodeEnvironmentStatus>,
         var saved: Result<SavedCodeDecision> = Result.Success(SavedCodeDecision(null, null)),
         var move: CodeDecisionMove = CodeDecisionMove.Failed(unknownOutcome = false),
+        var savedGate: CompletableDeferred<Unit>? = null,
     ) : CodeEnvironmentRepository {
         var statusCalls = 0
         var savedCalls = 0
@@ -100,6 +102,7 @@ class CodeWorkspaceDelegateTest {
         }
         override suspend fun savedDecision(conversationId: String): Result<SavedCodeDecision> {
             savedCalls++
+            savedGate?.await()
             return saved
         }
         override suspend fun moveDecision(
@@ -385,6 +388,43 @@ class CodeWorkspaceDelegateTest {
             assertThat(environments.moves.single())
                 .isEqualTo(emptyList<CodeWorkspaceSelection>() to listOf(CodeWorkspaceSelection(mbp.id, "switchboard")))
             assertThat(flow.value.codeWorkspace.transition?.action).isEqualTo(CodeTransitionAction.DETACH)
+        }
+    }
+
+    @Test
+    fun `the transition sheet is disabled while a reply runs`() {
+        val environments = FakeEnvironments(
+            ready(switchboard),
+            saved = Result.Success(SavedCodeDecision(CodeEnvironmentMode.WITHOUT_ATTACHED, null)),
+        )
+        withDelegate(state(conversationId = "c1"), environments, moveVersions = true) { flow, _ ->
+            assertThat(flow.value.codeWorkspace.transition?.canConfirm).isTrue()
+            flow.update { it.copy(content = MessagesState(isStreaming = true)) }
+            val transition = flow.value.codeWorkspace.transition
+            assertThat(transition?.canConfirm).isFalse()
+            assertThat(transition?.busy).isTrue()
+        }
+    }
+
+    @Test
+    fun `a folded chat stays folded while a reply runs`() {
+        val environments = FakeEnvironments(ready(switchboard), saved = savedAttached)
+        withDelegate(state(conversationId = "c1"), environments, moveVersions = true) { flow, _ ->
+            assertThat(flow.value.codeWorkspace.folded).isTrue()
+            flow.update { it.copy(content = MessagesState(isStreaming = true)) }
+            assertThat(flow.value.codeWorkspace.folded).isTrue()
+        }
+    }
+
+    @Test
+    fun `a saved decision being re-read holds the send`() {
+        val gate = CompletableDeferred<Unit>()
+        val environments = FakeEnvironments(ready(switchboard), saved = savedAttached, savedGate = gate)
+        withDelegate(state(conversationId = "c1"), environments) { flow, _ ->
+            assertThat(flow.value.codeWorkspace.visible).isFalse()
+            assertThat(flow.value.codeWorkspace.holdsSend).isTrue()
+            gate.complete(Unit)
+            assertThat(flow.value.codeWorkspace.holdsSend).isFalse()
         }
     }
 
