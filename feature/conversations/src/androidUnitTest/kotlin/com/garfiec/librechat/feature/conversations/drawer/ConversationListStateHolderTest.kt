@@ -66,6 +66,17 @@ class ConversationListStateHolderTest {
         ConversationListStateHolder(conversationRepository, scope, dayBoundaries = emptyFlow(), nowMillis = { nowMs })
 
     @Test
+    fun `refreshConversations also syncs pins`() = runTest {
+        every { conversationRepository.observeConversations(any()) } returns MutableStateFlow(Result.Success(convos))
+        val holder = ConversationListStateHolder(conversationRepository, scope, dayBoundaries = emptyFlow())
+
+        holder.refreshConversations()
+        advanceUntilIdle()
+
+        coVerify { conversationRepository.syncPinnedFromServer() }
+    }
+
+    @Test
     fun `delete during active drawer search removes the row without a query change`() = runTest {
         // Punted Bug #25 (drawer side): the drawer search is a client-side filter over live Room
         // data, so a delete (Room re-emits) must vanish from the visible results immediately, not

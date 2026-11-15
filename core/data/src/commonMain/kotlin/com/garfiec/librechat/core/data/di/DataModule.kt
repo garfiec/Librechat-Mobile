@@ -153,6 +153,7 @@ import com.garfiec.librechat.core.data.util.RoleFetchSessionTask
 import com.garfiec.librechat.core.data.util.SessionTask
 import com.garfiec.librechat.core.data.util.SessionTaskRunner
 import com.garfiec.librechat.core.data.util.SyncFavoritesSessionTask
+import com.garfiec.librechat.core.data.util.SyncPinnedSessionTask
 import com.garfiec.librechat.core.network.client.AccountReadyGate
 import com.garfiec.librechat.core.network.client.ServerHeadersProvider
 import com.garfiec.librechat.core.network.client.ServerUrlProvider
@@ -422,6 +423,7 @@ val dataModule = module {
     singleOf(::RoleFetchSessionTask) bind SessionTask::class
     singleOf(::RefreshTagsSessionTask) bind SessionTask::class
     singleOf(::SyncFavoritesSessionTask) bind SessionTask::class
+    singleOf(::SyncPinnedSessionTask) bind SessionTask::class
     singleOf(::EndpointConfigFetchSessionTask) bind SessionTask::class
     singleOf(::AccountLabelBackfillSessionTask) bind SessionTask::class
     singleOf(::SearchCapabilitySessionTask) bind SessionTask::class
@@ -557,6 +559,7 @@ val dataModule = module {
             shareChanges = get(),
             tagRepository = get(),
             tagChanges = get(),
+            configRepository = get(),
         )
     }
 
