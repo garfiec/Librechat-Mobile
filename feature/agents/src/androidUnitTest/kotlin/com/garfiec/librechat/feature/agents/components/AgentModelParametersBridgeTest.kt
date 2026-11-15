@@ -43,6 +43,16 @@ class AgentModelParametersBridgeTest {
     }
 
     @Test
+    fun `resend files switched off on a new agent is saved, and left unset when untouched`() {
+        val fresh = AgentAdvancedSettings()
+        val untouched = fresh.toModelParameters()
+        assertThat(untouched.toAgentAdvancedSettings(fresh, gpt6SolDefs, gpt6SolRemoved).extras)
+            .doesNotContainKey("resendFiles")
+        val off = untouched.copy(resendFiles = false).toAgentAdvancedSettings(fresh, gpt6SolDefs, gpt6SolRemoved)
+        assertThat(off.extras["resendFiles"]).isEqualTo(JsonPrimitive(false))
+    }
+
+    @Test
     fun `a key outside the visible schema is still preserved`() {
         val loaded = AgentAdvancedSettings(extras = mapOf("server_only" to JsonPrimitive("x")))
         val saved = loaded.toModelParameters().toAgentAdvancedSettings(loaded, gpt6SolDefs, gpt6SolRemoved)

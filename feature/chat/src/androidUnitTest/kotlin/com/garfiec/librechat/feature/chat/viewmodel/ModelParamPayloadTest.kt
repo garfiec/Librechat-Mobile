@@ -50,6 +50,30 @@ class ModelParamPayloadTest {
     }
 
     @Test
+    fun `resend files switched off is sent as false, and on is left to the server, on every parameter set`() {
+        // "Groq" has no set of its own, so it covers the generic default set.
+        val sets = listOf(
+            "anthropic" to null,
+            "openAI" to null,
+            "google" to null,
+            "bedrock" to "anthropic.claude-3",
+            "Groq" to null,
+        )
+        for ((endpoint, model) in sets) {
+            fun payload(params: ModelParameters) = ModelParamPayload.build(
+                endpoint = endpoint,
+                provider = null,
+                model = model,
+                extendedEffortSupported = false,
+                params = params,
+            )
+            val off = payload(ModelParameters.DEFAULT.copy(resendFiles = false))
+            assertEquals(false, off["resendFiles"]?.jsonPrimitive?.boolean, endpoint)
+            assertNull(payload(ModelParameters.DEFAULT)["resendFiles"], endpoint)
+        }
+    }
+
+    @Test
     fun `changed temperature is sent as a number`() {
         val result = build(ModelParameters.DEFAULT.copy(temperature = 0.7f))
         assertEquals(0.7, result["temperature"]?.jsonPrimitive?.double)

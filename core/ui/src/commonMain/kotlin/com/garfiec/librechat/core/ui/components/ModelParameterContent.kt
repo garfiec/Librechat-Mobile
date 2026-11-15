@@ -43,7 +43,7 @@ data class ModelParameters(
     val customInstructions: String = "",
     val maxContextTokens: Int? = null,
     val topK: Int? = null,
-    val resendFiles: Boolean = false,
+    val resendFiles: Boolean = true,
     /**
      * Null until set: the providers that offer thinking default it to on (Anthropic, Bedrock), so a
      * `false` default would show the switch off over a run that thinks, and an explicit off would
