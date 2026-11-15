@@ -71,7 +71,7 @@ internal fun ModelParameters.toAgentAdvancedSettings(
         // Only write to extras when (a) the key was already there — preserve
         // a server-set value — or (b) the user moved the control away from
         // the registry default. ModelParameters' typed slots return their
-        // own defaults ("0.0" for frequency_penalty, "false" for switches)
+        // own defaults ("0.0" for frequency_penalty, "true" for resendFiles)
         // even when the user never touched anything, so unconditionally
         // writing every visible def's current value would re-stamp the
         // entire schema with defaults the agent never had.

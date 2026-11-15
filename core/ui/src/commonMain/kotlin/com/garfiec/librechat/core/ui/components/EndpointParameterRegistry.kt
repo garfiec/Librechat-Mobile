@@ -583,7 +583,7 @@ object EndpointParameterRegistry {
         description = "AWS region used for this conversation.",
     )
 
-    private fun bedrockResendFiles() = ParameterDefinition(
+    private fun resendFiles() = ParameterDefinition(
         key = "resendFiles",
         label = "Resend Files",
         type = ParameterType.SWITCH,
@@ -636,7 +636,7 @@ object EndpointParameterRegistry {
         bedrockTopP(default = BedrockAnthropicDefaults.TOP_P),
         bedrockTopK(),
         bedrockStop(),
-        bedrockResendFiles(),
+        resendFiles(),
         bedrockRegion(),
         bedrockPromptCache(default = "true"),
         bedrockPromptCacheTtl(),
@@ -676,7 +676,7 @@ object EndpointParameterRegistry {
         bedrockMaxOutputTokens(),
         bedrockTemperature(default = "0.7"),
         bedrockTopP(default = "1.0"),
-        bedrockResendFiles(),
+        resendFiles(),
         bedrockRegion(),
         bedrockFileTokenLimit(),
     )
@@ -689,7 +689,7 @@ object EndpointParameterRegistry {
         bedrockMaxOutputTokens(),
         bedrockTemperature(default = "0.3"),
         bedrockTopP(default = "0.75", min = 0.01, max = 0.99),
-        bedrockResendFiles(),
+        resendFiles(),
         bedrockRegion(),
         bedrockFileTokenLimit(),
     )
@@ -701,7 +701,7 @@ object EndpointParameterRegistry {
         bedrockMaxContextTokens(),
         bedrockTemperature(default = "0.5"),
         bedrockTopP(default = "0.9"),
-        bedrockResendFiles(),
+        resendFiles(),
         bedrockRegion(),
         bedrockPromptCache(default = "false"),
         bedrockPromptCacheTtl(),
@@ -722,7 +722,7 @@ object EndpointParameterRegistry {
         bedrockTemperature(default = "1.0"),
         bedrockTopP(default = BedrockAnthropicDefaults.TOP_P),
         bedrockStop(),
-        bedrockResendFiles(),
+        resendFiles(),
         bedrockRegion(),
         ParameterDefinition(
             key = "reasoning_effort",
@@ -742,7 +742,7 @@ object EndpointParameterRegistry {
         bedrockMaxContextTokens(),
         bedrockTemperature(default = "0.5"),
         bedrockTopP(default = "0.9"),
-        bedrockResendFiles(),
+        resendFiles(),
         bedrockRegion(),
         ParameterDefinition(
             key = "reasoning_effort",
@@ -848,13 +848,7 @@ object EndpointParameterRegistry {
             default = "",
             description = "Up to 4 sequences where the model will stop generating.",
         ),
-        ParameterDefinition(
-            key = "resendFiles",
-            label = "Resend Files",
-            type = ParameterType.SWITCH,
-            default = "true",
-            description = "Resend previously attached files with every message.",
-        ),
+        resendFiles(),
         ParameterDefinition(
             key = "reasoning_effort",
             label = "Reasoning Effort",
@@ -1002,13 +996,7 @@ object EndpointParameterRegistry {
             default = "5",
             description = "Limits token selection to the top K most likely tokens.",
         ),
-        ParameterDefinition(
-            key = "resendFiles",
-            label = "Resend Files",
-            type = ParameterType.SWITCH,
-            default = "true",
-            description = "Resend previously attached files with every message.",
-        ),
+        resendFiles(),
         ParameterDefinition(
             key = "promptCache",
             label = "Prompt Caching",
@@ -1135,13 +1123,7 @@ object EndpointParameterRegistry {
             default = "40",
             description = "Limits token selection to the top K most likely tokens.",
         ),
-        ParameterDefinition(
-            key = "resendFiles",
-            label = "Resend Files",
-            type = ParameterType.SWITCH,
-            default = "true",
-            description = "Resend previously attached files with every message.",
-        ),
+        resendFiles(),
         ParameterDefinition(
             key = "thinking",
             label = "Thinking",
@@ -1244,13 +1226,7 @@ object EndpointParameterRegistry {
             default = "1.0",
             description = "Nucleus sampling. Controls diversity via cumulative probability cutoff.",
         ),
-        ParameterDefinition(
-            key = "resendFiles",
-            label = "Resend Files",
-            type = ParameterType.SWITCH,
-            default = "true",
-            description = "Resend previously attached files with every message.",
-        ),
+        resendFiles(),
         ParameterDefinition(
             key = "fileTokenLimit",
             label = "File Token Limit",
