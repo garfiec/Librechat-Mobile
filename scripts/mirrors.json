@@ -2181,6 +2181,20 @@
       "failure_mode": "Upstream adds a new read-only marker or changes which id the permissions map is keyed by, and the app offers Edit/Delete on servers the user can't change (each save refused) or hides them on servers they can. Nothing errors until a write is attempted."
     },
     {
+      "id": "mcp-chat-selectable",
+      "upstream": {
+        "file": "client/src/hooks/MCP/useMCPServerManager.ts",
+        "symbol": "selectableServers (chatMenu / consumeOnly)",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/viewmodel/ModelSelectionState.kt",
+        "symbol": "offeredMcpServers (+ McpServersDelegate toDisplayData chatSelectable)"
+      },
+      "why": "Which MCP servers the chat's picker, sheets and chips offer: those with chatMenu !== false and not consumeOnly, plus any the active model spec pins. The server applies the same rule to a chat's MCP selection (packages/api/src/mcp/utils.ts filterChatSelectableMCPServers) but never says it dropped one.",
+      "failure_mode": "Upstream adds another chat-visibility flag or changes these two, and the app offers servers the server silently drops (shown on, tools never reach the model) or hides ones the chat could use. Nothing errors."
+    },
+    {
       "id": "image-gen-faux-progress",
       "upstream": {
         "file": "client/src/components/Chat/Messages/Content/Parts/OpenAIImageGen/OpenAIImageGen.tsx",

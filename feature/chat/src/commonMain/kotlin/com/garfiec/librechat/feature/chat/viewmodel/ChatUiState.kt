@@ -214,6 +214,7 @@ data class ChatUiState(
     val showModelSheet: Boolean get() = selection.showModelSheet
     val enabledTools: Set<String> get() = selection.enabledTools
     val mcpServers: List<McpServerDisplayData> get() = selection.mcpServers
+    val offeredMcpServers: List<McpServerDisplayData> get() = selection.offeredMcpServers
     val selectedMcpServerNames: Set<String> get() = selection.selectedMcpServerNames
     val effectiveMcpServerNames: Set<String> get() = selection.effectiveMcpServerNames
     val lockedTools: Set<String> get() = selection.lockedTools
@@ -754,7 +755,7 @@ data class ChatUiState(
                 openTools = if (shown) openTools else emptySet(),
                 pinned = pinnedTools,
                 lockedTools = lockedTools,
-                mcpServers = mcpServers,
+                mcpServers = offeredMcpServers,
                 mcpOn = effectiveMcpServerNames,
                 lockedMcpServers = lockedMcpServers,
                 mcpAllowed = mcpServersEnabled,
