@@ -154,6 +154,22 @@ class DrawerRunTransitionsTest {
         }
     }
 
+    @Test
+    fun `opening the drawer reloads a list whose first page failed`() = runTest(testDispatcher) {
+        coEvery { conversationRepository.loadNextPage(cursor = null, any(), any(), any(), any(), any()) } returns
+            Result.Error(message = "offline")
+        val vm = viewModel()
+        try {
+            runCurrent()
+            vm.setDrawerVisible(true)
+            runCurrent()
+
+            coVerify(exactly = 2) { conversationRepository.loadNextPage(cursor = null, any(), any(), any(), any(), any()) }
+        } finally {
+            vm.viewModelScope.cancel()
+        }
+    }
+
     private companion object {
         /** DrawerViewModel's poll interval while anything runs. */
         const val POLL_MS = 5_000L

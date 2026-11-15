@@ -303,7 +303,8 @@ fun DrawerContent(
     val libraryTab by viewModel.drawerLibraryTab.collectAsStateWithLifecycle()
     val workspace by viewModel.workspace.collectAsStateWithLifecycle()
 
-    // Drives the Running group's active-jobs poll: on only while this surface is open and started.
+    // Drives the Running group's active-jobs poll and the stale-list reload: on only while this
+    // surface is open and started.
     LifecycleStartEffect(viewModel, isOpen) {
         viewModel.setDrawerVisible(isOpen)
         onStopOrDispose { viewModel.setDrawerVisible(false) }
