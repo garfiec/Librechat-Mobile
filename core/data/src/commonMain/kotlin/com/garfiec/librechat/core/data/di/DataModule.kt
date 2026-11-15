@@ -539,6 +539,7 @@ val dataModule = module {
             dispatcher = get(KoinQualifiers.Default),
             json = get(),
             projectChanges = get(),
+            activeAccountProvider = get(),
         )
     }
 
