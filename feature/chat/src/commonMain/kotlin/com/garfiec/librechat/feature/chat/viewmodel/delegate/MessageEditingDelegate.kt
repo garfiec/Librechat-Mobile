@@ -74,8 +74,8 @@ class MessageEditingDelegate(
     ) -> AddedConversation?,
     /**
      * `CodeWorkspaceDelegate.submissionForSend`. Every entry point refuses while the workspace row
-     * holds the send (`codeWorkspace.holdsSend`), so this gives the chat's recorded decision, and
-     * NONE sends no fields.
+     * holds the send (`codeWorkspace.holdsSend`), so this gives the chat's decision as it stands,
+     * and NONE sends no fields.
      */
     private val codeWorkspace: () -> CodeWorkspaceSubmission? = { CodeWorkspaceSubmission.NONE },
 ) {
