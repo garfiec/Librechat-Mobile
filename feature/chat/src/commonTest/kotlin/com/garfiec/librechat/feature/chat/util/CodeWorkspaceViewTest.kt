@@ -90,6 +90,15 @@ class CodeWorkspaceViewTest {
     }
 
     @Test
+    fun aHiddenHeldResolutionHoldsTheSend() {
+        val selected = chat(CodeEnvironmentMode.ATTACHED, listOf(CodeWorkspaceSelection(mbp.id, "switchboard")))
+        val pending = resolve(selected).copy(visible = false, submission = null, canSubmit = false)
+        val ui = codeWorkspaceUiState(pending, null, null, null, sheetOpen = false, attention = false)
+        assertFalse(ui.visible)
+        assertTrue(ui.holdsSend)
+    }
+
+    @Test
     fun aPickShowsTheBranchAndAPickableCheckout() {
         val selected =
             chat(CodeEnvironmentMode.ATTACHED, listOf(CodeWorkspaceSelection(mbp.id, "switchboard", "isolated")))
