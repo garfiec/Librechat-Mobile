@@ -41,11 +41,17 @@ class AgentsApi constructor(
 
     // --- Agent CRUD ---
 
-    suspend fun getAgents(category: String? = null): AgentListResponse =
-        client.get {
-            url { path("api/agents") }
-            if (category != null) parameter("category", category)
-        }.body()
+    /** Every page of `GET /api/agents`, merged: the route answers 100 per page when no `limit` is sent. */
+    suspend fun getAgents(category: String? = null): AgentListResponse {
+        val agents = mutableListOf<Agent>()
+        var cursor: String? = null
+        do {
+            val page = getAgentsPaginated(limit = WALK_PAGE_SIZE, cursor = cursor, category = category)
+            agents += page.data
+            cursor = page.after
+        } while (cursor != null)
+        return AgentListResponse(objectType = "list", data = agents)
+    }
 
     /**
      * One page of `GET /api/agents` (upstream `getListAgentsHandler`).
@@ -253,4 +259,9 @@ class AgentsApi constructor(
             url { path("api/agents/tools/calls") }
             parameter("conversationId", conversationId)
         }.body()
+
+    private companion object {
+        /** The page size web's `fetchAllAgentPages` asks for; the data layer caps `limit` at 1000. */
+        const val WALK_PAGE_SIZE = 1000
+    }
 }

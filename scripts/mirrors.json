@@ -1565,20 +1565,6 @@
       "failure_mode": "Upstream changes which specs it hides and the mobile picker lists an agent spec web hides (a send then fails on an agent the user cannot use) or hides one web offers."
     },
     {
-      "id": "agents-list-default-limit",
-      "upstream": {
-        "file": "api/server/controllers/agents/v1.js",
-        "symbol": "getListAgentsHandler",
-        "mode": "block"
-      },
-      "kotlin": {
-        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/SpecSeed.kt",
-        "symbol": "AGENTS_LIST_PAGE_SIZE"
-      },
-      "why": "`GET /api/agents` with no `limit` returns a page of 100, which is all mobile fetches. `visibleSpecs` treats a shorter list as complete and hides agent specs whose agent is missing from it; a full page proves nothing, so every spec stays.",
-      "failure_mode": "Upstream lowers the default page and a full page reads as complete: agent specs whose agent sits past it vanish from the picker. Raising it only keeps specs visible a little longer than needed."
-    },
-    {
       "id": "model-spec-enforce",
       "upstream": {
         "file": "api/server/middleware/buildEndpointOption.js",

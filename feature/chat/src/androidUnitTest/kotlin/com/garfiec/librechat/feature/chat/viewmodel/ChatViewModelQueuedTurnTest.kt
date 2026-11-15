@@ -679,6 +679,41 @@ class ChatViewModelQueuedTurnTest {
         assertThat(request.captured.parentMessageId).isNotEqualTo(optimisticId)
     }
 
+    /**
+     * A new chat's first turn reaches this ViewModel as the landing's optimistic seed, which stays
+     * the tail until the server saves the user row under an id of its own.
+     */
+    @Test
+    fun `a follow-up queued during a handed-off new chat's first reply anchors to the server's user message`() =
+        queuedTurnTest(
+            arrange = {
+                every { fixture.messageRepository.observeMessages(CONVERSATION_ID) } returns flowOf(emptyList())
+                coEvery { chatRepository.checkStreamStatus(eq(CONVERSATION_ID), any()) } returns
+                    ChatStatusResponse(
+                        active = true,
+                        createdAt = EPOCH,
+                        resumeState = StatusResumeState(
+                            userMessage = StatusResumeUserMessage(
+                                messageId = "server-user-1",
+                                conversationId = CONVERSATION_ID,
+                                text = "the turn in flight",
+                            ),
+                        ),
+                    )
+            },
+        ) { vm ->
+            assertThat(vm.uiState.value.isStreaming).isTrue()
+            assertThat(vm.uiState.value.displayMessages.last().message.messageId).isEqualTo(USER_MESSAGE_ID)
+
+            vm.onInputChanged(TEXT)
+            vm.queueMessage()
+            runCurrent()
+
+            val request = slot<EnqueueQueuedTurnRequest>()
+            coVerify(exactly = 1) { queuedTurnRepository.enqueue(capture(request)) }
+            assertThat(request.captured.parentMessageId).isEqualTo("server-user-1")
+        }
+
     /** A server without queued turns: every follow-up stays in the local queue. */
     private fun localQueueOnly() {
         coEvery { queuedTurnRepository.enqueue(any()) } returns QueuedTurnOutcome.Unsupported

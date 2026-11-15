@@ -344,10 +344,10 @@ class SpecSeedTest {
     }
 
     @Test
-    fun a_full_page_of_agents_hides_no_agent_spec() {
+    fun a_loaded_list_of_100_agents_hides_an_agent_spec_missing_from_it() {
         val specs = ModelSpecs(list = listOf(agent("agent_past_the_page")))
-        val fullPage = List(100) { Agent(id = "agent_$it") }
+        val loaded = List(100) { Agent(id = "agent_$it") }
 
-        assertEquals(listOf("agent_past_the_page"), specs.visibleSpecs(fullPage, agentsLoaded = true).map { it.name })
+        assertEquals(emptyList<String?>(), specs.visibleSpecs(loaded, agentsLoaded = true).map { it.name })
     }
 }

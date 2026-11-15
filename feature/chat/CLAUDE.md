@@ -213,9 +213,8 @@ the picker lists that endpoint (`showsRawEndpoint` with the live `modelSelect`),
 the pair, else nothing; under `enforce` the one spec on its pair, else the raw pair for the preflight.
 One applied before the config loads is resolved when it arrives.
 
-**Spec rows** (`visibleSpecs`) sort by `order` (web ignores it) and hide an agent spec only once the
-agents list loaded without its agent and is not a full page (`AGENTS_LIST_PAGE_SIZE`; web loads every
-page, mobile one), so a full page hides nothing; until then, and after a failed fetch, every spec
+**Spec rows** (`visibleSpecs`) sort by `order` (web ignores it) and hide an agent spec once the
+agents list loaded without its agent (web parity); until then, and after a failed fetch, every spec
 shows. Groups follow web's `ModelSelector` (`util/SpecGroups.kt`), with one deliberate divergence: a
 spec grouped under an endpoint with no models gets a group of its own (web hides it), which takes that
 endpoint's label and icon except under `modelSelect: false`. An endpoint that needs the user's key keeps its

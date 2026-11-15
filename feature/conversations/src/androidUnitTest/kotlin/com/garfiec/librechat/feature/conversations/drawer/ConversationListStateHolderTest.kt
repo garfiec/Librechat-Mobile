@@ -325,6 +325,7 @@ class ConversationListStateHolderTest {
             scope,
             dayBoundaries = emptyFlow(),
             remoteTitleSearch = { unfilteredAsked++; emptyList() },
+            serverSearchEnabled = { true },
         )
         advanceUntilIdle()
         holder.setFilters(filters)
@@ -496,5 +497,30 @@ class ConversationListStateHolderTest {
         holder.loadMoreConversations()
         advanceUntilIdle()
         coVerify(exactly = 1) { conversationRepository.loadNextPage(cursor = "p2") }
+    }
+
+    @Test
+    fun `a query over a filtered list stays on-device while server search is off`() = runTest {
+        every { conversationRepository.observeConversations(any()) } returns MutableStateFlow(Result.Success(convos))
+        val filters = ConversationListFilters(endpoints = listOf("openAI"))
+        coEvery { conversationRepository.getConversationsFiltered(filters, null, null, any()) } returns
+            Result.Success(ConversationPage(listOf(convos[0]), nextCursor = null))
+        val remote = Conversation(
+            conversationId = "r1",
+            title = "Alpha far back",
+            updatedAt = Instant.parse("2025-01-01T10:00:00.000Z"),
+        )
+        coEvery { conversationRepository.getConversationsFiltered(filters, null, "Alpha", any()) } returns
+            Result.Success(ConversationPage(listOf(remote), nextCursor = null))
+        val holder = ConversationListStateHolder(conversationRepository, scope, dayBoundaries = emptyFlow())
+        advanceUntilIdle()
+        holder.setFilters(filters)
+        advanceUntilIdle()
+
+        holder.onSearchQueryChanged("Alpha")
+        advanceUntilIdle()
+
+        coVerify(exactly = 0) { conversationRepository.getConversationsFiltered(filters, any(), "Alpha", any()) }
+        assertThat(visibleIds(holder)).containsExactly("c1")
     }
 }
