@@ -30,6 +30,7 @@ val authModule = module {
             accountRoster = get(),
             savedStateHandle = get(),
             addAccount = params.getOrNull() ?: false,
+            gateAccess = get(),
         )
     }
     viewModelOf(::LoginViewModel)

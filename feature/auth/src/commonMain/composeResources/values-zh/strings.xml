@@ -156,4 +156,20 @@
     <string name="progress_accepting">正在接受…</string>
     <string name="progress_starting">正在开始…</string>
     <string name="progress_finishing">正在完成…</string>
+    <!-- Sign-in gate (Authelia forward-auth) in front of the server -->
+    <string name="gate_title_authelia">受 Authelia 保护</string>
+    <string name="gate_title_generic">受登录网关保护</string>
+    <string name="gate_body">请先在 %1$s 登录，然后再登录 LibreChat。</string>
+    <string name="gate_sign_in_authelia">使用 Authelia 登录</string>
+    <string name="gate_sign_in_generic">登录以继续</string>
+    <string name="gate_page_instead">改为在网关页面登录</string>
+    <string name="gate_unknown_client_title">Authelia 无法识别此应用</string>
+    <string name="gate_unknown_client_body">%1$s 上没有名为“%2$s”的客户端。请在“高级”中输入管理员注册的客户端 ID，或请管理员添加 Switchboard。</string>
+    <string name="gate_redirect_title">不允许此应用的回调</string>
+    <string name="gate_redirect_body">%1$s 上的客户端“%2$s”未将 http://127.0.0.1/callback 列为重定向 URI。请让管理员添加它。</string>
+    <string name="gate_refused_title">%1$s 拒绝了登录</string>
+    <string name="gate_failed_body">无法完成登录。请检查网络连接后重试。</string>
+    <string name="gate_setup_guide">管理员设置指南</string>
+    <string name="gate_client_id_label">Authelia 客户端 ID</string>
+    <string name="gate_page_close">关闭</string>
 </resources>

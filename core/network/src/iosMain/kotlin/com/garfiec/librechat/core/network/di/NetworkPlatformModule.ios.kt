@@ -10,5 +10,5 @@ actual val networkPlatformModule: Module = module {
     single<HttpClientEngineFactory<*>> { Darwin }
     // iOS SSE transport: NWConnection-based, takes (TokenManager, SwitchGate) — the
     // NSURLSession-bypass path. Android's actual takes the Ktor streaming HttpClient instead.
-    single { SseHttpTransport(get(), get()) }
+    single { SseHttpTransport(get(), get(), get()) }
 }

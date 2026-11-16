@@ -24,6 +24,9 @@ import com.garfiec.librechat.core.data.datastore.SsoRiskDataStore
 import com.garfiec.librechat.core.data.datastore.ThemeDataStore
 import com.garfiec.librechat.core.data.datastore.TokenCacheWarmer
 import com.garfiec.librechat.core.data.db.LibreChatDatabase
+import com.garfiec.librechat.core.data.gate.GateAccess
+import com.garfiec.librechat.core.data.gate.GateCredentialStore
+import com.garfiec.librechat.core.data.gate.GateSignIn
 import com.garfiec.librechat.core.data.prefetch.PrefetchBackgroundRunner
 import com.garfiec.librechat.core.data.prefetch.PrefetchController
 import com.garfiec.librechat.core.data.prefetch.PrefetchEngine
@@ -155,6 +158,7 @@ import com.garfiec.librechat.core.data.util.SessionTaskRunner
 import com.garfiec.librechat.core.data.util.SyncFavoritesSessionTask
 import com.garfiec.librechat.core.data.util.SyncPinnedSessionTask
 import com.garfiec.librechat.core.network.client.AccountReadyGate
+import com.garfiec.librechat.core.network.client.GateCredentialProvider
 import com.garfiec.librechat.core.network.client.ServerHeadersProvider
 import com.garfiec.librechat.core.network.client.ServerUrlProvider
 import kotlinx.coroutines.CoroutineScope
@@ -343,6 +347,15 @@ val dataModule = module {
             ioDispatcher = get(KoinQualifiers.IO),
         )
     } bind ServerHeadersProvider::class
+    single {
+        GateCredentialStore(
+            secure = get(),
+            api = get(),
+            json = get(),
+            ioDispatcher = get(KoinQualifiers.IO),
+        )
+    } bind GateCredentialProvider::class
+    single { GateSignIn(api = get(), store = get(), receivers = get(), browser = get()) } bind GateAccess::class
     singleOf(::ConfigCacheDataStore)
     singleOf(::RoleCacheDataStore)
     singleOf(::ConversationWebSearchStore)

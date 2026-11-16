@@ -157,4 +157,20 @@
     <string name="progress_accepting">Acceptation…</string>
     <string name="progress_starting">Démarrage…</string>
     <string name="progress_finishing">Finalisation…</string>
+    <!-- Sign-in gate (Authelia forward-auth) in front of the server -->
+    <string name="gate_title_authelia">Protégé par Authelia</string>
+    <string name="gate_title_generic">Protégé par une barrière de connexion</string>
+    <string name="gate_body">Connectez-vous d'abord sur %1$s. Votre connexion à LibreChat suit ensuite.</string>
+    <string name="gate_sign_in_authelia">Se connecter avec Authelia</string>
+    <string name="gate_sign_in_generic">Connectez-vous pour continuer</string>
+    <string name="gate_page_instead">Se connecter plutôt sur la page de la barrière</string>
+    <string name="gate_unknown_client_title">Authelia ne reconnaît pas cette app</string>
+    <string name="gate_unknown_client_body">%1$s n'a aucun client nommé « %2$s ». Saisissez dans Avancé l'ID client enregistré par votre administrateur, ou demandez-lui d'ajouter Switchboard.</string>
+    <string name="gate_redirect_title">Le callback de cette app n'est pas autorisé</string>
+    <string name="gate_redirect_body">Le client « %2$s » sur %1$s ne liste pas http://127.0.0.1/callback comme URI de redirection. Demandez à votre administrateur de l'ajouter.</string>
+    <string name="gate_refused_title">%1$s a refusé la connexion</string>
+    <string name="gate_failed_body">Impossible de terminer la connexion. Vérifiez votre connexion et réessayez.</string>
+    <string name="gate_setup_guide">Guide de configuration pour les administrateurs</string>
+    <string name="gate_client_id_label">ID client Authelia</string>
+    <string name="gate_page_close">Fermer</string>
 </resources>

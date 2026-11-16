@@ -7,6 +7,7 @@ import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
 import io.ktor.client.plugins.HttpRequestRetry
 import io.ktor.client.request.get
+import io.ktor.client.request.post
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
@@ -31,6 +32,8 @@ class GatewayDetectionPluginTest {
             "https://team.cloudflareaccess.com/cdn-cgi/access/login/chat.example.com?meta=eyJhbGci"
         const val CF_CHALLENGE =
             "Cloudflare-Access resource_metadata=\"https://chat.example.com/.well-known\""
+        const val AUTHELIA_PORTAL =
+            "https://auth.example.com/?rd=https%3A%2F%2Fchat.example.com%2Fapi%2Fconfig&rm=GET"
     }
 
     private fun clientWith(engine: MockEngine): HttpClient = HttpClient(engine) {
@@ -164,5 +167,74 @@ class GatewayDetectionPluginTest {
         }
 
         assertFailsWith<AccessGatewayException> { clientWith(engine).get("$SERVER/api/config") }
+    }
+
+    /**
+     * Authelia's forward-auth answers a JSON request with a 401 and its portal in `Location`, not a
+     * redirect. Read as LibreChat's 401 it drives a session refresh that the gate refuses too, and
+     * the account is signed out over a block it can't clear.
+     */
+    @Test
+    fun `a forward-auth 401 pointing at a portal is a gateway, with the portal kept`() = runTest {
+        val engine = MockEngine {
+            respond(
+                content = "<a href=\"$AUTHELIA_PORTAL\">401 Unauthorized</a>",
+                status = HttpStatusCode.Unauthorized,
+                headers = headersOf(
+                    HttpHeaders.Location to listOf(AUTHELIA_PORTAL),
+                    HttpHeaders.ContentType to listOf("text/html; charset=utf-8"),
+                ),
+            )
+        }
+
+        val failure = assertFailsWith<AccessGatewayException> { clientWith(engine).get("$SERVER/api/config") }
+
+        assertThat(failure.portalUrl).isEqualTo(AUTHELIA_PORTAL)
+    }
+
+    /** A POST is answered with a 303 to the same portal; Ktor doesn't follow it, so the hop is all there is. */
+    @Test
+    fun `a forward-auth 303 to a portal with a return address is a gateway`() = runTest {
+        val engine = MockEngine {
+            respond(
+                content = "",
+                status = HttpStatusCode.SeeOther,
+                headers = headersOf(HttpHeaders.Location to listOf(AUTHELIA_PORTAL)),
+            )
+        }
+
+        val failure = assertFailsWith<AccessGatewayException> {
+            clientWith(engine).post("$SERVER/api/auth/refresh")
+        }
+
+        assertThat(failure.portalUrl).isEqualTo(AUTHELIA_PORTAL)
+    }
+
+    /** Authelia's answer to an expired or revoked bearer token. */
+    @Test
+    fun `a 407 is a gateway`() = runTest {
+        val engine = MockEngine {
+            respond(
+                content = "407 Proxy Authentication Required",
+                status = HttpStatusCode.ProxyAuthenticationRequired,
+                headers = headersOf("Proxy-Authenticate" to listOf("Bearer error=\"invalid_token\"")),
+            )
+        }
+
+        assertFailsWith<AccessGatewayException> { clientWith(engine).get("$SERVER/api/config") }
+    }
+
+    /** LibreChat's own refresh failure redirects to a server-rooted `/login`: that is the server, not a gate. */
+    @Test
+    fun `a same-server redirect is not a gateway`() = runTest {
+        val engine = MockEngine {
+            respond(
+                content = "",
+                status = HttpStatusCode.Found,
+                headers = headersOf(HttpHeaders.Location to listOf("/login?rd=x")),
+            )
+        }
+
+        assertThat(clientWith(engine).post("$SERVER/api/auth/refresh").status).isEqualTo(HttpStatusCode.Found)
     }
 }

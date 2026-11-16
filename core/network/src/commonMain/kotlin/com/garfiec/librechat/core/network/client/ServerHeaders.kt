@@ -79,7 +79,8 @@ object CustomHeaderRules {
      *   UAs on first contact, and that ban outlives the bad config.
      * - `Accept`, `Accept-Encoding`, `Content-Type` — the iOS SSE transport hand-writes `Accept` and
      *   `Accept-Encoding`; a user value emits a second, ambiguous line rather than replacing them.
-     * - `Expect`, `Proxy-Authorization` — engine-level semantics the client does not model.
+     * - `Expect` — engine-level semantics the client does not model.
+     * - `Proxy-Authorization` — carries the app's own access-gate token ([GateCredentialPlugin]).
      * - `Origin`, `Sec-Fetch-*` — the server's same-origin guard rejects sign-in when they don't match
      *   it, so the app never sends them (see `UserAgentGuardTest`).
      *
