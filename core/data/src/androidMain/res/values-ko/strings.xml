@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="gate_sign_in_channel">로그인</string>
+    <string name="gate_sign_in_title">서버 게이트에 로그인하는 중</string>
+    <string name="gate_sign_in_text">브라우저에서 완료하면 Switchboard로 돌아갑니다.</string>
+</resources>
