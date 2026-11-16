@@ -159,4 +159,20 @@
     <string name="progress_accepting">Принятие…</string>
     <string name="progress_starting">Запуск…</string>
     <string name="progress_finishing">Завершение…</string>
+    <!-- Sign-in gate (Authelia forward-auth) in front of the server -->
+    <string name="gate_title_authelia">Защищено Authelia</string>
+    <string name="gate_title_generic">Защищено шлюзом входа</string>
+    <string name="gate_body">Сначала войдите на %1$s. Затем — вход в LibreChat.</string>
+    <string name="gate_sign_in_authelia">Войти через Authelia</string>
+    <string name="gate_sign_in_generic">Войдите, чтобы продолжить</string>
+    <string name="gate_page_instead">Войти на странице шлюза</string>
+    <string name="gate_unknown_client_title">Authelia не распознаёт это приложение</string>
+    <string name="gate_unknown_client_body">На %1$s нет клиента с именем «%2$s». Укажите в разделе «Дополнительно» ID клиента, зарегистрированный администратором, или попросите его добавить Switchboard.</string>
+    <string name="gate_redirect_title">Callback этого приложения не разрешён</string>
+    <string name="gate_redirect_body">Клиент «%2$s» на %1$s не содержит http://127.0.0.1/callback среди URI перенаправления. Попросите администратора добавить его.</string>
+    <string name="gate_refused_title">%1$s отклонил вход</string>
+    <string name="gate_failed_body">Не удалось завершить вход. Проверьте подключение и попробуйте ещё раз.</string>
+    <string name="gate_setup_guide">Руководство по настройке для администраторов</string>
+    <string name="gate_client_id_label">ID клиента Authelia</string>
+    <string name="gate_page_close">Закрыть</string>
 </resources>

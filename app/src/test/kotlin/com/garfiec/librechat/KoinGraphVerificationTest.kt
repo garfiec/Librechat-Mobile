@@ -28,6 +28,7 @@ import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.datastore.SsoRiskDataStore
 import com.garfiec.librechat.core.data.datastore.ThemeDataStore
+import com.garfiec.librechat.core.data.gate.GateAccess
 import com.garfiec.librechat.core.data.prefetch.AttachmentWarmer
 import com.garfiec.librechat.core.data.prefetch.PrefetchController
 import com.garfiec.librechat.core.data.prefetch.PrefetchStatusReporter
@@ -103,6 +104,7 @@ import com.garfiec.librechat.core.network.api.EndpointTokenApi
 import com.garfiec.librechat.core.network.api.FavoritesApi
 import com.garfiec.librechat.core.network.api.FilesApi
 import com.garfiec.librechat.core.network.api.FilesExtApi
+import com.garfiec.librechat.core.network.api.GateOAuthApi
 import com.garfiec.librechat.core.network.api.KeysApi
 import com.garfiec.librechat.core.network.api.McpApi
 import com.garfiec.librechat.core.network.api.McpAppsApi
@@ -126,6 +128,7 @@ import com.garfiec.librechat.core.network.api.TracesApi
 import com.garfiec.librechat.core.network.api.UserApi
 import com.garfiec.librechat.core.network.client.AccountReadyGate
 import com.garfiec.librechat.core.network.client.CertificateTrustRegistry
+import com.garfiec.librechat.core.network.client.GateCredentialProvider
 import com.garfiec.librechat.core.network.client.ServerUrlProvider
 import com.garfiec.librechat.core.network.client.SwitchGate
 import com.garfiec.librechat.core.network.client.TokenManager
@@ -198,6 +201,7 @@ class KoinGraphVerificationTest {
             ApiKeysApi::class,
             AuthApi::class,
             BalanceApi::class,
+            GateOAuthApi::class,
             BannerApi::class,
             CodeEnvironmentsApi::class,
             ChatApi::class,
@@ -229,6 +233,8 @@ class KoinGraphVerificationTest {
             UserApi::class,
             PasskeyApi::class,
             // core:data provides
+            GateCredentialProvider::class,
+            GateAccess::class,
             ConfigCacheDataStore::class,
             ServerDataStore::class,
             ServerRepository::class,

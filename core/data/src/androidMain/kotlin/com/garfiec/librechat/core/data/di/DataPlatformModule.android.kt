@@ -1,5 +1,6 @@
 package com.garfiec.librechat.core.data.di
 
+import android.app.Application
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
@@ -10,10 +11,15 @@ import com.garfiec.librechat.core.common.ChannelPolicy
 import com.garfiec.librechat.core.common.di.KoinQualifiers
 import com.garfiec.librechat.core.data.datastore.CommonTokenDataStore
 import com.garfiec.librechat.core.data.datastore.PreferenceMigrationRunner
+import com.garfiec.librechat.core.data.datastore.SecureValueStore
 import com.garfiec.librechat.core.data.datastore.TokenDataStore
 import com.garfiec.librechat.core.data.db.LibreChatDatabase
 import com.garfiec.librechat.core.data.db.migration.MIGRATION_3_4
 import com.garfiec.librechat.core.data.db.migration.MIGRATION_4_5
+import com.garfiec.librechat.core.data.gate.AndroidLoopbackReceiver
+import com.garfiec.librechat.core.data.gate.AndroidSystemAuthBrowser
+import com.garfiec.librechat.core.data.gate.LoopbackReceiverFactory
+import com.garfiec.librechat.core.data.gate.SystemAuthBrowser
 import com.garfiec.librechat.core.data.pdf.AndroidPdfNormalizer
 import com.garfiec.librechat.core.data.pdf.PdfNormalizer
 import com.garfiec.librechat.core.data.prefetch.AttachmentWarmer
@@ -43,6 +49,15 @@ actual val dataPlatformModule: Module = module {
     // Bound per platform rather than defaulted in dataModule: Koin starts with allowOverride(false),
     // so a common default plus a platform override would throw at launch.
     single<AttachmentWarmer> { CoilAttachmentWarmer(androidContext()) }
+    // Eager: it learns the current activity from lifecycle callbacks, so it has to be listening
+    // before the first sign-in asks for one.
+    single<SystemAuthBrowser>(createdAtStart = true) {
+        AndroidSystemAuthBrowser(androidContext().applicationContext as Application)
+    }
+    single {
+        val io = get<CoroutineDispatcher>(KoinQualifiers.IO)
+        LoopbackReceiverFactory { AndroidLoopbackReceiver(io) }
+    }
     single<PrefetchScheduler> { WorkManagerPrefetchScheduler(androidContext()) }
     single<PdfNormalizer> { AndroidPdfNormalizer(androidContext()) }
     single<AppInstallSource> {
@@ -97,6 +112,7 @@ actual val dataPlatformModule: Module = module {
         // TokenManager so the six fakes that implement it don't gain a second credential.
         RefreshCookieCredentials::class,
         CommonTokenDataStore::class,
+        SecureValueStore::class,
     )
 
     // --- Session Cache Cleaner ---

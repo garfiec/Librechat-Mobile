@@ -10,6 +10,7 @@ import com.garfiec.librechat.core.common.di.KoinQualifiers
 import com.garfiec.librechat.core.data.datastore.CommonTokenDataStore
 import com.garfiec.librechat.core.data.datastore.IosTokenDataStore
 import com.garfiec.librechat.core.data.datastore.PreferenceMigrationRunner
+import com.garfiec.librechat.core.data.datastore.SecureValueStore
 import com.garfiec.librechat.core.data.datastore.ServerUrlKeychainFallback
 import com.garfiec.librechat.core.data.datastore.iosAppSupportDirectory
 import com.garfiec.librechat.core.data.datastore.iosDataStoreDirectory
@@ -18,6 +19,10 @@ import com.garfiec.librechat.core.data.datastore.iosDatabasePath
 import com.garfiec.librechat.core.data.db.LibreChatDatabase
 import com.garfiec.librechat.core.data.db.migration.MIGRATION_3_4
 import com.garfiec.librechat.core.data.db.migration.MIGRATION_4_5
+import com.garfiec.librechat.core.data.gate.IosLoopbackReceiver
+import com.garfiec.librechat.core.data.gate.IosSystemAuthBrowser
+import com.garfiec.librechat.core.data.gate.LoopbackReceiverFactory
+import com.garfiec.librechat.core.data.gate.SystemAuthBrowser
 import com.garfiec.librechat.core.data.pdf.PdfKitPdfNormalizer
 import com.garfiec.librechat.core.data.pdf.PdfNormalizer
 import com.garfiec.librechat.core.data.prefetch.AttachmentWarmer
@@ -36,6 +41,7 @@ import com.garfiec.librechat.core.network.client.RefreshCookieCredentials
 import com.garfiec.librechat.core.network.client.TokenManager
 import io.ktor.client.HttpClient
 import kotlinx.cinterop.ExperimentalForeignApi
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import okio.Path.Companion.toPath
@@ -55,6 +61,11 @@ private fun ensureDirectoryExists(path: String) {
 actual val dataPlatformModule: Module = module {
 
     single<AttachmentWarmer> { NoopAttachmentWarmer() }
+    single<SystemAuthBrowser> { IosSystemAuthBrowser() }
+    single {
+        val io = get<CoroutineDispatcher>(KoinQualifiers.IO)
+        LoopbackReceiverFactory { IosLoopbackReceiver(io) }
+    }
     single<PrefetchScheduler> { IosPrefetchScheduler() }
     single<PdfNormalizer> { PdfKitPdfNormalizer() }
     single<AppInstallSource> { NoopAppInstallSource() }
@@ -107,6 +118,7 @@ actual val dataPlatformModule: Module = module {
         RefreshCookieCredentials::class,
         ServerUrlKeychainFallback::class,
         CommonTokenDataStore::class,
+        SecureValueStore::class,
     )
 
     // --- Session Cache Cleaner ---

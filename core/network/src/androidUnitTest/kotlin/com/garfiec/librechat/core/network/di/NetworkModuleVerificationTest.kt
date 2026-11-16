@@ -6,6 +6,7 @@ import com.garfiec.librechat.core.common.AppInfo
 import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.common.network.RequestActivityTracker
 import com.garfiec.librechat.core.network.client.AccountReadyGate
+import com.garfiec.librechat.core.network.client.GateCredentialProvider
 import com.garfiec.librechat.core.network.client.RefreshCookieCredentials
 import com.garfiec.librechat.core.network.client.ServerHeadersProvider
 import com.garfiec.librechat.core.network.client.ServerUrlProvider
@@ -32,6 +33,7 @@ class NetworkModuleVerificationTest {
                 AccountReadyGate::class,
                 // Gateway headers (issue #287) are stored in :core:data, same as the URL and tokens.
                 ServerHeadersProvider::class,
+                GateCredentialProvider::class,
                 // The per-account refresh-token read behind the image and logout cookies, bound to the token
                 // store in :core:data alongside the tokens themselves.
                 RefreshCookieCredentials::class,

@@ -100,6 +100,19 @@ macro in C so the block stays in Network.framework's memory management.
   `ClosedByteChannelException` depending on which side loses a race, so a type-exact `catch` works
   only most of the time.
 
+## Gate credentials (Authelia)
+
+`GateCredentialPlugin` attaches the server's gate credential (`GateCredentialProvider`, stored by
+`:core:data` `GateCredentialStore`) on **all three** clients and the iOS SSE transport: a bearer as
+`Proxy-Authorization` (LibreChat owns `Authorization`), or the gate's session cookie merged into
+`Cookie`. Same scoping and redirect strip as gateway headers below.
+
+- **Install before `GatewayDetectionPlugin`**: its `HttpSend` interceptor must be outer, to catch the
+  `AccessGatewayException` a refused credential becomes and renew it once.
+- **Read at attach time, never cached**: Authelia revokes the previous access token on every refresh.
+- **Android: `GateChallengeInterceptor` (OkHttp network interceptor) must stay**: OkHttp throws on a
+  407 when no proxy is in use, before Ktor sees a response.
+
 ## Custom per-server (gateway) headers
 
 `ServerHeadersPlugin` attaches the user's static gateway headers (e.g. Cloudflare Access service
@@ -133,9 +146,10 @@ from the `RequestIdentity` snapshot (rendered by `sseCustomHeaderLines`).
   into one comma-separated value (RFC 7230 §3.2.2). Ktor's `headers[name]` returns the first line, a
   naive parser keeps the last; either alone misses a second-line challenge.
 - **Install on every new client.**
-- **Cloudflare Access only, deliberately.** Cookie-based gateways (Authelia, oauth2-proxy) send no
-  comparable header and get the generic message. Inferring a gateway from off-authority `text/html`
-  would misfire on legitimate redirects (presigned downloads). Reconsider only on a real report.
+- **What counts as a gateway** (`AccessGatewaySignal`): the Cloudflare Access challenge; a **407**; a
+  **401 with an absolute off-authority `Location`** (LibreChat's 401s carry none); a 302/303/307
+  off-authority **with an `rd` return address** (forward-auth portals). Never a bare off-authority
+  redirect: presigned downloads 302 to object storage.
 - **Terminal, never retried — three separate opt-outs**: `SseClient` and the refresh loop each exit on
   it, and `configureRetryPolicy` excludes it in `retryOnExceptionIf` (`HttpRequestRetry` is installed
   first, so it's outermost and sees the throw). Exclude by predicate, not by install order.

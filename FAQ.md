@@ -70,3 +70,61 @@ Without the CA installed, the server check rejects the certificate and suggests 
 If you can't install a CA on the device (a managed phone, for example), use a publicly trusted certificate instead (Let's Encrypt, ZeroSSL), or put the server behind a reverse proxy such as Caddy or Cloudflare Tunnel that terminates TLS with one. On a trusted local network you can also connect over plain HTTP and accept the in-app warning.
 
 > **Looking ahead:** apps that target API 37+ (Android 17) get Certificate Transparency enabled by default for TLS connections. When Switchboard's `targetSdk` reaches 37, self-signed leaf certificates without SCTs will need `<certificateTransparency enabled="false"/>` in the Network Security Config.
+
+## Can I use Switchboard behind Authelia?
+
+Yes. When your server sits behind an [Authelia](https://www.authelia.com/) forward-auth gate, Switchboard recognises the gate when you connect and offers **Sign in with Authelia**. You sign in on Authelia's own pages in the system browser (password, two-factor, passkeys and password managers all work), and the app gets a token that lets it through the gate. Your LibreChat sign-in comes next, as usual.
+
+This needs a one-time setup by the admin, because the app signs in as an OAuth client of Authelia. If that isn't set up, the app offers to sign in on Authelia's page inside the app instead. That keeps Authelia's session cookie, which expires on Authelia's schedule, and passkeys don't work there.
+
+### Authelia setup (admins)
+
+Authelia 4.38 or later. Register a public client for the app. `client_id` can be anything (users enter a name other than `switchboard` under **Advanced**); the redirect URI must be exactly `http://127.0.0.1/callback` (the app listens on a free port, and Authelia ignores the port for loopback addresses):
+
+```yaml
+identity_providers:
+  oidc:
+    clients:
+      - client_id: 'switchboard'
+        client_name: 'Switchboard'
+        public: true
+        authorization_policy: 'two_factor'
+        require_pkce: true
+        pkce_challenge_method: 'S256'
+        require_pushed_authorization_requests: true
+        redirect_uris:
+          - 'http://127.0.0.1/callback'
+        scopes: ['offline_access', 'authelia.bearer.authz']
+        audience: ['https://chat.example.com']
+        grant_types: ['authorization_code', 'refresh_token']
+        response_types: ['code']
+        response_modes: ['form_post']
+        consent_mode: 'explicit'
+        token_endpoint_auth_method: 'none'
+```
+
+LibreChat already uses the `Authorization` header for its own sign-in, so the app sends Authelia's token as `Proxy-Authorization`. Let the authz endpoint read it, and keep the cookie strategy for browsers:
+
+```yaml
+server:
+  endpoints:
+    authz:
+      forward-auth:
+        implementation: 'ForwardAuth'
+        authn_strategies:
+          - name: 'HeaderProxyAuthorization'
+            schemes: ['Bearer']
+          - name: 'CookieSession'
+```
+
+The reverse proxy must pass `Proxy-Authorization` on to Authelia. **Caddy** drops it unless told otherwise:
+
+```
+forward_auth authelia:9091 {
+	uri /api/authz/forward-auth
+	header_up Proxy-Authorization {http.request.header.Proxy-Authorization}
+	copy_headers Remote-User Remote-Groups Remote-Email Remote-Name
+}
+```
+
+Refresh tokens last 90 minutes by default, so a phone left alone longer has to sign in to Authelia again. To keep users signed in longer, give the client longer token lifespans (`identity_providers.oidc.lifespans.custom`, then `lifespan:` on the client), for example 30 days for refresh tokens.

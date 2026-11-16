@@ -25,6 +25,7 @@ import com.garfiec.librechat.core.network.api.EndpointTokenApi
 import com.garfiec.librechat.core.network.api.FavoritesApi
 import com.garfiec.librechat.core.network.api.FilesApi
 import com.garfiec.librechat.core.network.api.FilesExtApi
+import com.garfiec.librechat.core.network.api.GateOAuthApi
 import com.garfiec.librechat.core.network.api.KeysApi
 import com.garfiec.librechat.core.network.api.McpApi
 import com.garfiec.librechat.core.network.api.McpAppsApi
@@ -105,6 +106,7 @@ class DataModuleVerificationTest {
                 ShareApi::class,
                 ConfigApi::class,
                 BalanceApi::class,
+                GateOAuthApi::class,
                 SkillsApi::class,
                 KeysApi::class,
                 ApiKeysApi::class,

@@ -156,4 +156,20 @@
     <string name="progress_accepting">同意を送信中…</string>
     <string name="progress_starting">開始中…</string>
     <string name="progress_finishing">完了しています…</string>
+    <!-- Sign-in gate (Authelia forward-auth) in front of the server -->
+    <string name="gate_title_authelia">Authelia で保護されています</string>
+    <string name="gate_title_generic">サインインゲートで保護されています</string>
+    <string name="gate_body">まず %1$s でサインインしてください。その後に LibreChat のサインインが続きます。</string>
+    <string name="gate_sign_in_authelia">Authelia でサインイン</string>
+    <string name="gate_sign_in_generic">サインインして続行</string>
+    <string name="gate_page_instead">代わりにゲートのページでサインイン</string>
+    <string name="gate_unknown_client_title">Authelia がこのアプリを認識していません</string>
+    <string name="gate_unknown_client_body">%1$s に「%2$s」という名前のクライアントがありません。管理者が登録したクライアント ID を「詳細設定」で入力するか、Switchboard の追加を管理者に依頼してください。</string>
+    <string name="gate_redirect_title">このアプリのコールバックが許可されていません</string>
+    <string name="gate_redirect_body">%1$s のクライアント「%2$s」のリダイレクト URI に http://127.0.0.1/callback が含まれていません。追加するよう管理者に依頼してください。</string>
+    <string name="gate_refused_title">%1$s がサインインを拒否しました</string>
+    <string name="gate_failed_body">サインインを完了できませんでした。接続を確認して、もう一度お試しください。</string>
+    <string name="gate_setup_guide">管理者向けセットアップガイド</string>
+    <string name="gate_client_id_label">Authelia クライアント ID</string>
+    <string name="gate_page_close">閉じる</string>
 </resources>

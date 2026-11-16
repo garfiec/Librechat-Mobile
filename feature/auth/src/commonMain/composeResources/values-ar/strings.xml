@@ -161,4 +161,20 @@
     <string name="progress_accepting">جارٍ القبول…</string>
     <string name="progress_starting">جارٍ البدء…</string>
     <string name="progress_finishing">جارٍ الإنهاء…</string>
+    <!-- Sign-in gate (Authelia forward-auth) in front of the server -->
+    <string name="gate_title_authelia">محمي بواسطة Authelia</string>
+    <string name="gate_title_generic">محمي ببوابة تسجيل دخول</string>
+    <string name="gate_body">سجّل الدخول في %1$s أولاً. يليه تسجيل الدخول إلى LibreChat.</string>
+    <string name="gate_sign_in_authelia">تسجيل الدخول باستخدام Authelia</string>
+    <string name="gate_sign_in_generic">سجّل الدخول للمتابعة</string>
+    <string name="gate_page_instead">تسجيل الدخول في صفحة البوابة بدلاً من ذلك</string>
+    <string name="gate_unknown_client_title">لا يتعرّف Authelia على هذا التطبيق</string>
+    <string name="gate_unknown_client_body">لا يوجد في %1$s عميل باسم «%2$s». أدخل معرّف العميل الذي سجّله المسؤول ضمن «متقدم»، أو اطلب منه إضافة Switchboard.</string>
+    <string name="gate_redirect_title">رد الاستدعاء الخاص بهذا التطبيق غير مسموح به</string>
+    <string name="gate_redirect_body">لا يتضمن العميل «%2$s» في %1$s العنوان http://127.0.0.1/callback ضمن عناوين URI لإعادة التوجيه. اطلب من المسؤول إضافته.</string>
+    <string name="gate_refused_title">رفض %1$s تسجيل الدخول</string>
+    <string name="gate_failed_body">تعذّر إكمال تسجيل الدخول. تحقّق من اتصالك وحاول مرة أخرى.</string>
+    <string name="gate_setup_guide">دليل الإعداد للمسؤولين</string>
+    <string name="gate_client_id_label">معرّف عميل Authelia</string>
+    <string name="gate_page_close">إغلاق</string>
 </resources>

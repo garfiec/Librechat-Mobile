@@ -152,6 +152,12 @@ fun ServerUrlScreen(
                 enabled = !uiState.isLoading,
             )
 
+            val gate = uiState.gate
+            if (gate != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                GateCard(gate = gate, onPageSignIn = viewModel::openGatePage)
+            }
+
             Spacer(modifier = Modifier.height(8.dp))
 
             CustomHeadersSection(
@@ -182,15 +188,38 @@ fun ServerUrlScreen(
                 onRemove = viewModel::removeHeaderRow,
             )
 
+            if (gate != null && uiState.showAdvanced) {
+                Spacer(modifier = Modifier.height(8.dp))
+                GateClientIdField(
+                    clientId = gate.clientId,
+                    enabled = !gate.busy,
+                    onChange = viewModel::onGateClientIdChanged,
+                )
+            }
+
             Spacer(modifier = Modifier.height(24.dp))
 
-            AdaptiveButton(
-                onClick = viewModel::validateAndConnect,
-                modifier = Modifier.fillMaxWidth().testTag("server_url_connect"),
-                enabled = uiState.url.isNotBlank(),
-                loading = uiState.isLoading,
-            ) {
-                Text(stringResource(if (uiState.isLoading) Res.string.progress_connecting else Res.string.server_url_connect))
+            if (gate != null) {
+                AdaptiveButton(
+                    onClick = viewModel::signInToGate,
+                    modifier = Modifier.fillMaxWidth().testTag("server_url_gate_sign_in"),
+                    loading = gate.busy || gate.browserSignIn == null,
+                ) {
+                    Text(
+                        stringResource(
+                            if (gate.isAuthelia) Res.string.gate_sign_in_authelia else Res.string.gate_sign_in_generic,
+                        ),
+                    )
+                }
+            } else {
+                AdaptiveButton(
+                    onClick = viewModel::validateAndConnect,
+                    modifier = Modifier.fillMaxWidth().testTag("server_url_connect"),
+                    enabled = uiState.url.isNotBlank(),
+                    loading = uiState.isLoading,
+                ) {
+                    Text(stringResource(if (uiState.isLoading) Res.string.progress_connecting else Res.string.server_url_connect))
+                }
             }
 
             if (uiState.error != null && !uiState.isLoading) {
@@ -208,6 +237,18 @@ fun ServerUrlScreen(
         }
 
         BackAffordanceOverlay(onBack)
+
+        val pageGate = uiState.gate?.takeIf { it.pageSignIn }
+        if (pageGate != null) {
+            Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+                GatePageSignInOverlay(
+                    portalUrl = pageGate.portalUrl,
+                    serverUrl = pageGate.serverUrl,
+                    onSignInComplete = viewModel::onGatePageSignedIn,
+                    onClose = viewModel::dismissGatePage,
+                )
+            }
+        }
     }
 }
 

@@ -6,6 +6,8 @@ import com.garfiec.librechat.core.common.result.AccessGatewayException
 import com.garfiec.librechat.core.model.auth.OpenIdMarkers
 import com.garfiec.librechat.core.network.client.AccessGatewaySignal
 import com.garfiec.librechat.core.network.client.BearerResult
+import com.garfiec.librechat.core.network.client.GateCredential
+import com.garfiec.librechat.core.network.client.GateCredentialProvider
 import com.garfiec.librechat.core.network.client.LibreChatHttpClient
 import com.garfiec.librechat.core.network.client.SwitchGate
 import com.garfiec.librechat.core.network.client.TokenManager
@@ -14,6 +16,7 @@ import com.garfiec.librechat.core.network.client.sseCustomHeaderLines
 import com.garfiec.librechat.core.network.sse.nwparams.librechat_make_default_tcp_parameters
 import com.garfiec.librechat.core.network.sse.nwparams.librechat_make_default_tls_tcp_parameters
 import com.garfiec.librechat.core.network.sse.nwparams.librechat_nw_connection_receive
+import io.ktor.http.Url
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.addressOf
@@ -24,6 +27,7 @@ import kotlinx.cinterop.ptr
 import kotlinx.cinterop.readBytes
 import kotlinx.cinterop.usePinned
 import kotlinx.cinterop.value
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -101,6 +105,7 @@ import platform.posix.size_tVar
 actual class SseHttpTransport(
     private val tokenManager: TokenManager,
     private val switchGate: SwitchGate,
+    private val gateCredentials: GateCredentialProvider,
 ) {
 
     actual fun stream(streamPath: String, resume: Boolean): Flow<ByteArray> = flow {
@@ -112,9 +117,12 @@ actual class SseHttpTransport(
         var token = snapshot.bearer
         var markers = snapshot.openId
         var triedRefresh = false
+        // Read once per stream and renewed at most once: this transport bypasses GateCredentialPlugin.
+        var gate = gateCredentials.credentialFor(snapshot.baseUrl)
+        var triedGateRenewal = false
         while (true) {
             try {
-                emitAll(openConnection(streamPath, resume, snapshot.baseUrl, token, snapshot.customHeaders, markers))
+                emitAll(openConnection(streamPath, resume, snapshot.baseUrl, token, snapshot.customHeaders, markers, gate))
                 return@flow
             } catch (e: SseHttpStatusException) {
                 if (e.statusCode == 401 && !triedRefresh) {
@@ -144,6 +152,14 @@ actual class SseHttpTransport(
                 } else {
                     throw e
                 }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+                // Cause chain, not type: the gateway refusal can reach here wrapped.
+                val used = gate
+                if (e.accessGatewayCause() == null || used == null || triedGateRenewal) throw e
+                triedGateRenewal = true
+                gate = gateCredentials.onRejected(snapshot.baseUrl, used) ?: throw e
             }
         }
     }
@@ -158,6 +174,7 @@ actual class SseHttpTransport(
         bearerToken: String?,
         customHeaders: Map<String, String>,
         markers: OpenIdMarkers?,
+        gate: GateCredential?,
     ): Flow<ByteArray> = callbackFlow {
         // This URL is built by hand, so it joins onto the cleaned base like every other hand-built
         // join (Android's Ktor merge resolves the same GET itself). The base URL comes from the
@@ -288,6 +305,14 @@ actual class SseHttpTransport(
                                         handleError(AccessGatewayException())
                                         return@librechat_nw_connection_receive
                                     }
+                                    AccessGatewaySignal.forwardAuthRejection(
+                                        status = event.statusCode,
+                                        location = event.headers["location"],
+                                        requestUrl = Url(fullUrl),
+                                    )?.let {
+                                        handleError(AccessGatewayException(portalUrl = it.portalUrl))
+                                        return@librechat_nw_connection_receive
+                                    }
                                     if (event.statusCode !in SUCCESS_LOW..SUCCESS_HIGH) {
                                         handleError(SseHttpStatusException(event.statusCode))
                                         return@librechat_nw_connection_receive
@@ -330,6 +355,7 @@ actual class SseHttpTransport(
                         bearerToken = bearerToken,
                         customHeaders = customHeaders,
                         markers = markers,
+                        gate = gate,
                     )
                     val requestBytes = request.encodeToByteArray()
                     val dispatchData = byteArrayToDispatchData(requestBytes, queue)
@@ -399,6 +425,7 @@ actual class SseHttpTransport(
         bearerToken: String?,
         customHeaders: Map<String, String>,
         markers: OpenIdMarkers?,
+        gate: GateCredential?,
     ): String = buildString {
         append("GET ").append(path).append(" HTTP/1.1\r\n")
         append("Host: ").append(host).append("\r\n")
@@ -414,7 +441,7 @@ actual class SseHttpTransport(
         // follows a redirect, so it cannot arrive anywhere but the server the headers belong to.
         // Sanitised again inside sseCustomHeaderLines — the names reserved there are exactly the ones
         // hand-written above, so a user value can never emit a second, ambiguous copy of one.
-        append(sseCustomHeaderLines(customHeaders, markers))
+        append(sseCustomHeaderLines(customHeaders, markers, gate))
         append("\r\n")
     }
 

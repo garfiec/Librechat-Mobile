@@ -60,7 +60,11 @@ import com.garfiec.librechat.core.ui.platform.LocalWindowFeatures
 import com.garfiec.librechat.feature.auth.navigation.AddAccountServerUrl
 import com.garfiec.librechat.feature.conversations.navigation.Projects
 import com.garfiec.librechat.feature.settings.navigation.SettingsTabbed
+import com.garfiec.librechat.shared.resources.Res
+import com.garfiec.librechat.shared.resources.gate_sign_in_expired_action
+import com.garfiec.librechat.shared.resources.gate_sign_in_expired_message
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
 // The narrowest sidebar a fold may hand it before it keeps SidebarWidth instead.
@@ -113,6 +117,7 @@ fun TabletLayout(
     // Banner state only -- drawer state is collected inside DrawerContent itself
     val banner by navHostViewModel.banner.collectAsStateWithLifecycle()
     val sessionRenewalBlocked by navHostViewModel.sessionRenewalBlocked.collectAsStateWithLifecycle()
+    val gateHost by navHostViewModel.gateSession.signInRequired.collectAsStateWithLifecycle()
     val isLoggedIn by navHostViewModel.isLoggedIn.collectAsStateWithLifecycle()
     // The sidebar is an authenticated surface, same rule as PhoneLayout's drawer gestures: a
     // logged-out deep link (artifact viewer atop the auth base) is not in the auth flow either.
@@ -300,8 +305,10 @@ fun TabletLayout(
                     showBanner = true,
                     banner = banner,
                     onDismissBanner = navHostViewModel::dismissBanner,
-                    sessionRenewalBlocked = sessionRenewalBlocked,
-                    onSignInAgain = navHostViewModel::signInAgain,
+                    sessionRenewalBlocked = sessionRenewalBlocked || gateHost != null,
+                    onSignInAgain = if (gateHost != null) navHostViewModel.gateSession::signIn else navHostViewModel::signInAgain,
+                    renewalMessage = gateHost?.let { stringResource(Res.string.gate_sign_in_expired_message, it) },
+                    renewalAction = gateHost?.let { stringResource(Res.string.gate_sign_in_expired_action) },
                     onToggleDrawer = {
                         navHostViewModel.toggleTabletSidebar()
                     },
@@ -367,6 +374,8 @@ private fun MainContent(
     onSignInAgain: () -> Unit,
     onToggleDrawer: () -> Unit,
     modifier: Modifier = Modifier,
+    renewalMessage: String? = null,
+    renewalAction: String? = null,
     asideRequests: SidebarAsideRequests? = null,
     sidebarOpen: Boolean = false,
 ) {
@@ -375,6 +384,8 @@ private fun MainContent(
             SessionRenewalBlockedBanner(
                 visible = sessionRenewalBlocked,
                 onSignInAgain = onSignInAgain,
+                message = renewalMessage,
+                actionLabel = renewalAction,
             )
             BannerDisplay(
                 banner = banner,

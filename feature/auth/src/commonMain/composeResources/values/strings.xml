@@ -161,4 +161,20 @@
     <string name="progress_accepting">Accepting…</string>
     <string name="progress_starting">Starting…</string>
     <string name="progress_finishing">Finishing…</string>
+    <!-- Sign-in gate (Authelia forward-auth) in front of the server -->
+    <string name="gate_title_authelia">Protected by Authelia</string>
+    <string name="gate_title_generic">Protected by a sign-in gate</string>
+    <string name="gate_body">Sign in at %1$s first. Your LibreChat sign-in comes next.</string>
+    <string name="gate_sign_in_authelia">Sign in with Authelia</string>
+    <string name="gate_sign_in_generic">Sign in to continue</string>
+    <string name="gate_page_instead">Sign in on the gate’s page instead</string>
+    <string name="gate_unknown_client_title">Authelia doesn’t recognize this app</string>
+    <string name="gate_unknown_client_body">%1$s has no client named “%2$s”. Enter the client ID your admin registered under Advanced, or ask them to add Switchboard.</string>
+    <string name="gate_redirect_title">This app’s callback isn’t allowed</string>
+    <string name="gate_redirect_body">The client “%2$s” on %1$s doesn’t list http://127.0.0.1/callback as a redirect URI. Ask your admin to add it.</string>
+    <string name="gate_refused_title">%1$s refused the sign-in</string>
+    <string name="gate_failed_body">Couldn’t finish signing in. Check your connection and try again.</string>
+    <string name="gate_setup_guide">Setup guide for admins</string>
+    <string name="gate_client_id_label">Authelia client ID</string>
+    <string name="gate_page_close">Close</string>
 </resources>
