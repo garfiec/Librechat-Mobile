@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="gate_sign_in_channel">Início de sessão</string>
+    <string name="gate_sign_in_title">Entrando no gateway do servidor</string>
+    <string name="gate_sign_in_text">Conclua no navegador para voltar ao Switchboard.</string>
+</resources>

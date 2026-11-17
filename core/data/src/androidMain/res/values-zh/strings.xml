@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="gate_sign_in_channel">登录</string>
+    <string name="gate_sign_in_title">正在登录服务器网关</string>
+    <string name="gate_sign_in_text">在浏览器中完成后即可返回 Switchboard。</string>
+</resources>

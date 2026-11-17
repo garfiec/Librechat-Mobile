@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="gate_sign_in_channel">Вход</string>
+    <string name="gate_sign_in_title">Вход через шлюз сервера</string>
+    <string name="gate_sign_in_text">Завершите вход в браузере, чтобы вернуться в Switchboard.</string>
+</resources>

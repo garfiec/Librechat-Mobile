@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="gate_sign_in_channel">Connexion</string>
+    <string name="gate_sign_in_title">Connexion à la passerelle du serveur</string>
+    <string name="gate_sign_in_text">Terminez dans le navigateur pour revenir à Switchboard.</string>
+</resources>

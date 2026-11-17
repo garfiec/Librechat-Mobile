@@ -7,6 +7,7 @@ import android.net.Uri
 import android.os.Bundle
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 import java.lang.ref.WeakReference
 
@@ -19,7 +20,7 @@ import java.lang.ref.WeakReference
  * Built from the Custom Tabs intent contract (an `ACTION_VIEW` carrying [EXTRA_SESSION]) rather than
  * `androidx.browser`, which would add a dependency for one extra.
  */
-internal class AndroidSystemAuthBrowser(application: Application) : SystemAuthBrowser {
+internal class AndroidSystemAuthBrowser(private val application: Application) : SystemAuthBrowser {
 
     private var current: WeakReference<Activity>? = null
     private var launcher: WeakReference<Activity>? = null
@@ -58,12 +59,14 @@ internal class AndroidSystemAuthBrowser(application: Application) : SystemAuthBr
             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
                 putExtras(Bundle().apply { putBinder(EXTRA_SESSION, null) })
             }
+            keepAlive(true)
             activity.startActivity(intent)
         }
         try {
             signal.await()
         } finally {
-            withContext(Dispatchers.Main.immediate) {
+            withContext(NonCancellable + Dispatchers.Main.immediate) {
+                keepAlive(false)
                 if (gone === signal) gone = null
             }
         }
@@ -79,6 +82,12 @@ internal class AndroidSystemAuthBrowser(application: Application) : SystemAuthBr
                     .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP),
             )
         }
+    }
+
+    /** Best effort: if the platform refuses the service, the sign-in still works when the user comes back in time. */
+    private fun keepAlive(on: Boolean) {
+        val service = Intent(application, GateSignInService::class.java)
+        runCatching { if (on) application.startForegroundService(service) else application.stopService(service) }
     }
 
     private companion object {
