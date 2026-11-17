@@ -1,0 +1,148 @@
+name: AI RCA
+
+# Issue text is untrusted, so the agent is treated as hostile: it runs as a separate user with no
+# GitHub token, no API key (proxy.py holds it) and no network beyond loopback. Only the post job,
+# which runs no agent, can write, and only issue comments and labels.
+
+on:
+  issues:
+    types: [labeled]
+
+permissions: {}
+
+concurrency:
+  group: ai-rca-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  analyse:
+    if: github.event.label.name == 'AI RCA' && github.event.issue.state == 'open'
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    # The API key is an environment secret; the environment deploys only from develop.
+    environment: ai-rca
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: read
+    outputs:
+      allowed: ${{ steps.sender.outputs.allowed }}
+      status: ${{ steps.rca.outputs.status }}
+      meta: ${{ steps.rca.outputs.meta }}
+      report: ${{ steps.rca.outputs.report }}
+    steps:
+      # Issue text is untrusted input to the agent, and each run spends the API key: admins only.
+      - name: Check who added the label
+        id: sender
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SENDER: ${{ github.event.sender.login }}
+        run: |
+          permission="$(gh api "repos/$GITHUB_REPOSITORY/collaborators/$SENDER/permission" --jq .permission || echo none)"
+          case "$permission" in
+            admin) ;;
+            *) echo "::error::$SENDER ($permission) can't start an AI RCA"; exit 1 ;;
+          esac
+          echo "allowed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout develop
+        uses: actions/checkout@v7
+        with:
+          ref: develop
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Checkout upstream
+        run: git submodule update --init upstream
+
+      - name: Start LibreChat
+        run: |
+          .github/ai-rca/rig/up.sh > "$RUNNER_TEMP/rig.env"
+          echo "::add-mask::$(sed -n 's/^RIG_PASSWORD=//p' "$RUNNER_TEMP/rig.env")"
+          cat "$RUNNER_TEMP/rig.env" >> "$GITHUB_ENV"
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code@2.1.323
+
+      # The agent gets a read-only copy it doesn't own, without the rig's .env, and can open TCP only to
+# the key proxy and the rig (no DNS).
+      # The rig's containers lose outside network too, so the agent can't make the server fetch for it.
+      - name: Isolate the agent
+        run: |
+          sudo useradd --create-home --shell /bin/bash rca
+          sudo mkdir -p /srv/rca
+          sudo cp -a "$GITHUB_WORKSPACE" /srv/rca/repo
+          sudo rm -f /srv/rca/repo/.github/ai-rca/rig/.env /srv/rca/repo/.claude/settings*.json
+          sudo chown -R root:root /srv/rca
+          sudo chmod -R a-w,a+rX /srv/rca
+          sudo chmod 700 /home/runner
+          port="${RIG_URL##*:}"
+          sudo iptables -I OUTPUT 1 -m owner --uid-owner rca -j REJECT
+          sudo iptables -I OUTPUT 1 -m owner --uid-owner rca -d 127.0.0.1 -p tcp -m multiport --dports "8765,$port" -j ACCEPT
+          sudo ip6tables -I OUTPUT 1 -m owner --uid-owner rca -j REJECT
+          subnet="$(docker network inspect ai-rca_default -f '{{(index .IPAM.Config 0).Subnet}}')"
+          sudo iptables -I DOCKER-USER -s "$subnet" ! -d "$subnet" -j DROP
+
+      - name: Start the API key proxy
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          nohup .github/ai-rca/proxy.py 8765 claude-opus-5-5,claude-haiku-5-5 > "$RUNNER_TEMP/proxy.log" 2>&1 &
+          echo "ANTHROPIC_BASE_URL=http://127.0.0.1:8765" >> "$GITHUB_ENV"
+
+      - name: Run the RCA
+        id: rca
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE: ${{ github.event.issue.number }}
+        run: |
+          out="$RUNNER_TEMP/ai-rca"
+          .github/ai-rca/run.py "$ISSUE" "$out" --as rca --repo /srv/rca/repo
+          {
+            status="$(jq -r .status "$out/meta.json")"
+            echo "status=$status"
+            # Run details only for a posted report: they would tell a held report from a failed run.
+            if [ "$status" = ready ]; then echo "meta=$(cat "$out/meta.json")"; fi
+            echo "report=$(.github/ai-rca/sanitize.py < "$out/report.md" | base64 -w0)"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Requests the key proxy refused
+        if: always()
+        run: cat "$RUNNER_TEMP/proxy.log" 2>/dev/null || true
+
+  post:
+    needs: analyse
+    if: always() && needs.analyse.outputs.allowed == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Post the result
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE: ${{ github.event.issue.number }}
+          STATUS: ${{ needs.analyse.outputs.status }}
+          META: ${{ needs.analyse.outputs.meta }}
+          REPORT: ${{ needs.analyse.outputs.report }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          body="$RUNNER_TEMP/comment.md"
+          case "$STATUS" in
+            ready)
+              base="$(jq -r '.base[0:8]' <<<"$META")"
+              backend="$(jq -r .backend <<<"$META")"
+              cost="$(jq -r '"$\(.cost_usd), \(.minutes) min"' <<<"$META")"
+              {
+                echo "> Automated root-cause analysis of develop \`$base\` against LibreChat $backend ($cost)."
+                echo "> Unverified: a maintainer checks it before anything is changed."
+                echo
+                base64 -d <<<"$REPORT"
+              } > "$body"
+              ;;
+            *)
+              # The same text for a held report and a failed run, so a hold doesn't flag a vulnerability.
+              echo "The automated analysis isn't available here ([run]($RUN_URL)). The maintainer will follow up." > "$body"
+              ;;
+          esac
+          gh issue comment "$ISSUE" --repo "$GITHUB_REPOSITORY" --body-file "$body"
+          gh issue edit "$ISSUE" --repo "$GITHUB_REPOSITORY" --remove-label "AI RCA"
