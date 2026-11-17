@@ -102,6 +102,17 @@ note = "Interactive Artifacts row. The prompt keeps to React and Tailwind so the
 text = "Build me a small React app called \"Agent Allowance Tracker\": I set a weekly budget for my AI agent, it logs purchases (pre-fill a few, mostly pistachio cream and Dubai chocolate), shows a progress bar that turns red when it overspends, and has a button that sends the agent a stern but kind note. Make it look polished. Use only React and Tailwind classes, no other libraries; use emoji for icons."
 
 [[chats]]
+key = "snack-dashboard"
+title = "Agent snack spending dashboard"
+role = "smart"
+artifacts = true
+requires = ["artifacts"]
+tags = ["agents"]
+note = "Side by Side row (artifact beside the chat on the unfolded Fold) and the phone home-screen slot (artifact pinned and opened as its own app). Uses recharts, which the app bundles."
+[[chats.turns]]
+text = "Build a React dashboard called \"Agent Snack Spending\" for my AI shopping agent. Pre-fill 8 weeks of purchases split into Dubai chocolate, pistachio cream and actual groceries (chocolate should climb every week). Show a stacked bar chart of weekly spend and a donut chart of the totals with recharts, three summary cards on top, and a dropdown to pick a week. Use Tailwind classes, lucide-react icons, and make it look polished on a narrow screen."
+
+[[chats]]
 key = "grocery-flowchart"
 title = "Should my agent shop unsupervised?"
 role = "smart"
