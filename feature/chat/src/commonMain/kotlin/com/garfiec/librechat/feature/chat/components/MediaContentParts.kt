@@ -1,5 +1,6 @@
 package com.garfiec.librechat.feature.chat.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -11,10 +12,12 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.DisableSelection
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -34,6 +37,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import coil3.compose.SubcomposeAsyncImage
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
 import com.garfiec.librechat.core.ui.media.mediaThumbnail
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
@@ -95,13 +99,16 @@ internal fun ImageContentPart(
 /**
  * An error in the thread: [errorText] as the headline and, when the failure came with its own
  * words, [detail] under it — in place when it reads as one sentence, collapsed under a
- * "Provider response" toggle when it is a body of text (see [isInlineErrorDetail]).
+ * "Provider response" toggle when it is a body of text (see [isInlineErrorDetail]). An
+ * [actionLabel] with [onAction] draws a button under the headline.
  */
 @Composable
 internal fun ErrorContentPart(
     errorText: String,
     modifier: Modifier = Modifier,
     detail: String? = null,
+    actionLabel: String? = null,
+    onAction: (() -> Unit)? = null,
 ) {
     Column(
         modifier = modifier
@@ -111,6 +118,20 @@ internal fun ErrorContentPart(
             .padding(12.dp),
     ) {
         Text(errorText, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onErrorContainer)
+        if (actionLabel != null && onAction != null) {
+            val onError = MaterialTheme.colorScheme.onErrorContainer
+            // The button is chrome: "Select all" copies the error, not its label.
+            DisableSelection {
+                AdaptiveOutlinedButton(
+                    onClick = onAction,
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = onError),
+                    border = BorderStroke(1.dp, onError),
+                    modifier = Modifier.padding(top = 8.dp),
+                ) {
+                    Text(actionLabel)
+                }
+            }
+        }
         if (detail == null) return@Column
         val inline = isInlineErrorDetail(detail)
         var expanded by rememberSaveable(detail) { mutableStateOf(false) }

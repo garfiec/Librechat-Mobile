@@ -19,9 +19,9 @@ import kotlinx.serialization.json.contentOrNull
  * unrecognized code must fall through to the generic message rather than being surfaced raw, so
  * adding a case is how a code stops being generic — never a requirement for one to be safe.
  *
- * The user-provided-key codes deliberately are NOT here. They already route through
- * [parseUserKeyError] to a snackbar with a Settings action, and duplicating them would surface the
- * same failure twice.
+ * The user-provided-key codes deliberately are NOT here. They route through [parseUserKeyError],
+ * to a snackbar with a Settings action while streaming and to the thread's own key-error copy once
+ * saved; listing them here would surface a live failure twice.
  */
 enum class StreamErrorType(
     val wire: String,

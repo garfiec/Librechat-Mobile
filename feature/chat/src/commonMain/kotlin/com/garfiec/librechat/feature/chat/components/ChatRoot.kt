@@ -85,6 +85,8 @@ fun ChatRoot(
      * defaulted, so neither platform's `ChatScreen` can quietly drop the wiring.
      */
     onOpenMemories: (() -> Unit)?,
+    /** Backs [LocalUserKeyErrors]; null where the keys aren't the reader's (the shared-chat viewer). */
+    userKeyErrors: UserKeyErrors?,
     /** Backs [LocalMcpSignIn]; null where nothing can sign in (the shared-chat viewer). */
     mcpSignIn: McpSignIn?,
     /**
@@ -171,6 +173,7 @@ fun ChatRoot(
         LocalSubagentThreadsAvailable provides (conversationId != null && subagentThreadsSupported),
         LocalSiteIcons provides siteIconsLocal,
         LocalOpenMemories provides onOpenMemories,
+        LocalUserKeyErrors provides userKeyErrors,
         LocalMcpSignIn provides mcpSignIn,
         LocalMcpApps provides mcpApps,
         LocalLegacyUiResources provides legacyUiResources,

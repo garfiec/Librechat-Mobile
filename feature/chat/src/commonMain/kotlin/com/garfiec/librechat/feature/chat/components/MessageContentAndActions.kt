@@ -662,7 +662,7 @@ internal fun MessageContentAndActions(
                             }
                         } else {
                             if (isPersistedTurnError(message)) {
-                                StreamErrorPart(raw = message.text)
+                                StreamErrorPart(raw = message.text, endpoint = message.endpoint, model = message.model)
                             } else if (isUser && !message.privacyRevision.isNullOrEmpty()) {
                                 // A turn the server redacted: its author sees what they typed, with why.
                                 PrivateTextBody(

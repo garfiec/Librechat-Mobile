@@ -1,5 +1,6 @@
 package com.garfiec.librechat.feature.chat.screen
 
+import androidx.compose.runtime.Composable
 import com.garfiec.librechat.core.common.datetime.ResolvedDateTimeFormat
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.endpoint.endpointDisplayName
@@ -18,14 +19,23 @@ import com.garfiec.librechat.feature.chat.resources.provider_keys_chat_error_no_
 import kotlinx.datetime.TimeZone
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.getString
+import org.jetbrains.compose.resources.stringResource
 
-/** A snackbar message as a string resource and its format arguments. */
+/** A key-error message, for the snackbar or the thread, as a string resource and its format arguments. */
 internal data class UserKeyErrorMessage(val res: StringResource, val args: List<String> = emptyList()) {
     /** The message text. Every message takes at most two arguments: the endpoint and the expiry. */
     suspend fun resolve(): String = when (args.size) {
         0 -> getString(res)
         1 -> getString(res, args[0])
         else -> getString(res, args[0], args[1])
+    }
+
+    /** [resolve] in composition. */
+    @Composable
+    fun text(): String = when (args.size) {
+        0 -> stringResource(res)
+        1 -> stringResource(res, args[0])
+        else -> stringResource(res, args[0], args[1])
     }
 }
 
