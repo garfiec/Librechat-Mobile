@@ -29,15 +29,16 @@ All of [LibreChat](https://www.librechat.ai/), built for Android and iOS. Switch
 - **Smoother and faster** — a real native app instead of a website in a wrapper, so scrolling, typing, and watching responses stream in all feel snappier.
 - **Feels like a mobile app, not a shrunk-down website** — swipe back and peek at where you're going before you let go, swipe to switch accounts, and a layout that spreads out on tablets and foldables.
 - **Two looks, one app** — Material or Liquid Glass on Android or iPhone, any accent color with the whole app recoloring around it, or colors from your wallpaper. Light or dark, threads or two-sided bubbles.
-- **From chat to home screen** — the apps and charts it builds run right in the chat. Pin one to your home screen and open it in a tap, even after the chat is gone. *(Android)*
-- **Plays nicely with your phone** — share text, images, and files in from any app *(Android)*, launch your favorite models from the home screen, save or share images through your phone's normal menus, and dictate with your phone's own speech recognizer.
+- **From chat to home screen** — the apps and charts it builds run right in the chat, or beside it on a tablet or foldable. Pin one to your home screen and it opens as its own app, even after the chat is gone. *(home screen: Android)*
+- **It tells you when it's done** — leave while a long answer is still writing and get a notification when it finishes, or when one of your scheduled chats runs. Tap it to land in that chat. *(on iPhone, only for a short while after you leave)*
+- **Plays nicely with your phone** — share text, images, and files in from any app or its "Open with" menu, and paste a screenshot or send a sticker from your keyboard *(Android)*. Launch your favorite models from the home screen, save or share images through your phone's normal menus, and dictate with your phone's own speech recognizer.
 - **Works without a connection** — your chat list and any conversations you've opened are saved on your phone, so you can keep reading with spotty or no signal. Turn on background prefetch and recent chats are ready offline before you even open them.
 
 **It's easier to use**
 
 Same LibreChat, laid out for how you actually use it.
 
-- **Everything where you'd look for it** — your model, its settings, tools, and attachments sit together right where you type, not in a sidebar of icons that change from chat to chat. Agents are in the same list as your models, and the agent editor only shows up when you ask for it.
+- **Everything where you'd look for it** — your model, its settings, tools, and attachments sit together right where you type, not in a sidebar of icons that change from chat to chat. Agents are in the same list as your models, and the agent editor only shows up when you ask for it. Type `/model`, `/mcp` or `/skill` to jump straight to one.
 - **One attach button for everything** — camera, photos, files on your phone, or files already on your server, without uploading them again.
 - **Compare models** — pick any two, change either one at any time, and every message goes to both. Swipe between them on a phone, or read them side by side with synced scrolling on a tablet or foldable.
 - **Find anything you've asked** — search every message in every chat, even offline, and land right on the one you meant. Or find text inside the chat you're reading.
@@ -47,14 +48,14 @@ Same LibreChat, laid out for how you actually use it.
 ## More features
 
 - **Quick Actions** — Your most-used models become home-screen shortcuts (Android) and long-press quick actions (iOS) that deep-link into a new chat with that model preselected.
-- **Chat** — Real-time streaming (SSE), message branching & sibling navigation, stop/regenerate/continue, markdown with syntax highlighting, LaTeX math rendering, code blocks with copy, image display, file attachments, tool call progress cards
+- **Chat** — Real-time streaming (SSE), message branching & sibling navigation, stop/regenerate/continue, markdown with syntax highlighting, LaTeX math rendering, code blocks with copy, tappable source citations, image display, file attachments, tool call progress cards
 - **Answer Your Agents** — When an agent stops to ask you something or wants your OK before running a tool, answer right from the composer, one question at a time.
-- **Inline Artifacts** — Render Mermaid, SVG, HTML, React, and Markdown artifacts directly in chat messages at full message width with content-fit height. Per-type toggle in Settings → Chat → Artifacts.
+- **Inline Artifacts** — Render Mermaid, SVG, HTML, React, and Markdown artifacts directly in chat messages at full message width with content-fit height. Choose which types render inline, and whether they open in a sheet, full screen or beside the chat, in Settings → Chats → Artifacts.
 - **Model Selection** — Searchable bottom sheet grouped by endpoint; star your favorites to keep them on top
 - **Agents** — Marketplace with search and categories, MCP server configuration
-- **Projects & Scheduled Chats** — Group related chats into projects, and have an agent run a prompt on a schedule, filing each conversation into a project for you.
+- **Projects & Scheduled Chats** — Group related chats into projects, drag them into your own order, and have an agent run a prompt on a schedule, filing each conversation into a project for you.
 - **Skills** — Create, import, and edit skills: reusable instructions and files your agents can draw on.
-- **Conversations** — Paginated list with date grouping, tags, search, rename, archive, delete, share, fork, duplicate, export/import
+- **Conversations** — Paginated list with date grouping, bookmarks, search, rename, archive, delete, share, fork, duplicate, export/import
 - **Voice** — On-device live dictation (Android & iOS) with cloud fallback, plus text-to-speech playback
 - **Settings** — In-app language switching across 10 languages, account management, data controls
 - **Accessibility** — Semantic headings, content descriptions, 48dp touch targets, live regions
@@ -74,10 +75,11 @@ Same LibreChat, laid out for how you actually use it.
 | **Create Images** — Ask for a picture and it appears right in the conversation | <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/04-images.png" width="280" alt="A generated portrait in the chat"> | <img src="fastlane/metadata/android/en-US/images/tenInchScreenshots/05-images.png" width="380" alt="A generated sunset in the chat"> |
 | **Chat Your Way** — Thread or two-sided bubbles, with or without avatars, previewed as you choose | <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/05-bubbles.png" width="280" alt="A chat in two-sided bubbles"> | <img src="fastlane/metadata/android/en-US/images/tenInchScreenshots/06-layout.png" width="380" alt="The Chat layout page with its live preview"> |
 | **Compare Models** — Ask two models the same question and read their answers side by side | <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/06-compare.png" width="280" alt="Two models' answers to the same question, one tab each"> | <img src="fastlane/metadata/android/en-US/images/tenInchScreenshots/07-compare.png" width="380" alt="Two models' answers side by side"> |
-| **Interactive Artifacts** — Apps and charts the model builds run right in the chat *(shown on iPhone and iPad)* | <img src="docs/screenshots/artifact-iphone.png" width="280" alt="An allowance tracker app running in the chat on iPhone"> | <img src="docs/screenshots/artifact-ipad.png" width="380" alt="The same app on iPad"> |
+| **Interactive Artifacts** — Apps and charts the model builds run right in the chat *(shown on iPhone and iPad)* | <img src="docs/screenshots/artifact-iphone.png" width="280" alt="An allowance tracker app running in the chat on iPhone"> | <img src="docs/screenshots/artifact-ipad.png" width="380" alt="The same app open beside the chat on iPad"> |
+| **Side by Side** — On a tablet or foldable, the app it built stays open beside the chat. Pin one to your home screen and it opens as its own app | <img src="docs/screenshots/artifact-app-phone.png" width="280" alt="A spending dashboard the model built, opened from the home screen as its own app"> | <img src="docs/screenshots/side-by-side-tablet.png" width="380" alt="The same dashboard open beside the chat on an unfolded Pixel Fold"> |
 | **Photo Viewer** — Swipe between images, and drag down to send one back to the grid | <img src="docs/screenshots/viewer-phone.gif" width="280" alt="Paging through images, then dragging one back into the grid"> | |
 | **Answer Your Agents** — When an agent needs something from you, answer right in the chat, one question at a time | <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/07-agent.png" width="280" alt="An agent asking a question, with answers to tap"> | <img src="fastlane/metadata/android/en-US/images/tenInchScreenshots/08-agent.png" width="380" alt="The shopping list the agent made from the answers"> |
-| **Everything in Reach** — Your chats, projects and agents, a swipe away | <img src="docs/screenshots/sidebar-phone.gif" width="280" alt="Opening the sidebar"> | <img src="docs/screenshots/sidebar-tablet.gif" width="380" alt="Opening the sidebar and switching to Projects"> |
+| **Everything in Reach** — Your chats, projects and tools a swipe away, with your favorites pinned in the Workspace tray | <img src="docs/screenshots/sidebar-phone.gif" width="280" alt="Opening the sidebar and its Workspace tray"> | <img src="docs/screenshots/sidebar-tablet.gif" width="380" alt="Opening the sidebar, switching to Projects, and opening the Workspace tray"> |
 | **Answers That Fit** — Tables fit the screen and wrap their text; only wide ones scroll sideways | <img src="docs/screenshots/table-phone.png" width="280" alt="A ranked table that fits a phone screen"> | <img src="docs/screenshots/table-tablet.png" width="380" alt="The same table with every column showing"> |
 | **Swipe Back** — The back gesture peeks at where you're going before you let go | | <img src="docs/screenshots/predictive-back-tablet.gif" width="380" alt="Swiping back from Settings to the chat"> |
 
@@ -101,7 +103,7 @@ Release-candidate builds (versions like `2026.07.1-rc1`) are published as GitHub
 
 Download the latest `switchboard-vYYYY.MM.P.apk` from [Releases](https://github.com/garfiec/Librechat-Mobile/releases) and open it on your device (you may need to allow installs from your browser/file manager).
 
-To hear about new releases without Obtainium, turn on **Settings → General → Check for updates daily**. It is off by default; when on, the app asks GitHub for the release list once a day while it is open.
+To hear about new releases without Obtainium, turn on **Settings → About → Check for updates daily**. It is off by default; when on, the app asks GitHub for the release list once a day while it is open.
 
 ### Verifying the signing key
 
@@ -160,7 +162,7 @@ Without this setting, the server's violation system may accumulate ban points ag
 
 - **Registration** — The app respects your server's registration settings. If registration is disabled server-side, only the login form is shown.
 - **Access gateways** — Behind Authelia, the app offers to sign you in to it when you connect; the admin registers the app once (see [FAQ.md](FAQ.md#can-i-use-switchboard-behind-authelia)). For gateways that authenticate on static headers, such as Cloudflare Access service tokens, add them under **Advanced** on the server URL screen, or later in **Settings → Advanced → Server connection**.
-- **Self-signed TLS certificates** — Both platforms enforce certificate requirements stricter than browsers. Install your private CA on the device and the app trusts it; on Android, sign-in and **Settings → General** say when a server relies on one. See [FAQ.md](FAQ.md#can-i-use-a-self-signed-tls-certificate) for the requirements and setup.
+- **Self-signed TLS certificates** — Both platforms enforce certificate requirements stricter than browsers. Install your private CA on the device and the app trusts it; on Android, sign-in and **Settings → About** say when a server relies on one. See [FAQ.md](FAQ.md#can-i-use-a-self-signed-tls-certificate) for the requirements and setup.
 
 ## Requirements
 
