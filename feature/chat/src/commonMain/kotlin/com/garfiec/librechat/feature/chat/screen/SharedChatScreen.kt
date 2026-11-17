@@ -232,6 +232,8 @@ fun SharedChatScreen(
         onSiteIconsPromptDismiss = koinInject<SiteIconPromptSession>()::dismiss,
         // The memories shown are the sharer's, not the viewer's: no Manage.
         onOpenMemories = null,
+        // The sharer's keys: nothing for the viewer to add.
+        userKeyErrors = null,
         mcpSignIn = null,
         // Public shares omit App attachments; any that remain say Apps don't run here.
         mcpApps = McpApps.ReadOnly,

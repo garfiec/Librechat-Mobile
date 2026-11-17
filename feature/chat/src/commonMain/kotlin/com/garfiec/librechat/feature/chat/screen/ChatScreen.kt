@@ -24,6 +24,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.structuralEqualityPolicy
@@ -77,6 +78,7 @@ import com.garfiec.librechat.feature.chat.components.ToolApprovalPanel
 import com.garfiec.librechat.feature.chat.components.ToolContentHost
 import com.garfiec.librechat.feature.chat.components.UpdateAvailableBanner
 import com.garfiec.librechat.feature.chat.components.UploadRoutingSheet
+import com.garfiec.librechat.feature.chat.components.UserKeyErrors
 import com.garfiec.librechat.feature.chat.components.addToChatSelectionItem
 import com.garfiec.librechat.feature.chat.components.mcpapp.rememberLegacyUiResources
 import com.garfiec.librechat.feature.chat.components.mcpapp.rememberMcpApps
@@ -447,6 +449,10 @@ fun ChatScreen(
         )
     }
 
+    val currentOnNavigateToProviderKeys by rememberUpdatedState(onNavigateToProviderKeys)
+    val userKeyErrors = remember(uiState.selection.endpointConfigs, uiState.agents) {
+        UserKeyErrors(uiState.selection.endpointConfigs, uiState.agents) { currentOnNavigateToProviderKeys(it) }
+    }
     ChatRoot(
         inlineArtifactPrefs = prefs.inlineArtifactPrefs,
         mermaidRenderCache = viewModel.mermaidRenderCache,
@@ -467,6 +473,7 @@ fun ChatScreen(
         onSiteIconsChoice = viewModel::setShowSiteIcons,
         onSiteIconsPromptDismiss = viewModel::dismissSiteIconPrompt,
         onOpenMemories = onOpenMemories?.takeIf { uiState.gates.memoriesPageEnabled },
+        userKeyErrors = userKeyErrors,
         mcpSignIn = mcpSignIn,
         mcpApps = mcpApps,
         legacyUiResources = legacyUiResources,

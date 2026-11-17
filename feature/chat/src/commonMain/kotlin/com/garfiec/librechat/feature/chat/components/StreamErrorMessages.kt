@@ -6,8 +6,10 @@ import androidx.compose.ui.Modifier
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.code.CodeWorkspaceUnavailableReason
 import com.garfiec.librechat.core.model.error.StreamErrorType
+import com.garfiec.librechat.core.ui.datetime.LocalDateTimeFormat
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
+import com.garfiec.librechat.feature.chat.screen.userKeyErrorMessage
 import com.garfiec.librechat.feature.chat.viewmodel.ChatNotice
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
@@ -199,9 +201,18 @@ internal fun isPersistedTurnError(message: Message): Boolean =
  * the provider's status in the headline and, from v0.8.8-rc4, the provider's own message under it.
  * A gateway or proxy rejection explains itself only there. The shared error channel (snackbar,
  * selector banners) keeps the headline alone; the full account is in the thread.
+ *
+ * A key error ([savedUserKeyError]) reads as the key snackbar does, named after the key the reply's
+ * [endpoint] / [model] uses, with Add key from [LocalUserKeyErrors].
  */
 @Composable
-internal fun StreamErrorPart(raw: String, modifier: Modifier = Modifier) {
+internal fun StreamErrorPart(raw: String, modifier: Modifier = Modifier, endpoint: String? = null, model: String? = null) {
+    val keys = LocalUserKeyErrors.current
+    val keyError = remember(raw, endpoint, model, keys) { savedUserKeyError(raw, endpoint, model, keys) }
+    if (keyError != null) {
+        UserKeyErrorPart(keyError, keys?.onAddKey, modifier)
+        return
+    }
     val classified = remember(raw) { StreamErrorType.markerOrText(raw) }
     val detail = remember(raw) { StreamErrorType.upstreamModelErrorDetail(raw) }
     val status = detail?.status
@@ -211,6 +222,19 @@ internal fun StreamErrorPart(raw: String, modifier: Modifier = Modifier) {
         localizedStreamError(classified)
     }
     ErrorContentPart(errorText = headline, detail = detail?.message, modifier = modifier)
+}
+
+@Composable
+private fun UserKeyErrorPart(shown: SavedUserKeyError, onAddKey: ((String) -> Unit)?, modifier: Modifier = Modifier) {
+    val format = LocalDateTimeFormat.current
+    val message = remember(shown, format) { userKeyErrorMessage(shown.error, shown.label, format) }
+    val target = shown.addKeyEndpoint
+    ErrorContentPart(
+        errorText = message.text(),
+        modifier = modifier,
+        actionLabel = stringResource(Res.string.set_api_key_action),
+        onAction = if (target != null && onAddKey != null) ({ onAddKey(target) }) else null,
+    )
 }
 
 /**
