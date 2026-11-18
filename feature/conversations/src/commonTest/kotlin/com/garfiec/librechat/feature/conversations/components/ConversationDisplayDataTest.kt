@@ -9,6 +9,14 @@ import kotlin.test.assertNull
 class ConversationDisplayDataTest {
 
     @Test
+    fun `an agent chat's row never shows its agent id`() {
+        val convo = Conversation(conversationId = "c1", endpoint = "agents", agentId = "agent_x", model = "agent_x")
+
+        assertNull(convo.toDisplayData(emptyMap(), serverUrl = "").model)
+        assertEquals("Pelican Pal", convo.toDisplayData(emptyMap(), "", mapOf("agent_x" to "Pelican Pal")).model)
+    }
+
+    @Test
     fun iconURLPrefersConversationOverEndpointConfig() {
         val convo = Conversation(
             conversationId = "c1",

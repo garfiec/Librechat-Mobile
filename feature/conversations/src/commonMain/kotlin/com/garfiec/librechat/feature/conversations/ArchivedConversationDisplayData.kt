@@ -4,11 +4,11 @@ import androidx.compose.runtime.Immutable
 import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.config.ModelSpecs
-import com.garfiec.librechat.core.model.config.labelFor
 import com.garfiec.librechat.core.model.iconEndpoint
 import com.garfiec.librechat.core.model.iconProvider
 import com.garfiec.librechat.core.model.media.ProviderId
 import com.garfiec.librechat.core.model.resolveEndpointIconUrl
+import com.garfiec.librechat.feature.conversations.components.rowModelLabel
 import kotlin.time.Instant
 
 @Immutable
@@ -37,7 +37,7 @@ fun Conversation.toArchivedDisplayData(
     id = conversationId ?: "",
     title = title ?: "New Chat",
     endpoint = endpoint,
-    modelLabel = modelSpecs?.labelFor(spec) ?: model?.let { agentNames[it] ?: it },
+    modelLabel = rowModelLabel(modelSpecs, agentNames),
     updatedAt = updatedAt,
     endpointIconUrl = resolveEndpointIconUrl(endpointConfigs, serverUrl),
     iconEndpoint = iconEndpoint(endpointConfigs),

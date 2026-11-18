@@ -4,7 +4,6 @@ import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.SAVED_TAG
 import com.garfiec.librechat.core.model.config.ModelSpecs
-import com.garfiec.librechat.core.model.config.labelFor
 import com.garfiec.librechat.core.model.iconEndpoint
 import com.garfiec.librechat.core.model.iconProvider
 import com.garfiec.librechat.core.model.isCodeConversation
@@ -13,6 +12,7 @@ import com.garfiec.librechat.core.model.pullrequest.ConversationPullRequest
 import com.garfiec.librechat.core.model.pullrequest.presentPullRequest
 import com.garfiec.librechat.core.model.resolveEndpointIconUrl
 import com.garfiec.librechat.feature.conversations.components.ReadStateAction
+import com.garfiec.librechat.feature.conversations.components.rowModelLabel
 import kotlin.time.Instant
 
 /**
@@ -35,6 +35,7 @@ internal fun Conversation.toDrawerDisplayData(
     modelSpecs: ModelSpecs? = null,
     runningIds: Set<String> = emptySet(),
     pullRequests: Map<String, ConversationPullRequest> = emptyMap(),
+    agentNames: Map<String, String> = emptyMap(),
 ): DrawerConversationDisplayData {
     val convId = conversationId ?: ""
     val running = convId in runningIds
@@ -42,7 +43,7 @@ internal fun Conversation.toDrawerDisplayData(
         conversationId = convId,
         title = title ?: "New Chat",
         model = model,
-        modelLabel = modelSpecs?.labelFor(spec) ?: model,
+        modelLabel = rowModelLabel(modelSpecs, agentNames),
         endpoint = endpoint,
         updatedAt = updatedAt,
         isActive = convId == activeConversationId,

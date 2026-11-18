@@ -66,6 +66,7 @@ val conversationsModule = module {
             configRepository = get(),
             projectRepository = get(),
             fileRepository = get(),
+            agentRepository = get(),
         )
     }
     // The instructions editor's projectId arrives from the navigation layer via parametersOf.
@@ -87,6 +88,7 @@ val conversationsModule = module {
             bookmarksGate = get(),
             roleRepository = get(),
             configRepository = get(),
+            agentRepository = get(),
         )
     }
 }

@@ -33,7 +33,8 @@ internal fun groupConversationsByDate(
     endpointConfigs: Map<String, EndpointConfig>,
     serverUrl: String,
     reference: RelativeTimeReference = RelativeTimeReference.current(),
+    agentNames: Map<String, String> = emptyMap(),
 ): List<Pair<DateGroup, List<ConversationDisplayData>>> =
     conversations.groupedByDateBucket(reference).map { (group, convos) ->
-        group to convos.map { it.toDisplayData(endpointConfigs, serverUrl) }
+        group to convos.map { it.toDisplayData(endpointConfigs, serverUrl, agentNames) }
     }

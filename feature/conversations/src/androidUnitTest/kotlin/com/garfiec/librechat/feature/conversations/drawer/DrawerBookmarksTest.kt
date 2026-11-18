@@ -93,6 +93,7 @@ class DrawerBookmarksTest {
             every { entries } returns flowOf(emptyMap())
             every { revision } returns MutableStateFlow(0L)
         },
+        agentRepository = mockk(relaxed = true),
         search = mockk<DrawerSearchSources>(relaxed = true) {
             every { messageSearch(any(), any()) } returns flowOf(DrawerMessageSearch.Idle)
         },

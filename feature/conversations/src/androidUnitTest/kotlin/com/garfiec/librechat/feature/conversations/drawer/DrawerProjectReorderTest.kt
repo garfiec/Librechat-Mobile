@@ -76,6 +76,7 @@ class DrawerProjectReorderTest {
             every { entries } returns flowOf(emptyMap())
             every { revision } returns MutableStateFlow(0L)
         },
+        agentRepository = mockk(relaxed = true),
         search = mockk(relaxed = true),
         connectivityObserver = mockk<ConnectivityObserver> { every { isConnected } returns flowOf(true) },
         savedStateHandle = SavedStateHandle(),

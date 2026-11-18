@@ -2,10 +2,12 @@ package com.garfiec.librechat.feature.conversations.viewmodel
 
 import com.garfiec.librechat.core.common.extensions.RelativeTimeReference
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.data.repository.AgentRepository
 import com.garfiec.librechat.core.data.repository.BookmarksGate
 import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.data.repository.TagEvent
 import com.garfiec.librechat.core.data.repository.TagRepository
+import com.garfiec.librechat.core.model.Agent
 import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.ConversationPage
 import com.garfiec.librechat.core.model.ConversationTag
@@ -40,6 +42,7 @@ class BookmarkChatsViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
     private val conversationRepository = mockk<ConversationRepository>(relaxed = true)
+    private val agentRepository = mockk<AgentRepository>(relaxed = true)
     private val tags = MutableStateFlow(listOf(tag(SAVED_TAG), tag("Work", count = 2), tag("Taxes")))
     private val revision = MutableStateFlow(0L)
     private val tagEvents = MutableSharedFlow<TagEvent>(extraBufferCapacity = 8)
@@ -75,6 +78,7 @@ class BookmarkChatsViewModelTest {
             every { startupConfig } returns MutableStateFlow(null)
             every { serverUrl } returns flowOf("https://srv")
         },
+        agentRepository = agentRepository,
         dayBoundaries = flowOf(RelativeTimeReference.current()),
     )
 
@@ -91,6 +95,19 @@ class BookmarkChatsViewModelTest {
     @After
     fun tearDown() {
         Dispatchers.resetMain()
+    }
+
+    @Test
+    fun `an agent chat's row shows the agent's name`() = runTest(testDispatcher) {
+        coEvery { chats() } returns Result.Success(
+            ConversationPage(listOf(Conversation(conversationId = "a", endpoint = "agents", agentId = "agent_x", model = "agent_x")), null),
+        )
+        coEvery { agentRepository.getAgent("agent_x") } returns Result.Success(Agent(id = "agent_x", name = "Pelican Pal"))
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        assertThat(vm.uiState.value.groupedConversations.flatMap { (_, rows) -> rows }.single().model).isEqualTo("Pelican Pal")
+        coVerify(exactly = 1) { agentRepository.getAgent("agent_x") }
     }
 
     @Test

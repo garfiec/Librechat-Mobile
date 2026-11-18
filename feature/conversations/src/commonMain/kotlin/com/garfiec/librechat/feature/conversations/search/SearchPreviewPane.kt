@@ -201,7 +201,7 @@ private fun ChatPreview(
             meta = if (group.fromServer) {
                 stringResource(Res.string.search_from_server)
             } else {
-                metaLine(preview.model.named(agentNames), preview.updatedAt)
+                metaLine(preview.model.chatLabel(agentNames), preview.updatedAt)
             },
         )
         ThreadPane(

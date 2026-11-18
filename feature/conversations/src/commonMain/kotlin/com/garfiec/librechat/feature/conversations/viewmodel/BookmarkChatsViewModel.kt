@@ -9,6 +9,7 @@ import com.garfiec.librechat.core.common.extensions.dayBoundaryReferences
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.bookmarks.BookmarkPickerController
 import com.garfiec.librechat.core.data.bookmarks.BookmarkPickerState
+import com.garfiec.librechat.core.data.repository.AgentRepository
 import com.garfiec.librechat.core.data.repository.BookmarksGate
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.ConversationRepository
@@ -21,6 +22,7 @@ import com.garfiec.librechat.core.data.share.ShareLinkControllerFactory
 import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.ConversationTag
 import com.garfiec.librechat.core.model.permissions.canCreateSharedLinks
+import com.garfiec.librechat.feature.conversations.components.AgentNameLookup
 import com.garfiec.librechat.feature.conversations.components.ConversationDisplayData
 import com.garfiec.librechat.feature.conversations.components.message
 import com.garfiec.librechat.feature.conversations.export.ConversationExporter
@@ -105,10 +107,13 @@ class BookmarkChatsViewModel(
     private val bookmarksGate: BookmarksGate,
     private val roleRepository: RoleRepository,
     private val configRepository: ConfigRepository,
+    agentRepository: AgentRepository,
     // Defaulted, as in ProjectChatsViewModel: the production flow never completes, which would hang
     // `advanceUntilIdle()` in tests.
     private val dayBoundaries: Flow<RelativeTimeReference> = dayBoundaryReferences(),
 ) : ViewModel() {
+
+    private val agentNames = AgentNameLookup(agentRepository, viewModelScope)
 
     private val _uiState = MutableStateFlow(BookmarkChatsUiState(name = tag))
     val uiState: StateFlow<BookmarkChatsUiState> = _uiState.asStateFlow()
@@ -250,8 +255,10 @@ class BookmarkChatsViewModel(
                 configRepository.endpointConfigs,
                 configRepository.serverUrl,
                 dayBoundaries,
-            ) { convos, configs, serverUrl, reference ->
-                groupConversationsByDate(convos, configs, serverUrl, reference) to convos.size
+                agentNames.names,
+            ) { convos, configs, serverUrl, reference, names ->
+                agentNames.request(convos)
+                groupConversationsByDate(convos, configs, serverUrl, reference, names) to convos.size
             }.collect { (grouped, count) ->
                 _uiState.update {
                     it.copy(
