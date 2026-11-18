@@ -413,6 +413,7 @@ val dataModule = module {
             accountSwitcher = get(),
             switchGate = get(),
             serverSessionRevoker = get(),
+            refreshCookieCredentials = get(),
         )
     }
 
@@ -611,6 +612,7 @@ val dataModule = module {
             configCache = get(),
             dispatcher = get(KoinQualifiers.Default),
             serverDataStore = get(),
+            clientLimits = get(),
         )
     } bind ConfigRepository::class
     singleOf(::FileRepositoryImpl) bind FileRepository::class

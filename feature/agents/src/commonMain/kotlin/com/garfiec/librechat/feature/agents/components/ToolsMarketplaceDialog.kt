@@ -293,7 +293,7 @@ private fun MarketplaceRow(
                 )
                 // The MCP server is shown instead of a description because which server a tool
                 // came from is what disambiguates two identically-named tools.
-                val secondary = item.serverName ?: subtitle
+                val secondary = item.serverTitle ?: item.serverName ?: subtitle
                 if (!secondary.isNullOrBlank()) {
                     Text(
                         text = secondary,

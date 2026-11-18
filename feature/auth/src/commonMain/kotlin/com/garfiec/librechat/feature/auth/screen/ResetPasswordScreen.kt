@@ -99,7 +99,9 @@ fun ResetPasswordScreen(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Text(
-                        text = stringResource(Res.string.password_reset_message),
+                        text = stringResource(
+                            if (uiState.sessionsNotRetired) Res.string.password_reset_incomplete else Res.string.password_reset_message,
+                        ),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

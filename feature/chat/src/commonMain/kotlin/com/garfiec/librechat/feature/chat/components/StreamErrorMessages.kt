@@ -6,6 +6,7 @@ import androidx.compose.ui.Modifier
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.code.CodeWorkspaceUnavailableReason
 import com.garfiec.librechat.core.model.error.StreamErrorType
+import com.garfiec.librechat.core.model.error.classifiedProviderInfo
 import com.garfiec.librechat.core.ui.datetime.LocalDateTimeFormat
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
@@ -77,11 +78,17 @@ internal fun localizedStreamError(raw: String): String {
         )
         StreamErrorType.STATEFUL_CODE_ENVIRONMENT_NOT_ALLOWED ->
             stringResource(Res.string.error_stateful_code_environment_not_allowed)
+        StreamErrorType.TOKEN_BALANCE -> stringResource(Res.string.error_token_balance)
+        StreamErrorType.AGENT_EXPECTED_MCP_TOOLS_UNAVAILABLE ->
+            stringResource(Res.string.error_agent_mcp_tools_unavailable)
         StreamErrorType.MCP_AUTHENTICATION_REJECTED -> stringResource(Res.string.error_mcp_authentication_rejected)
         StreamErrorType.MCP_AUTHENTICATION_REFRESH_FAILED ->
             stringResource(Res.string.error_mcp_authentication_refresh_failed)
         StreamErrorType.PROJECT_RESOURCES_CHANGED -> stringResource(Res.string.error_project_resources_changed)
         StreamErrorType.PROJECT_CONTEXT_UNAVAILABLE -> stringResource(Res.string.error_project_context_unavailable)
+        StreamErrorType.ACCOUNT_DELETION_IN_PROGRESS -> stringResource(Res.string.error_account_deletion_in_progress)
+        StreamErrorType.GENERATION_ADMISSION_UNAVAILABLE ->
+            stringResource(Res.string.error_generation_admission_unavailable)
     }
 }
 
@@ -119,6 +126,7 @@ private fun localizedNotice(parsed: ChatNotice.Parsed): String {
         ChatNotice.SKILLS_NOT_SENT -> Res.string.notice_skills_not_sent
         ChatNotice.SKILLS_REMOVED_FROM_QUEUED -> Res.string.notice_skills_removed_from_queued
         ChatNotice.TOOL_DECISION_NOT_PERMITTED -> Res.string.notice_tool_decision_not_permitted
+        ChatNotice.RESUME_CONTEXT_UNAVAILABLE -> Res.string.notice_resume_context_unavailable
         ChatNotice.FORK_FAILED -> Res.string.notice_fork_failed
         ChatNotice.RUN_CODE_FAILED -> Res.string.notice_run_code_failed
         ChatNotice.FORK_RATE_LIMITED -> Res.string.notice_fork_rate_limited
@@ -198,7 +206,8 @@ internal fun isPersistedTurnError(message: Message): Boolean =
  * both render through here.
  *
  * Adds what [localizedStreamError] cannot carry through a string: for an `upstream_model_error`,
- * the provider's status in the headline and, from v0.8.8-rc4, the provider's own message under it.
+ * the provider's status in the headline and, from v0.8.8-rc4, the provider's own message under it;
+ * for a classified rate limit or unknown model, the gateway's `info` under the headline.
  * A gateway or proxy rejection explains itself only there. The shared error channel (snackbar,
  * selector banners) keeps the headline alone; the full account is in the thread.
  *
@@ -221,7 +230,8 @@ internal fun StreamErrorPart(raw: String, modifier: Modifier = Modifier, endpoin
     } else {
         localizedStreamError(classified)
     }
-    ErrorContentPart(errorText = headline, detail = detail?.message, modifier = modifier)
+    val providerInfo = remember(raw) { StreamErrorType.classifiedProviderInfo(raw) }
+    ErrorContentPart(errorText = headline, detail = detail?.message ?: providerInfo, modifier = modifier)
 }
 
 @Composable

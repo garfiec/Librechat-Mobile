@@ -578,6 +578,8 @@
     <string name="cd_minimize_ask_user_question">質問を最小化</string>
     <string name="cd_restore_ask_user_question">質問を表示</string>
     <string name="tool_approval_waiting_marker">下で承認を待っています</string>
+    <string name="pending_action_expired">この入力リクエストは期限切れのため、応答はそれなしで確定されました。</string>
+    <string name="pending_action_gone">この入力リクエストは既に終了しているため、回答できません。</string>
     <string name="tool_approval_submit_progress">続行 (%1$d/%2$d)</string>
     <string name="tool_approval_tab_fallback">ツール %1$d</string>
     <string name="cd_previous_tool_call">前のツール呼び出し</string>
@@ -602,6 +604,10 @@
     <string name="error_mcp_authentication_refresh_failed">接続されている MCP サーバーのサインインを更新できなかったため、メッセージは送信されませんでした。しばらくしてからもう一度お試しください。</string>
     <string name="error_project_resources_changed">メッセージの開始中にこのプロジェクトのファイルが変更されたため、送信されませんでした。もう一度お試しください。</string>
     <string name="error_project_context_unavailable">このチャットのプロジェクトは利用できなくなったため、メッセージは送信されませんでした。削除された可能性があります。</string>
+    <string name="error_account_deletion_in_progress">アカウントの削除処理中のため、新しいメッセージは送信できません。</string>
+    <string name="error_generation_admission_unavailable">サーバーが今は応答を開始できなかったため、メッセージは送信されませんでした。もう一度お試しください。</string>
+    <string name="error_token_balance">このリクエストに必要な残高が不足しています。</string>
+    <string name="error_agent_mcp_tools_unavailable">このエージェントの MCP ツールを利用できません。MCP サーバーが接続されていて、そのツールを使用できることを確認してから、もう一度お試しください。</string>
     <string name="error_final_context_overflow">この会話はモデルのコンテキストウィンドウに収まらなくなりました。新しい会話を始めるか、より大きなコンテキストウィンドウを持つモデルに切り替えてください。</string>
     <string name="error_compaction_skipped">まだ圧縮する内容がありません。会話を続けてから、後でもう一度お試しください。</string>
     <string name="error_compaction_failed">要約を生成できなかったため、会話は変更されていません。もう一度お試しください。</string>
@@ -812,6 +818,7 @@
     <string name="attachment_recovery_retry">ファイルなしで再試行</string>
     <string name="attachment_recovery_branch">ファイルなしでブランチ</string>
     <string name="notice_tool_decision_not_permitted">サーバーはこれらの決定のいずれかを許可しなくなりました。各ツールで別の決定を選んで、もう一度お試しください。</string>
+    <string name="notice_resume_context_unavailable">一時停止中の応答に今は接続できません。しばらくしてからもう一度お試しください。</string>
     <string name="notice_content_blocked">サーバーのコンテンツフィルターがこのメッセージをブロックしました。何も送信されていません。</string>
     <string name="notice_skills_not_sent">このチャットでは使用できないスキルがあるため、送信されませんでした。</string>
     <string name="notice_skills_removed_from_queued">このチャットでは使用できないスキルがあるため、キュー内のメッセージから削除しました。</string>
@@ -979,10 +986,13 @@
     </plurals>
     <string name="thinking_title">思考</string>
     <string name="thinking_chip_next_message">%1$s · 次のメッセージ</string>
-    <string name="cd_thinking_chip">次のメッセージの思考：%1$s</string>
+    <string name="cd_thinking_chip">思考：%1$s</string>
     <string name="thinking_next_message_only">次のメッセージのみに適用されます。その後、このチャットは元の設定に戻ります。</string>
     <string name="thinking_chat_setting">このチャットの設定</string>
     <string name="thinking_change_chat_setting">このチャットの設定を変更</string>
+    <string name="thinking_lasts_for_conversation">別のレベルを選ぶまで、このチャットの残りに適用されます。</string>
+    <string name="thinking_back_to_chat_setting">このチャットの設定に戻す</string>
+    <string name="thinking_chip_state_conversation">このチャットの残り</string>
     <string name="error_code_workspace_required">送信する前に、接続済みのワークスペースを選択してください。</string>
     <string name="error_code_workspace_invalid">ワークスペースの選択が無効です。利用可能なワークスペースを選択してください。</string>
     <string name="error_code_workspace_worker_unavailable">マシンを利用できません。再接続するか、別のマシンを選択してください。</string>

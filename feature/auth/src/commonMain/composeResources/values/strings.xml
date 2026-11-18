@@ -43,12 +43,14 @@
     <string name="send_reset_link">Send reset link</string>
     <string name="check_your_email">Check your email</string>
     <string name="reset_link_sent">We've sent a password reset link to %1$s</string>
+    <string name="reset_password_unavailable">Email delivery is not configured. Contact your administrator to reset your password.</string>
     <string name="back_to_sign_in">Back to sign in</string>
 
     <!-- Reset Password -->
     <string name="reset_password_screen_title">Reset Password</string>
     <string name="password_reset_successful">Password reset successful</string>
     <string name="password_reset_message">Your password has been updated. You can now sign in with your new password.</string>
+    <string name="password_reset_incomplete">Your new password is active, but some other sessions may stay signed in until they expire. Sign in with your new password, then request another reset link to sign them out.</string>
     <string name="set_new_password">Set new password</string>
     <string name="enter_new_password_hint">Enter your new password below</string>
     <string name="new_password_label">New password</string>
@@ -119,6 +121,7 @@
     <string name="two_factor_setup_codes_acknowledged">I have saved these codes</string>
     <string name="two_factor_setup_complete">Complete setup</string>
     <string name="two_factor_setup_expired">Your setup session has expired. Sign in again to continue.</string>
+    <string name="two_factor_setup_sessions_incomplete">Two-factor authentication is on, but some other sessions may stay signed in until they expire. Sign in again to continue.</string>
     <string name="two_factor_setup_back_to_sign_in">Back to sign in</string>
     <string name="two_factor_setup_error_start">Couldn't start setup. Try again.</string>
     <string name="two_factor_setup_error_invalid">That code didn't match. Enter the current code from your authenticator.</string>

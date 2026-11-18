@@ -33,6 +33,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import org.junit.Before
 import org.junit.Test
+import kotlin.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ConversationRepositoryImplTest {
@@ -145,6 +146,62 @@ class ConversationRepositoryImplTest {
         assertThat(captured.captured.accountId).isEqualTo(account.value)
         coVerify(exactly = 0) { conversationDao.upsertPreservingTags(any(), any<ConversationEntity>()) }
         coVerify(exactly = 0) { conversationDao.upsertPreservingTags(any(), any<List<ConversationEntity>>()) }
+    }
+
+    @Test
+    fun `refreshConversation does not cache the server's projection of an unsaved first turn`() = runTest {
+        val started = Instant.parse("2026-11-11T10:00:00Z")
+        coEvery { conversationsApi.getConversation("convo-1") } returns Conversation(
+            conversationId = "convo-1",
+            title = "New Chat",
+            createdAt = started,
+            updatedAt = started,
+            provisional = true,
+        )
+
+        val result = repository.refreshConversation("convo-1", originAccount = null)
+
+        assertThat((result as Result.Success).data.title).isEqualTo("New Chat")
+        coVerify(exactly = 0) { conversationDao.upsert(any<ConversationEntity>()) }
+    }
+
+    @Test
+    fun `refreshConversation caches a saved conversation a proxy marked no-store`() = runTest {
+        coEvery { conversationsApi.getConversation("convo-1") } returns Conversation(
+            conversationId = "convo-1",
+            title = "New Chat",
+            createdAt = Instant.parse("2026-11-11T10:00:00Z"),
+            updatedAt = Instant.parse("2026-11-11T10:00:05Z"),
+            provisional = true,
+        )
+
+        repository.refreshConversation("convo-1", originAccount = null)
+
+        coVerify(exactly = 1) { conversationDao.upsert(any<ConversationEntity>()) }
+    }
+
+    @Test
+    fun `archive marks the cached row archived`() = runTest {
+        coEvery { conversationsApi.archive("convo-1", true) } returns
+            Conversation(conversationId = "convo-1", isArchived = true)
+
+        val result = repository.archive("convo-1", isArchived = true)
+
+        assertThat(result).isInstanceOf(Result.Success::class.java)
+        coVerify(exactly = 1) { conversationDao.updateArchived("convo-1", true, account.value) }
+        coVerify(exactly = 0) { conversationDao.deleteById(any(), any()) }
+    }
+
+    @Test
+    fun `an archive that turns the chat temporary drops it from the cache`() = runTest {
+        coEvery { conversationsApi.archive("convo-1", true) } returns
+            Conversation(conversationId = "convo-1", isArchived = true, isTemporary = true)
+
+        val result = repository.archive("convo-1", isArchived = true)
+
+        assertThat(result).isInstanceOf(Result.Success::class.java)
+        coVerify(exactly = 1) { conversationDao.deleteById("convo-1", account.value) }
+        coVerify(exactly = 0) { conversationDao.updateArchived(any(), any(), any()) }
     }
 
     @Test

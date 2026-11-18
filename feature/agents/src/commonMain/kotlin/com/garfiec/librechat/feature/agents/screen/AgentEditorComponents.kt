@@ -38,11 +38,12 @@ import org.jetbrains.compose.resources.stringResource
  * current cursor position. Mirrors upstream `Instructions.tsx`.
  */
 /**
- * In place of [InstructionsField] when the agent's instructions come from a linked prompt
- * (v0.8.9-rc1): the link is managed on the web, and the stored text is not what the agent runs.
+ * In place of [InstructionsField] when the agent's instructions come from a linked prompt this
+ * editor can't change (see `AgentEditorUiState.isInstructionsLinkEditable`): the stored text is not
+ * what the agent runs. [sourceDisabled]: a Langfuse link while the admin's switch is off.
  */
 @Composable
-internal fun LinkedInstructionsNote(modifier: Modifier = Modifier) {
+internal fun LinkedInstructionsNote(sourceDisabled: Boolean, modifier: Modifier = Modifier) {
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
             text = stringResource(Res.string.agent_instructions_label),
@@ -54,6 +55,14 @@ internal fun LinkedInstructionsNote(modifier: Modifier = Modifier) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 4.dp),
         )
+        if (sourceDisabled) {
+            Text(
+                text = stringResource(Res.string.agent_instructions_prompt_source_disabled),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+        }
     }
 }
 

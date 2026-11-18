@@ -43,12 +43,14 @@
     <string name="send_reset_link">Envoyer le lien de réinitialisation</string>
     <string name="check_your_email">Consultez votre e-mail</string>
     <string name="reset_link_sent">Nous avons envoyé un lien de réinitialisation du mot de passe à %1$s</string>
+    <string name="reset_password_unavailable">L’envoi d’e-mails n’est pas configuré. Contactez votre administrateur pour réinitialiser votre mot de passe.</string>
     <string name="back_to_sign_in">Retour à la connexion</string>
 
     <!-- Reset Password -->
     <string name="reset_password_screen_title">Réinitialiser le mot de passe</string>
     <string name="password_reset_successful">Mot de passe réinitialisé avec succès</string>
     <string name="password_reset_message">Votre mot de passe a été mis à jour. Vous pouvez désormais vous connecter avec votre nouveau mot de passe.</string>
+    <string name="password_reset_incomplete">Votre nouveau mot de passe est actif, mais certaines autres sessions peuvent rester connectées jusqu’à leur expiration. Connectez-vous avec le nouveau mot de passe, puis demandez un autre lien de réinitialisation pour les déconnecter.</string>
     <string name="set_new_password">Définir un nouveau mot de passe</string>
     <string name="enter_new_password_hint">Saisissez votre nouveau mot de passe ci-dessous</string>
     <string name="new_password_label">Nouveau mot de passe</string>
@@ -117,6 +119,7 @@
     <string name="two_factor_setup_codes_acknowledged">J'ai enregistré ces codes</string>
     <string name="two_factor_setup_complete">Terminer la configuration</string>
     <string name="two_factor_setup_expired">Votre session de configuration a expiré. Reconnectez-vous pour continuer.</string>
+    <string name="two_factor_setup_sessions_incomplete">L’authentification à deux facteurs est activée, mais certaines autres sessions peuvent rester connectées jusqu’à leur expiration. Reconnectez-vous pour continuer.</string>
     <string name="two_factor_setup_back_to_sign_in">Retour à la connexion</string>
     <string name="two_factor_setup_error_start">Impossible de démarrer la configuration. Réessayez.</string>
     <string name="two_factor_setup_error_invalid">Ce code ne correspond pas. Saisissez le code actuel de votre application d'authentification.</string>

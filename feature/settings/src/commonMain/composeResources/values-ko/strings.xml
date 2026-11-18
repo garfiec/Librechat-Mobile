@@ -370,6 +370,9 @@
     <!-- Backup codes dialog -->
     <string name="dialog_title_backup_codes">백업 코드</string>
     <string name="backup_codes_instructions">이 백업 코드를 안전한 곳에 보관하세요. 각 코드는 한 번만 사용할 수 있습니다.</string>
+    <string name="twofa_sessions_incomplete">2단계 인증이 켜졌지만 일부 다른 세션은 만료될 때까지 로그인 상태로 남아 있을 수 있습니다. 백업 코드를 저장한 다음 다시 로그인하세요.</string>
+    <string name="twofa_other_sessions_signed_out">2단계 인증이 켜졌습니다. 이 계정에 로그인되어 있던 다른 모든 기기는 로그아웃되었습니다.</string>
+    <string name="twofa_sign_in_again_to_enable">2단계 인증을 사용하려면 다시 로그인하세요.</string>
     <string name="dialog_title_regenerate_backup_codes">백업 코드를 재생성할까요?</string>
     <string name="regenerate_backup_codes_warning">현재 백업 코드는 더 이상 사용할 수 없게 됩니다. 새 코드를 받아 저장하세요.</string>
     <string name="action_regenerate">재생성</string>
@@ -678,8 +681,11 @@
     <string name="role_permissions_saved">저장됨</string>
     <string name="role_permissions_load_failed">이 역할의 권한을 불러오지 못했습니다.</string>
     <string name="role_permissions_save_failed">권한을 저장하지 못했습니다. 다시 시도해 주세요.</string>
-    <string name="role_permissions_admin_access_warning">이 기능에 대한 관리자 접근 권한을 비활성화하면 앱이 권한을 다시 불러올 때까지 예기치 않은 문제가 발생할 수 있습니다. 저장한 후에는 모든 역할에 영향을 미치는 librechat.yaml의 interface 설정으로만 되돌릴 수 있습니다.</string>
-    <string name="role_permissions_more_info">자세히 보기</string>
+    <string name="role_permissions_admin_lockout_warning">저장하면 나를 포함한 모든 관리자에게 %1$s 기능이 꺼지고 이 설정도 숨겨집니다. 서버 구성에 접근할 수 있는 사람만 다시 켤 수 있습니다.</string>
+    <string name="role_permissions_admin_lockout_title">관리자의 %1$s 기능을 끌까요?</string>
+    <string name="role_permissions_admin_lockout_confirm_label">확인하려면 %1$s을(를) 입력하세요</string>
+    <string name="role_permissions_admin_lockout_confirm">관리자에게 끄기</string>
+    <string name="role_skills_section">스킬</string>
     <string name="artifact_shortcuts_title">홈 화면 바로가기</string>
     <string name="artifact_shortcuts_empty">아직 홈 화면에 고정된 아티팩트가 없습니다.</string>
     <string name="artifact_shortcuts_disabled_message">이 아티팩트 바로가기는 삭제되었습니다.</string>

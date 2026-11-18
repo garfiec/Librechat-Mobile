@@ -170,4 +170,52 @@ class SseEventMapperMcpAuthTest {
         ) as StreamEvent.SubagentUpdate
         assertThat(event.inner).isNull()
     }
+
+    private fun laneToolStep(stepId: String, callId: String, agentId: String) = SseEvent(
+        event = "",
+        data = """{"event":"on_run_step","data":{"id":"$stepId","stepDetails":{"type":"tool_calls","tool_calls":[{"id":"$callId","name":"list_mcp_my_server","args":""}]},"agentId":"$agentId","groupId":1}}""",
+    )
+
+    private fun oauthStep(ownerId: String) = SseEvent(
+        event = "",
+        data = """{"event":"on_run_step","data":{"runId":"r","id":"step_oauth_login_my_server:oauth:$ownerId","type":"tool_calls","index":0,"stepDetails":{"type":"tool_calls","tool_calls":[{"id":"oauth:$ownerId","name":"oauth_mcp_my_server","type":"tool_call_chunk"}]}}}""",
+    )
+
+    private fun oauthDelta(ownerId: String) = SseEvent(
+        event = "",
+        data = """{"event":"on_run_step_delta","data":{"id":"step_oauth_login_my_server:oauth:$ownerId","delta":{"type":"tool_calls","tool_calls":[{"id":"oauth:$ownerId","name":"oauth_mcp_my_server","type":"tool_call_chunk","args":""}],"auth":"$authUrl"}}}""",
+    )
+
+    private fun oauthEnd(ownerId: String) = SseEvent(
+        event = "",
+        data = """{"event":"on_run_step_completed","data":{"result":{"id":"step_oauth_login_my_server:oauth:$ownerId","index":0,"tool_call":{"id":"oauth:$ownerId","name":"oauth_mcp_my_server","output":"OAuth authentication ended","type":"tool_call"}}}}""",
+    )
+
+    @Test
+    fun `each Compare lane's sign-in step belongs to the agent whose call it names`() {
+        mapper.map(laneToolStep("step_a", "call_a", "agent_m"))
+        mapper.map(laneToolStep("step_b", "call_b", "agent_m____1"))
+
+        // Lane A prompts after lane B's step arrived last: it must not inherit lane B's agent.
+        val startA = mapper.map(oauthStep("call_a")) as StreamEvent.ToolCallStart
+        val startB = mapper.map(oauthStep("call_b")) as StreamEvent.ToolCallStart
+        val authA = mapper.map(oauthDelta("call_a")) as StreamEvent.ToolCallAuthRequired
+        val endA = mapper.map(oauthEnd("call_a")) as StreamEvent.ToolCallComplete
+
+        assertThat(startA.agentId).isEqualTo("agent_m")
+        assertThat(startB.agentId).isEqualTo("agent_m____1")
+        assertThat(authA.toolCallId).isEqualTo("oauth:call_a")
+        assertThat(authA.agentId).isEqualTo("agent_m")
+        assertThat(endA.agentId).isEqualTo("agent_m")
+    }
+
+    @Test
+    fun `a sign-in step built from a step id belongs to that step's agent`() {
+        mapper.map(laneToolStep("step_a", "call_a", "agent_m"))
+        mapper.map(laneToolStep("step_b", "call_b", "agent_m____1"))
+
+        val start = mapper.map(oauthStep("step_a")) as StreamEvent.ToolCallStart
+
+        assertThat(start.agentId).isEqualTo("agent_m")
+    }
 }

@@ -49,6 +49,25 @@ class BalanceSummaryTest {
     }
 
     @Test
+    fun `the period's granted allotment comes first while it postdates the last refill`() {
+        val granted = Balance(
+            tokenCredits = 1.0,
+            autoRefillEnabled = true,
+            refillAmount = 5_000.0,
+            lastRefill = "2026-11-01T00:00:00Z",
+            allotment = 8_000.0,
+            allottedAt = "2026-11-01T00:00:00Z",
+        )
+        assertThat(granted.allotment(startBalance = 20_000.0)).isEqualTo(8_000.0)
+        // A refill since, by a server that predates the field, describes a newer period.
+        assertThat(granted.copy(lastRefill = "2026-11-02T00:00:00Z").allotment(startBalance = null)).isEqualTo(5_000.0)
+        assertThat(granted.copy(lastRefill = null).allotment(startBalance = null)).isEqualTo(5_000.0)
+        assertThat(granted.copy(allottedAt = "not a date").allotment(startBalance = null)).isEqualTo(5_000.0)
+        assertThat(granted.copy(allotment = 0.0, autoRefillEnabled = false).allotment(startBalance = 20_000.0))
+            .isEqualTo(20_000.0)
+    }
+
+    @Test
     fun `the config's display, currency and start balance present a loaded reading`() {
         val config = StartupConfig(
             balance = BalanceConfig(enabled = true, startBalance = 10_000.0, display = "percent"),

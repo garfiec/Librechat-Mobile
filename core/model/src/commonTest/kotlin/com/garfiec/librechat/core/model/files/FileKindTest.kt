@@ -119,4 +119,19 @@ class FileKindTest {
         assertNull(codeLanguageOf("notes.txt"))
         assertNull(codeLanguageOf(null))
     }
+
+    @Test
+    fun filepathLeafDecodesAnEncodedLocalName() {
+        assertEquals("50% off #1.pdf", filepathLeaf("/uploads/u1/50%25%20off%20%231.pdf"))
+        assertEquals("Größe?.txt", filepathLeaf("/uploads/u1/Gr%C3%B6%C3%9Fe%3F.txt"))
+        assertEquals("plain name.txt", filepathLeaf("/uploads/u1/plain name.txt"))
+    }
+
+    @Test
+    fun filepathLeafKeepsANameThatDoesNotDecode() {
+        assertEquals("50%.png", filepathLeaf("/images/u1/50%.png"))
+        assertEquals("%zz.png", filepathLeaf("%zz.png"))
+        assertEquals("%FF.png", filepathLeaf("/a/%FF.png"))
+        assertEquals("a%2Fb.txt", filepathLeaf("/a/a%2Fb.txt"))
+    }
 }

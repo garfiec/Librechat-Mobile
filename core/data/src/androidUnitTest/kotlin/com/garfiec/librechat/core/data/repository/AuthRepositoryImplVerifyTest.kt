@@ -105,6 +105,7 @@ class AuthRepositoryImplVerifyTest {
             accountSwitcher = accountSwitcher,
             switchGate = switchGate,
             serverSessionRevoker = mockk(relaxed = true),
+            refreshCookieCredentials = mockk(relaxed = true),
         )
     }
 

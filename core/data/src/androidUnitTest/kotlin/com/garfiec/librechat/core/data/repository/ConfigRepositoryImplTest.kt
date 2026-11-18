@@ -17,8 +17,10 @@ import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.logging.LogEnvelope
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.config.BuildInfo
+import com.garfiec.librechat.core.model.config.ClientLimits
 import com.garfiec.librechat.core.model.config.StartupConfig
 import com.garfiec.librechat.core.network.api.ConfigApi
+import com.garfiec.librechat.core.network.client.ClientLimitsHolder
 import com.garfiec.librechat.core.network.client.PendingRequestIdentity
 import com.garfiec.librechat.core.network.client.ServerRedirectException
 import com.google.common.truth.Truth.assertThat
@@ -53,12 +55,14 @@ class ConfigRepositoryImplTest {
     private val configCache = mockk<ConfigCacheDataStore>(relaxed = true)
 
     private val serverDataStore = mockk<ServerDataStore>(relaxed = true)
+    private val clientLimits = ClientLimitsHolder()
 
     private fun repository() = ConfigRepositoryImpl(
         configApi = configApi,
         configCache = configCache,
         dispatcher = UnconfinedTestDispatcher(),
         serverDataStore = serverDataStore,
+        clientLimits = clientLimits,
     )
 
     private val validConfig = StartupConfig(serverDomain = "https://b.example.com")
@@ -184,6 +188,18 @@ class ConfigRepositoryImplTest {
 
         assertThat(repo.startupConfig.value).isEqualTo(validConfig)
         coVerify(exactly = 1) { configCache.saveStartupConfig(validConfig) }
+    }
+
+    @Test
+    fun `a published config sets the request deadlines, and one without limits restores the defaults`() = runTest {
+        val repo = repository()
+
+        repo.publishStartupConfig(validConfig.copy(clientLimits = ClientLimits(refreshMs = 90_000)))
+        assertThat(clientLimits.refreshTimeoutMs).isEqualTo(90_000)
+        assertThat(clientLimits.ttsTimeoutMs).isEqualTo(ClientLimits.DEFAULT_TTS_MS)
+
+        repo.publishStartupConfig(validConfig)
+        assertThat(clientLimits.refreshTimeoutMs).isEqualTo(ClientLimits.DEFAULT_REFRESH_MS)
     }
 
     @Test

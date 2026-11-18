@@ -45,6 +45,8 @@ expect fun MessageBubble(
     showAvatars: Boolean = true,
     showBubbles: Boolean = false,
     avatar: IconSource? = null,
+    /** A reply leaves out its author row ([com.garfiec.librechat.feature.chat.util.MessageNode.authorHidden]). */
+    authorHidden: Boolean = false,
 )
 
 /** Platform-specific content part rendering. */

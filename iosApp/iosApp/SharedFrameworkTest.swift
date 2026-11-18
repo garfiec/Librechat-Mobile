@@ -77,7 +77,7 @@ func verifySharedFrameworkImport() {
     // exhaustive switch here nothing catches it until an iOS build runs.
     case .error, .final, .toolCallStart, .toolCallComplete, .toolCallClosed,
          .sandboxStarting, .ptcToolCall, .toolCallAuthRequired, .toolCallPreparation, .thinkingDelta, .attachmentCreated, .retrying, .sync,
-         .step, .created, .contextSummary, .subagentUpdate,
+         .step, .created, .contextSummary, .summaryDelta, .subagentUpdate,
          .titleUpdate, .tokenUsageUpdate, .contextUsageUpdate,
          .pendingActionRequested, .pendingSteersSynced, .steerApplied,
          .usageBackfill:

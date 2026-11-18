@@ -49,6 +49,9 @@ data class SettingChips(
     /** The label of the spec that locks the [SettingChipState.LOCKED] chips, for "Set by …". */
     val lockedBy: String? = null,
 ) {
+    /** The Thinking chip, read from here rather than recomputed: this is resolved once per input change. */
+    val thinking: ThinkingChip? get() = chips.firstNotNullOfOrNull { (it as? SettingChip.Thinking)?.chip }
+
     val isEmpty: Boolean get() = chips.isEmpty()
 
     companion object {
@@ -108,8 +111,9 @@ fun settingChipsOf(inputs: SettingChipInputs): SettingChips {
 }
 
 /**
- * Gathers the inputs only when a key (`ChatUiState.settingChipSlices`) is a new instance, and keeps its
- * last result for equal inputs, so a streaming flush costs nothing. Not thread-safe: one collector only.
+ * Gathers the inputs only when a key (`ChatUiState.settingChipSlices`) changed, and keeps its last result
+ * for equal inputs, so a streaming flush costs nothing. Keys compare by equality: a copied slice shares its
+ * unchanged fields, and the branch level is re-decoded on every message reload. Not thread-safe: one collector only.
  */
 internal class SettingChipsMemo {
     private var keys: List<Any?>? = null
@@ -118,7 +122,7 @@ internal class SettingChipsMemo {
 
     fun resolve(keys: List<Any?>, inputs: () -> SettingChipInputs): SettingChips {
         val last = this.keys
-        if (last != null && last.size == keys.size && last.indices.all { last[it] === keys[it] }) return result
+        if (last == keys) return result
         this.keys = keys
         val next = inputs()
         if (next != this.inputs) {

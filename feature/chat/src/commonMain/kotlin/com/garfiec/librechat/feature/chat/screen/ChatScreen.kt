@@ -284,7 +284,7 @@ fun ChatScreen(
     // and the pull-up, hence the controller. Independent of uiState.showModelSheet (the standalone
     // selector), which keeps dismissing straight to the chat.
     val optionsController = rememberChatOptionsSheetController()
-    val thinkingChip = uiState.thinkingChip
+    val thinkingChip = uiState.settingChips.thinking
     // Nothing here cancels an OAuth flow: only a connecting chip's "Cancel sign-in" does.
     val mcpSignInViewModel: McpSignInViewModel = koinViewModel()
     val mcpSignIn = rememberMcpSignIn(mcpSignInViewModel, snackbarHostState, onSignInEnd = viewModel::onMcpSignInEnded)

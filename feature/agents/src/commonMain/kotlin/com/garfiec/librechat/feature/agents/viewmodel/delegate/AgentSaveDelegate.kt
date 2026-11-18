@@ -57,7 +57,8 @@ class AgentSaveDelegate(
         }
         // Web: a valid Git name and email, or both blank. Only checked while the field shows.
         val gitIdentityError = state.code.statefulSessions && !state.code.isGitIdentityValid()
-        val hasErrors = gitIdentityError ||
+        val instructionsPromptError = state.isInstructionsPromptMissing
+        val hasErrors = gitIdentityError || instructionsPromptError ||
             listOfNotNull(nameError, descriptionError, supportContactNameError, supportContactEmailError).isNotEmpty()
         if (hasErrors) {
             stateHandle.update {
@@ -67,6 +68,7 @@ class AgentSaveDelegate(
                     supportContactNameError = supportContactNameError,
                     supportContactEmailError = supportContactEmailError,
                     codeGitIdentityError = gitIdentityError,
+                    instructionsPromptError = instructionsPromptError,
                 )
             }
             return

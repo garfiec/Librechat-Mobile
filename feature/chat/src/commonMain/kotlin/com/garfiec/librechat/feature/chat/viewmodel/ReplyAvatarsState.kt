@@ -15,12 +15,15 @@ import com.garfiec.librechat.feature.chat.util.replyIconSource
 data class ReplyAvatarsState(
     /** The streaming reply's: what its saved message will draw. */
     val streaming: IconSource? = null,
+    /** The streaming reply leaves out its author row, as its saved message will ([ChatUiState.selectedAuthorAgentId]). */
+    val streamingAuthorHidden: Boolean = false,
     /** Compare's second lane's, for its pane's messages and its streaming reply. Null while Compare is off. */
     val laneB: IconSource? = null,
 )
 
 internal fun ChatUiState.replyAvatars(serverUrl: String): ReplyAvatarsState = ReplyAvatarsState(
     streaming = replyAvatarFor(selectedEndpoint, selectedModel, selectedSpec, serverUrl, endpointConfigs),
+    streamingAuthorHidden = selectedAuthorAgentId != null,
     laneB = if (comparisonState.isEnabled) {
         replyAvatarFor(
             comparisonState.secondaryEndpoint ?: EndpointConstants.AGENTS,

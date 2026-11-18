@@ -417,6 +417,60 @@ class SseEventMapperTest {
     }
 
     @Test
+    fun `maps a summarize delta and its reset`() {
+        val delta = mapper.map(
+            SseEvent(
+                event = "",
+                data = """{"event":"on_summarize_delta","data":{"id":"s1","delta":{"summary":{"type":"summary","content":[{"type":"text","text":"So far"}]}}}}""",
+            ),
+        ) as StreamEvent.SummaryDelta
+        val reset = mapper.map(
+            SseEvent(
+                event = "",
+                data = """{"event":"on_summarize_delta","data":{"id":"s1","reset":true,"delta":{"summary":{"type":"summary"}}}}""",
+            ),
+        ) as StreamEvent.SummaryDelta
+
+        assertThat(delta).isEqualTo(StreamEvent.SummaryDelta("So far"))
+        assertThat(reset).isEqualTo(StreamEvent.SummaryDelta("", reset = true))
+    }
+
+    @Test
+    fun `final frame carries the steers the server promoted to queued turns`() {
+        val final = mapper.map(
+            SseEvent(
+                event = "",
+                data = """{"final":true,"conversation":{"conversationId":"c1"},"promotedSteers":[{"steerId":"st-1","clientSteerId":"local-1","receipt":{"queuedTurnId":"qt-1","clientRequestId":"steer-leftover:local-1","text":"be brief","status":"queued","steer":{"steerId":"st-1","clientSteerId":"local-1","owned":true},"createdAt":"t","updatedAt":"t"}},{"broken":true}]}""",
+            ),
+        ) as StreamEvent.Final
+
+        val promoted = final.promotedSteers.single()
+        assertThat(promoted.steerId).isEqualTo("st-1")
+        assertThat(promoted.receipt.clientRequestId).isEqualTo("steer-leftover:local-1")
+        assertThat(promoted.receipt.steer?.owned).isTrue()
+    }
+
+    @Test
+    fun `a settled error without a reply stamp was never saved`() {
+        val unsaved = mapper.map(
+            SseEvent(
+                event = "",
+                data = """{"final":true,"error":true,"conversation":{"conversationId":"c1"},"responseMessage":{"messageId":"m2","conversationId":"c1","text":"failed","error":true}}""",
+            ),
+        ) as StreamEvent.Final
+        val saved = mapper.map(
+            SseEvent(
+                event = "",
+                data = """{"final":true,"error":true,"conversation":{"conversationId":"c1","lastResponseAt":"2026-11-02T00:00:00.000Z"},"responseMessage":{"messageId":"m2","conversationId":"c1","text":"failed","error":true}}""",
+            ),
+        ) as StreamEvent.Final
+
+        assertThat(unsaved.isUnsavedError).isTrue()
+        assertThat(saved.settledError).isTrue()
+        assertThat(saved.isUnsavedError).isFalse()
+    }
+
+    @Test
     fun `maps created event with nested message object`() {
         val event = SseEvent(
             event = "",
@@ -437,6 +491,17 @@ class SseEventMapperTest {
         val result = mapper.map(event) as StreamEvent.Created
         assertThat(result.conversationId).isEqualTo("c1")
         assertThat(result.privacyRevision).isNull()
+    }
+
+    @Test
+    fun `maps the skills the server resolved for the created turn`() {
+        val event = SseEvent(
+            event = "",
+            data = """{"created":true,"message":{"conversationId":"c1","messageId":"m1","parentMessageId":"m0","manualSkills":["pdf"],"alwaysAppliedSkills":["house-style"]}}""",
+        )
+        val created = mapper.map(event) as StreamEvent.Created
+        assertThat(created.manualSkills).containsExactly("pdf")
+        assertThat(created.alwaysAppliedSkills).containsExactly("house-style")
     }
 
     @Test

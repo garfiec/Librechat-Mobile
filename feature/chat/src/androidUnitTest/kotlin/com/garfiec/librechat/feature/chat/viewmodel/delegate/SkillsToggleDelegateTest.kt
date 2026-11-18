@@ -77,15 +77,15 @@ class SkillsToggleDelegateTest {
         val specs = listOf(ModelSpec(name = "curated"))
         assertThat(skillsToggleSlot(state(specs = specs)))
             .isEqualTo(SkillsToggleSlot.Stored(SettingsDataStore.SKILLS_TOGGLE_SPEC_DEFAULTS_SLOT))
-        // A selected spec that leaves skills alone stores nothing, new chat or not.
+        // A selected spec that leaves skills alone starts off; only an existing chat has a slot of its own.
         assertThat(skillsToggleSlot(state(spec = "curated", specs = specs)))
-            .isEqualTo(SkillsToggleSlot.SpecSelected("curated"))
+            .isEqualTo(SkillsToggleSlot.SpecSelected("curated", seed = false, conversationKey = null))
         assertThat(skillsToggleSlot(state(conversationId = "c1", spec = "curated", specs = specs)))
-            .isEqualTo(SkillsToggleSlot.SpecSelected("curated"))
+            .isEqualTo(SkillsToggleSlot.SpecSelected("curated", seed = false, conversationKey = "c1"))
     }
 
     @Test
-    fun `a selected spec starts off, keeps the session value in memory and writes nothing`() =
+    fun `a selected spec starts off, writes nothing to the new-chat slots and carries its value to the created chat`() =
         delegateTest(state()) { flow, delegate ->
             stored.value = mapOf(SettingsDataStore.SKILLS_TOGGLE_NEW_CHAT_SLOT to true, "c1" to true)
             runCurrent()
@@ -106,26 +106,55 @@ class SkillsToggleDelegateTest {
             runCurrent()
             assertThat(flow.value.skillsToggle).isTrue()
             assertThat(stored.value)
-                .containsExactly(SettingsDataStore.SKILLS_TOGGLE_NEW_CHAT_SLOT, true, "c1", true)
+                .containsExactly(SettingsDataStore.SKILLS_TOGGLE_NEW_CHAT_SLOT, true, "c1", true, "c9", true)
 
-            // Another spec starts off again, as web rebuilds the ephemeral agent from it.
-            flow.update { it.copy(selection = it.selection.copy(choice = choice("other"))) }
+            // Another spec starts from its own value on a new chat, as web rebuilds the ephemeral agent from it.
+            flow.update {
+                it.copy(
+                    selection = it.selection.copy(choice = choice("other")),
+                    conversation = it.conversation.copy(conversationId = null),
+                )
+            }
             runCurrent()
             assertThat(flow.value.skillsToggle).isFalse()
         }
 
     @Test
-    fun `an existing conversation under a spec ignores its stored value`() =
+    fun `an existing conversation under a spec restores its stored value over the spec's`() =
         delegateTest(state(conversationId = "c1")) { flow, _ ->
             stored.value = mapOf("c1" to true)
             runCurrent()
             assertThat(flow.value.skillsToggle).isTrue()
 
-            val specs = ModelSpecs(listOf(ModelSpec(name = "curated")))
+            val skilled = ModelSpec(name = "skilled", skills = JsonPrimitive(true))
+            val specs = ModelSpecs(listOf(ModelSpec(name = "curated"), skilled))
             flow.update { it.copy(selection = it.selection.copy(choice = choice("curated"), modelSpecs = specs)) }
+            runCurrent()
+            assertThat(flow.value.skillsToggle).isTrue()
+
+            // With nothing stored, the spec's value: `skills: true` starts on.
+            stored.value = emptyMap()
+            flow.update { it.copy(selection = it.selection.copy(choice = choice("skilled"))) }
+            runCurrent()
+            assertThat(flow.value.skillsToggle).isTrue()
+            flow.update { it.copy(selection = it.selection.copy(choice = choice("curated"))) }
             runCurrent()
             assertThat(flow.value.skillsToggle).isFalse()
         }
+
+    @Test
+    fun `a spec that turns skills off, or configures them behind hidden controls, decides them`() {
+        val specs = listOf(
+            ModelSpec(name = "off", skills = JsonPrimitive(false)),
+            ModelSpec(name = "pinned", skills = JsonPrimitive(true), hideBadgeRow = true),
+            ModelSpec(name = "on", skills = JsonPrimitive(true)),
+        )
+        assertThat(skillsToggleSlot(state(spec = "off", specs = specs))).isEqualTo(SkillsToggleSlot.SpecGoverned)
+        assertThat(skillsToggleSlot(state(spec = "pinned", specs = specs))).isEqualTo(SkillsToggleSlot.SpecGoverned)
+        assertThat(skillsToggleSlot(state(conversationId = "c1", spec = "on", specs = specs)))
+            .isEqualTo(SkillsToggleSlot.SpecSelected("on", seed = true, conversationKey = "c1"))
+        assertThat(state(spec = "on", specs = specs).isSkillsToolAvailable).isTrue()
+    }
 
     @Test
     fun `a toggle under a spec in an existing conversation is written to its slot, as web writes it`() =
@@ -284,14 +313,14 @@ class SkillsToggleDelegateTest {
         }
 
     @Test
-    fun `a seed taken on a stored slot does not carry into a later spec switch`() =
+    fun `a seed taken on a stored slot is the conversation's value under a later spec switch too`() =
         // The carried write hasn't landed: the store is still empty when the spec is picked.
         delegateTest(state(conversationId = "c9"), seedBeforeStart = "c9" to true) { flow, _ ->
             assertThat(flow.value.skillsToggle).isTrue()
             val specs = ModelSpecs(listOf(ModelSpec(name = "curated")))
             flow.update { it.copy(selection = it.selection.copy(choice = choice("curated"), modelSpecs = specs)) }
             runCurrent()
-            assertThat(flow.value.skillsToggle).isFalse()
+            assertThat(flow.value.skillsToggle).isTrue()
             assertThat(stored.value).isEmpty()
         }
 

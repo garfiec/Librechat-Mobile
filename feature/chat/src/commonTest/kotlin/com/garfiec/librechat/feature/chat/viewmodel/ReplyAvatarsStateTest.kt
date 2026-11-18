@@ -112,4 +112,17 @@ class ReplyAvatarsStateTest {
         val on = off.copy(comparisonState = off.comparisonState.copy(isEnabled = true))
         assertEquals(ProviderId.OPENROUTER, on.replyAvatars(server).laneB?.provider)
     }
+
+    @Test
+    fun the_streaming_reply_hides_its_author_only_for_a_known_agent_under_when_different() {
+        val agents = listOf(Agent(id = "a1"))
+        val onAgent = state(ModelChoice.Raw(EndpointConstants.AGENTS, "a1"), agents = agents)
+        assertEquals(false, onAgent.replyAvatars(server).streamingAuthorHidden)
+        val hiding = onAgent.copy(gates = onAgent.gates.copy(hidesSelectedAuthor = true))
+        assertEquals(true, hiding.replyAvatars(server).streamingAuthorHidden)
+        val unknownAgent = hiding.copy(selection = hiding.selection.copy(agents = emptyList()))
+        assertEquals(false, unknownAgent.replyAvatars(server).streamingAuthorHidden)
+        val raw = state(ModelChoice.Raw("My Router", "m"))
+        assertEquals(false, raw.copy(gates = raw.gates.copy(hidesSelectedAuthor = true)).replyAvatars(server).streamingAuthorHidden)
+    }
 }

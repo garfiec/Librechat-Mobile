@@ -16,8 +16,9 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
- * The tools a spec chat sends: the spec's own (the server ORs them in anyway, and web sends them) plus
- * what the user added on top, never the user's global toggles; under `hideBadgeRow`, the spec's alone.
+ * The tools a spec chat sends: the spec's own (web sends them) plus what the user added on top, never
+ * the user's global toggles; under `hideBadgeRow`, the spec's alone. From v0.8.9 the user may turn
+ * the spec's own off, which a send says explicitly.
  */
 class ChatRequestBuilderSpecToolsTest {
 
@@ -42,6 +43,7 @@ class ChatRequestBuilderSpecToolsTest {
         webSearch: Boolean = false,
         userTools: Set<String> = setOf(ToolConstants.CODE_INTERPRETER),
         artifactsMode: ArtifactsMode = ArtifactsMode.DEFAULT,
+        specToolsAreDefaults: Boolean = false,
     ) = ChatUiState(
         selection = ModelSelectionState(
             choice = choice,
@@ -51,6 +53,7 @@ class ChatRequestBuilderSpecToolsTest {
             modelParameters = ModelParameters.DEFAULT.copy(webSearch = webSearch),
             specTools = specTools,
             artifactsMode = artifactsMode,
+            specToolsAreDefaults = specToolsAreDefaults,
         ),
         gates = FeatureGatesState(librechatSearchReady = true),
     )
@@ -163,5 +166,52 @@ class ChatRequestBuilderSpecToolsTest {
         val state = state(ModelChoice.Raw("openAI", "gpt-4o"), userTools = setOf(ToolConstants.FILE_SEARCH))
 
         assertNull(assertNotNull(ChatRequestBuilder { state }.buildEphemeralAgent()).artifacts)
+    }
+
+    @Test
+    fun `where the server takes them as defaults the spec's tools start on and can be turned off`() {
+        val start = state(onTools, specToolsAreDefaults = true)
+        assertTrue(start.lockedTools.isEmpty())
+        assertTrue(start.lockedMcpServers.isEmpty())
+        assertTrue(ToolConstants.WEB_SEARCH in start.selection.effectiveTools)
+        assertEquals(setOf("docs"), start.selection.effectiveMcpServerNames)
+
+        val off = start.selection.toggledSpecTool(ToolConstants.WEB_SEARCH)
+        val noDocs = start.copy(selection = start.selection.copy(specTools = off)).selection.toggledSpecMcpServer("docs")
+        val turnedOff = start.copy(selection = start.selection.copy(specTools = noDocs))
+
+        val agent = assertNotNull(ChatRequestBuilder { turnedOff }.buildEphemeralAgent())
+        assertEquals(false, agent.webSearch)
+        assertEquals(emptyList(), agent.mcp)
+    }
+
+    @Test
+    fun `a spec's artifacts turned off go out as an empty mode`() {
+        val onShadcn = ModelChoice.Spec("shadcn", "openAI", "gpt-4o")
+        val state = state(onShadcn, SpecTools("shadcn"), specToolsAreDefaults = true)
+
+        assertEquals("", assertNotNull(ChatRequestBuilder { state }.buildEphemeralAgent()).artifacts)
+        val on = state(onShadcn, specToolsAreDefaults = true)
+        assertEquals("shadcnui", assertNotNull(ChatRequestBuilder { on }.buildEphemeralAgent()).artifacts)
+    }
+
+    @Test
+    fun `under hideBadgeRow the spec's tools stay locked where the server takes them as defaults`() {
+        val state = state(onLocked, specToolsAreDefaults = true)
+
+        assertTrue(ToolConstants.WEB_SEARCH in state.lockedTools)
+        assertEquals(setOf("docs"), state.lockedMcpServers)
+        val agent = assertNotNull(ChatRequestBuilder { state }.buildEphemeralAgent())
+        assertEquals(true, agent.webSearch)
+        assertEquals("default", agent.artifacts)
+    }
+
+    @Test
+    fun `a spec that starts skills on sends an explicit off once the user turns them off`() {
+        val skilled = plain.copy(name = "skilled", skills = JsonPrimitive(true))
+        val base = state(ModelChoice.Spec("skilled", "openAI", "gpt-4o"))
+        val state = base.copy(selection = base.selection.copy(modelSpecs = ModelSpecs(list = listOf(skilled))))
+
+        assertEquals(false, assertNotNull(ChatRequestBuilder { state }.buildEphemeralAgent()).skills)
     }
 }

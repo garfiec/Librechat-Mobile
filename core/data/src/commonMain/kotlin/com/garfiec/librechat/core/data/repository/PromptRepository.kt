@@ -6,6 +6,7 @@ import com.garfiec.librechat.core.model.PromptGroup
 import com.garfiec.librechat.core.model.request.AddPromptToGroupRequest
 import com.garfiec.librechat.core.model.request.CreatePromptRequest
 import com.garfiec.librechat.core.model.request.UpdatePromptGroupRequest
+import com.garfiec.librechat.core.model.response.PromptRevisionChoices
 import kotlinx.coroutines.flow.StateFlow
 
 interface PromptRepository {
@@ -56,4 +57,7 @@ interface PromptRepository {
      * its live text read from `GET /api/prompts/groups/:groupId/resolve`, since it stores none.
      */
     suspend fun withResolvedText(group: PromptGroup): Result<PromptGroup>
+
+    /** The revisions an agent's linked instructions may pin (v0.8.9); not cached, a Langfuse list changes live. */
+    suspend fun getRevisionChoices(groupId: String): Result<PromptRevisionChoices>
 }

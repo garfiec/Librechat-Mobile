@@ -385,6 +385,9 @@
     <!-- Backup codes dialog -->
     <string name="dialog_title_backup_codes">Backup codes</string>
     <string name="backup_codes_instructions">Save these backup codes in a safe place. Each code can only be used once.</string>
+    <string name="twofa_sessions_incomplete">Two-factor authentication is on, but some other sessions may stay signed in until they expire. Save your backup codes, then sign in again.</string>
+    <string name="twofa_other_sessions_signed_out">Two-factor authentication is on. Every other device signed in to this account has been signed out.</string>
+    <string name="twofa_sign_in_again_to_enable">Sign in again to enable two-factor authentication.</string>
     <string name="dialog_title_regenerate_backup_codes">Regenerate backup codes?</string>
     <string name="regenerate_backup_codes_warning">Your current backup codes will stop working. You'll get a new set to save.</string>
     <string name="action_regenerate">Regenerate</string>
@@ -701,8 +704,11 @@
     <string name="role_permissions_saved">Saved</string>
     <string name="role_permissions_load_failed">Couldn't load this role's permissions.</string>
     <string name="role_permissions_save_failed">Couldn't save the permissions. Try again.</string>
-    <string name="role_permissions_admin_access_warning">Turning off Admin access to this feature may cause unexpected issues until the app reloads your permissions. Once saved, the only way to undo it is the interface setting in librechat.yaml, which affects all roles.</string>
-    <string name="role_permissions_more_info">More info</string>
+    <string name="role_permissions_admin_lockout_warning">Saving this turns off %1$s for every admin, including you, and hides these settings. Only someone with access to the server configuration can turn it back on.</string>
+    <string name="role_permissions_admin_lockout_title">Turn off %1$s for admins?</string>
+    <string name="role_permissions_admin_lockout_confirm_label">Type %1$s to confirm</string>
+    <string name="role_permissions_admin_lockout_confirm">Turn off for admins</string>
+    <string name="role_skills_section">Skills</string>
 
     <!-- Home-screen artifact shortcuts -->
     <string name="artifact_shortcuts_title">Home-screen shortcuts</string>

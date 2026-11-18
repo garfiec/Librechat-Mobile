@@ -48,6 +48,12 @@ class ChatChromeEquivalenceTest {
     }
 
     @Test
+    fun `streaming summary updates are equivalent`() {
+        val next = streaming.withContent { copy(streamingSummary = "Earlier, the user") }
+        assertTrue(streaming.chromeEquivalentTo(next))
+    }
+
+    @Test
     fun `active tool call updates are equivalent`() {
         val next = streaming.withContent {
             copy(activeToolCalls = listOf(ActiveToolCall(id = "t1", name = "web_search")))

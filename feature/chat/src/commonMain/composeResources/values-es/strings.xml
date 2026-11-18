@@ -587,6 +587,8 @@
     <string name="cd_minimize_ask_user_question">Minimizar preguntas</string>
     <string name="cd_restore_ask_user_question">Mostrar preguntas</string>
     <string name="tool_approval_waiting_marker">Esperando tu aprobación abajo</string>
+    <string name="pending_action_expired">Esta solicitud de información caducó, así que la respuesta se completó sin ella.</string>
+    <string name="pending_action_gone">Esta solicitud de información ya no está abierta, así que no se puede responder.</string>
     <string name="tool_approval_submit_progress">Continuar (%1$d/%2$d)</string>
     <string name="tool_approval_tab_fallback">Herramienta %1$d</string>
     <string name="cd_previous_tool_call">Llamada a herramienta anterior</string>
@@ -611,6 +613,10 @@
     <string name="error_mcp_authentication_refresh_failed">No se pudo renovar el inicio de sesión de un servidor MCP conectado, así que el mensaje no se envió. Inténtalo de nuevo en un momento.</string>
     <string name="error_project_resources_changed">Los archivos de este proyecto cambiaron mientras se iniciaba el mensaje, así que no se envió. Inténtalo de nuevo.</string>
     <string name="error_project_context_unavailable">El proyecto de este chat ya no está disponible, así que el mensaje no se envió. Puede que se haya eliminado.</string>
+    <string name="error_account_deletion_in_progress">Tu cuenta se está eliminando, así que no se pueden enviar mensajes nuevos.</string>
+    <string name="error_generation_admission_unavailable">El servidor no pudo iniciar la respuesta en este momento, así que el mensaje no se envió. Inténtalo de nuevo.</string>
+    <string name="error_token_balance">No tienes saldo suficiente para esta solicitud.</string>
+    <string name="error_agent_mcp_tools_unavailable">Las herramientas MCP de este agente no están disponibles. Comprueba que sus servidores MCP estén conectados y que puedas usar sus herramientas, y vuelve a intentarlo.</string>
     <string name="error_final_context_overflow">Esta conversación ya no cabe en la ventana de contexto del modelo. Inicia una nueva conversación o cambia a un modelo con una ventana mayor.</string>
     <string name="error_compaction_skipped">Aún no había nada que compactar. Sigue conversando e inténtalo más tarde.</string>
     <string name="error_compaction_failed">No se pudo generar el resumen, así que la conversación no ha cambiado. Inténtalo de nuevo.</string>
@@ -821,6 +827,7 @@
     <string name="attachment_recovery_retry">Reintentar sin archivos</string>
     <string name="attachment_recovery_branch">Ramificar sin archivos</string>
     <string name="notice_tool_decision_not_permitted">El servidor ya no permite una de estas decisiones. Elige otra para cada herramienta e inténtalo de nuevo.</string>
+    <string name="notice_resume_context_unavailable">No se puede acceder a la respuesta en pausa ahora mismo. Inténtalo de nuevo en un momento.</string>
     <string name="notice_content_blocked">El filtro de contenido del servidor bloqueó este mensaje. No se envió nada.</string>
     <string name="notice_skills_not_sent">Algunas habilidades no se pueden usar en este chat y no se enviaron.</string>
     <string name="notice_skills_removed_from_queued">Algunas habilidades no se pueden usar en este chat y se quitaron del mensaje en cola.</string>
@@ -1009,10 +1016,13 @@
     </plurals>
     <string name="thinking_title">Pensamiento</string>
     <string name="thinking_chip_next_message">%1$s · próximo mensaje</string>
-    <string name="cd_thinking_chip">Pensamiento para el próximo mensaje: %1$s</string>
+    <string name="cd_thinking_chip">Pensamiento: %1$s</string>
     <string name="thinking_next_message_only">Solo para tu próximo mensaje. Después, este chat vuelve a su propia configuración.</string>
     <string name="thinking_chat_setting">Configuración de este chat</string>
     <string name="thinking_change_chat_setting">Cambiar la configuración de este chat</string>
+    <string name="thinking_lasts_for_conversation">Para el resto de este chat, hasta que elijas otro nivel.</string>
+    <string name="thinking_back_to_chat_setting">Volver a la configuración de este chat</string>
+    <string name="thinking_chip_state_conversation">Para el resto de este chat</string>
     <string name="error_code_workspace_required">Elige un espacio de trabajo conectado antes de enviar.</string>
     <string name="error_code_workspace_invalid">La selección del espacio de trabajo no es válida. Selecciona un espacio de trabajo disponible.</string>
     <string name="error_code_workspace_worker_unavailable">La máquina no está disponible. Vuelve a conectarla o elige otra.</string>

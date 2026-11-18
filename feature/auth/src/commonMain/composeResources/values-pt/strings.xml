@@ -43,12 +43,14 @@
     <string name="send_reset_link">Enviar link de redefinição</string>
     <string name="check_your_email">Verifique seu e-mail</string>
     <string name="reset_link_sent">Enviamos um link de redefinição de senha para %1$s</string>
+    <string name="reset_password_unavailable">O envio de e-mails não está configurado. Fale com o administrador para redefinir sua senha.</string>
     <string name="back_to_sign_in">Voltar para entrar</string>
 
     <!-- Reset Password -->
     <string name="reset_password_screen_title">Redefinir senha</string>
     <string name="password_reset_successful">Senha redefinida com sucesso</string>
     <string name="password_reset_message">Sua senha foi atualizada. Agora você pode entrar com sua nova senha.</string>
+    <string name="password_reset_incomplete">Sua nova senha está ativa, mas algumas outras sessões podem continuar conectadas até expirarem. Entre com a nova senha e solicite outro link de redefinição para desconectá-las.</string>
     <string name="set_new_password">Definir nova senha</string>
     <string name="enter_new_password_hint">Digite sua nova senha abaixo</string>
     <string name="new_password_label">Nova senha</string>
@@ -117,6 +119,7 @@
     <string name="two_factor_setup_codes_acknowledged">Já salvei estes códigos</string>
     <string name="two_factor_setup_complete">Concluir configuração</string>
     <string name="two_factor_setup_expired">Sua sessão de configuração expirou. Entre novamente para continuar.</string>
+    <string name="two_factor_setup_sessions_incomplete">A autenticação de dois fatores está ativada, mas algumas outras sessões podem continuar conectadas até expirarem. Entre novamente para continuar.</string>
     <string name="two_factor_setup_back_to_sign_in">Voltar para entrar</string>
     <string name="two_factor_setup_error_start">Não foi possível iniciar a configuração. Tente novamente.</string>
     <string name="two_factor_setup_error_invalid">Esse código não confere. Digite o código atual do seu autenticador.</string>

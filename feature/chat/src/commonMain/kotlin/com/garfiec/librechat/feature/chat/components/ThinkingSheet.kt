@@ -2,6 +2,8 @@ package com.garfiec.librechat.feature.chat.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -15,6 +17,7 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -34,8 +37,10 @@ import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
 import com.garfiec.librechat.core.ui.components.LowProfileDragHandle
 import com.garfiec.librechat.core.ui.components.reasoningLevelLabel
 import com.garfiec.librechat.feature.chat.resources.Res
+import com.garfiec.librechat.feature.chat.resources.thinking_back_to_chat_setting
 import com.garfiec.librechat.feature.chat.resources.thinking_change_chat_setting
 import com.garfiec.librechat.feature.chat.resources.thinking_chat_setting
+import com.garfiec.librechat.feature.chat.resources.thinking_lasts_for_conversation
 import com.garfiec.librechat.feature.chat.resources.thinking_next_message_only
 import com.garfiec.librechat.feature.chat.resources.thinking_title
 import com.garfiec.librechat.feature.chat.util.ThinkingChip
@@ -43,11 +48,11 @@ import org.jetbrains.compose.resources.stringResource
 
 /**
  * The Thinking chip's sheet (v0.8.9-rc1): one radio row per level the model takes, the chat's own
- * setting marked. Picking a level stages it for the next message only ([onSelect]); picking the
- * chat's setting clears the staged choice. The link opens the chat's Model Parameters, where a
- * lasting change belongs.
+ * setting marked. Picking a level stages it ([onSelect]): for the next message only, or on a server
+ * that inherits it ([ThinkingChip.lastsForConversation]) for the rest of the conversation, which
+ * then offers a way back to the chat's setting. The link opens the chat's Model Parameters.
  *
- * A sheet rather than a menu, for the "next message only" line and the link.
+ * A sheet rather than a menu, for the scope line and the links.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -74,7 +79,9 @@ internal fun ThinkingSheet(
                 modifier = Modifier.semantics { heading() },
             )
             Text(
-                text = stringResource(Res.string.thinking_next_message_only),
+                text = stringResource(
+                    if (chip.lastsForConversation) Res.string.thinking_lasts_for_conversation else Res.string.thinking_next_message_only,
+                ),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -93,6 +100,18 @@ internal fun ThinkingSheet(
                 }
             }
             Spacer(Modifier.height(4.dp))
+            if (chip.canReturnToChatSetting) {
+                AdaptiveTextButton(
+                    onClick = {
+                        onSelect(chip.configured)
+                        onDismiss()
+                    },
+                ) {
+                    Icon(Icons.Default.Restore, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(Res.string.thinking_back_to_chat_setting))
+                }
+            }
             AdaptiveTextButton(onClick = onOpenChatSetting) {
                 Icon(Icons.Default.Tune, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
@@ -102,6 +121,7 @@ internal fun ThinkingSheet(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ThinkingLevelRow(label: String, isChatSetting: Boolean, selected: Boolean, onClick: () -> Unit) {
     Row(
@@ -114,18 +134,24 @@ private fun ThinkingLevelRow(label: String, isChatSetting: Boolean, selected: Bo
     ) {
         AdaptiveRadioButton(selected = selected, onClick = null)
         Spacer(Modifier.width(12.dp))
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyLarge,
+        // Flows so a long tag drops below the level at large font sizes instead of squeezing it.
+        FlowRow(
             modifier = Modifier.weight(1f),
-        )
-        if (isChatSetting) {
-            Spacer(Modifier.width(8.dp))
+            horizontalArrangement = Arrangement.SpaceBetween,
+            itemVerticalAlignment = Alignment.CenterVertically,
+        ) {
             Text(
-                text = stringResource(Res.string.thinking_chat_setting),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                text = label,
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.padding(end = 8.dp),
             )
+            if (isChatSetting) {
+                Text(
+                    text = stringResource(Res.string.thinking_chat_setting),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }

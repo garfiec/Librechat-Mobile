@@ -73,6 +73,7 @@ import com.garfiec.librechat.feature.chat.resources.setting_chip_set_by
 import com.garfiec.librechat.feature.chat.resources.setting_chip_sign_in
 import com.garfiec.librechat.feature.chat.resources.thinking_chat_setting
 import com.garfiec.librechat.feature.chat.resources.thinking_chip_next_message
+import com.garfiec.librechat.feature.chat.resources.thinking_chip_state_conversation
 import com.garfiec.librechat.feature.chat.resources.thinking_chip_state_next
 import com.garfiec.librechat.feature.chat.resources.tool_set_by_spec
 import com.garfiec.librechat.feature.chat.util.SettingChip
@@ -272,10 +273,16 @@ private fun McpSettingChip(
 @Composable
 private fun ThinkingSettingChip(chip: ThinkingChip, onClick: () -> Unit) {
     val level = reasoningLevelLabel(chip.shown, chip.unsetIsOff)
-    val staged = chip.pending != null
-    val label = if (staged) stringResource(Res.string.thinking_chip_next_message, level) else level
+    val staged = chip.departs
+    val label = if (staged && !chip.lastsForConversation) stringResource(Res.string.thinking_chip_next_message, level) else level
     val description = stringResource(Res.string.cd_thinking_chip, level)
-    val state = stringResource(if (staged) Res.string.thinking_chip_state_next else Res.string.thinking_chat_setting)
+    val state = stringResource(
+        when {
+            !staged -> Res.string.thinking_chat_setting
+            chip.lastsForConversation -> Res.string.thinking_chip_state_conversation
+            else -> Res.string.thinking_chip_state_next
+        },
+    )
     AdaptiveAssistChip(
         onClick = onClick,
         label = { Text(label, maxLines = 1) },

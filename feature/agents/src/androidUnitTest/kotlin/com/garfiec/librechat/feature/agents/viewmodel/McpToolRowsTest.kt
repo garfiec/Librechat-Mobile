@@ -49,6 +49,15 @@ class McpToolRowsTest {
     }
 
     @Test
+    fun `a row names its server by title, else by key`() {
+        val state = editing(agent, policy = null)
+
+        assertThat(state.selectedMcpToolRows().first { it.name == "search_code" }.subtitle).isEqualTo("My GitHub")
+        val titled = state.copy(mcpServerTitles = mapOf("My GitHub" to "GitHub")).selectedMcpToolRows()
+        assertThat(titled.first { it.name == "search_code" }.subtitle).isEqualTo("GitHub")
+    }
+
+    @Test
     fun `no picker unless the server enables agent modes`() {
         val off = editing(agent, EndpointToolApproval(enabled = true, agentModes = false)).selectedMcpToolRows()
         assertThat(off.all { it.approval == null }).isTrue()

@@ -596,6 +596,8 @@
     <string name="cd_minimize_ask_user_question">Свернуть вопросы</string>
     <string name="cd_restore_ask_user_question">Показать вопросы</string>
     <string name="tool_approval_waiting_marker">Ожидается ваше одобрение ниже</string>
+    <string name="pending_action_expired">Срок действия этого запроса истёк, поэтому ответ завершён без него.</string>
+    <string name="pending_action_gone">Этот запрос больше не открыт, поэтому на него нельзя ответить.</string>
     <string name="tool_approval_submit_progress">Продолжить (%1$d/%2$d)</string>
     <string name="tool_approval_tab_fallback">Инструмент %1$d</string>
     <string name="cd_previous_tool_call">Предыдущий вызов инструмента</string>
@@ -620,6 +622,10 @@
     <string name="error_mcp_authentication_refresh_failed">Не удалось обновить вход для подключённого MCP-сервера, поэтому сообщение не отправлено. Повторите попытку чуть позже.</string>
     <string name="error_project_resources_changed">Файлы этого проекта изменились, пока сообщение запускалось, поэтому оно не отправлено. Попробуйте снова.</string>
     <string name="error_project_context_unavailable">Проект этого чата больше недоступен, поэтому сообщение не отправлено. Возможно, он был удалён.</string>
+    <string name="error_account_deletion_in_progress">Ваш аккаунт удаляется, поэтому новые сообщения отправить нельзя.</string>
+    <string name="error_generation_admission_unavailable">Сервер сейчас не смог начать ответ, поэтому сообщение не отправлено. Попробуйте снова.</string>
+    <string name="error_token_balance">Вашего баланса недостаточно для этого запроса.</string>
+    <string name="error_agent_mcp_tools_unavailable">Инструменты MCP этого агента недоступны. Проверьте, что его серверы MCP подключены и у вас есть доступ к их инструментам, затем попробуйте снова.</string>
     <string name="error_final_context_overflow">Эта беседа больше не помещается в окно контекста модели. Начните новую беседу или выберите модель с большим окном контекста.</string>
     <string name="error_compaction_skipped">Пока нечего сжимать. Продолжайте беседу и попробуйте позже.</string>
     <string name="error_compaction_failed">Не удалось создать сводку, поэтому беседа не изменилась. Попробуйте снова.</string>
@@ -830,6 +836,7 @@
     <string name="attachment_recovery_retry">Повторить без файлов</string>
     <string name="attachment_recovery_branch">Ветвь без файлов</string>
     <string name="notice_tool_decision_not_permitted">Сервер больше не разрешает одно из этих решений. Выберите другое для каждого инструмента и попробуйте снова.</string>
+    <string name="notice_resume_context_unavailable">Сейчас не удаётся связаться с приостановленным ответом. Попробуйте ещё раз чуть позже.</string>
     <string name="notice_content_blocked">Фильтр содержимого сервера заблокировал это сообщение. Ничего не отправлено.</string>
     <string name="notice_skills_not_sent">Некоторые навыки нельзя использовать в этом чате, и они не были отправлены.</string>
     <string name="notice_skills_removed_from_queued">Некоторые навыки нельзя использовать в этом чате, и они были удалены из сообщения в очереди.</string>
@@ -1030,10 +1037,13 @@
     </plurals>
     <string name="thinking_title">Размышление</string>
     <string name="thinking_chip_next_message">%1$s · следующее сообщение</string>
-    <string name="cd_thinking_chip">Размышление для следующего сообщения: %1$s</string>
+    <string name="cd_thinking_chip">Размышление: %1$s</string>
     <string name="thinking_next_message_only">Только для следующего сообщения. Затем этот чат вернётся к своей настройке.</string>
     <string name="thinking_chat_setting">Настройка этого чата</string>
     <string name="thinking_change_chat_setting">Изменить настройку этого чата</string>
+    <string name="thinking_lasts_for_conversation">До конца этого чата, пока вы не выберете другой уровень.</string>
+    <string name="thinking_back_to_chat_setting">Вернуть настройку этого чата</string>
+    <string name="thinking_chip_state_conversation">До конца этого чата</string>
     <string name="error_code_workspace_required">Перед отправкой выберите подключённое рабочее пространство.</string>
     <string name="error_code_workspace_invalid">Выбрано недопустимое рабочее пространство. Выберите доступное.</string>
     <string name="error_code_workspace_worker_unavailable">Машина недоступна. Подключите её снова или выберите другую.</string>

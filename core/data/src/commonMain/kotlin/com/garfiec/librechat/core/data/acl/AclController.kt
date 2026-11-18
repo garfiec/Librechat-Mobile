@@ -347,6 +347,8 @@ internal fun Result.Error.toAclError(): AclError {
         PermissionUpdateFailure.BUSY -> return AclError.BUSY
         PermissionUpdateFailure.UNAVAILABLE -> return AclError.UNAVAILABLE
         PermissionUpdateFailure.AUDIT_UNAVAILABLE -> return AclError.AUDIT_UNAVAILABLE
+        PermissionUpdateFailure.PRINCIPAL_PREPARATION_FAILED -> return AclError.PRINCIPAL_PREPARATION_FAILED
+        PermissionUpdateFailure.DIRECTORY_VERIFICATION_UNAVAILABLE -> return AclError.DIRECTORY_VERIFICATION_UNAVAILABLE
         null -> Unit
     }
     return when {

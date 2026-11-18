@@ -23,6 +23,7 @@ import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.config.StartupConfig
 import com.garfiec.librechat.core.model.response.Category
 import com.garfiec.librechat.core.network.api.ConfigApi
+import com.garfiec.librechat.core.network.client.ClientLimitsHolder
 import com.garfiec.librechat.core.network.client.PendingRequestIdentity
 import com.garfiec.librechat.core.network.client.ServerRedirectException
 import io.ktor.client.plugins.HttpRequestTimeoutException
@@ -46,6 +47,7 @@ class ConfigRepositoryImpl(
     private val configCache: ConfigCacheDataStore,
     private val dispatcher: CoroutineDispatcher,
     private val serverDataStore: ServerDataStore,
+    private val clientLimits: ClientLimitsHolder = ClientLimitsHolder(),
 ) : ConfigRepository {
 
     override val serverUrl: Flow<String> = serverDataStore.currentUrlFlow
@@ -68,6 +70,7 @@ class ConfigRepositoryImpl(
     private fun setStartupConfig(config: StartupConfig?, serverId: String?) {
         _startupConfigForServer.value = if (config != null && serverId != null) ServerStartupConfig(serverId, config) else null
         _startupConfig.value = config
+        clientLimits.publish(config?.clientLimits)
     }
 
     private suspend fun activeServerId(): String? =

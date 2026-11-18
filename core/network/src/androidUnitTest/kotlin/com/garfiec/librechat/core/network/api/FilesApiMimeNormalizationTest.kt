@@ -50,6 +50,7 @@ class FilesApiMimeNormalizationTest {
         type: String,
         conversationId: String? = null,
         isTemporary: Boolean = false,
+        filename: String = "deploy.sh",
     ): String {
         var body: String? = null
         val engine = MockEngine { request ->
@@ -63,7 +64,7 @@ class FilesApiMimeNormalizationTest {
         }
         FilesApi(client(engine), librechatJson).uploadFile(
             bytes = "#!/bin/sh\n".encodeToByteArray(),
-            filename = "deploy.sh",
+            filename = filename,
             type = type,
             conversationId = conversationId,
             isTemporary = isTemporary,
@@ -97,6 +98,15 @@ class FilesApiMimeNormalizationTest {
         val body = uploadWithType("text/markdown")
 
         assertThat(body).contains("text/markdown")
+    }
+
+    @Test
+    fun `the part's filename is percent-encoded for the server's decodeURIComponent`() = runTest {
+        val body = uploadWithType("application/pdf", filename = "50% off \"Größe\" 日本.pdf")
+
+        assertThat(body).contains(
+            "filename=\"50%25%20off%20%22Gr%C3%B6%C3%9Fe%22%20%E6%97%A5%E6%9C%AC.pdf\"",
+        )
     }
 
     @Test

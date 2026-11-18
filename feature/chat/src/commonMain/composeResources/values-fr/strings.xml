@@ -587,6 +587,8 @@
     <string name="cd_minimize_ask_user_question">Réduire les questions</string>
     <string name="cd_restore_ask_user_question">Afficher les questions</string>
     <string name="tool_approval_waiting_marker">En attente de votre approbation ci-dessous</string>
+    <string name="pending_action_expired">Cette demande de saisie a expiré, la réponse a donc été finalisée sans elle.</string>
+    <string name="pending_action_gone">Cette demande de saisie n'est plus ouverte, il n'est donc plus possible d'y répondre.</string>
     <string name="tool_approval_submit_progress">Continuer (%1$d/%2$d)</string>
     <string name="tool_approval_tab_fallback">Outil %1$d</string>
     <string name="cd_previous_tool_call">Appel d’outil précédent</string>
@@ -611,6 +613,10 @@
     <string name="error_mcp_authentication_refresh_failed">La connexion d'un serveur MCP connecté n'a pas pu être actualisée, le message n'a donc pas été envoyé. Réessayez dans un instant.</string>
     <string name="error_project_resources_changed">Les fichiers de ce projet ont changé pendant le démarrage du message, il n'a donc pas été envoyé. Réessayez.</string>
     <string name="error_project_context_unavailable">Le projet de cette discussion n'est plus disponible, le message n'a donc pas été envoyé. Il a peut-être été supprimé.</string>
+    <string name="error_account_deletion_in_progress">Votre compte est en cours de suppression, aucun nouveau message ne peut donc être envoyé.</string>
+    <string name="error_generation_admission_unavailable">Le serveur n'a pas pu démarrer la réponse pour le moment, le message n'a donc pas été envoyé. Réessayez.</string>
+    <string name="error_token_balance">Votre solde est insuffisant pour cette requête.</string>
+    <string name="error_agent_mcp_tools_unavailable">Les outils MCP de cet agent ne sont pas disponibles. Vérifiez que ses serveurs MCP sont connectés et que vous pouvez utiliser leurs outils, puis réessayez.</string>
     <string name="error_final_context_overflow">Cette conversation ne tient plus dans la fenêtre de contexte du modèle. Démarrez une nouvelle conversation ou choisissez un modèle avec une fenêtre plus grande.</string>
     <string name="error_compaction_skipped">Il n'y avait encore rien à compacter. Continuez la discussion et réessayez plus tard.</string>
     <string name="error_compaction_failed">Le résumé n'a pas pu être généré, la conversation est donc inchangée. Réessayez.</string>
@@ -821,6 +827,7 @@
     <string name="attachment_recovery_retry">Réessayer sans fichiers</string>
     <string name="attachment_recovery_branch">Brancher sans fichiers</string>
     <string name="notice_tool_decision_not_permitted">Le serveur n'autorise plus l'une de ces décisions. Choisissez-en une autre pour chaque outil et réessayez.</string>
+    <string name="notice_resume_context_unavailable">La réponse en pause est inaccessible pour le moment. Réessayez dans un instant.</string>
     <string name="notice_content_blocked">Le filtre de contenu du serveur a bloqué ce message. Rien n'a été envoyé.</string>
     <string name="notice_skills_not_sent">Certaines compétences ne sont pas utilisables dans ce chat et n'ont pas été envoyées.</string>
     <string name="notice_skills_removed_from_queued">Certaines compétences ne sont pas utilisables dans ce chat et ont été retirées du message en file d'attente.</string>
@@ -1009,10 +1016,13 @@
     </plurals>
     <string name="thinking_title">Réflexion</string>
     <string name="thinking_chip_next_message">%1$s · prochain message</string>
-    <string name="cd_thinking_chip">Réflexion pour le prochain message : %1$s</string>
+    <string name="cd_thinking_chip">Réflexion : %1$s</string>
     <string name="thinking_next_message_only">Pour votre prochain message uniquement. Ensuite, cette discussion revient à son propre réglage.</string>
     <string name="thinking_chat_setting">Réglage de cette discussion</string>
     <string name="thinking_change_chat_setting">Modifier le réglage de cette discussion</string>
+    <string name="thinking_lasts_for_conversation">Pour le reste de cette discussion, jusqu'à ce que vous choisissiez un autre niveau.</string>
+    <string name="thinking_back_to_chat_setting">Revenir au réglage de cette discussion</string>
+    <string name="thinking_chip_state_conversation">Pour le reste de cette discussion</string>
     <string name="error_code_workspace_required">Choisissez un espace de travail associé avant d'envoyer.</string>
     <string name="error_code_workspace_invalid">La sélection de l'espace de travail n'est pas valide. Sélectionnez un espace de travail disponible.</string>
     <string name="error_code_workspace_worker_unavailable">La machine n'est pas disponible. Reconnectez-la ou choisissez-en une autre.</string>

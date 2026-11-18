@@ -77,6 +77,18 @@ class FileToolCallsTest {
     }
 
     @Test
+    fun a_one_line_success_summary_is_not_repeated_unless_the_call_failed() {
+        val args = """{"path":"a/b.py","content":"print(1)\n"}"""
+        val view = fileToolView(FileToolKind.CREATE, args, "Created a/b.py\n", intent = null)
+        assertNull(view.outputBelowPreview(failed = false))
+        assertEquals("Created a/b.py\n", view.outputBelowPreview(failed = true))
+        val warned = fileToolView(FileToolKind.CREATE, args, "Created a/b.py\nwarning: CRLF", intent = null)
+        assertEquals("Created a/b.py\nwarning: CRLF", warned.outputBelowPreview(failed = false))
+        val other = fileToolView(FileToolKind.CREATE, args, "Permission denied", intent = null)
+        assertEquals("Permission denied", other.outputBelowPreview(failed = false))
+    }
+
+    @Test
     fun an_overwrite_reads_as_updated_and_its_diff_wins_over_the_contents() {
         val output = "Updated a.txt\n--- a/a.txt\n+++ b/a.txt\n@@ -1,1 +1,1 @@\n-old\n+new\n"
         val view = fileToolView(FileToolKind.CREATE, """{"path":"a.txt","content":"new\n"}""", output, intent = null)

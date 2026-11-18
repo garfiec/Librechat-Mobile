@@ -10,6 +10,7 @@ import com.garfiec.librechat.core.data.repository.AgentRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.FileRepository
 import com.garfiec.librechat.core.data.repository.McpRepository
+import com.garfiec.librechat.core.data.repository.PromptRepository
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.SkillsRepository
 import com.garfiec.librechat.core.data.repository.ToolFavoritesRepository
@@ -20,6 +21,8 @@ import com.garfiec.librechat.core.model.AgentFile
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.EndpointToolApproval
 import com.garfiec.librechat.core.model.HandoffEdge
+import com.garfiec.librechat.core.model.PROMPT_SOURCE_LANGFUSE
+import com.garfiec.librechat.core.model.PromptGroup
 import com.garfiec.librechat.core.model.SkillSummary
 import com.garfiec.librechat.core.model.code.StatefulCodeSessionsConfig
 import com.garfiec.librechat.core.model.config.paramSettingsKey
@@ -54,6 +57,7 @@ import com.garfiec.librechat.feature.agents.viewmodel.delegate.AgentLoaderDelega
 import com.garfiec.librechat.feature.agents.viewmodel.delegate.AgentSaveDelegate
 import com.garfiec.librechat.feature.agents.viewmodel.delegate.AgentToolKeySources
 import com.garfiec.librechat.feature.agents.viewmodel.delegate.CodeToolAuthDelegate
+import com.garfiec.librechat.feature.agents.viewmodel.delegate.InstructionsPromptDelegate
 import com.garfiec.librechat.feature.agents.viewmodel.delegate.MarketplaceFilter
 import com.garfiec.librechat.feature.agents.viewmodel.delegate.ToolsMarketplaceDelegate
 import com.garfiec.librechat.feature.agents.viewmodel.delegate.WebSearchKeysDelegate
@@ -152,6 +156,8 @@ data class AgentEditorUiState(
     val actions: List<AgentActionDisplayData> = emptyList(),
     // MCP tools
     val mcpTools: List<McpTool> = emptyList(),
+    /** Each MCP server's configured `title`, by server key; a server without one is shown by its key. */
+    val mcpServerTitles: Map<String, String> = emptyMap(),
     val selectedMcpTools: Set<String> = emptySet(),
     // Capabilities toggles
     val codeInterpreterEnabled: Boolean = false,
@@ -225,6 +231,8 @@ data class AgentEditorUiState(
     val agentFileRemovalDeletes: Boolean = false,
     /** Whether thinkingDisplay `updates` may be offered (v0.8.8+); see AgentCapabilitiesDelegate. */
     val isThinkingDisplayUpdatesAvailable: Boolean = false,
+    /** Whether Gemini Hydrogen's `thinkingLevel` list (with `xhigh`) may be offered (v0.8.9+); see AgentCapabilitiesDelegate. */
+    val isThinkingLevelXhighAvailable: Boolean = false,
     /** A removal waiting on the user's confirmation; see [agentFileRemovalDeletes]. */
     val pendingFileRemoval: PendingAgentFileRemoval? = null,
     /** `/api/config.endpointsDropParamsMap` (v0.8.8-rc3), unresolved; hides advanced-parameter
@@ -239,11 +247,23 @@ data class AgentEditorUiState(
      */
     val filtersInferenceParameters: Boolean = false,
     /**
-     * The loaded agent's instructions come from a linked prompt group (v0.8.9-rc1+). The field is
-     * then read-only here: mobile cannot change the link, and editing the text would change
+     * The loaded agent's instructions come from a linked prompt group (v0.8.9-rc1+). Unless
+     * [isInstructionsLinkEditable], the field is then read-only: editing the text would change
      * nothing the agent runs.
      */
     val instructionsLinkedToPrompt: Boolean = false,
+    /** The server has the prompt revisions route (v0.8.9, landed 2026-10-30). See VERSION_GATES.md. */
+    val isLinkedInstructionsVersionSupported: Boolean = false,
+    /** `/api/endpoints` `agents.linkedInstructions.langfuse.enabled`: Langfuse groups are offered. */
+    val isLangfuseLinkingEnabled: Boolean = false,
+    /** Form: Prompt rather than Inline instructions. */
+    val instructionsFromPrompt: Boolean = false,
+    /** Form: the linked group and revision; null until a group is picked. */
+    val instructionsLink: InstructionsPromptLink? = null,
+    /** Save found Prompt mode with no group picked. */
+    val instructionsPromptError: Boolean = false,
+    val promptGroups: PromptLinkLoad<List<PromptGroup>> = PromptLinkLoad.Idle,
+    val promptRevisions: PromptLinkLoad<GroupRevisions> = PromptLinkLoad.Idle,
     /** Each endpoint's `customParams` as the agent inference filter reads it, keyed by endpoint name. */
     val inferenceEndpoints: Map<String, AgentInferenceEndpoint> = emptyMap(),
     // Skills (v0.8.6) — agent-editor skills selector.
@@ -352,6 +372,27 @@ data class AgentEditorUiState(
         get() = isToolApprovalVersionSupported && toolApprovalPolicy?.agentModes == true
 
     /**
+     * The instructions link can be edited here: the revisions route and a loaded link this client
+     * can read (not the restricted stub, nor a Langfuse link while the admin's switch is off).
+     * Otherwise a linked agent keeps the read-only note. The switch only adds Langfuse groups.
+     */
+    val isInstructionsLinkEditable: Boolean
+        get() {
+            val stored = loadedAgent?.instructionsPrompt
+            return isLinkedInstructionsVersionSupported && !isLinkedInstructionsSourceDisabled &&
+                (stored !is JsonObject || stored.toInstructionsPromptLink() != null)
+        }
+
+    /** Prompt mode with no group picked: Save is blocked. */
+    val isInstructionsPromptMissing: Boolean
+        get() = isInstructionsLinkEditable && instructionsFromPrompt && instructionsLink == null
+
+    /** A saved Langfuse link while the admin's switch is off: the agent runs without these instructions. */
+    val isLinkedInstructionsSourceDisabled: Boolean
+        get() = !isLangfuseLinkingEnabled &&
+            loadedAgent?.instructionsPrompt.instructionsPromptSource() == PROMPT_SOURCE_LANGFUSE
+
+    /**
      * Whether the editor shows a builtin: the server's capability AND the role's grant, as web's
      * catalog lists it. A hidden builtin the agent already has is still saved: the save reads
      * [isCodeInterpreterAvailable] / [isWebSearchAvailable], never these.
@@ -404,7 +445,7 @@ sealed interface AgentEditorEvent {
     data object Exit : AgentEditorEvent
 }
 
-@Suppress("TooManyFunctions") // debt: 63 functions
+@Suppress("TooManyFunctions", "LongParameterList") // debt: 68 functions, constructor dependencies
 class AgentEditorViewModel(
     private val agentRepository: AgentRepository,
     private val configRepository: ConfigRepository,
@@ -416,6 +457,7 @@ class AgentEditorViewModel(
     private val toolFavoritesRepository: ToolFavoritesRepository,
     codeSources: AgentCodeSources,
     private val contentReader: ContentReader,
+    promptRepository: PromptRepository,
     private val ioDispatcher: CoroutineDispatcher,
     initialAgentId: String? = null,
 ) : ViewModel() {
@@ -487,6 +529,25 @@ class AgentEditorViewModel(
 
     fun onCodeSettingsEvent(event: AgentCodeEvent) = codeSettingsDelegate.onEvent(event)
 
+    private val instructionsPromptDelegate = InstructionsPromptDelegate(stateHandle, configRepository, promptRepository)
+
+    /** The editable linked-instructions section; null keeps the inline field or the read-only note. */
+    val instructionsPromptView: StateFlow<InstructionsPromptView?> = _uiState
+        .map { it.instructionsPromptView() }
+        .distinctUntilChanged()
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    fun onInstructionsSourceChanged(fromPrompt: Boolean) = instructionsPromptDelegate.onSourceChanged(fromPrompt)
+
+    fun onInstructionsPromptGroupSelected(groupId: String) = instructionsPromptDelegate.onGroupSelected(groupId)
+
+    fun onInstructionsPromptVersionSelected(selection: InstructionsPromptSelection) =
+        instructionsPromptDelegate.onVersionSelected(selection)
+
+    fun retryPromptGroups() = instructionsPromptDelegate.retryGroups()
+
+    fun retryPromptRevisions() = instructionsPromptDelegate.retryRevisions()
+
     private val codeAuthDelegate = CodeToolAuthDelegate(
         stateHandle = stateHandle,
         agentToolsRepository = toolKeys.tools,
@@ -541,6 +602,7 @@ class AgentEditorViewModel(
         loaderDelegate.loadReferenceData()
         capabilitiesDelegate.observeAvailability()
         codeSettingsDelegate.start()
+        instructionsPromptDelegate.start()
         codeAuthDelegate.verifyCodeToolAuth()
         webSearchKeysDelegate.observe()
         if (editAgentId != null) {
@@ -629,9 +691,10 @@ class AgentEditorViewModel(
 
     // --- MCP Tools ---
 
-    fun onMcpToolToggled(toolName: String) {
+    /** [key] is an [com.garfiec.librechat.feature.agents.util.mcpToolKey], or a whole server's raw name. */
+    fun onMcpToolToggled(key: String) {
         stateHandle.update {
-            copy(selectedMcpTools = if (toolName in selectedMcpTools) selectedMcpTools - toolName else selectedMcpTools + toolName)
+            copy(selectedMcpTools = if (key in selectedMcpTools) selectedMcpTools - key else selectedMcpTools + key)
         }
     }
 

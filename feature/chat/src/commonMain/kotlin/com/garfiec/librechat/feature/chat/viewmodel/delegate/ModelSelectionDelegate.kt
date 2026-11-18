@@ -23,6 +23,7 @@ import com.garfiec.librechat.core.ui.components.ModelParameters
 import com.garfiec.librechat.feature.chat.util.DroppedSpecMemo
 import com.garfiec.librechat.feature.chat.util.SpecSeed
 import com.garfiec.librechat.feature.chat.util.StartChatPick
+import com.garfiec.librechat.feature.chat.util.THINKING_SWITCH_KEY
 import com.garfiec.librechat.feature.chat.util.demotedForLastUsed
 import com.garfiec.librechat.feature.chat.util.fallbackSpecSeeds
 import com.garfiec.librechat.feature.chat.util.heldAgainst
@@ -1244,10 +1245,10 @@ internal fun filterModelsByEndpoint(
             (endpointConfigs.isEmpty() || endpoint in endpointConfigs)
     }.mapValues { (_, models) -> models.distinct() }
 
-/** The agent's saved reasoning values, by key, as strings: what the Thinking chip shows as its setting. */
+/** The agent's saved reasoning values and thinking switch, by key, as strings: what the Thinking chip reads. */
 private fun reasoningParameters(modelParameters: JsonElement?): Map<String, String> {
     val params = modelParameters as? JsonObject ?: return emptyMap()
-    return ReasoningOverrideKeys.ALL.mapNotNull { key ->
+    return (ReasoningOverrideKeys.ALL + THINKING_SWITCH_KEY).mapNotNull { key ->
         (params[key] as? JsonPrimitive)?.let { key to it.content }
     }.toMap()
 }

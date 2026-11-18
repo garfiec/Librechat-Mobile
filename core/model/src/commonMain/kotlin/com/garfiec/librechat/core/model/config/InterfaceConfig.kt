@@ -111,11 +111,6 @@ data class InterfaceConfig(
      */
     val landingHeading: String? = null,
     /**
-     * Whether web's welcome screen carries the generic disclaimer and policy links under the
-     * composer. Decoded only: the mobile new-chat screen has no such footer to hide.
-     */
-    val landingFooter: Boolean? = null,
-    /**
      * Set false during a rolling upgrade, until every API replica supports conversation title
      * ownership. Server default `true`. Read together with
      * [StartupConfig.conversationTitleOwnershipVersion] through [supportsConversationTitleOwnership].
@@ -133,6 +128,8 @@ data class InterfaceConfig(
     val queuedSendLockTimeoutMs: JsonElement? = null,
     /** What the deployment lets readers turn on for replies. Read through [replyNotificationsAllowed]. */
     val replyNotifications: ReplyNotificationsConfig? = null,
+    /** `"always"` (default) or `"whenDifferent"`. Read through [hidesSelectedAuthor]. */
+    val messageAuthor: String? = null,
 )
 
 /**
@@ -194,6 +191,17 @@ fun isForcedTemporaryRetention(retentionMode: String?): Boolean = retentionMode 
 
 /** Upstream `RetentionMode.EPHEMERAL`. */
 const val RETENTION_MODE_EPHEMERAL: String = "ephemeral"
+
+/**
+ * Whether a reply from the agent the header's model selector names drops its author row
+ * (`interface.messageAuthor: "whenDifferent"`), which holds only while that selector shows: model
+ * selection on, or any model spec. MIRRORED from web's `useHideSelectedAuthor` (scripts/mirrors.json).
+ */
+val StartupConfig?.hidesSelectedAuthor: Boolean
+    get() {
+        val ui = this?.interfaceConfig ?: return false
+        return ui.messageAuthor == "whenDifferent" && (ui.modelSelect || modelSpecs?.list.orEmpty().isNotEmpty())
+    }
 
 /** `interface.landingHeading == "greeting"`: the time-of-day greeting heads the new chat whatever is selected. */
 fun InterfaceConfig?.landingHeadingIsGreeting(): Boolean = this?.landingHeading == "greeting"

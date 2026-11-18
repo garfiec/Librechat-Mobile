@@ -63,8 +63,14 @@ class AgentCapabilitiesDelegate(
                 // thinkingDisplay `updates`: the same gate as ChatViewModel's, kept in step with it;
                 // see VERSION_GATES.md.
                 val updates = BackendVersion.supportsFeature(detected, "0.8.8", "2026-09-29")
+                // ThinkingLevel.xhigh: the same gate as ChatViewModel's; see VERSION_GATES.md.
+                val xhigh = BackendVersion.supportsFeature(detected, "0.8.9", "2026-11-17")
                 stateHandle.update {
-                    copy(agentFileRemovalDeletes = deletes, isThinkingDisplayUpdatesAvailable = updates)
+                    copy(
+                        agentFileRemovalDeletes = deletes,
+                        isThinkingDisplayUpdatesAvailable = updates,
+                        isThinkingLevelXhighAvailable = xhigh,
+                    )
                 }
             }
         }

@@ -255,6 +255,7 @@ internal class ChatViewModelTestFixture {
         every { preferenceStore.initial(AppPreferences.SiteIcons) } returns null
         every { preferenceStore.observe(AppPreferences.WebSearchFirst) } returns webSearchFirst
         coEvery { conversationWebSearchStore.get(any()) } returns null
+        coEvery { conversationWebSearchStore.specTools(any()) } returns null
         coEvery { agentToolsRepository.verifyToolAuth(ToolConstants.WEB_SEARCH) } answers {
             Result.Success(ToolAuthResult(authenticated = webSearchAuthenticated))
         }

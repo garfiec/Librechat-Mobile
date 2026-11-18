@@ -48,16 +48,9 @@ data class ModelSpec(
      */
     val order: Double? = null,
     /**
-     * Raw `skills` key: `true`, `false` or a list of skill names. Absent means the spec leaves
-     * skills to the user's own toggle. Kept as a [JsonElement] because the key is a union; read it
-     * through [skillsSetting].
-     *
-     * Not sent by v0.8.8: `GET /api/config` runs the specs through `sanitizeModelSpecs`, which
-     * deletes `skills` from every spec (registered in `scripts/mirrors.json` as
-     * `model-spec-skills-sanitized`), so this is always null against the targeted backend and
-     * every spec-governed skills branch built on it is inert. The server still applies the spec's
-     * setting to the run; the client just can't see it. Kept so the handling switches on if
-     * upstream starts sending the key.
+     * Raw `skills` key; read it through [skillsSetting]. `GET /api/config` sends it as a boolean from
+     * v0.8.9 (`sanitizeModelSpecs` narrows a list to `true`; registered in `scripts/mirrors.json`
+     * as `model-spec-skills-sanitized`) and not at all before.
      */
     val skills: JsonElement? = null,
     /** Shown on the new-chat screen when the spec's agent, if it has one, has none of its own. */
@@ -67,11 +60,15 @@ data class ModelSpec(
      * as a [JsonElement] because the key is a union; read it through [artifactsMode].
      */
     val artifacts: JsonElement? = null,
-    /** Hides the composer's tool controls (web's badge row) while this spec is selected. */
+    /**
+     * Hides the composer's tool controls (web's badge row) while this spec is selected; the server then
+     * keeps the spec's own tool values whatever the request says.
+     */
     val hideBadgeRow: Boolean? = null,
     /**
-     * Tools this spec turns on. The server ORs each with the request's `ephemeralAgent` flag, so the
-     * client can add tools to a spec chat but can't turn these off.
+     * Tools this spec turns on. From v0.8.9 they are the spec chat's starting values, which an
+     * explicit request flag overrides; an older server ORs each with the request's, so they can't be
+     * turned off there.
      */
     val webSearch: Boolean? = null,
     val fileSearch: Boolean? = null,
@@ -79,7 +76,10 @@ data class ModelSpec(
     val memory: Boolean? = null,
     /** Applied by the server alone: the composer has no ask-user control, and web sends none. */
     val askUserQuestion: Boolean? = null,
-    /** MCP servers the server adds to the request's own, even ones hidden from the chat picker. */
+    /**
+     * MCP servers the spec chat starts with. From v0.8.9 a request's MCP list, empty included,
+     * replaces them except for those the chat picker can't offer; an older server adds them to it.
+     */
     val mcpServers: List<String>? = null,
     /**
      * The picker section this spec sits in: an endpoint's key nests it in that endpoint's section,
@@ -99,8 +99,8 @@ data class ModelSpec(
      * The `ephemeralAgent.artifacts` this spec turns on, or null for none. As web's
      * `applyModelSpecEphemeralAgent` (`client/src/utils/endpoints.ts`, registered in
      * `scripts/mirrors.json` as `model-spec-artifacts-web`): `true` is the default mode
-     * and a string is sent as is. The server reads artifacts from the ephemeral agent only, never
-     * from the spec, so a client that doesn't send it gets no artifacts.
+     * and a string is sent as is. A server before v0.8.9 reads artifacts from the request only,
+     * so a client that doesn't send it gets none there.
      */
     val artifactsMode: String?
         get() {
@@ -110,24 +110,19 @@ data class ModelSpec(
         }
 
     /**
-     * What this spec says about skills, or null when it configures none.
-     *
-     * MIRRORED from `api/server/services/Endpoints/agents/initialize.js` (registered in
-     * `scripts/mirrors.json` as `model-spec-skills`): `true` turns the full catalog on, `false`
-     * turns skills off, a list limits them to those names. A spec that has the key governs the
-     * ephemeral agent's skills outright, so the per-conversation toggle is not consulted.
-     * An empty list means no skills, like `false`. A value of any other shape is ignored, as the
-     * server's `Array.isArray` / `=== true` / `=== false` checks would ignore it.
+     * What this spec says about skills, or null when it configures none. MIRRORED from upstream
+     * `resolveSpecSkillsEnabled` (`packages/data-provider/src/models.ts`, registered in
+     * `scripts/mirrors.json` as `model-spec-skills`): `false` turns skills off for good; `true` (or a
+     * list, which the config route sends as `true`) only starts the chat's Skills toggle on, and the
+     * server may still limit the catalog to names the client can't see. Any other shape is ignored,
+     * as the server's checks would ignore it.
      */
     val skillsSetting: ModelSpecSkills?
         get() = when (val raw = skills) {
             null -> null
-            is JsonArray -> {
-                val names = raw.mapNotNull { (it as? JsonPrimitive)?.takeIf { p -> p.isString }?.contentOrNull }
-                if (names.isEmpty()) ModelSpecSkills.Off else ModelSpecSkills.Only(names)
-            }
+            is JsonArray -> ModelSpecSkills.On
             is JsonPrimitive -> when (raw.takeUnless { it.isString }?.booleanOrNull) {
-                true -> ModelSpecSkills.All
+                true -> ModelSpecSkills.On
                 false -> ModelSpecSkills.Off
                 null -> null
             }
@@ -136,13 +131,10 @@ data class ModelSpec(
 }
 
 /** A model spec's `skills` setting. See [ModelSpec.skillsSetting]. */
-sealed interface ModelSpecSkills {
-    /** `skills: true`: the whole catalog the user can reach. */
-    data object All : ModelSpecSkills
+enum class ModelSpecSkills {
+    /** `skills: true`: the chat's Skills toggle starts on, and the user may turn it off. */
+    On,
 
-    /** `skills: false` or `[]`: no skills, manual picks included. */
-    data object Off : ModelSpecSkills
-
-    /** `skills: [names]`: only these skills. */
-    data class Only(val names: List<String>) : ModelSpecSkills
+    /** `skills: false`: no skills, manual picks included. */
+    Off,
 }

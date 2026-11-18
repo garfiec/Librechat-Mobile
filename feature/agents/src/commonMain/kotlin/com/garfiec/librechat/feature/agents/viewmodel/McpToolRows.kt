@@ -4,7 +4,7 @@ import androidx.compose.runtime.Immutable
 import com.garfiec.librechat.feature.agents.util.ToolApprovalConstraint
 import com.garfiec.librechat.feature.agents.util.ToolApprovalMode
 import com.garfiec.librechat.feature.agents.util.approvalModeOf
-import com.garfiec.librechat.feature.agents.util.normalizeMcpServerName
+import com.garfiec.librechat.feature.agents.util.mcpToolKey
 import com.garfiec.librechat.feature.agents.util.toolApprovalConstraint
 
 /** One MCP row of the editor's "Tools & Actions", ready to draw. */
@@ -36,28 +36,27 @@ data class McpToolApprovalDisplay(
  * from the agent and the config, which change far less often than the form recomposes.
  */
 internal fun AgentEditorUiState.selectedMcpToolRows(): List<McpToolRowDisplay> {
-    val byName = mcpTools.associateBy { it.name }
+    val byKey = mcpTools.associateBy { mcpToolKey(it.name, it.serverName) }
     val modesOn = isToolApprovalModesAvailable
     val savedOptions = loadedAgent?.toolOptions
-    return selectedMcpTools.map { name ->
-        val tool = byName[name]
+    return selectedMcpTools.map { key ->
+        val tool = byKey[key]
         val server = tool?.serverName
         val approval = if (modesOn && server != null) {
-            val toolId = "$name$MCP_DELIMITER${normalizeMcpServerName(server)}"
             McpToolApprovalDisplay(
-                toolId = toolId,
-                mode = toolOptions.approvalModeOf(toolId),
-                constraint = toolApprovalConstraint(toolApprovalPolicy, toolId),
-                canReset = isEditMode && agentId != null && savedOptions.approvalModeOf(toolId)?.remembers == true,
-                isResetting = resettingApprovalToolId == toolId,
+                toolId = key,
+                mode = toolOptions.approvalModeOf(key),
+                constraint = toolApprovalConstraint(toolApprovalPolicy, key),
+                canReset = isEditMode && agentId != null && savedOptions.approvalModeOf(key)?.remembers == true,
+                isResetting = resettingApprovalToolId == key,
             )
         } else {
             null
         }
         McpToolRowDisplay(
-            selectionKey = name,
-            name = name,
-            subtitle = server ?: tool?.description,
+            selectionKey = key,
+            name = tool?.name ?: key.substringBefore(MCP_DELIMITER),
+            subtitle = server?.let { mcpServerTitles[it] ?: it } ?: tool?.description,
             approval = approval,
         )
     }

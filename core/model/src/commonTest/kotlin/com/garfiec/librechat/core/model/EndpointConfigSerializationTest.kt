@@ -92,4 +92,14 @@ class EndpointConfigSerializationTest {
         assertEquals(listOf("anthropic", "openAI"), decoded.allowedProviders)
         assertEquals(emptyList(), json.decodeFromString(EndpointConfig.serializer(), "{}").allowedProviders)
     }
+
+    @Test
+    fun agentsLinkedInstructionsSwitchDecodes() {
+        val decoded = json.decodeFromString(
+            EndpointConfig.serializer(),
+            """{"linkedInstructions": {"langfuse": {"enabled": true}}}""",
+        )
+        assertEquals(true, decoded.linkedInstructions?.langfuse?.enabled)
+        assertEquals(null, json.decodeFromString(EndpointConfig.serializer(), "{}").linkedInstructions)
+    }
 }

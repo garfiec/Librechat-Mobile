@@ -33,6 +33,7 @@ import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.core.model.FILE_SOURCE_TEXT
 import com.garfiec.librechat.core.model.FileReference
 import com.garfiec.librechat.core.model.files.fileKindOf
+import com.garfiec.librechat.core.model.files.filepathLeaf
 import com.garfiec.librechat.core.model.media.resolveFileReferenceUrl
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
 import com.garfiec.librechat.core.ui.components.FileTypeChip
@@ -82,9 +83,10 @@ fun MessageFiles(
                 otherFiles.forEach { file ->
                     val attachment = remember(file) { file.toAttachment() }
                     FileChip(
-                        filename = file.filename ?: file.filepath?.substringAfterLast('/') ?: stringResource(Res.string.file_fallback),
+                        filename = file.filename ?: file.filepath?.let(::filepathLeaf) ?: stringResource(Res.string.file_fallback),
                         type = file.type,
                         bytes = file.bytes,
+                        preview = file.previewSnippet(),
                         onClick = when {
                             openFile != null -> { { openFile(file) } }
                             // A text-source file has no stored bytes to download or preview.
@@ -175,8 +177,12 @@ internal fun MessageImagePreview(
     )
 }
 
+/** The server's snippet of a text/plain file, shown on its chip in place of the type and size. */
+internal fun FileReference.previewSnippet(): String? = textPreview?.trim()?.ifEmpty { null }
+
 /**
- * A non-image file as a [FileTypeChip]: its type tile, its name, and its type and size.
+ * A non-image file as a [FileTypeChip]: its type tile, its name, and its type and size, or its
+ * [preview] snippet when it has one.
  *
  * When [onClick] is non-null the chip is tappable (e.g. to download + share a generated file);
  * [isLoading] swaps the tile's glyph for a spinner while that action is in flight. An [expired]
@@ -191,13 +197,18 @@ internal fun FileChip(
     isLoading: Boolean = false,
     expired: Boolean = false,
     outlined: Boolean = false,
+    preview: String? = null,
     onClick: (() -> Unit)? = null,
 ) {
     val kind = remember(filename, type) { fileKindOf(filename, type) }
     FileTypeChip(
         filename = filename,
         kind = kind,
-        subtitle = if (expired) stringResource(Res.string.expired) else fileTypeSubtitle(kind, filename, bytes),
+        subtitle = when {
+            expired -> stringResource(Res.string.expired)
+            preview != null -> preview
+            else -> fileTypeSubtitle(kind, filename, bytes)
+        },
         modifier = modifier,
         isLoading = isLoading,
         dimmed = expired,

@@ -13,7 +13,9 @@ import com.garfiec.librechat.core.model.StreamEvent
 import com.garfiec.librechat.core.model.SubagentPhase
 import com.garfiec.librechat.core.model.content.MessageContentPart
 import com.garfiec.librechat.core.model.mcp.actionOAuthId
+import com.garfiec.librechat.core.model.mcp.mcpOAuthPromptOwnerId
 import com.garfiec.librechat.core.model.mcp.mcpOAuthServerName
+import com.garfiec.librechat.core.model.queuedturn.PromotedSteer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -257,6 +259,8 @@ class SseEventMapper(private val json: Json) {
             // Steers the run never injected. Claim-on-read — the server drops its copy as it
             // writes this frame — so they must be lifted off here or the text is gone.
             pendingSteers = parsePendingSteers(root["pendingSteers"]),
+            promotedSteers = parsePromotedSteers(json, root["promotedSteers"]),
+            settledError = (root["error"] as? JsonPrimitive)?.booleanOrNull == true,
         )
     }
 
@@ -281,6 +285,8 @@ class SseEventMapper(private val json: Json) {
             // Safe-cast: a non-primitive here must not fail the frame.
             privacyRevision = (messageObj?.get("privacyRevision") as? JsonPrimitive)
                 ?.takeIf { it.isString }?.content?.takeIf(String::isNotEmpty),
+            manualSkills = messageObj?.stringList("manualSkills"),
+            alwaysAppliedSkills = messageObj?.stringList("alwaysAppliedSkills"),
         )
     }
 
@@ -409,8 +415,12 @@ class SseEventMapper(private val json: Json) {
         // follow (and only carry that step id, never an agentId) can be resolved
         // to the right agent even when two agents' run steps interleave.
         val stepId = data["id"]?.jsonPrimitive?.contentOrNull
-        if (eventType == "on_run_step" && stepId != null && (eventAgentId != null || eventGroupId != null)) {
-            stepAgentContext[stepId] = eventAgentId to eventGroupId
+        if (eventType == "on_run_step" && stepId != null) {
+            if (eventAgentId != null || eventGroupId != null) {
+                stepAgentContext[stepId] = eventAgentId to eventGroupId
+            } else {
+                mcpOAuthPromptAgentContext(data)?.let { stepAgentContext[stepId] = it }
+            }
         }
 
         // Track agent context from run steps as a last-resort fallback for events
@@ -448,7 +458,7 @@ class SseEventMapper(private val json: Json) {
             "on_chat_model_end" -> null
             "on_agent_update" -> null
             "on_summarize_start" -> null // Lifecycle only; no useful payload to surface
-            "on_summarize_delta" -> null // Partial summary tokens; we only render the final summary
+            "on_summarize_delta" -> mapSummarizeDelta(data)
             "on_summarize_complete" -> mapSummarizeComplete(data, agentId, groupId)
             "on_subagent_update" -> mapSubagentUpdate(data, agentId, groupId)
             "attachment" -> mapAttachment(data)
@@ -500,19 +510,7 @@ class SseEventMapper(private val json: Json) {
     ): StreamEvent? {
         // {"id":"...","agentId":"...","summary":{"type":"summary","content":[{"type":"text","text":"..."}],...}}
         val summary = data["summary"]?.jsonObject ?: return null
-        val contentArray = summary["content"]?.jsonArray ?: return null
-
-        val textBuilder = StringBuilder()
-        for (element in contentArray) {
-            val part = element.jsonObject
-            val type = part["type"]?.jsonPrimitive?.contentOrNull
-            if (type == "text") {
-                val text = part["text"]?.jsonPrimitive?.contentOrNull
-                if (text != null) textBuilder.append(text)
-            }
-        }
-
-        val text = textBuilder.toString()
+        val text = summaryBlocksText(summary) ?: return null
         if (text.isEmpty()) return null
 
         return StreamEvent.ContextSummary(
@@ -625,6 +623,18 @@ class SseEventMapper(private val json: Json) {
             agentId = agentId,
             groupId = groupId,
         )
+    }
+
+    /**
+     * A synthetic MCP sign-in step carries no agent, and in Compare two lanes can prompt at once:
+     * it belongs to the agent of the call or step its `oauth:` id names, never the latest run step's.
+     */
+    private fun mcpOAuthPromptAgentContext(data: JsonObject): Pair<String?, Int?>? {
+        val call = ((data["stepDetails"] as? JsonObject)?.get("tool_calls") as? JsonArray)?.firstOrNull() as? JsonObject
+        val ownerId = mcpOAuthPromptOwnerId((call?.get("id") as? JsonPrimitive)?.contentOrNull) ?: return null
+        val ownerStepId = ownerId.takeIf { it in stepAgentContext }
+            ?: stepToolCallIds.entries.firstOrNull { it.value == ownerId }?.key
+        return ownerStepId?.let { stepAgentContext[it] }
     }
 
     private fun mapRunStep(
@@ -974,3 +984,40 @@ private fun mapSandboxStarting(data: JsonObject): StreamEvent? {
         runId = (data["runId"] as? JsonPrimitive)?.contentOrNull,
     )
 }
+
+/** Decodes `TPromotedSteer[]`, dropping an entry that fails to decode rather than the frame. */
+@Suppress("TooGenericExceptionCaught") // one malformed SSE frame must not end the stream
+private fun parsePromotedSteers(json: Json, element: JsonElement?): List<PromotedSteer> {
+    val array = element as? JsonArray ?: return emptyList()
+    return array.mapNotNull { item ->
+        try {
+            json.decodeFromJsonElement(PromotedSteer.serializer(), item)
+        } catch (e: Exception) {
+            Logger.w("SSE", e) { "Failed to parse promoted steer" }
+            null
+        }
+    }
+}
+
+/** `{"id","reset"?,"delta":{"summary":{"type":"summary","content":[{"type":"text","text"}]}}}`. */
+private fun mapSummarizeDelta(data: JsonObject): StreamEvent? {
+    val summary = (data["delta"] as? JsonObject)?.get("summary") as? JsonObject
+    val text = summary?.let(::summaryBlocksText).orEmpty()
+    val reset = (data["reset"] as? JsonPrimitive)?.booleanOrNull == true
+    if (text.isEmpty() && !reset) return null
+    return StreamEvent.SummaryDelta(text = text, reset = reset)
+}
+
+/** The text blocks of a summary part's `content`, joined; null when it has no content array. */
+private fun summaryBlocksText(summary: JsonObject): String? {
+    val content = summary["content"] as? JsonArray ?: return null
+    return content.joinToString("") { element ->
+        val part = element as? JsonObject ?: return@joinToString ""
+        if ((part["type"] as? JsonPrimitive)?.contentOrNull != "text") return@joinToString ""
+        (part["text"] as? JsonPrimitive)?.contentOrNull.orEmpty()
+    }
+}
+
+/** A list of names under [key], or null when the key is absent or not an array. */
+private fun JsonObject.stringList(key: String): List<String>? =
+    (this[key] as? JsonArray)?.mapNotNull { (it as? JsonPrimitive)?.takeIf { p -> p.isString }?.content }

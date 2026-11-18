@@ -72,6 +72,10 @@ internal fun authRefusalOfCode(code: String?): AuthRefusal? = when (code) {
     else -> null
 }
 
+/** The change was made (new password, 2FA on), but no earlier session was retired and none handed back. */
+internal fun Result.Error.isCredentialRetirementIncomplete(): Boolean =
+    ServerErrorCode.from((exception as? ApiException)?.body) == ServerErrorCode.CREDENTIAL_RETIREMENT_INCOMPLETE
+
 /** The refusal this failure carries, or null. See [authRefusalOf]. */
 internal fun Result.Error.authRefusalOrNull(): AuthRefusal? =
     (exception as? ApiException)?.let { authRefusalOf(it.statusCode, it.body) }

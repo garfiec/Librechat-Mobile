@@ -578,6 +578,8 @@
     <string name="cd_minimize_ask_user_question">질문 최소화</string>
     <string name="cd_restore_ask_user_question">질문 보기</string>
     <string name="tool_approval_waiting_marker">아래에서 승인을 기다리는 중</string>
+    <string name="pending_action_expired">이 입력 요청이 만료되어 응답이 입력 없이 완료되었습니다.</string>
+    <string name="pending_action_gone">이 입력 요청은 더 이상 열려 있지 않아 답할 수 없습니다.</string>
     <string name="tool_approval_submit_progress">계속 (%1$d/%2$d)</string>
     <string name="tool_approval_tab_fallback">도구 %1$d</string>
     <string name="cd_previous_tool_call">이전 도구 호출</string>
@@ -602,6 +604,10 @@
     <string name="error_mcp_authentication_refresh_failed">연결된 MCP 서버의 로그인을 갱신할 수 없어 메시지가 전송되지 않았습니다. 잠시 후 다시 시도하세요.</string>
     <string name="error_project_resources_changed">메시지를 시작하는 동안 이 프로젝트의 파일이 변경되어 전송되지 않았습니다. 다시 시도하세요.</string>
     <string name="error_project_context_unavailable">이 채팅의 프로젝트를 더 이상 사용할 수 없어 메시지가 전송되지 않았습니다. 삭제되었을 수 있습니다.</string>
+    <string name="error_account_deletion_in_progress">계정을 삭제하는 중이라 새 메시지를 보낼 수 없습니다.</string>
+    <string name="error_generation_admission_unavailable">서버가 지금 응답을 시작할 수 없어 메시지가 전송되지 않았습니다. 다시 시도하세요.</string>
+    <string name="error_token_balance">이 요청에 필요한 잔액이 부족합니다.</string>
+    <string name="error_agent_mcp_tools_unavailable">이 에이전트의 MCP 도구를 사용할 수 없습니다. MCP 서버가 연결되어 있고 해당 도구를 사용할 수 있는지 확인한 후 다시 시도하세요.</string>
     <string name="error_final_context_overflow">이 대화가 더 이상 모델의 컨텍스트 창에 맞지 않습니다. 새 대화를 시작하거나 컨텍스트 창이 더 큰 모델로 전환하세요.</string>
     <string name="error_compaction_skipped">아직 압축할 내용이 없습니다. 대화를 계속한 후 나중에 다시 시도하세요.</string>
     <string name="error_compaction_failed">요약을 생성하지 못해 대화가 변경되지 않았습니다. 다시 시도하세요.</string>
@@ -812,6 +818,7 @@
     <string name="attachment_recovery_retry">파일 없이 다시 시도</string>
     <string name="attachment_recovery_branch">파일 없이 분기</string>
     <string name="notice_tool_decision_not_permitted">서버에서 이 결정 중 하나를 더 이상 허용하지 않습니다. 각 도구에 대해 다른 결정을 선택하고 다시 시도하세요.</string>
+    <string name="notice_resume_context_unavailable">지금은 일시 중지된 응답에 연결할 수 없습니다. 잠시 후 다시 시도하세요.</string>
     <string name="notice_content_blocked">서버의 콘텐츠 필터가 이 메시지를 차단했습니다. 아무것도 전송되지 않았습니다.</string>
     <string name="notice_skills_not_sent">일부 스킬은 이 채팅에서 사용할 수 없어 전송되지 않았습니다.</string>
     <string name="notice_skills_removed_from_queued">일부 스킬은 이 채팅에서 사용할 수 없어 대기 중인 메시지에서 제거되었습니다.</string>
@@ -979,10 +986,13 @@
     </plurals>
     <string name="thinking_title">사고</string>
     <string name="thinking_chip_next_message">%1$s · 다음 메시지</string>
-    <string name="cd_thinking_chip">다음 메시지의 사고: %1$s</string>
+    <string name="cd_thinking_chip">사고: %1$s</string>
     <string name="thinking_next_message_only">다음 메시지에만 적용됩니다. 이후에는 이 채팅의 원래 설정으로 돌아갑니다.</string>
     <string name="thinking_chat_setting">이 채팅의 설정</string>
     <string name="thinking_change_chat_setting">이 채팅의 설정 변경</string>
+    <string name="thinking_lasts_for_conversation">다른 수준을 고를 때까지 이 채팅의 나머지에 적용됩니다.</string>
+    <string name="thinking_back_to_chat_setting">이 채팅의 설정으로 돌아가기</string>
+    <string name="thinking_chip_state_conversation">이 채팅의 나머지</string>
     <string name="error_code_workspace_required">보내기 전에 연결된 작업 공간을 선택하세요.</string>
     <string name="error_code_workspace_invalid">작업 공간 선택이 잘못되었습니다. 사용 가능한 작업 공간을 선택하세요.</string>
     <string name="error_code_workspace_worker_unavailable">머신을 사용할 수 없습니다. 다시 연결하거나 다른 머신을 선택하세요.</string>

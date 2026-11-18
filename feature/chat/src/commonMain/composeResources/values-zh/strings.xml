@@ -578,6 +578,8 @@
     <string name="cd_minimize_ask_user_question">最小化问题</string>
     <string name="cd_restore_ask_user_question">显示问题</string>
     <string name="tool_approval_waiting_marker">请在下方批准</string>
+    <string name="pending_action_expired">此输入请求已过期，因此回复在没有它的情况下完成。</string>
+    <string name="pending_action_gone">此输入请求已不再开放，因此无法回答。</string>
     <string name="tool_approval_submit_progress">继续（%1$d/%2$d）</string>
     <string name="tool_approval_tab_fallback">工具 %1$d</string>
     <string name="cd_previous_tool_call">上一个工具调用</string>
@@ -602,6 +604,10 @@
     <string name="error_mcp_authentication_refresh_failed">无法刷新已连接 MCP 服务器的登录，因此消息未发送。请稍后重试。</string>
     <string name="error_project_resources_changed">消息开始发送时此项目的文件发生了变化，因此未发送。请重试。</string>
     <string name="error_project_context_unavailable">此对话所属的项目已不可用，因此消息未发送。该项目可能已被删除。</string>
+    <string name="error_account_deletion_in_progress">你的账户正在删除，因此无法发送新消息。</string>
+    <string name="error_generation_admission_unavailable">服务器暂时无法开始回复，因此消息未发送。请重试。</string>
+    <string name="error_token_balance">你的余额不足以完成此请求。</string>
+    <string name="error_agent_mcp_tools_unavailable">此智能体的 MCP 工具不可用。请确认其 MCP 服务器已连接且你有权使用这些工具，然后重试。</string>
     <string name="error_final_context_overflow">此对话已超出模型的上下文窗口。请开始新对话，或切换到上下文窗口更大的模型。</string>
     <string name="error_compaction_skipped">目前还没有可压缩的内容。请继续对话，稍后再试。</string>
     <string name="error_compaction_failed">无法生成摘要，对话未作更改。请重试。</string>
@@ -812,6 +818,7 @@
     <string name="attachment_recovery_retry">不带文件重试</string>
     <string name="attachment_recovery_branch">不带文件创建分支</string>
     <string name="notice_tool_decision_not_permitted">服务器已不再允许其中一项决定。请为每个工具选择其他决定后重试。</string>
+    <string name="notice_resume_context_unavailable">暂时无法连接到已暂停的回复。请稍后重试。</string>
     <string name="notice_content_blocked">服务器的内容过滤器拦截了此消息。未发送任何内容。</string>
     <string name="notice_skills_not_sent">部分技能无法在此聊天中使用，未被发送。</string>
     <string name="notice_skills_removed_from_queued">部分技能无法在此聊天中使用，已从排队的消息中移除。</string>
@@ -979,10 +986,13 @@
     </plurals>
     <string name="thinking_title">思考</string>
     <string name="thinking_chip_next_message">%1$s · 下一条消息</string>
-    <string name="cd_thinking_chip">下一条消息的思考：%1$s</string>
+    <string name="cd_thinking_chip">思考：%1$s</string>
     <string name="thinking_next_message_only">仅适用于你的下一条消息。之后此对话将恢复其自身设置。</string>
     <string name="thinking_chat_setting">此对话的设置</string>
     <string name="thinking_change_chat_setting">更改此对话的设置</string>
+    <string name="thinking_lasts_for_conversation">适用于此对话的其余部分，直到你选择其他级别。</string>
+    <string name="thinking_back_to_chat_setting">恢复此对话的设置</string>
+    <string name="thinking_chip_state_conversation">此对话的其余部分</string>
     <string name="error_code_workspace_required">发送前请选择一个已连接的工作区。</string>
     <string name="error_code_workspace_invalid">工作区选择无效。请选择一个可用的工作区。</string>
     <string name="error_code_workspace_worker_unavailable">该机器不可用。请重新连接，或选择其他机器。</string>

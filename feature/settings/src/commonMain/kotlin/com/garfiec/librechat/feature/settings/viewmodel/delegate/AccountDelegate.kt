@@ -234,7 +234,7 @@ class AccountDelegate(
     }
 
     fun dismissError() {
-        stateHandle.update { copy(error = null) }
+        stateHandle.update { copy(error = null, errorRes = null) }
     }
 
     private companion object {

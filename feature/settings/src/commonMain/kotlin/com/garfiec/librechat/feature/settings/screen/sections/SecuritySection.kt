@@ -72,15 +72,15 @@ internal fun TwoFactorSetupDialog(
     LaunchedEffect(isLoading) { if (!isLoading) submitted = false }
 
     AdaptiveAlertDialog(
-        modifier = Modifier.clearFocusOnTap(),
+        // On the dialog's root, not the text: the card then shrinks above the keyboard, the text
+        // scrolls, and the buttons stay in view even with the QR code expanded.
+        modifier = Modifier.clearFocusOnTap().imePadding(),
         onDismissRequest = onDismiss,
         scrollableText = false,
         title = { Text(stringResource(Res.string.dialog_title_enable_2fa)) },
         text = {
             Column(
-                modifier = Modifier
-                    .imePadding()
-                    .verticalScroll(rememberScrollState()),
+                modifier = Modifier.verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Text(
@@ -220,6 +220,8 @@ private val QR_SIZE = 200.dp
 internal fun BackupCodesDialog(
     backupCodes: List<String>,
     onDismiss: () -> Unit,
+    warning: String? = null,
+    note: String? = null,
 ) {
     val clipboard = rememberClipboardWriter()
     // These are single-use recovery codes shown exactly once. Without a copy action the only way
@@ -237,6 +239,16 @@ internal fun BackupCodesDialog(
             Column(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
+                if (warning != null) {
+                    Text(
+                        text = warning,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+                if (note != null) {
+                    Text(text = note, style = MaterialTheme.typography.bodyMedium)
+                }
                 Text(
                     text = stringResource(Res.string.backup_codes_instructions),
                     style = MaterialTheme.typography.bodyMedium,

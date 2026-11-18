@@ -376,6 +376,9 @@
     <!-- Backup codes dialog -->
     <string name="dialog_title_backup_codes">Backup-Codes</string>
     <string name="backup_codes_instructions">Bewahre diese Backup-Codes an einem sicheren Ort auf. Jeder Code kann nur einmal verwendet werden.</string>
+    <string name="twofa_sessions_incomplete">Die Zwei-Faktor-Authentifizierung ist aktiv, aber einige andere Sitzungen bleiben eventuell angemeldet, bis sie ablaufen. Sichere deine Backup-Codes und melde dich dann erneut an.</string>
+    <string name="twofa_other_sessions_signed_out">Die Zwei-Faktor-Authentifizierung ist aktiv. Alle anderen Geräte, die bei diesem Konto angemeldet waren, wurden abgemeldet.</string>
+    <string name="twofa_sign_in_again_to_enable">Melde dich erneut an, um die Zwei-Faktor-Authentifizierung zu aktivieren.</string>
     <string name="dialog_title_regenerate_backup_codes">Backup-Codes neu erstellen?</string>
     <string name="regenerate_backup_codes_warning">Deine aktuellen Backup-Codes funktionieren dann nicht mehr. Du erhältst einen neuen Satz zum Speichern.</string>
     <string name="action_regenerate">Neu erstellen</string>
@@ -692,8 +695,11 @@
     <string name="role_permissions_saved">Gespeichert</string>
     <string name="role_permissions_load_failed">Die Berechtigungen dieser Rolle konnten nicht geladen werden.</string>
     <string name="role_permissions_save_failed">Die Berechtigungen konnten nicht gespeichert werden. Versuche es erneut.</string>
-    <string name="role_permissions_admin_access_warning">Wenn du den Admin-Zugriff auf diese Funktion deaktivierst, kann das zu unerwarteten Problemen führen, bis die App deine Berechtigungen neu lädt. Nach dem Speichern lässt sich das nur über die Einstellung interface in librechat.yaml rückgängig machen, die sich auf alle Rollen auswirkt.</string>
-    <string name="role_permissions_more_info">Mehr Infos</string>
+    <string name="role_permissions_admin_lockout_warning">Durch das Speichern wird %1$s für alle Admins deaktiviert, auch für dich, und diese Einstellungen werden ausgeblendet. Nur jemand mit Zugriff auf die Serverkonfiguration kann es wieder aktivieren.</string>
+    <string name="role_permissions_admin_lockout_title">%1$s für Admins deaktivieren?</string>
+    <string name="role_permissions_admin_lockout_confirm_label">Zum Bestätigen %1$s eingeben</string>
+    <string name="role_permissions_admin_lockout_confirm">Für Admins deaktivieren</string>
+    <string name="role_skills_section">Skills</string>
     <string name="artifact_shortcuts_title">Startbildschirm-Verknüpfungen</string>
     <string name="artifact_shortcuts_empty">Noch keine Artefakte an den Startbildschirm angeheftet.</string>
     <string name="artifact_shortcuts_disabled_message">Diese Artefakt-Verknüpfung wurde entfernt.</string>

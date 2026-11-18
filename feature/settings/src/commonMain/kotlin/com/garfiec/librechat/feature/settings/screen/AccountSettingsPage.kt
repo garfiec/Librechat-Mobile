@@ -46,6 +46,7 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun AccountSettingsPage(
     onLogout: () -> Unit,
+    onSignInAgain: () -> Unit,
     onNavigateToPasskeys: () -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
@@ -56,6 +57,7 @@ fun AccountSettingsPage(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val pullRequestAccount by pullRequestAccountViewModel.uiState.collectAsStateWithLifecycle()
     val currentOnLogout by rememberUpdatedState(onLogout)
+    val currentOnSignInAgain by rememberUpdatedState(onSignInAgain)
     val retryLabel = stringResource(Res.string.action_retry)
 
     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -69,11 +71,12 @@ fun AccountSettingsPage(
         pullRequestAccountViewModel.refresh()
     }
 
-    LaunchedEffect(uiState.error) {
-        val error = uiState.error ?: return@LaunchedEffect
+    val errorResText = uiState.errorRes?.let { stringResource(it) }
+    LaunchedEffect(uiState.error, errorResText) {
+        val error = uiState.error ?: errorResText ?: return@LaunchedEffect
         val result = snackbarHostState.showSnackbar(
             message = error,
-            actionLabel = retryLabel,
+            actionLabel = retryLabel.takeIf { uiState.error != null },
         )
         viewModel.dismissError()
         if (result == SnackbarResult.ActionPerformed) {
@@ -109,6 +112,9 @@ fun AccountSettingsPage(
         if (uiState.isLoggedOut || uiState.isAccountDeleted) {
             currentOnLogout()
         }
+    }
+    LaunchedEffect(uiState.isSignInAgainRequested) {
+        if (uiState.isSignInAgainRequested) currentOnSignInAgain()
     }
 
     AdaptiveGroupedPage(modifier = modifier.fillMaxSize()) {
@@ -322,6 +328,12 @@ fun AccountSettingsPage(
             BackupCodesDialog(
                 backupCodes = uiState.backupCodes,
                 onDismiss = viewModel::dismissBackupCodesDialog,
+                warning = if (uiState.twoFactorSignInRequired) stringResource(Res.string.twofa_sessions_incomplete) else null,
+                note = if (uiState.twoFactorOtherSessionsSignedOut) {
+                    stringResource(Res.string.twofa_other_sessions_signed_out)
+                } else {
+                    null
+                },
             )
         }
 

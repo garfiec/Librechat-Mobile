@@ -43,12 +43,14 @@
     <string name="send_reset_link">Enviar enlace de restablecimiento</string>
     <string name="check_your_email">Revisa tu correo</string>
     <string name="reset_link_sent">Hemos enviado un enlace para restablecer la contraseña a %1$s</string>
+    <string name="reset_password_unavailable">El envío de correo no está configurado. Contacta con tu administrador para restablecer tu contraseña.</string>
     <string name="back_to_sign_in">Volver a iniciar sesión</string>
 
     <!-- Reset Password -->
     <string name="reset_password_screen_title">Restablecer contraseña</string>
     <string name="password_reset_successful">Contraseña restablecida correctamente</string>
     <string name="password_reset_message">Tu contraseña se ha actualizado. Ahora puedes iniciar sesión con tu nueva contraseña.</string>
+    <string name="password_reset_incomplete">Tu nueva contraseña ya está activa, pero algunas otras sesiones pueden seguir iniciadas hasta que caduquen. Inicia sesión con la nueva contraseña y solicita otro enlace de restablecimiento para cerrarlas.</string>
     <string name="set_new_password">Establecer nueva contraseña</string>
     <string name="enter_new_password_hint">Introduce tu nueva contraseña a continuación</string>
     <string name="new_password_label">Nueva contraseña</string>
@@ -117,6 +119,7 @@
     <string name="two_factor_setup_codes_acknowledged">He guardado estos códigos</string>
     <string name="two_factor_setup_complete">Completar configuración</string>
     <string name="two_factor_setup_expired">Tu sesión de configuración ha caducado. Vuelve a iniciar sesión para continuar.</string>
+    <string name="two_factor_setup_sessions_incomplete">La autenticación de dos factores está activada, pero algunas otras sesiones pueden seguir iniciadas hasta que caduquen. Vuelve a iniciar sesión para continuar.</string>
     <string name="two_factor_setup_back_to_sign_in">Volver a iniciar sesión</string>
     <string name="two_factor_setup_error_start">No se pudo iniciar la configuración. Inténtalo de nuevo.</string>
     <string name="two_factor_setup_error_invalid">Ese código no coincide. Introduce el código actual de tu app de autenticación.</string>

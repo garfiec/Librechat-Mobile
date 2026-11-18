@@ -218,7 +218,7 @@ class ContextProjectionDelegateTest {
         }
 
     @Test
-    fun `a vertexai agent takes its window from google's token-config, as web's catalog alias does`() =
+    fun `a vertexai agent takes its window from google's token-config on a server without a vertexai catalog`() =
         runTest(UnconfinedTestDispatcher()) {
             coEvery { endpointTokenRepository.getTokenConfig() } returns
                 Result.Success(mapOf("google" to mapOf("gemini-2.5-pro" to ModelTokenomics(context = 9_000))))
@@ -232,6 +232,27 @@ class ContextProjectionDelegateTest {
             val flow = started(onAgent)
 
             assertThat(flow.value.contextUsage?.windowTokens).isEqualTo(9_000)
+        }
+
+    @Test
+    fun `a vertexai agent takes its window from the vertexai catalog where token-config serves one`() =
+        runTest(UnconfinedTestDispatcher()) {
+            coEvery { endpointTokenRepository.getTokenConfig() } returns Result.Success(
+                mapOf(
+                    "google" to mapOf("gemini-4-hydrogen" to ModelTokenomics(context = 9_000)),
+                    "vertexai" to mapOf("gemini-4-hydrogen" to ModelTokenomics(context = 7_000)),
+                ),
+            )
+            coEvery { agentRepository.getAgentForEditing("agent_v") } returns
+                Result.Success(Agent(id = "agent_v", provider = "vertexai", model = "gemini-4-hydrogen"))
+            val base = state(listOf(msg("u1"), msg("a1", "u1")), windowOverride = null)
+            val onAgent = base.copy(
+                selection = base.selection.copy(choice = ModelChoice.Raw(EndpointConstants.AGENTS, "agent_v")),
+            )
+
+            val flow = started(onAgent)
+
+            assertThat(flow.value.contextUsage?.windowTokens).isEqualTo(7_000)
         }
 
     @Test

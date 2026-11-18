@@ -58,14 +58,17 @@ import com.garfiec.librechat.feature.chat.util.SETTING_TOOL_ORDER
 import com.garfiec.librechat.feature.chat.util.SettingChipInputs
 import com.garfiec.librechat.feature.chat.util.SettingChips
 import com.garfiec.librechat.feature.chat.util.SkillPickRules
+import com.garfiec.librechat.feature.chat.util.THINKING_SWITCH_KEY
 import com.garfiec.librechat.feature.chat.util.ThinkingChip
 import com.garfiec.librechat.feature.chat.util.ToolDecisionDraft
 import com.garfiec.librechat.feature.chat.util.WebSearchKeysRow
 import com.garfiec.librechat.feature.chat.util.WebSearchKind
 import com.garfiec.librechat.feature.chat.util.WebSearchRoute
+import com.garfiec.librechat.feature.chat.util.branchReasoning
 import com.garfiec.librechat.feature.chat.util.builtInSearchProvider
 import com.garfiec.librechat.feature.chat.util.changedPartIndices
 import com.garfiec.librechat.feature.chat.util.composerReasoningSetting
+import com.garfiec.librechat.feature.chat.util.nearestBranchReasoning
 import com.garfiec.librechat.feature.chat.util.parameterTarget
 import com.garfiec.librechat.feature.chat.util.pickableSkills
 import com.garfiec.librechat.feature.chat.util.presetTools
@@ -191,6 +194,16 @@ data class ChatUiState(
     val endpointKeyStates: Map<String, KeyState> get() = selection.endpointKeyStates
     val availableModels: Map<String, List<String>> get() = selection.availableModels
     val agents: List<Agent> get() = selection.agents
+
+    /**
+     * The agent whose replies leave out their author row, or null: under
+     * [FeatureGatesState.hidesSelectedAuthor], the chat's agent when the agents list knows it (web
+     * needs the agent resolved). Read where the reply view data is mapped.
+     */
+    val selectedAuthorAgentId: String?
+        get() = selectedModel.takeIf { id ->
+            gates.hidesSelectedAuthor && selectedEndpoint == EndpointConstants.AGENTS && agents.any { it.id == id }
+        }
     val agentsLoaded: Boolean get() = selection.agentsLoaded
     val selectedAgentProvider: String? get() = selection.selectedAgentProvider
     val selectedAgentStarters: List<String>? get() = selection.selectedAgentStarters
@@ -221,6 +234,7 @@ data class ChatUiState(
     val lockedMcpServers: Set<String> get() = selection.lockedMcpServers
     val extendedEffortSupported: Boolean get() = selection.extendedEffortSupported
     val thinkingDisplayUpdatesSupported: Boolean get() = selection.thinkingDisplayUpdatesSupported
+    val thinkingLevelXhighSupported: Boolean get() = gates.thinkingLevelXhighSupported
     val inputText: String get() = composer.inputText
     val sendBlockReason: SendBlockReason? get() = composer.sendBlockReason
     val editingQueuedItem: QueuedEditSession? get() = composer.editingQueuedItem
@@ -235,18 +249,20 @@ data class ChatUiState(
     val skillsEnabled: Boolean get() = gates.skillsEnabled
 
     /**
-     * The active model spec's `skills` setting, or null when no spec is selected or it leaves
-     * skills to the user. While non-null the spec governs: the Skills row and chip are hidden and
-     * the per-conversation toggle is neither read nor written. [ModelSpecSkills.Off] also means
-     * no skill can be picked; [ModelSpecSkills.Only] limits picks to its names.
-     *
-     * Always null against v0.8.8, whose config route strips the spec's `skills` key (see
-     * `ModelSpec.skills`): the spec-governed branches keyed on this are forward-compatible and
-     * inert until upstream sends it. Web doesn't read the key either; it stops restoring the
-     * stored toggles under any active spec instead.
+     * The active model spec's `skills` setting, or null when no spec is selected or it configures
+     * none. [ModelSpecSkills.On] starts the chat's Skills toggle on; [ModelSpecSkills.Off] turns
+     * skills off for good (no toggle, no picks). Servers before v0.8.9 never send the key.
      */
     val activeSpecSkills: ModelSpecSkills?
         get() = activeSpec?.skillsSetting
+
+    /**
+     * Whether the spec, not the chat's toggle, decides skills: it turns them off, or it configures
+     * them and hides the tool controls (`hideBadgeRow`), where the server ignores the request's
+     * toggle. The toggle is then neither read nor written.
+     */
+    val specGovernsSkills: Boolean
+        get() = activeSpecSkills == ModelSpecSkills.Off || (activeSpecSkills != null && selection.toolsHiddenBySpec)
 
     /** The served spec the selection runs on, or null for a raw pick or a spec the config doesn't list. */
     val activeSpec: ModelSpec? get() = selection.activeSpec
@@ -327,11 +343,11 @@ data class ChatUiState(
 
     /**
      * Whether the composer offers the Skills toggle (tools-sheet row and active chip): skills are
-     * usable, the ephemeral tools show — never in a persisted-agent chat, where the agent's own
-     * `skills_enabled` governs — and no active model spec configures skills.
+     * usable, the tool controls show — never in a persisted-agent chat, where the agent's own
+     * `skills_enabled` governs — and the active model spec doesn't decide skills ([specGovernsSkills]).
      */
     val isSkillsToolAvailable: Boolean
-        get() = skillsCapable && toolbarShown && activeSpecSkills == null
+        get() = skillsCapable && toolbarShown && !specGovernsSkills
 
     /**
      * Whether the "Add to chat" quote affordance is offered (v0.8.7, upstream #13868).
@@ -464,6 +480,7 @@ data class ChatUiState(
     val isCompacting: Boolean get() = content.isCompacting
     val streamingContent: String get() = content.streamingContent
     val streamingThinking: String get() = content.streamingThinking
+    val streamingSummary: String get() = content.streamingSummary
     val activeToolCalls: List<ActiveToolCall> get() = content.activeToolCalls
     val sandboxStartingToolCallIds: Set<String> get() = content.sandboxStartingToolCallIds
     val ptcTraces: Map<String, PtcTrace> get() = content.ptcTraces
@@ -743,7 +760,19 @@ data class ChatUiState(
      * [settingChipSlices] changed: a new read here from another slice must be added there.
      */
     val settingChipSlices: List<Any?>
-        get() = listOf(selection, gates, comparisonState, prefs, account, composer.pendingReasoningOverride)
+        get() = listOf(
+            selection,
+            gates,
+            comparisonState,
+            prefs,
+            account,
+            composer.pendingReasoningOverride,
+            inheritedReasoning,
+        )
+
+    /** The level the branch would carry into the next turn, or null on a server that carries none. */
+    private val inheritedReasoning: ReasoningOverride?
+        get() = if (gates.reasoningLastsForConversation) nearestBranchReasoning(content.displayMessages) else null
 
     /** See [settingChipSlices]. */
     val settingChipInputs: SettingChipInputs
@@ -841,18 +870,32 @@ data class ChatUiState(
             catalog = selection.reasoningCatalog,
             enforcedPreset = activeSpec?.preset?.takeIf { selection.modelSpecs.requiresSpec },
             enforcedSpecUnserved = parametersSetBySpec && activeSpec == null,
+            bareBedrockClaudeIsAnthropic = gates.bareBedrockClaudeReasoning,
+            thinkingLevelXhighSupported = gates.thinkingLevelXhighSupported,
         )
 
     /** The composer's Thinking chip, or null when it is hidden. */
     val thinkingChip: ThinkingChip?
         get() {
             val setting = reasoningSetting ?: return null
-            val configured = if (selectedEndpoint == EndpointConstants.AGENTS) {
+            val isAgent = selectedEndpoint == EndpointConstants.AGENTS
+            val configured = if (isAgent) {
                 selection.selectedAgentReasoning[setting.key].orEmpty()
             } else {
                 modelParameters.getValueForKey(setting.key)
             }
-            return thinkingChip(setting, configured, composer.pendingReasoningOverride)
+            val thinking = if (isAgent) {
+                selection.selectedAgentReasoning[THINKING_SWITCH_KEY].orEmpty()
+            } else {
+                modelParameters.getValueForKey(THINKING_SWITCH_KEY)
+            }
+            return thinkingChip(
+                setting = setting,
+                configured = configured,
+                pending = composer.pendingReasoningOverride,
+                branch = branchReasoning(inheritedReasoning, thinkingOff = thinking == "false"),
+                lastsForConversation = gates.reasoningLastsForConversation,
+            )
         }
 
     /** Whether [override] can be sent for the current selection; the server 400s one it can't. */

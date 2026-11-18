@@ -58,6 +58,24 @@ fun mcpOAuthServerName(toolName: String?, authorizationUrl: String?): String? =
 fun actionOAuthId(authorizationUrl: String?): String? =
     authorizationUrl?.let { callbackSegment(it, ACTION_CALLBACK_PREFIX) }
 
+/**
+ * Whether a tool call is an MCP sign-in prompt rather than a tool the model called: the server's
+ * synthetic step (`oauth:` id, upstream `createMCPReauthenticationPrompt`) or its `oauth_mcp_`
+ * name. Its completion ("OAuth authentication ended") retires the prompt; it is never a result.
+ */
+fun isMcpOAuthPromptCall(id: String?, name: String?): Boolean =
+    id?.startsWith(MCP_OAUTH_PROMPT_ID_PREFIX) == true || name?.startsWith(MCP_OAUTH_TOOL_PREFIX) == true
+
+/**
+ * The id a synthetic sign-in step's `oauth:` id was built from: the model's tool call id, else its
+ * step id, else the run id. Null for any other id.
+ */
+fun mcpOAuthPromptOwnerId(id: String?): String? =
+    id?.takeIf { it.startsWith(MCP_OAUTH_PROMPT_ID_PREFIX) }
+        ?.removePrefix(MCP_OAUTH_PROMPT_ID_PREFIX)
+        ?.takeIf(String::isNotEmpty)
+
+private const val MCP_OAUTH_PROMPT_ID_PREFIX = "oauth:"
 private const val MCP_OAUTH_TOOL_PREFIX = "oauth_mcp_"
 private const val MCP_CALLBACK_PREFIX = "/api/mcp/"
 private const val ACTION_CALLBACK_PREFIX = "/api/actions/"

@@ -146,4 +146,25 @@ class PromptsApiWireShapeTest {
     fun `an empty library decodes to an empty list`() = runTest {
         assertThat(api("[]").getAllPromptGroups()).isEmpty()
     }
+
+    /** `GET /api/prompts/groups/{id}/revisions`, built from upstream `TPromptRevisionChoicesResponse` (not a live capture). */
+    @Test
+    fun `revisions decode both sources and refuse a body without the list`() = runTest {
+        val native = api(
+            """{"source":"native","groupId":"g-1","revisions":[""" +
+                """{"source":"native","promptId":"p-2","version":2,"isProduction":true},""" +
+                """{"source":"native","promptId":"p-1","version":1,"isProduction":false}]}""",
+        ).getPromptGroupRevisions("g-1")
+        assertThat(lastRequest.url.encodedPath).isEqualTo("/api/prompts/groups/g-1/revisions")
+        assertThat(native.revisions.map { it.promptId to it.isProduction })
+            .containsExactly("p-2" to true, "p-1" to false).inOrder()
+
+        val langfuse = api("""{"source":"langfuse","groupId":"g-2","revisions":[{"source":"langfuse","version":4}]}""")
+            .getPromptGroupRevisions("g-2")
+        assertThat(langfuse.revisions.single().version).isEqualTo(4)
+        assertThat(langfuse.revisions.single().promptId).isNull()
+
+        val failure = runCatching { api("""{"source":"native","groupId":"g-1"}""").getPromptGroupRevisions("g-1") }
+        assertThat(failure.isFailure).isTrue()
+    }
 }

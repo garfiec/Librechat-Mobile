@@ -27,6 +27,8 @@ data class ForgotPasswordUiState(
     /** A coded refusal ([AuthRefusal]) the screen words itself, in place of [error], while [error] is set. */
     val refusal: AuthRefusal? = null,
     val isSent: Boolean = false,
+    /** The server has no mail transport, so it sends no reset link: the user asks an administrator. */
+    val emailUnavailable: Boolean = false,
     /** The server's published policy links, as the sign-in footer shows them; null hides each. */
     val policyLinks: PolicyLinks = PolicyLinks(),
     val banner: Banner? = null,
@@ -46,7 +48,7 @@ class ForgotPasswordViewModel(
     init {
         viewModelScope.launch {
             authServerConfig(configRepository, accountSwitcher, serverDataStore).collect { (config, url) ->
-                _uiState.update { it.copy(policyLinks = PolicyLinks.from(config, url)) }
+                _uiState.update { it.copy(policyLinks = PolicyLinks.from(config, url), emailUnavailable = !config.emailEnabled) }
             }
         }
         viewModelScope.launch {

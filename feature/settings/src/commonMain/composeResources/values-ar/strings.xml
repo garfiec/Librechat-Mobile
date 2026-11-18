@@ -400,6 +400,9 @@
     <!-- Backup codes dialog -->
     <string name="dialog_title_backup_codes">رموز النسخ الاحتياطي</string>
     <string name="backup_codes_instructions">احفظ رموز النسخ الاحتياطي هذه في مكان آمن. يمكن استخدام كل رمز مرة واحدة فقط.</string>
+    <string name="twofa_sessions_incomplete">تم تفعيل المصادقة الثنائية، لكن قد تظل بعض الجلسات الأخرى مسجّلة الدخول حتى تنتهي صلاحيتها. احفظ رموز النسخ الاحتياطي، ثم سجّل الدخول مرة أخرى.</string>
+    <string name="twofa_other_sessions_signed_out">تم تفعيل المصادقة الثنائية. تم تسجيل الخروج من كل الأجهزة الأخرى المسجّلة الدخول إلى هذا الحساب.</string>
+    <string name="twofa_sign_in_again_to_enable">سجّل الدخول مرة أخرى لتفعيل المصادقة الثنائية.</string>
     <string name="dialog_title_regenerate_backup_codes">إعادة إنشاء رموز النسخ الاحتياطي؟</string>
     <string name="regenerate_backup_codes_warning">ستتوقف رموز النسخ الاحتياطي الحالية عن العمل. ستحصل على مجموعة جديدة لحفظها.</string>
     <string name="action_regenerate">إعادة الإنشاء</string>
@@ -748,8 +751,11 @@
     <string name="role_permissions_saved">تم الحفظ</string>
     <string name="role_permissions_load_failed">تعذّر تحميل أذونات هذا الدور.</string>
     <string name="role_permissions_save_failed">تعذّر حفظ الأذونات. حاول مرة أخرى.</string>
-    <string name="role_permissions_admin_access_warning">قد يؤدي إيقاف وصول المسؤول إلى هذه الميزة إلى مشاكل غير متوقعة إلى أن يعيد التطبيق تحميل أذوناتك. بعد الحفظ، الطريقة الوحيدة للتراجع هي إعداد interface في ملف librechat.yaml، وهو يؤثر على جميع الأدوار.</string>
-    <string name="role_permissions_more_info">مزيد من المعلومات</string>
+    <string name="role_permissions_admin_lockout_warning">يؤدي الحفظ إلى إيقاف %1$s لكل المسؤولين، بمن فيهم أنت، وإخفاء هذه الإعدادات. لا يمكن إعادة تشغيله إلا لمن لديه وصول إلى إعدادات الخادم.</string>
+    <string name="role_permissions_admin_lockout_title">هل تريد إيقاف %1$s للمسؤولين؟</string>
+    <string name="role_permissions_admin_lockout_confirm_label">اكتب %1$s للتأكيد</string>
+    <string name="role_permissions_admin_lockout_confirm">إيقاف للمسؤولين</string>
+    <string name="role_skills_section">المهارات</string>
     <string name="artifact_shortcuts_title">اختصارات الشاشة الرئيسية</string>
     <string name="artifact_shortcuts_empty">لا توجد عناصر تفاعلية مثبتة على الشاشة الرئيسية بعد.</string>
     <string name="artifact_shortcuts_disabled_message">أُزيل اختصار هذا العنصر التفاعلي.</string>

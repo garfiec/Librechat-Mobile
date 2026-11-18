@@ -47,6 +47,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
 import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
 import com.garfiec.librechat.core.ui.components.OTP_LENGTH
 import com.garfiec.librechat.core.ui.components.OtpCodeInput
+import com.garfiec.librechat.core.ui.components.PlatformBackHandler
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
 import com.garfiec.librechat.core.ui.components.topbar.BarIcons
@@ -85,6 +86,12 @@ fun TwoFactorSetupScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val currentOnComplete by rememberUpdatedState(onComplete)
+    val leave = {
+        viewModel.leave()
+        onBack()
+    }
+    // Only once a secret is staged, so the start screen keeps the predictive-back preview.
+    PlatformBackHandler(enabled = uiState.otpauthUrl != null && !uiState.mustSignInAgain, onBack = leave)
 
     LaunchedEffect(uiState.isComplete) {
         if (uiState.isComplete) currentOnComplete()
@@ -95,7 +102,7 @@ fun TwoFactorSetupScreen(
         topBar = {
             AdaptiveTopBar(
                 spec = AdaptiveTopBarSpec(
-                    navigation = BarNavigation(BarIcons.Back, stringResource(Res.string.back), onBack),
+                    navigation = BarNavigation(BarIcons.Back, stringResource(Res.string.back), leave),
                     title = BarTitle(stringResource(Res.string.two_factor_setup_title)),
                     actions = emptyList(),
                 ),
@@ -113,7 +120,7 @@ fun TwoFactorSetupScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             if (uiState.mustSignInAgain) {
-                ExpiredSetup(onBack = onBack)
+                ExpiredSetup(enabled = uiState.enabledWithoutSession, onBack = onBack)
                 UseAnotherAccountButton(onUseAnotherAccount)
                 return@Column
             }
@@ -391,10 +398,10 @@ private fun BackupCodesPhase(
 }
 
 @Composable
-private fun ExpiredSetup(onBack: () -> Unit) {
+private fun ExpiredSetup(enabled: Boolean, onBack: () -> Unit) {
     PhaseColumn {
         Text(
-            text = stringResource(Res.string.two_factor_setup_expired),
+            text = stringResource(if (enabled) Res.string.two_factor_setup_sessions_incomplete else Res.string.two_factor_setup_expired),
             style = MaterialTheme.typography.bodyMedium,
             textAlign = TextAlign.Center,
             modifier = Modifier.testTag("twofa_setup_expired"),

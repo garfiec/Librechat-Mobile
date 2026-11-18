@@ -123,6 +123,7 @@ actual fun MessageBubble(
     showAvatars: Boolean,
     showBubbles: Boolean,
     avatar: IconSource?,
+    authorHidden: Boolean,
 ) {
     if (chatLayoutStyle == ChatLayoutConstants.TWO_SIDED) {
         TwoSidedBubble(
@@ -155,6 +156,7 @@ actual fun MessageBubble(
             onFocusedOccurrencePosition = onFocusedOccurrencePosition,
             showAvatars = showAvatars,
             showBubbles = showBubbles,
+            authorHidden = authorHidden,
         )
     } else {
         ThreadBubble(
@@ -187,6 +189,7 @@ actual fun MessageBubble(
             onFocusedOccurrencePosition = onFocusedOccurrencePosition,
             showAvatars = showAvatars,
             showBubbles = showBubbles,
+            authorHidden = authorHidden,
         )
     }
 }
@@ -222,6 +225,7 @@ private fun ThreadBubble(
     onFocusedOccurrencePosition: ((LayoutCoordinates, Rect) -> Unit)?,
     showAvatars: Boolean,
     showBubbles: Boolean,
+    authorHidden: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val isUser = message.isCreatedByUser
@@ -244,42 +248,44 @@ private fun ThreadBubble(
             }
             .padding(horizontal = 16.dp, vertical = 8.dp),
     ) {
-        Row(modifier = sendFlightHeader(message.messageId, isUser), verticalAlignment = Alignment.CenterVertically) {
-            if (showAvatars) {
-                if (isUser) {
-                    AvatarImage(
-                        imageUrl = userAvatarUrl,
-                        fallbackText = userName ?: stringResource(Res.string.sender_you),
-                        showPersonIcon = userAvatarUrl == null,
-                        size = 28.dp,
-                    )
-                } else {
-                    EndpointAvatar(
-                        imageUrl = avatar?.imageUrl,
-                        endpointName = avatar?.endpointName,
-                        provider = avatar?.provider,
-                        fallbackText = message.sender ?: stringResource(Res.string.sender_assistant),
-                        size = 28.dp,
-                    )
+        if (isUser || !authorHidden) {
+            Row(modifier = sendFlightHeader(message.messageId, isUser), verticalAlignment = Alignment.CenterVertically) {
+                if (showAvatars) {
+                    if (isUser) {
+                        AvatarImage(
+                            imageUrl = userAvatarUrl,
+                            fallbackText = userName ?: stringResource(Res.string.sender_you),
+                            showPersonIcon = userAvatarUrl == null,
+                            size = 28.dp,
+                        )
+                    } else {
+                        EndpointAvatar(
+                            imageUrl = avatar?.imageUrl,
+                            endpointName = avatar?.endpointName,
+                            provider = avatar?.provider,
+                            fallbackText = message.sender ?: stringResource(Res.string.sender_assistant),
+                            size = 28.dp,
+                        )
+                    }
+                    Spacer(Modifier.width(8.dp))
                 }
-                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = if (isUser) {
+                        userName ?: stringResource(Res.string.sender_you)
+                    } else {
+                        message.sender ?: stringResource(Res.string.sender_assistant)
+                    },
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                message.createdAt?.let { ts -> Spacer(Modifier.width(8.dp)); MessageTimestamp(isoTimestamp = ts) }
             }
-            Text(
-                text = if (isUser) {
-                    userName ?: stringResource(Res.string.sender_you)
-                } else {
-                    message.sender ?: stringResource(Res.string.sender_assistant)
-                },
-                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f, fill = false),
-            )
-            message.createdAt?.let { ts -> Spacer(Modifier.width(8.dp)); MessageTimestamp(isoTimestamp = ts) }
-        }
 
-        Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(4.dp))
+        }
 
         val contentPad = if (showAvatars) 36.dp else 0.dp
         val bubbleBg = if (showBubbles) {
@@ -303,6 +309,7 @@ private fun ThreadBubble(
             MessageContentAndActions(
                 message = message,
                 avatar = avatar,
+                authorHidden = authorHidden,
                 isUser = isUser,
                 editSession = editSession,
                 baseUrl = baseUrl,
@@ -365,6 +372,7 @@ private fun TwoSidedBubble(
     onFocusedOccurrencePosition: ((LayoutCoordinates, Rect) -> Unit)?,
     showAvatars: Boolean,
     showBubbles: Boolean,
+    authorHidden: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val isUser = message.isCreatedByUser
@@ -398,7 +406,10 @@ private fun TwoSidedBubble(
         horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start,
         verticalAlignment = Alignment.Top,
     ) {
-        if (!isUser && showAvatars) {
+        // A hidden author keeps the avatar's width so replies stay aligned.
+        if (!isUser && showAvatars && authorHidden) {
+            Spacer(Modifier.width(34.dp))
+        } else if (!isUser && showAvatars) {
             EndpointAvatar(
                 imageUrl = avatar?.imageUrl,
                 endpointName = avatar?.endpointName,
@@ -422,30 +433,33 @@ private fun TwoSidedBubble(
                 ),
             horizontalAlignment = if (isUser) Alignment.End else Alignment.Start,
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = if (isUser) {
-                        userName ?: stringResource(Res.string.sender_you)
-                    } else {
-                        message.sender ?: stringResource(Res.string.sender_assistant)
-                    },
-                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
-                    color = if (showBubbles) {
-                        if (isUser) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
-                    } else {
-                        MaterialTheme.colorScheme.onSurface
-                    },
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false),
-                )
-                message.createdAt?.let { ts -> Spacer(Modifier.width(6.dp)); MessageTimestamp(isoTimestamp = ts) }
+            if (isUser || !authorHidden) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = if (isUser) {
+                            userName ?: stringResource(Res.string.sender_you)
+                        } else {
+                            message.sender ?: stringResource(Res.string.sender_assistant)
+                        },
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                        color = if (showBubbles) {
+                            if (isUser) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                        } else {
+                            MaterialTheme.colorScheme.onSurface
+                        },
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
+                    message.createdAt?.let { ts -> Spacer(Modifier.width(6.dp)); MessageTimestamp(isoTimestamp = ts) }
+                }
+                Spacer(Modifier.height(4.dp))
             }
-            Spacer(Modifier.height(4.dp))
 
             MessageContentAndActions(
                 message = message,
                 avatar = avatar,
+                authorHidden = authorHidden,
                 isUser = isUser,
                 editSession = editSession,
                 baseUrl = baseUrl,

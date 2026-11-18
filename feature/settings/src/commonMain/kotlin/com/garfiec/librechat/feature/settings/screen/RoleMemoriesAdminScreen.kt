@@ -59,6 +59,7 @@ internal fun RoleMemoriesAdminContent(
     RolePermissionsEditor(
         title = stringResource(Res.string.role_memories_title),
         description = stringResource(Res.string.role_memories_description),
+        section = stringResource(Res.string.title_memories),
         state = RolePermissionsEditorState(
             roles = uiState.roles,
             selectedRole = uiState.selectedRole,
@@ -77,7 +78,7 @@ internal fun RoleMemoriesAdminContent(
                 stringResource(Res.string.role_memories_use),
                 flags.use,
                 onUseChange,
-                showAdminWarning = true,
+                revokesAdminUse = revokesAdminUse(uiState.selectedRole, uiState.savedFlags?.use, flags.use),
             ),
             RolePermissionToggle(stringResource(Res.string.role_memories_create), flags.create, onCreateChange),
             RolePermissionToggle(stringResource(Res.string.role_memories_update), flags.update, onUpdateChange),

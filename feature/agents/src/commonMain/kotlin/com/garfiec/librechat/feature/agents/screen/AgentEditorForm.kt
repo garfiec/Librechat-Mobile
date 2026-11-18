@@ -59,6 +59,8 @@ import com.garfiec.librechat.feature.agents.components.AgentSkillsSection
 import com.garfiec.librechat.feature.agents.components.AgentSubagentsSection
 import com.garfiec.librechat.feature.agents.components.AgentSupportContactSection
 import com.garfiec.librechat.feature.agents.components.AgentWebSearchSection
+import com.garfiec.librechat.feature.agents.components.InstructionsPromptFields
+import com.garfiec.librechat.feature.agents.components.InstructionsSourceChoice
 import com.garfiec.librechat.feature.agents.components.ToolApprovalModeButton
 import com.garfiec.librechat.feature.agents.resources.*
 import com.garfiec.librechat.feature.agents.resources.Res
@@ -87,6 +89,7 @@ internal fun AgentEditorForm(
     modifier: Modifier = Modifier,
 ) {
     val codeSection by viewModel.codeSection.collectAsStateWithLifecycle()
+    val instructionsPromptView by viewModel.instructionsPromptView.collectAsStateWithLifecycle()
     uiState.pendingFileRemoval?.let { pending ->
         AdaptiveAlertDialog(
             onDismissRequest = viewModel::dismissAgentFileRemoval,
@@ -195,11 +198,33 @@ internal fun AgentEditorForm(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // 5. Instructions field (multi-line) + Insert-variable menu
-        if (uiState.instructionsLinkedToPrompt) {
-            LinkedInstructionsNote()
-        } else {
-            InstructionsField(
+        // 5. Instructions: inline text (+ Insert-variable menu), or a linked prompt
+        val promptView = instructionsPromptView
+        when {
+            promptView != null -> {
+                InstructionsSourceChoice(
+                    fromPrompt = promptView.fromPrompt,
+                    onSourceChange = viewModel::onInstructionsSourceChanged,
+                    modifier = Modifier.padding(bottom = 8.dp),
+                )
+                if (promptView.fromPrompt) {
+                    InstructionsPromptFields(
+                        view = promptView,
+                        onGroupSelect = viewModel::onInstructionsPromptGroupSelected,
+                        onVersionSelect = viewModel::onInstructionsPromptVersionSelected,
+                        onRetryGroups = viewModel::retryPromptGroups,
+                        onRetryVersions = viewModel::retryPromptRevisions,
+                    )
+                } else {
+                    InstructionsField(
+                        value = uiState.instructions,
+                        onValueChange = viewModel::onInstructionsChanged,
+                    )
+                }
+            }
+            uiState.instructionsLinkedToPrompt ->
+                LinkedInstructionsNote(sourceDisabled = uiState.isLinkedInstructionsSourceDisabled)
+            else -> InstructionsField(
                 value = uiState.instructions,
                 onValueChange = viewModel::onInstructionsChanged,
             )
@@ -586,6 +611,7 @@ internal fun AgentEditorForm(
             model = uiState.model,
             extendedEffortSupported = uiState.isHandoffsAvailable,
             thinkingDisplayUpdatesSupported = uiState.isThinkingDisplayUpdatesAvailable,
+            thinkingLevelXhighSupported = uiState.isThinkingLevelXhighAvailable,
             dropParamsMap = uiState.dropParamsMap,
             parameterProvider = uiState.parameterProvider,
         )

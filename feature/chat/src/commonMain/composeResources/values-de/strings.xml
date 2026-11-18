@@ -584,6 +584,8 @@
     <string name="cd_minimize_ask_user_question">Fragen minimieren</string>
     <string name="cd_restore_ask_user_question">Fragen anzeigen</string>
     <string name="tool_approval_waiting_marker">Wartet unten auf deine Freigabe</string>
+    <string name="pending_action_expired">Diese Eingabeanfrage ist abgelaufen, daher wurde die Antwort ohne sie abgeschlossen.</string>
+    <string name="pending_action_gone">Diese Eingabeanfrage ist nicht mehr offen und kann daher nicht beantwortet werden.</string>
     <string name="tool_approval_submit_progress">Weiter (%1$d/%2$d)</string>
     <string name="tool_approval_tab_fallback">Tool %1$d</string>
     <string name="cd_previous_tool_call">Vorheriger Tool-Aufruf</string>
@@ -608,6 +610,10 @@
     <string name="error_mcp_authentication_refresh_failed">Die Anmeldung für einen verbundenen MCP-Server konnte nicht erneuert werden, daher wurde die Nachricht nicht gesendet. Versuche es gleich noch einmal.</string>
     <string name="error_project_resources_changed">Die Dateien dieses Projekts haben sich geändert, während die Nachricht gestartet wurde, daher wurde sie nicht gesendet. Versuche es erneut.</string>
     <string name="error_project_context_unavailable">Das Projekt dieses Chats ist nicht mehr verfügbar, daher wurde die Nachricht nicht gesendet. Es wurde möglicherweise gelöscht.</string>
+    <string name="error_account_deletion_in_progress">Dein Konto wird gerade gelöscht, daher können keine neuen Nachrichten gesendet werden.</string>
+    <string name="error_generation_admission_unavailable">Der Server konnte die Antwort gerade nicht starten, daher wurde die Nachricht nicht gesendet. Versuche es erneut.</string>
+    <string name="error_token_balance">Dein Guthaben reicht für diese Anfrage nicht aus.</string>
+    <string name="error_agent_mcp_tools_unavailable">Die MCP-Tools dieses Agenten sind nicht verfügbar. Prüfe, ob seine MCP-Server verbunden sind und du ihre Tools nutzen darfst, und versuche es dann erneut.</string>
     <string name="error_final_context_overflow">Diese Unterhaltung passt nicht mehr in das Kontextfenster des Modells. Beginne eine neue Unterhaltung oder wechsle zu einem Modell mit größerem Kontextfenster.</string>
     <string name="error_compaction_skipped">Es gibt noch nichts zu komprimieren. Chatte weiter und versuche es später erneut.</string>
     <string name="error_compaction_failed">Die Zusammenfassung konnte nicht erstellt werden, daher ist die Unterhaltung unverändert. Versuche es erneut.</string>
@@ -818,6 +824,7 @@
     <string name="attachment_recovery_retry">Ohne Dateien erneut versuchen</string>
     <string name="attachment_recovery_branch">Ohne Dateien verzweigen</string>
     <string name="notice_tool_decision_not_permitted">Der Server erlaubt eine dieser Entscheidungen nicht mehr. Wähle für jedes Tool eine andere und versuche es erneut.</string>
+    <string name="notice_resume_context_unavailable">Die pausierte Antwort ist gerade nicht erreichbar. Versuche es gleich noch einmal.</string>
     <string name="notice_content_blocked">Der Inhaltsfilter des Servers hat diese Nachricht blockiert. Es wurde nichts gesendet.</string>
     <string name="notice_skills_not_sent">Einige Skills können in diesem Chat nicht verwendet werden und wurden nicht gesendet.</string>
     <string name="notice_skills_removed_from_queued">Einige Skills können in diesem Chat nicht verwendet werden und wurden aus der eingereihten Nachricht entfernt.</string>
@@ -996,10 +1003,13 @@
     </plurals>
     <string name="thinking_title">Denken</string>
     <string name="thinking_chip_next_message">%1$s · nächste Nachricht</string>
-    <string name="cd_thinking_chip">Denken für die nächste Nachricht: %1$s</string>
+    <string name="cd_thinking_chip">Denken: %1$s</string>
     <string name="thinking_next_message_only">Nur für deine nächste Nachricht. Danach kehrt dieser Chat zu seiner eigenen Einstellung zurück.</string>
     <string name="thinking_chat_setting">Einstellung dieses Chats</string>
     <string name="thinking_change_chat_setting">Einstellung dieses Chats ändern</string>
+    <string name="thinking_lasts_for_conversation">Für den Rest dieses Chats, bis du eine andere Stufe wählst.</string>
+    <string name="thinking_back_to_chat_setting">Zurück zur Einstellung dieses Chats</string>
+    <string name="thinking_chip_state_conversation">Für den Rest dieses Chats</string>
     <string name="error_code_workspace_required">Wähle vor dem Senden einen verbundenen Arbeitsbereich.</string>
     <string name="error_code_workspace_invalid">Die Auswahl des Arbeitsbereichs ist ungültig. Wähle einen verfügbaren Arbeitsbereich.</string>
     <string name="error_code_workspace_worker_unavailable">Die Maschine ist nicht verfügbar. Verbinde sie erneut oder wähle eine andere.</string>

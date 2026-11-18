@@ -1,6 +1,7 @@
 package com.garfiec.librechat.feature.chat.viewmodel.delegate
 
 import co.touchlab.kermit.Logger
+import com.garfiec.librechat.core.common.BackendVersion
 import com.garfiec.librechat.core.common.identity.AccountId
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.common.result.getOrNull
@@ -56,6 +57,11 @@ class SendCompletionDelegate(
 
     private var titleGenerationRequested = false
 
+    /** Only a server that stamps `lastResponseAt` (0.8.9-rc1+) tells a saved error turn from an unsaved one. */
+    private fun isUnsavedError(event: StreamEvent.Final): Boolean =
+        event.isUnsavedError &&
+            handle.state.gates.backendVersion?.let { BackendVersion.isCompatibleOrNewer(it, "0.8.9-rc1") } == true
+
     /**
      * Handles the `created` milestone: migrates the new-chat draft onto the real
      * conversation id, stages the sent selection for the about-to-be-created Chat(id) VM,
@@ -104,7 +110,7 @@ class SendCompletionDelegate(
                 conversationId,
                 sent.selection.choice,
                 optimisticUserMessage,
-                skillsToggle = sent.skillsToggle.takeIf { sent.activeSpecSkills == null },
+                skillsToggle = sent.skillsToggle.takeIf { !sent.specGovernsSkills },
                 stagedManualSkills = staged,
                 skillsNotSentNotice = staged.isNotEmpty() && sent.error == ChatNotice.SKILLS_NOT_SENT.marker(),
                 sentWithoutWorkspaceNotice = navigatesNow && sent.error == ChatNotice.CODE_WORKSPACE_SENT_WITHOUT.marker(),
@@ -175,11 +181,14 @@ class SendCompletionDelegate(
         // them from the conversation list, so don't cache them to Room either (it would
         // leak a temp chat into the local list the server hides).
         val isTemporary = handle.state.isTemporaryChat || finalConversation?.isTemporary == true
+        // An error turn the server never saved is shown, never stored: a cached row or title
+        // request would name a conversation or turn the server doesn't have.
+        val unsaved = isUnsavedError(event)
         // An aborted final carries only a stub conversation — `{ conversationId }` plus a
         // hardcoded "New Chat" title — not the real record. Caching it would overwrite the good
         // row (title included) with placeholder data, which the web client never notices because
         // it has no local store. Skip the save; the title refresh below re-reads the real one.
-        if (finalConversation?.conversationId != null && !isTemporary && !aborted) {
+        if (finalConversation?.conversationId != null && !isTemporary && !aborted && !unsaved) {
             // A completed frame can still carry the placeholder title: its conversation is the row
             // as the reply's write returned it, which can predate the title's save. The web keeps
             // a real title it already holds over that (final.ts); so does this client, in memory and in Room.
@@ -195,7 +204,7 @@ class SendCompletionDelegate(
             }
         }
         if (conversationId != null) {
-            if (isTemporary) {
+            if (isTemporary || unsaved) {
                 // SECURITY: do not remove — temp-chat data-at-rest guard.
                 // Temp chats are never persisted: don't round-trip through the Room
                 // read-through (which would upsert the message rows to disk). Drive the

@@ -303,6 +303,8 @@
     <string name="acl_error_busy">此访问权限的另一项更改正在进行中。请稍后重试。</string>
     <string name="acl_error_unavailable">目前无法更改访问权限。请稍后重试。</string>
     <string name="acl_error_audit_unavailable">由于服务器无法记录此更改，访问权限未更改。请稍后重试。</string>
+    <string name="acl_error_principal_preparation_failed">无法准备要共享的人员或群组。请重试。</string>
+    <string name="acl_error_directory_unavailable">目录服务不可用。请稍后重试。</string>
     <string name="acl_error_load">无法加载有访问权限的人。</string>
     <string name="bookmarks">书签</string>
     <string name="bookmark_new">新建书签</string>

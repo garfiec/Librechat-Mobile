@@ -370,6 +370,9 @@
     <!-- Backup codes dialog -->
     <string name="dialog_title_backup_codes">备用码</string>
     <string name="backup_codes_instructions">请将这些备用码保存在安全的地方。每个备用码只能使用一次。</string>
+    <string name="twofa_sessions_incomplete">双重身份验证已开启，但部分其他会话可能会保持登录状态直到过期。请保存备用码，然后重新登录。</string>
+    <string name="twofa_other_sessions_signed_out">双重身份验证已开启。登录此账户的所有其他设备均已退出登录。</string>
+    <string name="twofa_sign_in_again_to_enable">请重新登录以开启双重身份验证。</string>
     <string name="dialog_title_regenerate_backup_codes">重新生成备用码？</string>
     <string name="regenerate_backup_codes_warning">当前的备用码将失效。你将获得一组新的备用码，请妥善保存。</string>
     <string name="action_regenerate">重新生成</string>
@@ -678,8 +681,11 @@
     <string name="role_permissions_saved">已保存</string>
     <string name="role_permissions_load_failed">无法加载此角色的权限。</string>
     <string name="role_permissions_save_failed">无法保存权限，请重试。</string>
-    <string name="role_permissions_admin_access_warning">禁用管理员对此功能的访问可能会导致异常，直到应用重新加载你的权限。保存后，唯一的恢复方式是修改 librechat.yaml 中的 interface 设置，这将影响所有角色。</string>
-    <string name="role_permissions_more_info">更多信息</string>
+    <string name="role_permissions_admin_lockout_warning">保存后，所有管理员（包括你）的“%1$s”都会关闭，并且这些设置也会被隐藏。只有能访问服务器配置的人才能重新开启。</string>
+    <string name="role_permissions_admin_lockout_title">要为管理员关闭“%1$s”吗？</string>
+    <string name="role_permissions_admin_lockout_confirm_label">输入 %1$s 以确认</string>
+    <string name="role_permissions_admin_lockout_confirm">为管理员关闭</string>
+    <string name="role_skills_section">技能</string>
     <string name="artifact_shortcuts_title">主屏幕快捷方式</string>
     <string name="artifact_shortcuts_empty">尚未将任何 artifact 固定到主屏幕。</string>
     <string name="artifact_shortcuts_disabled_message">此 artifact 快捷方式已被移除。</string>

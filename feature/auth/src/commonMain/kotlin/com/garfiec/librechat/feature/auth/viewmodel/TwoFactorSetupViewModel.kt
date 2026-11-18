@@ -3,16 +3,20 @@ package com.garfiec.librechat.feature.auth.viewmodel
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.garfiec.librechat.core.common.BackendVersion
 import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.AuthRepository
+import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.MissingRefreshCookieException
 import com.garfiec.librechat.core.ui.components.OTP_LENGTH
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /** The four steps of upstream's required-enrollment screen (`TwoFactorSetupScreen.tsx`). */
 enum class TwoFactorSetupPhase { Start, Authenticator, Verify, BackupCodes }
@@ -58,6 +62,11 @@ data class TwoFactorSetupUiState(
      * sign-in, as upstream's screen does.
      */
     val mustSignInAgain: Boolean = false,
+    /**
+     * With [mustSignInAgain]: 2FA is on, but the server retired no earlier session and handed back
+     * none, so the user signs in with the new factor.
+     */
+    val enabledWithoutSession: Boolean = false,
     /** Setup finished and the session is committed; leave the auth flow. */
     val isComplete: Boolean = false,
 )
@@ -72,6 +81,7 @@ data class TwoFactorSetupUiState(
  */
 class TwoFactorSetupViewModel(
     private val authRepository: AuthRepository,
+    private val configRepository: ConfigRepository,
     private val tempToken: String,
 ) : ViewModel() {
 
@@ -178,10 +188,27 @@ class TwoFactorSetupViewModel(
             }
             when (val result = authRepository.finalizeTwoFactorSetup(finalization)) {
                 is Result.Success -> _uiState.update { it.copy(isLoading = false, isComplete = true) }
-                is Result.Error -> fail(result, setupCredentialDeadOn = TRANSITION_CREDENTIAL_SPENT, TwoFactorSetupError.FinalizeFailed)
+                is Result.Error -> if (result.isCredentialRetirementIncomplete()) {
+                    _uiState.update { it.copy(isLoading = false, mustSignInAgain = true, enabledWithoutSession = true) }
+                } else {
+                    fail(result, setupCredentialDeadOn = TRANSITION_CREDENTIAL_SPENT, TwoFactorSetupError.FinalizeFailed)
+                }
                 is Result.Loading -> Unit
             }
         }
+    }
+
+    /**
+     * Leaving setup once a secret is staged asks the server to discard it. Best-effort, and it
+     * outlives this screen: the caller navigates away at once. Sent unless the server is known to
+     * predate the route: nobody is signed in yet, so the version is usually undetected here.
+     */
+    fun leave() {
+        val state = _uiState.value
+        if (state.otpauthUrl == null || state.mustSignInAgain || state.isComplete) return
+        val support = BackendVersion.featureSupport(configRepository.detectedBackend.value, "0.8.9", landedDate = "2026-11-09")
+        if (support.isRuledOut) return
+        viewModelScope.launch { withContext(NonCancellable) { authRepository.cancelTwoFactorSetup(tempToken) } }
     }
 
     private fun restart() {

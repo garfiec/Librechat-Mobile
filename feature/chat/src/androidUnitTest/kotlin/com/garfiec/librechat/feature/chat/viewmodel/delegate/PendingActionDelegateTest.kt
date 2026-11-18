@@ -82,6 +82,7 @@ class PendingActionDelegateTest {
             restoreAnswer = { restored += it },
             resumePinStore = store,
             pauseExpiredMessage = { EXPIRED_COPY },
+            pauseGoneMessage = { GONE_COPY },
             nowMillis = nowMillis,
         )
         return delegate to flow
@@ -481,6 +482,55 @@ class PendingActionDelegateTest {
             assertThat(flow.value.error).isEqualTo(EXPIRED_COPY)
             // The words still come back — expiry must not eat the typed answer.
             assertThat(restored).containsExactly("my answer")
+        }
+
+    @Test
+    fun `a 404 means no pause is left to answer, so the card goes`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val (delegate, flow) = delegateWith(this)
+            coEvery { chatRepository.resumeChat(any()) } returns
+                Result.Error(ApiException(404, "No paused generation for this conversation"), "gone")
+
+            delegate.onPendingAction(askQuestion())
+            delegate.submitAnswerFromComposer("my answer")
+
+            assertThat(flow.value.pendingAction).isNull()
+            assertThat(flow.value.isResolvingPendingAction).isFalse()
+            assertThat(flow.value.error).isEqualTo(GONE_COPY)
+            assertThat(restored).containsExactly("my answer")
+        }
+
+    @Test
+    fun `an answer typed in the panel goes back to the composer when a 404 takes the card`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val (delegate, flow) = delegateWith(this)
+            coEvery { chatRepository.resumeChat(any()) } returns
+                Result.Error(ApiException(404, "No paused generation for this conversation"), "gone")
+
+            delegate.onPendingAction(askQuestion())
+            delegate.updateAskAnswerDraft("act-1", AskAnswerDraft(freeText = "Purple"))
+            delegate.submitAnswer("Purple")
+
+            assertThat(flow.value.pendingAction).isNull()
+            assertThat(restored).containsExactly("Purple")
+        }
+
+    @Test
+    fun `a 503 keeps the pause so the user can retry, and says so in its own words`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val (delegate, flow) = delegateWith(this)
+            coEvery { chatRepository.resumeChat(any()) } returns Result.Error(
+                ApiException(503, "resume_context_unavailable", body = """{"error":"resume_context_unavailable"}"""),
+                "resume_context_unavailable",
+            )
+
+            delegate.onPendingAction(toolApproval())
+            delegate.submitAnswer("yes")
+
+            assertThat(flow.value.pendingAction).isNotNull()
+            assertThat(flow.value.pendingActionResumeFailed).isTrue()
+            assertThat(flow.value.error).isEqualTo(ChatNotice.RESUME_CONTEXT_UNAVAILABLE.marker())
+            assertThat(restored).isEmpty()
         }
 
     @Test
@@ -1009,5 +1059,6 @@ class PendingActionDelegateTest {
         const val FINGERPRINT_REJECTED = "started with a different setup"
 
         private const val EXPIRED_COPY = "expired copy"
+        private const val GONE_COPY = "gone copy"
     }
 }

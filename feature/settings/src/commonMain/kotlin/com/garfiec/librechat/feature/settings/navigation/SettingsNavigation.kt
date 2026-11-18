@@ -48,6 +48,8 @@ fun EntryProviderScope<NavKey>.settingsEntries(
     onNavigate: (NavKey) -> Unit,
     onBack: () -> Unit,
     onLogout: () -> Unit,
+    /** Ends the active account's session and opens its sign-in, keeping the account. */
+    onSignInAgain: () -> Unit,
     onNavigateToArchive: () -> Unit = {},
     /** Opens a conversation in the chat: a Shared chats card's "Open chat". */
     onOpenConversation: (conversationId: String) -> Unit = {},
@@ -63,6 +65,7 @@ fun EntryProviderScope<NavKey>.settingsEntries(
                 page = page,
                 onNavigate = onNavigate,
                 onLogout = onLogout,
+                onSignInAgain = onSignInAgain,
                 onNavigateToArchive = onNavigateToArchive,
                 onOpenAdvancedSettings = { onSelectPage(AdvancedSettings(it)) },
                 contentPadding = contentPadding,
@@ -74,6 +77,7 @@ fun EntryProviderScope<NavKey>.settingsEntries(
         onNavigate = onNavigate,
         onBack = onBack,
         onLogout = onLogout,
+        onSignInAgain = onSignInAgain,
         onNavigateToArchive = onNavigateToArchive,
     )
     entry<SharedLinks> {

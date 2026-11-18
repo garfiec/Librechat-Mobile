@@ -520,6 +520,7 @@ class SendDispatchDelegate(
                 attachedRun = null,
                 streamingContent = "",
                 streamingThinking = "",
+                streamingSummary = "",
                 activeToolCalls = emptyList(),
                 sandboxStartingToolCallIds = emptySet(),
                 streamingAttachments = emptyList(),

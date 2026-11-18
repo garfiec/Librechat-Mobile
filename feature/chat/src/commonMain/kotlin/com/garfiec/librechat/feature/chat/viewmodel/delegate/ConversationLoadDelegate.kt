@@ -3,6 +3,7 @@ package com.garfiec.librechat.feature.chat.viewmodel.delegate
 import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.common.result.getOrNull
+import com.garfiec.librechat.core.data.datastore.SpecChatTools
 import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.data.repository.DraftRepository
 import com.garfiec.librechat.core.data.repository.MessageRepository
@@ -57,13 +58,13 @@ class ConversationLoadDelegate(
     private val applyConversationModel: (Conversation) -> Boolean,
     /** Whether this screen takes the conversation's stored parameters (not a handed-off new chat). */
     private val wantsStoredParameters: () -> Boolean = { false },
-    /** Writes the conversation's parameters, with the web-search switch this device remembered (if any). */
-    private val restoreParameters: (Conversation, Boolean?) -> Unit = { _, _ -> },
+    /** Writes the conversation's parameters, with the tool switches this device remembered for it. */
+    private val restoreParameters: (Conversation, RememberedTools) -> Unit = { _, _ -> },
     /**
-     * The web-search switch this device remembered for a conversation. Read before the model is
-     * applied, so nothing suspends between that and [restoreParameters] for a user change to land in.
+     * The tool switches this device remembered for a conversation. Read before the model is applied,
+     * so nothing suspends between that and [restoreParameters] for a user change to land in.
      */
-    private val rememberedWebSearch: suspend (String) -> Boolean? = { null },
+    private val rememberedTools: suspend (String) -> RememberedTools = { RememberedTools() },
     /**
      * Marks the conversation-model load attempted (never "resolved") and refilters the model list;
      * see ModelSelectionDelegate.conversationModelLoaded. Runs on every path out of
@@ -470,7 +471,7 @@ class ConversationLoadDelegate(
             val result = conversationRepository.getConversation(conversationId, originAccount = null)
             var conversation = result.getOrNull()
             val wantsParameters = wantsStoredParameters()
-            val remembered = if (wantsParameters) rememberedWebSearch(conversationId) else null
+            val remembered = if (wantsParameters) rememberedTools(conversationId) else RememberedTools()
             fun apply(loaded: Conversation, restore: Boolean): Boolean {
                 // A handed-off new chat's row is read while its title is still generating: a
                 // placeholder must not replace the title TitleUpdate already showed.
@@ -571,3 +572,6 @@ private data class MessagePathEmission(
     val revalidated: Boolean,
     val appliedUnpin: PendingUnpin?,
 )
+
+/** A conversation's tool switches this device remembered: the web-search switch, and a spec chat's tools. */
+data class RememberedTools(val webSearch: Boolean? = null, val specTools: SpecChatTools? = null)

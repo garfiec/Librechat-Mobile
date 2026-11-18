@@ -16,6 +16,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ComparisonState
 import com.garfiec.librechat.feature.chat.viewmodel.ComposerState
 import com.garfiec.librechat.feature.chat.viewmodel.ConversationMetaState
+import com.garfiec.librechat.feature.chat.viewmodel.FeatureGatesState
 import com.garfiec.librechat.feature.chat.viewmodel.MessageTreeHandle
 import com.garfiec.librechat.feature.chat.viewmodel.MessagesState
 import com.garfiec.librechat.feature.chat.viewmodel.NewChatSelectionHandoff
@@ -353,6 +354,46 @@ class SendCompletionDelegateTest {
 
         coVerify(exactly = 1) { conversationRepository.saveConversation(finalConversation, any()) }
         assertThat(flow.value.conversation.conversationTitle).isEqualTo("Renamed Elsewhere")
+    }
+
+    private fun settledErrorFrame() = StreamEvent.Final(
+        conversation = Conversation(conversationId = AbortFrameFixtures.CONVERSATION_ID),
+        requestMessage = optimisticUserMessage(),
+        responseMessage = Message(
+            messageId = "resp-err",
+            conversationId = AbortFrameFixtures.CONVERSATION_ID,
+            parentMessageId = AbortFrameFixtures.USER_MESSAGE_ID,
+            text = "The run failed",
+            error = true,
+            isCreatedByUser = false,
+        ),
+        settledError = true,
+    )
+
+    @Test
+    fun `an error turn the server never saved is shown but not stored`() = runTest(StandardTestDispatcher()) {
+        val (delegate, flow) = delegateWith(this, baseState().copy(gates = FeatureGatesState(backendVersion = "0.8.9-rc1")))
+
+        delegate.finalArrives(settledErrorFrame())
+        advanceUntilIdle()
+
+        assertThat(flow.value.messages.map { it.messageId }).contains("resp-err")
+        coVerify(exactly = 0) { conversationRepository.saveConversation(any(), any()) }
+        coVerify(exactly = 0) { messageRepository.cacheMessages(any(), any()) }
+        coVerify(exactly = 0) { conversationRepository.generateTitle(any(), any()) }
+    }
+
+    /** A pre-rc1 server never stamps lastResponseAt, so its settled error is the saved turn it always was. */
+    @Test
+    fun `a settled error from a pre-rc1 server is stored as before`() = runTest(StandardTestDispatcher()) {
+        val (delegate, flow) = delegateWith(this, baseState().copy(gates = FeatureGatesState(backendVersion = "0.8.8")))
+
+        delegate.finalArrives(settledErrorFrame())
+        advanceUntilIdle()
+
+        assertThat(flow.value.messages.map { it.messageId }).contains("resp-err")
+        coVerify(exactly = 1) { conversationRepository.saveConversation(any(), any()) }
+        coVerify(exactly = 1) { messageRepository.cacheMessages(any(), any()) }
     }
 
     @Test

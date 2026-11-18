@@ -156,6 +156,19 @@ enum class StreamErrorType(
     STATEFUL_CODE_ENVIRONMENT_NOT_ALLOWED("stateful_code_environment_not_allowed"),
 
     /**
+     * The send was refused because the user's balance does not cover it. `ViolationTypes.TOKEN_BALANCE`;
+     * its payload carries `balance` and `tokenCost` in the server's units, which the copy leaves out.
+     */
+    TOKEN_BALANCE("token_balance"),
+
+    /**
+     * The agent is configured with MCP tools and none of them could be loaded (the server is
+     * down, or the user lacks access). Upstream's `AGENT_EXPECTED_MCP_TOOLS_UNAVAILABLE`
+     * (`packages/api/src/agents/errors.ts`), saved as the failed turn's `code`.
+     */
+    AGENT_EXPECTED_MCP_TOOLS_UNAVAILABLE("AGENT_EXPECTED_MCP_TOOLS_UNAVAILABLE"),
+
+    /**
      * The chat start POST was refused 403 because an MCP server's credential for this user was
      * rejected (v0.8.8, `getAgentErrorMetadata`). The user has to reconnect; never retried.
      * Classified only from the start POST's body — see [startFailureMarker].
@@ -176,6 +189,18 @@ enum class StreamErrorType(
      * (v0.8.9-rc1): deleted, or not this user's. Classified only from the start POST.
      */
     PROJECT_CONTEXT_UNAVAILABLE("project_context_unavailable", classifiesPayload = false),
+
+    /**
+     * The chat start POST was refused 409 because the account is being deleted (generation
+     * admission). Nothing ran. Classified only from the start POST.
+     */
+    ACCOUNT_DELETION_IN_PROGRESS(ServerErrorCode.ACCOUNT_DELETION_IN_PROGRESS, classifiesPayload = false),
+
+    /**
+     * The chat start POST was refused 503 because the server could not check generation admission.
+     * Nothing ran; retryable. Classified only from the start POST.
+     */
+    GENERATION_ADMISSION_UNAVAILABLE(ServerErrorCode.GENERATION_ADMISSION_UNAVAILABLE, classifiesPayload = false),
     ;
 
     companion object {
@@ -183,7 +208,8 @@ enum class StreamErrorType(
 
         /**
          * The marker for a chat start POST that failed up front with an MCP authentication code, a
-         * project context failure or a refused code-workspace decision (with its reason), or null
+         * project context failure, a generation admission refusal or a refused code-workspace
+         * decision (with its reason), or null
          * for any other start failure. [body] is the raw
          * error-response body; the code is read with [ServerErrorCode.generationCodeOf], since that
          * route's `error` key is prose. The one uncoded case, the project-context 404, is matched on
@@ -195,6 +221,8 @@ enum class StreamErrorType(
                 ServerErrorCode.MCP_AUTHENTICATION_REJECTED -> MCP_AUTHENTICATION_REJECTED.marker
                 ServerErrorCode.MCP_AUTHENTICATION_REFRESH_FAILED -> MCP_AUTHENTICATION_REFRESH_FAILED.marker
                 ServerErrorCode.PROJECT_RESOURCES_CHANGED -> PROJECT_RESOURCES_CHANGED.marker
+                ServerErrorCode.ACCOUNT_DELETION_IN_PROGRESS -> ACCOUNT_DELETION_IN_PROGRESS.marker
+                ServerErrorCode.GENERATION_ADMISSION_UNAVAILABLE -> GENERATION_ADMISSION_UNAVAILABLE.marker
                 null -> PROJECT_CONTEXT_UNAVAILABLE.marker.takeIf {
                     status == HTTP_NOT_FOUND && ServerErrorCode.from(body) == ServerErrorCode.PROJECT_CONTEXT_UNAVAILABLE_MESSAGE
                 }
@@ -317,7 +345,7 @@ enum class StreamErrorType(
          * top level named none, as upstream hands its renderer the envelope in that case
          * (`payload = nestedKey != null ? envelope : json`), so its fields are read from there.
          */
-        private fun identifiedPayload(rawMessage: String): Pair<JsonObject, String>? {
+        internal fun identifiedPayload(rawMessage: String): Pair<JsonObject, String>? {
             var from = rawMessage.indexOf('{')
             while (from >= 0) {
                 val span = balancedObjectAt(rawMessage, from)
@@ -470,6 +498,20 @@ enum class StreamErrorType(
 
     /** The marker form of this error, for the shared string-typed error channel. */
     val marker: String get() = "$MARKER_PREFIX$wire"
+}
+
+/**
+ * The provider's or gateway's own message a classified [StreamErrorType.MODEL_RATE_LIMIT] or
+ * [StreamErrorType.MODEL_NOT_FOUND] payload carries as `info` (v0.8.9), or null. A gateway
+ * explains there what no generic sentence can ("budget exhausted, waiting will not help").
+ * Upstream withholds it under a content policy, and older servers never send it.
+ */
+fun StreamErrorType.Companion.classifiedProviderInfo(rawMessage: String): String? {
+    val type = parse(rawMessage)
+    if (type != StreamErrorType.MODEL_RATE_LIMIT && type != StreamErrorType.MODEL_NOT_FOUND) return null
+    val (payload, identifier) = identifiedPayload(rawMessage) ?: return null
+    if (identifier != type.wire) return null
+    return (payload["info"] as? JsonPrimitive)?.takeIf { it.isString }?.content?.takeIf { it.isNotBlank() }
 }
 
 /**

@@ -172,6 +172,7 @@ data class ModelParametersPageParams(
     val selectedEndpoint: String = "",
     val extendedEffortSupported: Boolean = false,
     val thinkingDisplayUpdatesSupported: Boolean = false,
+    val thinkingLevelXhighSupported: Boolean = false,
     /** Underlying provider when the endpoint is "agents"; routes to that provider's param set. */
     val selectedProvider: String? = null,
     val selectedModel: String? = null,
@@ -374,6 +375,7 @@ fun ChatOptionsBottomSheet(
                             selectedEndpoint = parameters.selectedEndpoint,
                             extendedEffortSupported = parameters.extendedEffortSupported,
                             thinkingDisplayUpdatesSupported = parameters.thinkingDisplayUpdatesSupported,
+                            thinkingLevelXhighSupported = parameters.thinkingLevelXhighSupported,
                             selectedProvider = parameters.selectedProvider,
                             selectedModel = parameters.selectedModel,
                             dropParams = parameters.dropParams,

@@ -108,12 +108,19 @@ class ConversationsApi constructor(
 
     /**
      * The full conversation document. Stamped [asFullDocument], since only here does a missing code
-     * field mean "none" rather than "not projected".
+     * field mean "none" rather than "not projected", and [Conversation.provisional] when the answer is
+     * marked `no-store`.
      */
-    suspend fun getConversation(conversationId: String): Conversation =
-        client.get {
+    suspend fun getConversation(conversationId: String): Conversation {
+        val response = client.get {
             url { path("api/convos/$conversationId") }
-        }.body<Conversation>().asFullDocument()
+        }
+        val conversation = response.body<Conversation>().asFullDocument()
+        val noStore = response.headers.getAll(HttpHeaders.CacheControl).orEmpty()
+            .flatMap { it.split(',') }
+            .any { it.trim().equals("no-store", ignoreCase = true) }
+        return if (noStore) conversation.copy(provisional = true) else conversation
+    }
 
     suspend fun updateTitle(conversationId: String, title: String): Conversation =
         client.post {

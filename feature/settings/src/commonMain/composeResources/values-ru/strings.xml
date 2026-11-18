@@ -388,6 +388,9 @@
     <!-- Backup codes dialog -->
     <string name="dialog_title_backup_codes">Резервные коды</string>
     <string name="backup_codes_instructions">Сохраните эти резервные коды в надёжном месте. Каждый код можно использовать только один раз.</string>
+    <string name="twofa_sessions_incomplete">Двухфакторная аутентификация включена, но некоторые другие сеансы могут оставаться активными до истечения срока. Сохраните резервные коды, затем войдите снова.</string>
+    <string name="twofa_other_sessions_signed_out">Двухфакторная аутентификация включена. На всех остальных устройствах выполнен выход из этого аккаунта.</string>
+    <string name="twofa_sign_in_again_to_enable">Войдите снова, чтобы включить двухфакторную аутентификацию.</string>
     <string name="dialog_title_regenerate_backup_codes">Создать новые резервные коды?</string>
     <string name="regenerate_backup_codes_warning">Текущие резервные коды перестанут работать. Вы получите новый набор, который нужно сохранить.</string>
     <string name="action_regenerate">Создать</string>
@@ -720,8 +723,11 @@
     <string name="role_permissions_saved">Сохранено</string>
     <string name="role_permissions_load_failed">Не удалось загрузить права этой роли.</string>
     <string name="role_permissions_save_failed">Не удалось сохранить права. Попробуйте ещё раз.</string>
-    <string name="role_permissions_admin_access_warning">Отключение доступа администратора к этой функции может вызвать непредвиденные проблемы, пока приложение не перезагрузит ваши права. После сохранения вернуть настройку можно только через параметр interface в librechat.yaml, который влияет на все роли.</string>
-    <string name="role_permissions_more_info">Подробнее</string>
+    <string name="role_permissions_admin_lockout_warning">После сохранения %1$s отключится для всех администраторов, включая вас, а эти настройки будут скрыты. Включить обратно сможет только тот, у кого есть доступ к конфигурации сервера.</string>
+    <string name="role_permissions_admin_lockout_title">Отключить %1$s для администраторов?</string>
+    <string name="role_permissions_admin_lockout_confirm_label">Введите %1$s для подтверждения</string>
+    <string name="role_permissions_admin_lockout_confirm">Отключить для администраторов</string>
+    <string name="role_skills_section">Навыки</string>
     <string name="artifact_shortcuts_title">Ярлыки на главном экране</string>
     <string name="artifact_shortcuts_empty">На главный экран пока не закреплено ни одного артефакта.</string>
     <string name="artifact_shortcuts_disabled_message">Этот ярлык артефакта удалён.</string>

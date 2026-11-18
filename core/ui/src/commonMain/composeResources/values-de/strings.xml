@@ -307,6 +307,8 @@
     <string name="acl_error_busy">Eine andere Änderung an diesem Zugriff läuft gerade. Versuch es gleich noch einmal.</string>
     <string name="acl_error_unavailable">Der Zugriff kann gerade nicht geändert werden. Versuch es in Kürze erneut.</string>
     <string name="acl_error_audit_unavailable">Der Zugriff wurde nicht geändert, weil der Server die Änderung nicht protokollieren konnte. Versuch es in Kürze erneut.</string>
+    <string name="acl_error_principal_preparation_failed">Die Personen oder Gruppen für die Freigabe konnten nicht vorbereitet werden. Versuch es erneut.</string>
+    <string name="acl_error_directory_unavailable">Das Verzeichnis ist nicht erreichbar. Versuch es in Kürze erneut.</string>
     <string name="acl_error_load">Die Zugriffsliste konnte nicht geladen werden.</string>
     <string name="bookmarks">Lesezeichen</string>
     <string name="bookmark_new">Neues Lesezeichen</string>
