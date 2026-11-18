@@ -1,0 +1,28 @@
+# LibreChat for one AI RCA run, at the client's backendTargetVersion (LIBRECHAT_TAG). up.sh writes .env.
+# dns: 127.0.0.1 leaves only service names resolvable, so the server can't look up outside hosts.
+name: ai-rca
+services:
+  api:
+    dns: [127.0.0.1]
+    image: registry.librechat.ai/librechat-ai/librechat:${LIBRECHAT_TAG}
+    ports:
+      - "127.0.0.1:${RIG_PORT:-3080}:3080"
+    depends_on: [mongodb, meilisearch]
+    env_file: .env
+    environment:
+      - HOST=0.0.0.0
+      - MONGO_URI=mongodb://mongodb:27017/LibreChat
+      - MEILI_HOST=http://meilisearch:7700
+      - SCHEDULES_SINGLE_PROCESS=true
+    volumes:
+      - ./librechat.yaml:/app/librechat.yaml:ro
+  mongodb:
+    dns: [127.0.0.1]
+    image: mongo:8.0.20
+    command: mongod --noauth
+  meilisearch:
+    dns: [127.0.0.1]
+    image: getmeili/meilisearch:v1.35.1
+    environment:
+      - MEILI_NO_ANALYTICS=true
+      - MEILI_MASTER_KEY=${MEILI_MASTER_KEY}

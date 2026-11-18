@@ -1,0 +1,82 @@
+#!/usr/bin/env python3
+"""Request against the LibreChat test rig only. Env: RIG_URL, RIG_EMAIL, RIG_PASSWORD, RCA_RUN_DIR."""
+import json, os, socket, sys, time, urllib.error, urllib.request
+
+UA = ("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) "
+      "Chrome/131.0.0.0 Safari/537.36")
+BASE = os.environ["RIG_URL"].rstrip("/")
+if not BASE.startswith(("http://localhost:", "http://127.0.0.1:")):
+    sys.exit("rigreq: RIG_URL must be a loopback rig")
+
+
+def call(method, path, body=None, token=None, timeout=20):
+    if not path.startswith("/") or "://" in path:
+        sys.exit("rigreq: path must start with / (the rig URL is fixed)")
+    req = urllib.request.Request(BASE + path, method=method, data=body.encode() if body else None)
+    req.add_header("User-Agent", UA)
+    req.add_header("Accept", "application/json, text/event-stream")
+    if body:
+        req.add_header("Content-Type", "application/json")
+    if token:
+        req.add_header("Authorization", f"Bearer {token}")
+    out, status = [], None
+    try:
+        resp = urllib.request.urlopen(req, timeout=timeout)
+        status = resp.status
+    except urllib.error.HTTPError as e:
+        return e.code, e.read().decode(errors="replace")
+    try:
+        while True:
+            chunk = resp.read1(65536)
+            if not chunk:
+                break
+            out.append(chunk.decode(errors="replace"))
+    except (socket.timeout, TimeoutError):
+        out.append(f"\n[rigreq: stopped reading after {timeout}s]")
+    return status, "".join(out)
+
+
+def token_for(email):
+    cache = os.path.join(os.environ.get("RCA_RUN_DIR", "/tmp"), f".token-{email}")
+    try:
+        t, at = open(cache).read().split()
+        if time.time() - float(at) < 600:
+            return t
+    except (OSError, ValueError):
+        pass
+    for _ in range(2):  # one 60s retry on 429: more would overrun the agent's 2-min Bash tool timeout
+        status, text = call("POST", "/api/auth/login",
+                            json.dumps({"email": email, "password": os.environ["RIG_PASSWORD"]}))
+        if status != 429:
+            break
+        print("rigreq: login rate-limited, waiting 60s", file=sys.stderr, flush=True)
+        time.sleep(60)
+    if status != 200:
+        sys.exit(f"rigreq: login as {email} failed: {status} {text[:300]}" + (" (retry in a few minutes)" if status == 429 else ""))
+    t = json.loads(text)["token"]
+    with open(cache, "w") as f:
+        f.write(f"{t} {time.time()}")
+    return t
+
+
+def main(argv):
+    noauth, timeout, pos = False, 20, []
+    it = iter(argv)
+    for a in it:
+        if a == "--noauth":
+            noauth = True
+        elif a == "--timeout":
+            timeout = min(float(next(it)), 120)
+        else:
+            pos.append(a)
+    if len(pos) not in (2, 3):
+        sys.exit(__doc__ + "\nusage: rigreq METHOD /api/path ['json'] [--noauth] [--timeout S]")
+    method, path, body = pos[0].upper(), pos[1], pos[2] if len(pos) == 3 else None
+    if not path.startswith("/") or "://" in path:
+        sys.exit("rigreq: path must start with / (the rig URL is fixed)")
+    status, text = call(method, path, body, None if noauth else token_for(os.environ["RIG_EMAIL"]), timeout)
+    print(status)
+    print(text[:20000])
+
+
+main(sys.argv[1:])

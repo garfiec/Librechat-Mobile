@@ -1,0 +1,94 @@
+#!/usr/bin/env python3
+"""Read-only git for the RCA agent.
+
+  gitro [-C upstream] log|show|blame|grep|diff|rev-parse|ls-files [options] [revs] [-- paths]
+  gitro grep -n -e PATTERN [rev] [-- paths]
+
+Every option must be on this file's allow-list, spelled in full (git accepts abbreviations, so a
+block-list can't work). Revisions can't start with "-", and paths must resolve inside the checkout.
+"""
+import os, re, sys
+
+FLAGS = {
+    "log": {"--oneline", "--follow", "-p", "--patch", "--stat", "--name-only", "--name-status", "--all",
+            "--first-parent", "--merges", "--no-merges", "-i", "--regexp-ignore-case", "--reverse"},
+    "show": {"--stat", "--name-only", "--name-status", "-p", "--patch", "--oneline", "--no-patch", "-s"},
+    "blame": {"-w", "-s", "-e", "--show-email", "-l", "--date=short"},
+    "grep": {"-n", "--line-number", "-i", "--ignore-case", "-l", "--files-with-matches", "-w", "--word-regexp",
+             "-E", "--extended-regexp", "-F", "--fixed-strings", "-c", "--count", "-h", "-H", "-I", "--heading",
+             "--break", "-W", "--function-context", "-p", "--show-function"},
+    "diff": {"--stat", "--name-only", "--name-status", "-w", "--ignore-all-space"},
+    "rev-parse": {"--short", "--abbrev-ref", "--verify", "--show-toplevel"},
+    "ls-files": set(),
+}
+# Flags whose value is attached to them (--format=…, -Sfoo).
+ATTACHED = {
+    "log": ("--format=", "--pretty=", "-S", "-G", "--grep=", "--since=", "--until=", "--author=", "-L",
+            "-n", "--max-count=", "-U", "--date="),
+    "show": ("--format=", "--pretty=", "-U", "--date="),
+    "blame": ("-L",),
+    "grep": ("-A", "-B", "-C", "--max-depth=", "-m", "--max-count="),
+    "diff": ("-U",),
+    "rev-parse": ("--short=",),
+    "ls-files": (),
+}
+# Flags whose value is the next argument (-n 5, -e PATTERN).
+SEPARATE = {"log": {"-n", "-L", "-S", "-G", "--grep", "--author", "--since", "--until"}, "show": set(), "blame": {"-L"}, "grep": {"-e", "-A", "-B", "-C", "-m"},
+            "diff": set(), "rev-parse": set(), "ls-files": set()}
+REV = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9_./^~@{}:-]*$")
+
+
+def die(msg):
+    sys.exit(f"gitro: {msg}\n\n{__doc__}")
+
+
+def inside(path, root, base=None):
+    real = os.path.realpath(os.path.join(base or os.getcwd(), path))
+    return real == root or real.startswith(root + os.sep)
+
+
+args = sys.argv[1:]
+root = os.path.realpath(os.getcwd())
+pre, base = [], root
+if args[:1] == ["-C"]:
+    if len(args) < 2 or not inside(args[1], root):
+        die("-C must stay inside the checkout")
+    base = os.path.realpath(args[1])
+    pre, args = ["-C", base], args[2:]
+if not args or args[0] not in FLAGS:
+    die("unknown subcommand")
+cmd, rest = args[0], args[1:]
+out, paths, i = [], False, 0
+while i < len(rest):
+    a = rest[i]
+    if paths:
+        if a.startswith("-") or not inside(a, root, base):
+            die(f"path {a!r} is outside the checkout")
+        out.append(a)
+    elif a == "--":
+        paths = True
+        out.append(a)
+    elif a in FLAGS[cmd]:
+        out.append(a)
+    elif a in SEPARATE[cmd]:
+        if i + 1 >= len(rest):
+            die(f"{a} needs a value")
+        out += [a, rest[i + 1]]
+        i += 1
+    elif cmd in ("log", "show") and re.fullmatch(r"-\d+", a):
+        out.append(a)
+    elif a.startswith("-"):
+        if not any(a.startswith(p) and len(a) > len(p) for p in ATTACHED[cmd]):
+            die(f"{a} is not allowed")
+        out.append(a)
+    elif REV.match(a) and "../" not in a and "/.." not in a and not a.startswith(".."):
+        out.append(a)
+    else:
+        die(f"{a!r} is not a revision; put paths after --")
+    i += 1
+
+extra = ["--no-ext-diff", "--no-textconv"] if cmd in ("log", "show", "diff") else []
+env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
+env.update(GIT_CONFIG_GLOBAL="/dev/null", GIT_CONFIG_NOSYSTEM="1", GIT_PAGER="cat", GIT_TERMINAL_PROMPT="0")
+os.execvpe("git", ["git", "--no-pager", "-c", "safe.directory=*", "-c", "core.fsmonitor=false",
+                   "-c", "core.hooksPath=/dev/null", *pre, cmd, *extra, *out], env)

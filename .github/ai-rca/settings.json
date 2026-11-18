@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "defaultMode": "dontAsk",
+    "allow": [
+      "Bash(gitro:*)",
+      "Bash(rigreq:*)"
+    ],
+    "deny": [
+      "Edit",
+      "Write",
+      "NotebookEdit",
+      "WebFetch",
+      "WebSearch",
+      "Agent",
+      "Workflow",
+      "Skill",
+      "PushNotification",
+      "RemoteTrigger",
+      "CronCreate",
+      "Monitor",
+      "ExitWorktree",
+      "EnterWorktree",
+      "Read(//proc/**)",
+      "Read(~/.claude/**)",
+      "Read(~/.config/**)",
+      "Read(~/.ssh/**)",
+      "Read(./.git/config)",
+      "Read(./.github/ai-rca/rig/.env)"
+    ]
+  }
+}
