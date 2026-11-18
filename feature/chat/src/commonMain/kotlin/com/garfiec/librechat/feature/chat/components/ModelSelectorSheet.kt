@@ -203,7 +203,7 @@ internal fun rememberExpandOnSearchFocus(sheetState: SheetState): () -> Unit {
     val scope = rememberCoroutineScope()
     return remember(sheetState, scope) {
         {
-            // Liquid Glass never attaches this state (it stays Hidden), so only a partial sheet expands.
+            // A portalled Liquid Glass sheet never attaches this state (it stays Hidden); only a partial one expands.
             if (sheetState.currentValue == SheetValue.PartiallyExpanded) scope.launch { sheetState.expand() }
         }
     }
