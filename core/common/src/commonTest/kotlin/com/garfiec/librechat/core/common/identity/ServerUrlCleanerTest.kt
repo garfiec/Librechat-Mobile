@@ -65,6 +65,9 @@ class ServerUrlCleanerTest {
         assertEquals("https://h.example/loginx", cleanServerUrl("https://h.example/loginx"))
         // `/c/<id>/more` is not a conversation route.
         assertEquals("https://h.example/c/x/y", cleanServerUrl("https://h.example/c/x/y"))
+        // The review route is `/responses/<id>/review` exactly.
+        assertEquals("https://h.example/responses/r1", cleanServerUrl("https://h.example/responses/r1"))
+        assertEquals("https://h.example/responses/a/b/review", cleanServerUrl("https://h.example/responses/a/b/review"))
     }
 
     @Test
@@ -85,7 +88,8 @@ class ServerUrlCleanerTest {
         listOf(
             "/login/2fa", "/search", "/c", "/prompts", "/prompts/new", "/prompts/p1", "/skills", "/skills/new",
             "/skills/s1", "/projects", "/projects/p1", "/agents", "/agents/promoted", "/oauth/success",
-            "/oauth/error", "/login/2fa/setup", "/insights", "/code/setup/a1",
+            "/oauth/error", "/login/2fa/setup", "/insights", "/code/setup/a1", "/channels/link",
+            "/responses/r1/review",
         ).forEach { route ->
             assertEquals("https://h.example", cleanServerUrl("https://h.example$route"), route)
             assertEquals("https://h.example/librechat", cleanServerUrl("https://h.example/librechat$route"), route)

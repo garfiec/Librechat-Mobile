@@ -12,10 +12,17 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
-/** Single-line text input with label, optional placeholder, and description. */
+/**
+ * Single-line text input with label, optional placeholder, and description. A number past [max] is
+ * pulled back to it as typed; one below [min] only when the field loses focus, so a number being
+ * typed up to the floor is left alone.
+ */
 @Composable
 fun DynamicInput(
     label: String,
@@ -24,6 +31,8 @@ fun DynamicInput(
     modifier: Modifier = Modifier,
     placeholder: String? = null,
     description: String? = null,
+    min: Double? = null,
+    max: Double? = null,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
@@ -39,10 +48,18 @@ fun DynamicInput(
         }
         Spacer(modifier = Modifier.height(8.dp))
         val field = rememberDraftField(value)
+        var focused by remember { mutableStateOf(false) }
         AdaptiveOutlinedTextField(
             value = field.value,
-            onValueChange = { field.onValueChange(it, onValueChange) },
-            modifier = Modifier.fillMaxWidth(),
+            onValueChange = { field.onValueChange(it.clampedTo(min = null, max = max), onValueChange) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .onFocusChanged { state ->
+                    if (focused && !state.isFocused) {
+                        field.onValueChange(field.value.clampedTo(min, max), onValueChange)
+                    }
+                    focused = state.isFocused
+                },
             placeholder = if (placeholder != null) {
                 { Text(placeholder) }
             } else {
@@ -51,6 +68,22 @@ fun DynamicInput(
             singleLine = true,
         )
     }
+}
+
+private fun TextFieldValue.clampedTo(min: Double?, max: Double?): TextFieldValue {
+    val clamped = clampNumericText(text, min, max)
+    return if (clamped == text) this else TextFieldValue(clamped, TextRange(clamped.length))
+}
+
+/** [text] moved to the nearer bound when it is a number outside [min]..[max]; anything else unchanged. */
+internal fun clampNumericText(text: String, min: Double?, max: Double?): String {
+    val number = text.trim().toDoubleOrNull() ?: return text
+    val clamped = when {
+        max != null && number > max -> max
+        min != null && number < min -> min
+        else -> return text
+    }
+    return if (clamped % 1.0 == 0.0) clamped.toLong().toString() else clamped.toString()
 }
 
 @Preview

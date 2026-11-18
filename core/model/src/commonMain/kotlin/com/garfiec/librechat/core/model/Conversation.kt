@@ -152,7 +152,20 @@ data class Conversation(
      */
     @Transient
     val cachedIsCodeConversation: Boolean? = null,
-)
+    /**
+     * Local only: the single-conversation GET was answered `Cache-Control: no-store`. A proxy can add
+     * that to any answer, so only [isUnsavedProjection] decides what is cached.
+     */
+    @Transient
+    val provisional: Boolean = false,
+) {
+    /**
+     * The server's read-only projection of an unsaved first turn waiting on an MCP sign-in: `no-store`,
+     * titled `New Chat`, with both timestamps stamped from the run's start. Never cached.
+     */
+    val isUnsavedProjection: Boolean
+        get() = provisional && title == "New Chat" && createdAt != null && createdAt == updatedAt
+}
 
 /**
  * Whether this chat ran against an attached code workspace, so it can have a pull request: true or

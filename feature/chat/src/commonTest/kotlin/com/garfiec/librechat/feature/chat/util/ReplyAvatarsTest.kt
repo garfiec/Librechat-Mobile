@@ -159,4 +159,17 @@ class ReplyAvatarsTest {
         val newConfigs = mapOf("My Router" to EndpointConfig(providerId = "groq"))
         assertEquals(ProviderId.GROQ, memo.resolve(path, null, server, newConfigs)[0].avatar?.provider)
     }
+
+    @Test
+    fun a_reply_by_the_selected_agent_hides_its_author() {
+        val own = Message(messageId = "r1", conversationId = "c", endpoint = "agents", model = "agent_a")
+        val inherited = Message(messageId = "r2", conversationId = "c", endpoint = "agents")
+        val other = Message(messageId = "r3", conversationId = "c", endpoint = "agents", model = "agent_b")
+        val user = Message(messageId = "u", conversationId = "c", isCreatedByUser = true)
+        val mapped = listOf(own, inherited, other, user).map(::node)
+            .withReplyAvatars(null, server, configs, selectedAuthorAgentId = "agent_a")
+        assertEquals(listOf(true, true, false, false), mapped.map { it.authorHidden })
+        val shown = listOf(own).map(::node).withReplyAvatars(null, server, configs, selectedAuthorAgentId = null)
+        assertEquals(false, shown.single().authorHidden)
+    }
 }

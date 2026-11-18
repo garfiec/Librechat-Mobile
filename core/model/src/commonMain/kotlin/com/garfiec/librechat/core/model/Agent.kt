@@ -88,9 +88,9 @@ data class Agent(
     @SerialName("additional_instructions") val additionalInstructions: String? = null,
     /**
      * The prompt group whose text the agent runs as its instructions (v0.8.9-rc1):
-     * `{ source: "native", groupId, selection }`, or `{ source, restricted: true }` for an editor
-     * without VIEW on the group. Raw: mobile only reads whether a link exists, and never sends the
-     * field, which leaves the link as it is (the update route reads absent as "no change").
+     * `{ source, groupId, selection }`, or `{ source, restricted: true }` for an editor without
+     * VIEW on the group. Raw, parsed by the agent editor; an update that omits the field leaves
+     * the link as it is.
      */
     val instructionsPrompt: JsonElement? = null,
     /**

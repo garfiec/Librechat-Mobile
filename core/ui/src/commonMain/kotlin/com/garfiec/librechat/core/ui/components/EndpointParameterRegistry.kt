@@ -23,6 +23,9 @@ object EndpointParameterRegistry {
      *   the `thinkingDisplay` dropdown. Upstream added it to the `ThinkingDisplay` enum in v0.8.8;
      *   an older server's `anthropicSchema` rejects it, and its `.catch(() => ({}))` then discards
      *   every endpoint param on the conversation, not just this one.
+     * @param thinkingLevelXhighSupported when false, a Gemini Hydrogen model keeps Google's shared
+     *   `thinkingLevel` list rather than its own, which offers `xhigh`: upstream added
+     *   `ThinkingLevel.xhigh` in v0.8.9, and an older server rejects it.
      * @param provider required for the `agents` endpoint to route to the underlying
      *   provider's parameter set. Ignored for other endpoints.
      * @param model required for the `bedrock` endpoint to dispatch on the model-prefix
@@ -38,10 +41,11 @@ object EndpointParameterRegistry {
         model: String? = null,
         dropParams: List<String> = emptyList(),
         thinkingDisplayUpdatesSupported: Boolean = false,
+        thinkingLevelXhighSupported: Boolean = false,
     ): List<ParameterDefinition> {
         val settingsKey = settingsKeyFor(endpoint, provider)
         val filtered = baseDefinitions(endpoint, extendedEffortSupported, provider, model, dropParams)
-        val modelAware = applyModelAwareDefaults(filtered, settingsKey, model)
+        val modelAware = applyModelAwareDefaults(filtered, settingsKey, model, thinkingLevelXhighSupported)
         if (extendedEffortSupported && thinkingDisplayUpdatesSupported) return modelAware
         return modelAware.map { def ->
             val gated = when {
@@ -61,7 +65,7 @@ object EndpointParameterRegistry {
     /**
      * The option values a per-model rule takes away from [model], by parameter key: what the
      * provider's list offers minus what [getDefinitions] offers for this model — effort `minimal`
-     * on gpt-6-sol/luna, `none`/`minimal` on Grok 4.7.
+     * on gpt-6-sol/terra/luna, `none`/`minimal` on Grok 4.7.
      *
      * This, not "absent from the current options", is what a stored value may be dropped for. The
      * current options also lack values for reasons that say nothing about the model: `xhigh`/`max`
@@ -80,7 +84,7 @@ object EndpointParameterRegistry {
         dropParams: List<String> = emptyList(),
     ): Map<String, Set<String>> {
         val base = baseDefinitions(endpoint, extendedEffortSupported = true, provider, model, dropParams)
-        val offered = applyModelAwareDefaults(base, settingsKeyFor(endpoint, provider), model)
+        val offered = applyModelAwareDefaults(base, settingsKeyFor(endpoint, provider), model, thinkingLevelXhighSupported = true)
             .associateBy { it.key }
         return base.mapNotNull { def ->
             val before = def.options ?: return@mapNotNull null
@@ -160,20 +164,28 @@ object EndpointParameterRegistry {
      * [settingsKey] is the resolved parameter-set key (the agent's provider for agents), not the
      * raw endpoint name.
      */
+    @Suppress("ReturnCount") // one early return per per-model rule, as upstream's read
     private fun applyModelAwareDefaults(
         definitions: List<ParameterDefinition>,
         settingsKey: String,
         model: String?,
+        thinkingLevelXhighSupported: Boolean,
     ): List<ParameterDefinition> {
         if (model.isNullOrBlank()) return definitions
-        // The three per-model rules below return early, as upstream's do: each replaces the whole
+        // The per-model rules below return early, as upstream's do: each replaces the whole
         // model-aware pass for its model rather than composing with the provider rules after it.
         if (GROK_4_7.containsMatchIn(model.substringAfterLast('/'))) {
             return definitions.map { def ->
                 if (def.key == "reasoning_effort") def.copy(options = GROK_4_7_EFFORT) else def
             }
         }
-        if (GPT_6_SOL_LUNA.containsMatchIn(model)) {
+        if (isGpt6Cyber(settingsKey, model)) {
+            // Its `useResponsesApi` routed default is display-only upstream and not mirrored, as below.
+            return definitions
+                .filterNot { it.key in GPT_6_CYBER_HIDDEN_KEYS }
+                .map { def -> if (def.key == "max_tokens") def.copy(min = 1.0, max = GPT_6_CYBER_MAX_TOKENS, step = 1.0) else def }
+        }
+        if (GPT_6_NO_MINIMAL.containsMatchIn(model)) {
             // Upstream also renders a server-routed `useResponsesApi` default for these models from
             // `/api/endpoints` `responsesApiRouting`; that display-only half is not mirrored.
             return definitions.map { def ->
@@ -199,7 +211,10 @@ object EndpointParameterRegistry {
         if (hasAdaptiveHaikuThinking(model)) return definitions.filterNot { it.key in BETWEEN_TOOLS_HIDDEN_KEYS }
         val adjusted = if (settingsKey == "google") {
             val bounds = googleThinkingBudgetBounds(model)
-            if (bounds == null) {
+            if (isGeminiHydrogen(model)) {
+                definitions.filterNot { it.key in BETWEEN_TOOLS_HIDDEN_KEYS }
+                    .map { it.forGeminiHydrogen(thinkingLevelXhighSupported) }
+            } else if (bounds == null) {
                 definitions
             } else {
                 definitions.map { def ->
@@ -220,9 +235,12 @@ object EndpointParameterRegistry {
     private val GROK_4_7 = Regex("""^grok-4[.-]7(?:$|[-:])""")
     private val GROK_4_7_EFFORT = listOf("", "low", "medium", "high", "xhigh")
 
-    // MIRRORED from upstream `GPT6_TIER` (`packages/data-provider/src/families.ts`): a point release
-    // (`gpt-6.1-sol`) resolves to its family's tier.
-    private val GPT_6_SOL_LUNA = Regex("""^gpt-6(?:\.\d+)?-(?:sol|luna)(?=-|$)""", RegexOption.IGNORE_CASE)
+    // MIRRORED from upstream `GPT6_TIER` (`packages/data-provider/src/families.ts`): the tiers
+    // `applyModelAwareDefaults` withholds `minimal` from. A point release (`gpt-6.1-sol`) resolves to its family's tier.
+    private val GPT_6_NO_MINIMAL = Regex("""^gpt-6(?:\.\d+)?-(?:sol|terra|luna)(?=-|$)""", RegexOption.IGNORE_CASE)
+    private val GPT_6_CYBER_HIDDEN_KEYS =
+        setOf("reasoning_effort", "reasoning_summary", "reasoning_mode", "reasoning_context")
+    private const val GPT_6_CYBER_MAX_TOKENS = 128_000.0
     private val ALWAYS_ON_THINKING_HIDDEN_KEYS = setOf("thinking", "thinkingBudget", "temperature", "topP", "topK")
     private val BETWEEN_TOOLS_HIDDEN_KEYS = setOf("thinkingBudget", "temperature", "topP", "topK")
 
@@ -288,6 +306,31 @@ object EndpointParameterRegistry {
     private data class ThinkingBudgetBounds(val min: Int, val max: Int)
 
     /**
+     * MIRRORED from upstream `isGeminiHydrogen` (`packages/data-provider/src/gemini.ts`): the bare or
+     * provider-prefixed id, or a versioned alias of it.
+     */
+    internal fun isGeminiHydrogen(model: String): Boolean {
+        val id = model.lowercase().substringAfterLast('/')
+        return id == GEMINI_HYDROGEN || id.startsWith("$GEMINI_HYDROGEN-")
+    }
+
+    private fun ParameterDefinition.forGeminiHydrogen(xhighSupported: Boolean) = when (key) {
+        "maxOutputTokens" -> copy(
+            max = GEMINI_HYDROGEN_OUTPUT_TOKENS.toDouble(),
+            default = GEMINI_HYDROGEN_OUTPUT_TOKENS.toString(),
+            description = "Max tokens in the response (1-$GEMINI_HYDROGEN_OUTPUT_TOKENS).",
+        )
+        "thinkingLevel" -> if (xhighSupported) copy(options = GEMINI_HYDROGEN_THINKING_LEVELS) else this
+        else -> this
+    }
+
+    private const val GEMINI_HYDROGEN = "gemini-4-hydrogen"
+    private const val GEMINI_HYDROGEN_OUTPUT_TOKENS = 65_536
+
+    /** Hydrogen's `thinkingLevel` options: no `minimal`, plus `xhigh`. */
+    internal val GEMINI_HYDROGEN_THINKING_LEVELS = listOf("", "low", "medium", "high", "xhigh")
+
+    /**
      * MIRRORED from upstream `supportsAdaptiveThinking` (`packages/data-provider/src/bedrock.ts`): Opus
      * and Sonnet 4.6+, Haiku 5.5+ and the Mythos class take `effort` rather than a token budget.
      */
@@ -304,8 +347,15 @@ object EndpointParameterRegistry {
     internal fun grok47Efforts(model: String): List<String>? =
         GROK_4_7_EFFORT.takeIf { GROK_4_7.containsMatchIn(model.substringAfterLast('/')) }
 
-    /** gpt-6-sol / gpt-6-luna, which take no `minimal` effort. */
-    internal fun isGpt6SolOrLuna(model: String): Boolean = GPT_6_SOL_LUNA.containsMatchIn(model)
+    /** gpt-6-sol / gpt-6-terra / gpt-6-luna, which take no `minimal` effort. */
+    internal fun isGpt6NoMinimalTier(model: String): Boolean = GPT_6_NO_MINIMAL.containsMatchIn(model)
+
+    /**
+     * `gpt-6-cyber` on the openAI parameter set, which takes no reasoning keys. Exact and
+     * case-sensitive, and only where [settingsKey] (any casing) is `openAI`, as upstream matches it.
+     */
+    internal fun isGpt6Cyber(settingsKey: String, model: String): Boolean =
+        model == "gpt-6-cyber" && settingsKey.equals("openAI", ignoreCase = true)
 
     /**
      * MIRRORED from upstream `getGoogleThinkingBudgetBounds` (`packages/data-provider/src/schemas.ts`).
@@ -1144,9 +1194,9 @@ object EndpointParameterRegistry {
             key = "thinkingLevel",
             label = "Thinking Level",
             type = ParameterType.ENUM_SLIDER,
-            // Mirror upstream ThinkingLevel enum (schemas.ts): ['', minimal, low,
-            // medium, high]. "none" is NOT a valid value — the server validates
-            // via z.nativeEnum and drops it; "minimal" is the lowest level.
+            // Mirror upstream google.thinkingLevel options (parameterSettings.ts). "none" is NOT a
+            // ThinkingLevel value: the server validates via z.nativeEnum and drops it. `xhigh` is
+            // offered only to Gemini Hydrogen (applyModelAwareDefaults).
             options = listOf("", "minimal", "low", "medium", "high"),
             default = "",
             description = "Controls how much thinking the model performs.",

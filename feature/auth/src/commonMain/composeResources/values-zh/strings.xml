@@ -43,12 +43,14 @@
     <string name="send_reset_link">发送重置链接</string>
     <string name="check_your_email">请查收你的邮箱</string>
     <string name="reset_link_sent">我们已向 %1$s 发送了密码重置链接</string>
+    <string name="reset_password_unavailable">未配置邮件发送。请联系管理员重置密码。</string>
     <string name="back_to_sign_in">返回登录</string>
 
     <!-- Reset Password -->
     <string name="reset_password_screen_title">重置密码</string>
     <string name="password_reset_successful">密码重置成功</string>
     <string name="password_reset_message">你的密码已更新。现在可以使用新密码登录了。</string>
+    <string name="password_reset_incomplete">新密码已生效，但部分其他会话可能会保持登录状态直到过期。请使用新密码登录，然后再申请一个重置链接以将它们退出登录。</string>
     <string name="set_new_password">设置新密码</string>
     <string name="enter_new_password_hint">在下方输入你的新密码</string>
     <string name="new_password_label">新密码</string>
@@ -117,6 +119,7 @@
     <string name="two_factor_setup_codes_acknowledged">我已保存这些备用码</string>
     <string name="two_factor_setup_complete">完成设置</string>
     <string name="two_factor_setup_expired">设置会话已过期。请重新登录以继续。</string>
+    <string name="two_factor_setup_sessions_incomplete">双重身份验证已开启，但部分其他会话可能会保持登录状态直到过期。请重新登录以继续。</string>
     <string name="two_factor_setup_back_to_sign_in">返回登录</string>
     <string name="two_factor_setup_error_start">无法开始设置。请重试。</string>
     <string name="two_factor_setup_error_invalid">验证码不匹配。请输入身份验证器中的当前验证码。</string>

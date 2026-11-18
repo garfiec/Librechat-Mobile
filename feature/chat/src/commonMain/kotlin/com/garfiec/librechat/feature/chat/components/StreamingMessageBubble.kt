@@ -59,8 +59,12 @@ fun StreamingMessageBubble(
     showBubbles: Boolean = false,
     useKatex: Boolean = false,
     streamingThinking: String = "",
+    /** The compaction summary the run is writing, shown as the saved SUMMARY part will be. */
+    streamingSummary: String = "",
     pendingSkills: List<String> = emptyList(),
     waiting: Boolean = false,
+    /** Leaves out the sender row, as the saved message will ([com.garfiec.librechat.feature.chat.util.MessageNode.authorHidden]). */
+    authorHidden: Boolean = false,
 ) {
     if (chatLayoutStyle == ChatLayoutConstants.TWO_SIDED) {
         TwoSidedStreamingBubble(
@@ -72,8 +76,10 @@ fun StreamingMessageBubble(
             showBubbles = showBubbles,
             useKatex = useKatex,
             streamingThinking = streamingThinking,
+            streamingSummary = streamingSummary,
             pendingSkills = pendingSkills,
             waiting = waiting,
+            authorHidden = authorHidden,
             modifier = modifier,
         )
     } else {
@@ -86,8 +92,10 @@ fun StreamingMessageBubble(
             showBubbles = showBubbles,
             useKatex = useKatex,
             streamingThinking = streamingThinking,
+            streamingSummary = streamingSummary,
             pendingSkills = pendingSkills,
             waiting = waiting,
+            authorHidden = authorHidden,
             modifier = modifier,
         )
     }
@@ -103,8 +111,10 @@ private fun ThreadStreamingBubble(
     showBubbles: Boolean,
     useKatex: Boolean,
     streamingThinking: String,
+    streamingSummary: String,
     pendingSkills: List<String>,
     waiting: Boolean,
+    authorHidden: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val liveCd = streamingLiveDescription(streamingContent.isNotBlank())
@@ -117,30 +127,32 @@ private fun ThreadStreamingBubble(
             ),
     ) {
         // Sender row with avatar
-        Row(
-            modifier = sendFlightReplyHeader(),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            if (showAvatars) {
-                EndpointAvatar(
-                    imageUrl = avatar?.imageUrl,
-                    endpointName = avatar?.endpointName,
-                    provider = avatar?.provider,
-                    fallbackText = senderName,
-                    size = 28.dp,
+        if (!authorHidden) {
+            Row(
+                modifier = sendFlightReplyHeader(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (showAvatars) {
+                    EndpointAvatar(
+                        imageUrl = avatar?.imageUrl,
+                        endpointName = avatar?.endpointName,
+                        provider = avatar?.provider,
+                        fallbackText = senderName,
+                        size = 28.dp,
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+                Text(
+                    text = senderName,
+                    style = MaterialTheme.typography.titleSmall.copy(
+                        fontWeight = FontWeight.SemiBold,
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
-                Spacer(modifier = Modifier.width(8.dp))
             }
-            Text(
-                text = senderName,
-                style = MaterialTheme.typography.titleSmall.copy(
-                    fontWeight = FontWeight.SemiBold,
-                ),
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-        }
 
-        Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(4.dp))
+        }
 
         // Streaming content with blinking cursor
         val contentStartPadding = if (showAvatars) 36.dp else 0.dp
@@ -171,6 +183,7 @@ private fun ThreadStreamingBubble(
             } else {
                 StreamingPendingSkills(pendingSkills)
                 StreamingThinking(streamingThinking, fontSizeMultiplier, useKatex)
+                SummaryContentPart(streamingSummary, fontSizeMultiplier = fontSizeMultiplier, useKatex = useKatex)
                 if (streamingContent.isNotBlank()) {
                     // Routed through TextContentPart so artifact directives render as cards while the
                     // reply streams (#302) — an unclosed artifact shows its source via IncompleteArtifact.
@@ -201,8 +214,10 @@ private fun TwoSidedStreamingBubble(
     showBubbles: Boolean,
     useKatex: Boolean,
     streamingThinking: String,
+    streamingSummary: String,
     pendingSkills: List<String>,
     waiting: Boolean,
+    authorHidden: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val liveCd = streamingLiveDescription(streamingContent.isNotBlank())
@@ -216,8 +231,10 @@ private fun TwoSidedStreamingBubble(
         horizontalArrangement = Arrangement.Start,
         verticalAlignment = Alignment.Top,
     ) {
-        // Agent avatar on left
-        if (showAvatars) {
+        // Agent avatar on left; a hidden author keeps its width so replies stay aligned.
+        if (showAvatars && authorHidden) {
+            Spacer(modifier = Modifier.width(34.dp))
+        } else if (showAvatars) {
             EndpointAvatar(
                 imageUrl = avatar?.imageUrl,
                 endpointName = avatar?.endpointName,
@@ -253,24 +270,27 @@ private fun TwoSidedStreamingBubble(
                     contentDescription = liveCd
                 },
         ) {
-            Text(
-                text = senderName,
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontWeight = FontWeight.SemiBold,
-                ),
-                color = if (showBubbles) {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                } else {
-                    MaterialTheme.colorScheme.onSurface
-                },
-            )
-            Spacer(modifier = Modifier.height(4.dp))
+            if (!authorHidden) {
+                Text(
+                    text = senderName,
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.SemiBold,
+                    ),
+                    color = if (showBubbles) {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    },
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+            }
             Column(modifier = sendFlightReplyBody()) {
                 if (waiting) {
                     StreamingWaitIndicator()
                 } else {
                     StreamingPendingSkills(pendingSkills)
                     StreamingThinking(streamingThinking, fontSizeMultiplier, useKatex)
+                    SummaryContentPart(streamingSummary, fontSizeMultiplier = fontSizeMultiplier, useKatex = useKatex)
                     if (streamingContent.isNotBlank()) {
                         // Routed through TextContentPart so artifact directives render as cards while the
                         // reply streams (#302) — an unclosed artifact shows its source via IncompleteArtifact.

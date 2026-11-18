@@ -75,7 +75,14 @@ internal data class FileToolView(
     /** The tool's own output, shown under the preview when it says something the preview does not. */
     val separateOutput: String?,
     val intent: String?,
-)
+) {
+    /** [separateOutput] to draw: the host's one-line success summary only repeats the header, unless the call failed. */
+    fun outputBelowPreview(failed: Boolean): String? =
+        separateOutput?.takeIf { failed || !SUCCESS_SUMMARY.matches(it.trimEnd()) }
+}
+
+/** Upstream `FileAuthoringCall`'s `SUCCESS_SUMMARY`: one line, so a summary followed by warnings still shows. */
+private val SUCCESS_SUMMARY = Regex("""(?:Created|Updated|Edited)\b[^\r\n]*""")
 
 internal fun fileToolView(kind: FileToolKind, args: String?, output: String?, intent: String?): FileToolView {
     val out = output.orEmpty()

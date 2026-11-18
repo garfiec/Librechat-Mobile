@@ -103,6 +103,14 @@ class MessageSerializationTest {
     }
 
     @Test
+    fun messageFileTextPreviewDeserializes() {
+        val serverJson = """{"messageId":"m","conversationId":"c","isCreatedByUser":true,""" +
+            """"files":[{"file_id":"f","filename":"pasted.txt","type":"text/plain","textPreview":"hello\nworld"}]}"""
+        val decoded = json.decodeFromString(Message.serializer(), serverJson)
+        assertEquals("hello\nworld", decoded.files?.single()?.textPreview)
+    }
+
+    @Test
     fun messageSkillFieldsDeserializeFromServerJson() {
         val serverJson = """
             {

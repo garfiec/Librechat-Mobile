@@ -730,6 +730,25 @@ class ComparisonModeDelegateTest {
         assertThat(flow.value.comparisonState.secondaryActiveToolCalls.single().authUrl).isEqualTo("https://idp")
     }
 
+    @Test
+    fun `a pane's sign-in prompt is retired when it ends`() {
+        val (delegate, flow) = delegateWith(
+            ChatUiState(
+                comparisonState = ComparisonState(
+                    isEnabled = true,
+                    primaryActiveToolCalls = listOf(
+                        ActiveToolCall(id = "call_1", name = "search"),
+                        ActiveToolCall(id = "oauth:call_1", name = "oauth_mcp_github", authUrl = "https://idp"),
+                    ),
+                ),
+            ),
+        )
+
+        delegate.routeEvent(StreamEvent.ToolCallComplete(toolCallId = "oauth:call_1", output = "OAuth authentication ended"))
+
+        assertThat(flow.value.comparisonState.primaryActiveToolCalls.map { it.id }).containsExactly("call_1")
+    }
+
     private fun comparingWithSubagentInPaneB(traced: Boolean) = delegateWith(
         ChatUiState(
             comparisonState = ComparisonState(

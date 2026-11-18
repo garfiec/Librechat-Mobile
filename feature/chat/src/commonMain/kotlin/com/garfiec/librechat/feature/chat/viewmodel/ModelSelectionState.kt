@@ -69,7 +69,7 @@ data class ModelSelectionState(
     val selectedAgentStarters: List<String>? = null,
     /** The selected agent's model, fetched with [selectedAgentProvider]; null while unresolved. */
     val selectedAgentModel: String? = null,
-    /** The selected agent's saved reasoning values by key (`reasoning_effort`, `effort`, …). */
+    /** The selected agent's saved reasoning values by key (`reasoning_effort`, `effort`, …, and `thinking`). */
     val selectedAgentReasoning: Map<String, String> = emptyMap(),
     /**
      * The OpenRouter reasoning catalog for the endpoint the selection runs on (v0.8.9-rc1), or null
@@ -114,6 +114,11 @@ data class ModelSelectionState(
     val extendedEffortSupported: Boolean = false,
     /** Whether thinkingDisplay `updates` may be offered (v0.8.8); see `EndpointParameterRegistry.getDefinitions`. */
     val thinkingDisplayUpdatesSupported: Boolean = false,
+    /**
+     * Whether the server lets a request's explicit tool, MCP and artifacts values win over the spec's
+     * (v0.8.9, PRESENT only). An older server ORs the spec's into every request, so they lock.
+     */
+    val specToolsAreDefaults: Boolean = false,
 ) {
     val selectedEndpoint: String get() = choice.endpoint
     val selectedModel: String? get() = choice.model
@@ -127,18 +132,52 @@ data class ModelSelectionState(
     val toolsHiddenBySpec: Boolean get() = activeSpec?.hideBadgeRow == true
 
     /**
-     * The tools the spec turns on, which can't be turned off here: its tool flags and artifacts, and under
-     * `enforce` its preset's too ([presetTools]). Empty off a spec.
+     * Whether the spec's own tools, MCP servers and artifacts are only the chat's starting set, which
+     * the user may turn off ([specToolsAreDefaults]), rather than locked on: not under `hideBadgeRow`,
+     * where the server keeps the spec's values whatever the request says.
+     */
+    private val specToolsSwitchable: Boolean get() = specToolsAreDefaults && !toolsHiddenBySpec
+
+    /** The spec's tool flags and artifacts as toolbar keys. Empty off a spec. */
+    private val specConfiguredTools: Set<String>
+        get() = activeSpec?.let { it.forcedTools + it.specArtifacts }.orEmpty()
+
+    /**
+     * The tools the spec turns on, which can't be turned off here: its tool flags and artifacts unless
+     * [specToolsSwitchable], and under `enforce` its preset's too ([presetTools]). Empty off a spec.
      */
     val lockedTools: Set<String>
         get() {
             val spec = activeSpec ?: return emptySet()
-            val forced = spec.forcedTools + spec.specArtifacts
+            val forced = if (specToolsSwitchable) emptySet() else specConfiguredTools
             return if (modelSpecs.requiresSpec) forced + spec.presetTools else forced
         }
 
-    /** The MCP servers the spec adds, likewise. */
-    val lockedMcpServers: Set<String> get() = activeSpec?.forcedMcpServers.orEmpty()
+    /**
+     * The MCP servers the spec adds, likewise. Where [specToolsSwitchable], only those the chat
+     * doesn't offer, which the server keeps pinned since no control here could deselect them.
+     */
+    val lockedMcpServers: Set<String>
+        get() {
+            val forced = activeSpec?.forcedMcpServers.orEmpty()
+            if (!specToolsSwitchable || forced.isEmpty()) return forced
+            return mcpServers.filter { !it.chatSelectable && it.name in forced }.mapTo(HashSet()) { it.name }
+        }
+
+    /**
+     * The spec's tools the user turned off in this chat. A send carries each as an explicit `false`
+     * (artifacts `""`): left out, the server would turn it back on from the spec. Empty unless
+     * [specToolsSwitchable].
+     */
+    val specToolsTurnedOff: Set<String>
+        get() = if (specToolsSwitchable) specConfiguredTools - effectiveTools else emptySet()
+
+    /**
+     * Whether a send carries its MCP selection even when empty: an empty list deselects the spec's
+     * servers, where leaving it out applies them.
+     */
+    val sendsSpecMcpSelection: Boolean
+        get() = specToolsSwitchable && activeSpec?.mcpServers.orEmpty().isNotEmpty()
 
     /**
      * The [mcpServers] the chat's pickers and chips offer (the server drops the rest from a chat's
@@ -154,9 +193,20 @@ data class ModelSelectionState(
     /** Listed servers the chat doesn't offer; a stored pick of one stays out of use, as no control can clear it. */
     private val hiddenMcpServerNames: Set<String> = mcpServers.filterNot { it.chatSelectable }.mapTo(HashSet()) { it.name }
 
-    /** What a spec chat starts with on top of the spec's tools: its preset's ([presetTools]). */
+    /**
+     * What a spec chat starts with on top of the spec's locked tools: its preset's ([presetTools]), and
+     * where [specToolsSwitchable] the spec's own tools and MCP servers.
+     */
     private val initialSpecTools: SpecTools?
-        get() = selectedSpec?.let { SpecTools(it, added = activeSpec?.presetTools.orEmpty()) }
+        get() = selectedSpec?.let { name ->
+            val presetTools = activeSpec?.presetTools.orEmpty()
+            if (!specToolsSwitchable) return@let SpecTools(name, added = presetTools)
+            SpecTools(
+                name,
+                added = presetTools + specConfiguredTools,
+                addedMcp = activeSpec?.forcedMcpServers.orEmpty() - lockedMcpServers,
+            )
+        }
 
     /**
      * This spec's additions: [specTools] while they belong to it, else [initialSpecTools]. Under

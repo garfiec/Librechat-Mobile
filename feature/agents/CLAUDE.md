@@ -103,6 +103,13 @@
 - Version history loads lazily (`AgentLoaderDelegate.loadVersions`; v0.8.8 stopped inlining `versions[]`).
   Compare the active revision against `versionBasis` captured at load, never live form state.
 
+### Linked instructions (v0.8.9)
+- Inline/Prompt, group and revision are editable only while `isInstructionsLinkEditable` (revisions route;
+  never over the restricted stub, nor a saved Langfuse link while `agents.linkedInstructions.langfuse.enabled`
+  is off); otherwise a linked agent keeps `LinkedInstructionsNote`. The switch only adds Langfuse groups:
+  read the library through `offeredPromptGroups()`, never `promptGroups` directly. **Save sends `instructionsPrompt` only when the link changed**
+  (`instructionsPromptWrite`): absent keeps the stored link, `JsonNull` removes it.
+
 ### Tools picker
 - `ToolsMarketplaceDialog` is the ONE picker (capabilities, plugin tools, MCP servers, skills). Elsewhere the
   editor shows only what is ALREADY on the agent (rows in "Tools & Actions", skill chips in

@@ -13,6 +13,8 @@ data class CreateAgentRequest(
     val name: String,
     val description: String? = null,
     val instructions: String? = null,
+    /** The linked-prompt instructions (v0.8.9); see [UpdateAgentRequest.instructionsPrompt]. */
+    val instructionsPrompt: JsonElement? = null,
     val model: String? = null,
     val provider: String? = null,
     @SerialName("model_parameters") val modelParameters: JsonObject? = null,

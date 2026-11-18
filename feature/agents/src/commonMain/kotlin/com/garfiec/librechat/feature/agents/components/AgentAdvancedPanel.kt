@@ -51,6 +51,7 @@ fun AgentAdvancedPanel(
     modifier: Modifier = Modifier,
     dropParamsMap: Map<String, JsonElement>? = null,
     thinkingDisplayUpdatesSupported: Boolean = false,
+    thinkingLevelXhighSupported: Boolean = false,
     /** The key of [provider]'s parameter set; see `AgentEditorUiState.parameterProvider`. */
     parameterProvider: String = provider,
 ) {
@@ -91,6 +92,7 @@ fun AgentAdvancedPanel(
                 model,
                 extendedEffortSupported,
                 thinkingDisplayUpdatesSupported,
+                thinkingLevelXhighSupported,
                 dropParamsMap,
             ) {
                 agentParameterDefinitions(
@@ -100,6 +102,7 @@ fun AgentAdvancedPanel(
                     dropParamsMap,
                     thinkingDisplayUpdatesSupported,
                     parameterProvider,
+                    thinkingLevelXhighSupported,
                 )
             }
             val modelRemoved = remember(provider, parameterProvider, model, dropParamsMap) {
@@ -117,6 +120,7 @@ fun AgentAdvancedPanel(
                 dropParams = dropParams,
                 extendedEffortSupported = extendedEffortSupported,
                 thinkingDisplayUpdatesSupported = thinkingDisplayUpdatesSupported,
+                thinkingLevelXhighSupported = thinkingLevelXhighSupported,
                 showHeader = false,
                 showSaveAsPreset = false,
                 applyVerticalScroll = false,

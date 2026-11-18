@@ -1,8 +1,11 @@
 package com.garfiec.librechat.feature.auth.viewmodel
 
+import com.garfiec.librechat.core.common.BackendBuildClass
+import com.garfiec.librechat.core.common.DetectedBackend
 import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.AuthRepository
+import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.MissingRefreshCookieException
 import com.garfiec.librechat.core.model.User
 import com.garfiec.librechat.core.model.response.TwoFactorSetupConfirmResponse
@@ -10,9 +13,11 @@ import com.garfiec.librechat.core.model.response.TwoFactorSetupResponse
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -27,6 +32,11 @@ class TwoFactorSetupViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
     private val authRepository = mockk<AuthRepository>(relaxed = true)
+    private val detectedBackend =
+        MutableStateFlow<DetectedBackend?>(DetectedBackend("0.8.9", BackendBuildClass.OFFICIAL))
+    private val configRepository = mockk<ConfigRepository> {
+        every { detectedBackend } returns this@TwoFactorSetupViewModelTest.detectedBackend
+    }
 
     @Before
     fun setup() = Dispatchers.setMain(testDispatcher)
@@ -34,7 +44,7 @@ class TwoFactorSetupViewModelTest {
     @After
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun createViewModel() = TwoFactorSetupViewModel(authRepository, tempToken = TEMP)
+    private fun createViewModel() = TwoFactorSetupViewModel(authRepository, configRepository, tempToken = TEMP)
 
     private fun apiError(status: Int) = Result.Error(exception = ApiException(status, "x"), message = "x")
 
@@ -171,6 +181,24 @@ class TwoFactorSetupViewModelTest {
     }
 
     @Test
+    fun `2FA enabled without a session sends the user to sign in with the new factor`() = runTest {
+        stubHappyPath()
+        coEvery { authRepository.finalizeTwoFactorSetup("fin") } returns Result.Error(
+            ApiException(500, "x", body = """{"code":"CREDENTIAL_RETIREMENT_INCOMPLETE"}"""),
+        )
+        val viewModel = createViewModel()
+        toBackupCodes(viewModel)
+        viewModel.setCodesAcknowledged(true)
+
+        viewModel.complete()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.mustSignInAgain).isTrue()
+        assertThat(viewModel.uiState.value.enabledWithoutSession).isTrue()
+        assertThat(viewModel.uiState.value.error).isNull()
+    }
+
+    @Test
     fun `rate limiting is retryable`() = runTest {
         coEvery { authRepository.startTwoFactorSetup(TEMP) } returns apiError(429)
         val viewModel = createViewModel()
@@ -180,6 +208,50 @@ class TwoFactorSetupViewModelTest {
 
         assertThat(viewModel.uiState.value.error).isEqualTo(TwoFactorSetupError.RateLimited)
         assertThat(viewModel.uiState.value.mustSignInAgain).isFalse()
+    }
+
+    @Test
+    fun `leaving once a secret is staged asks the server to discard it`() = runTest {
+        stubHappyPath()
+        val viewModel = createViewModel()
+        viewModel.leave()
+        advanceUntilIdle()
+        coVerify(exactly = 0) { authRepository.cancelTwoFactorSetup(any()) }
+
+        viewModel.start()
+        advanceUntilIdle()
+        viewModel.leave()
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { authRepository.cancelTwoFactorSetup(TEMP) }
+    }
+
+    @Test
+    fun `leaving setup on a server without the cancel route sends nothing`() = runTest {
+        stubHappyPath()
+        detectedBackend.value = DetectedBackend("0.8.9-rc1", BackendBuildClass.RC)
+        val viewModel = createViewModel()
+        viewModel.start()
+        advanceUntilIdle()
+
+        viewModel.leave()
+        advanceUntilIdle()
+
+        coVerify(exactly = 0) { authRepository.cancelTwoFactorSetup(any()) }
+    }
+
+    @Test
+    fun `leaving setup before the server version is known still asks to discard the secret`() = runTest {
+        stubHappyPath()
+        detectedBackend.value = null
+        val viewModel = createViewModel()
+        viewModel.start()
+        advanceUntilIdle()
+
+        viewModel.leave()
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { authRepository.cancelTwoFactorSetup(TEMP) }
     }
 
     @Test

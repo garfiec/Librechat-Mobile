@@ -43,12 +43,14 @@
     <string name="send_reset_link">إرسال رابط إعادة التعيين</string>
     <string name="check_your_email">تحقّق من بريدك الإلكتروني</string>
     <string name="reset_link_sent">لقد أرسلنا رابط إعادة تعيين كلمة المرور إلى %1$s</string>
+    <string name="reset_password_unavailable">لم يتم إعداد إرسال البريد الإلكتروني. تواصل مع المسؤول لإعادة تعيين كلمة المرور.</string>
     <string name="back_to_sign_in">العودة إلى تسجيل الدخول</string>
 
     <!-- Reset Password -->
     <string name="reset_password_screen_title">إعادة تعيين كلمة المرور</string>
     <string name="password_reset_successful">تمت إعادة تعيين كلمة المرور بنجاح</string>
     <string name="password_reset_message">تم تحديث كلمة المرور الخاصة بك. يمكنك الآن تسجيل الدخول بكلمة المرور الجديدة.</string>
+    <string name="password_reset_incomplete">كلمة المرور الجديدة مفعّلة، لكن قد تظل بعض الجلسات الأخرى مسجّلة الدخول حتى تنتهي صلاحيتها. سجّل الدخول بكلمة المرور الجديدة، ثم اطلب رابط إعادة تعيين آخر لتسجيل خروجها.</string>
     <string name="set_new_password">تعيين كلمة مرور جديدة</string>
     <string name="enter_new_password_hint">أدخل كلمة المرور الجديدة أدناه</string>
     <string name="new_password_label">كلمة المرور الجديدة</string>
@@ -117,6 +119,7 @@
     <string name="two_factor_setup_codes_acknowledged">لقد حفظت هذه الرموز</string>
     <string name="two_factor_setup_complete">إكمال الإعداد</string>
     <string name="two_factor_setup_expired">انتهت صلاحية جلسة الإعداد. سجّل الدخول مجددًا للمتابعة.</string>
+    <string name="two_factor_setup_sessions_incomplete">تم تفعيل المصادقة الثنائية، لكن قد تظل بعض الجلسات الأخرى مسجّلة الدخول حتى تنتهي صلاحيتها. سجّل الدخول مرة أخرى للمتابعة.</string>
     <string name="two_factor_setup_back_to_sign_in">العودة إلى تسجيل الدخول</string>
     <string name="two_factor_setup_error_start">تعذّر بدء الإعداد. حاول مرة أخرى.</string>
     <string name="two_factor_setup_error_invalid">هذا الرمز غير مطابق. أدخل الرمز الحالي من تطبيق المصادقة.</string>

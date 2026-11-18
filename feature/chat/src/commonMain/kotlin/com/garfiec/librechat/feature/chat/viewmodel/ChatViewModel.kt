@@ -19,6 +19,7 @@ import com.garfiec.librechat.core.data.datastore.LatexRenderer
 import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
+import com.garfiec.librechat.core.data.datastore.SpecChatTools
 import com.garfiec.librechat.core.data.repository.AgentRepository
 import com.garfiec.librechat.core.data.repository.ChatRepository
 import com.garfiec.librechat.core.data.repository.CodeEnvironmentRepository
@@ -64,6 +65,7 @@ import com.garfiec.librechat.core.model.media.resolveAvatarUrl
 import com.garfiec.librechat.core.model.permissions.Permission
 import com.garfiec.librechat.core.model.permissions.PermissionType
 import com.garfiec.librechat.core.model.pullrequest.pullRequestsAvailable
+import com.garfiec.librechat.core.model.queuedturn.QueuedTurnReceiptSource
 import com.garfiec.librechat.core.model.request.ToolApprovalResolution
 import com.garfiec.librechat.core.model.response.UploadRoute
 import com.garfiec.librechat.core.notifications.ReplyWatch
@@ -82,12 +84,16 @@ import com.garfiec.librechat.feature.chat.model.ComposerPickerItem
 import com.garfiec.librechat.feature.chat.model.McpPick
 import com.garfiec.librechat.feature.chat.model.PresetDisplayData
 import com.garfiec.librechat.feature.chat.model.PromptMentionDisplayData
+import com.garfiec.librechat.feature.chat.resources.Res
+import com.garfiec.librechat.feature.chat.resources.pending_action_expired
+import com.garfiec.librechat.feature.chat.resources.pending_action_gone
 import com.garfiec.librechat.feature.chat.util.AskAnswerDraft
 import com.garfiec.librechat.feature.chat.util.DraftItem
 import com.garfiec.librechat.feature.chat.util.ModelPick
 import com.garfiec.librechat.feature.chat.util.ReplyAvatarMemo
 import com.garfiec.librechat.feature.chat.util.SettingChip
 import com.garfiec.librechat.feature.chat.util.SettingChipsMemo
+import com.garfiec.librechat.feature.chat.util.SpecTools
 import com.garfiec.librechat.feature.chat.util.ToolDecisionDraft
 import com.garfiec.librechat.feature.chat.util.ToolPartIdentity
 import com.garfiec.librechat.feature.chat.util.ToolPartKey
@@ -135,6 +141,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.delegate.PullRequestDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.QueueOrchestrationDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.QueuedTurnDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.ReasoningCatalogDelegate
+import com.garfiec.librechat.feature.chat.viewmodel.delegate.RememberedTools
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.SendCompletionDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.SendDispatchDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.SendReadinessDelegate
@@ -148,6 +155,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.delegate.SubagentHintsDelega
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.SubagentTraceDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.ToolPartHydrationDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.UploadIntakeDelegate
+import com.garfiec.librechat.feature.chat.viewmodel.delegate.serverCanOwn
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.async
@@ -168,6 +176,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import org.jetbrains.compose.resources.getString
 import kotlin.time.Clock
 
 // debt — LargeClass: 1484-line file
@@ -412,7 +421,7 @@ class ChatViewModel(
         newChatDraftKey = newChatDraftKey,
         carrySkillsToggle = { conversationId, isTemporary ->
             skillsToggleDelegate.carryToCreatedConversation(conversationId, isTemporary)
-            if (!isTemporary) rememberWebSearch(conversationId)
+            if (!isTemporary) rememberTools(conversationId)
         },
     )
 
@@ -469,6 +478,7 @@ class ChatViewModel(
         projectOrphan = { receipt -> queueOrchestrationDelegate.projectOrphanQueuedTurn(receipt) },
         onServerRowsCleared = { queueOrchestrationDelegate.tryResumeDrain() },
         onReceiptsApplied = { queueOrchestrationDelegate.onQueueReconciled() },
+        claimPromotedSteer = { steer -> steeringDelegate.claimPromoted(steer) },
     )
 
     // --- Delegate-owned flows exposed to the UI ---
@@ -650,6 +660,7 @@ class ChatViewModel(
                     state.endpointConfigs,
                     state.agents,
                     fallbackAgentId = state.selectedModel.takeIf { state.selectedEndpoint == EndpointConstants.AGENTS },
+                    selectedAuthorAgentId = state.selectedAuthorAgentId,
                 ),
             ),
             avatars = state.replyAvatars(url),
@@ -672,19 +683,31 @@ class ChatViewModel(
         applyConversationModel = modelDelegate::applyConversationModel,
         // A handed-off new chat already holds what its first turn was sent with.
         wantsStoredParameters = { !isHandedOffNewChat },
-        rememberedWebSearch = conversationWebSearchStore::get,
+        rememberedTools = { id ->
+            RememberedTools(conversationWebSearchStore.get(id), conversationWebSearchStore.specTools(id))
+        },
         restoreParameters = { conversation, remembered ->
             // This device's last switch for this chat decides, unless the server's `web_search` is true
-            // (built-in search, turned on in web since). Not under a spec (see rememberWebSearch).
-            // Written with the parameters, so the load's "did the user change it meanwhile" check sees it.
+            // (built-in search, turned on in web since). Under a spec its tools decide instead, as web
+            // layers the chat's stored toggles over the spec's. Written with the parameters, so the
+            // load's "did the user change it meanwhile" check sees it.
+            val spec = _uiState.value.selectedSpec
             val restored = _uiState.value.selection.reopenedParameters(conversation)
-            val switch = remembered.takeIf { _uiState.value.selectedSpec == null && conversation.webSearch != true }
+            val switch = remembered.webSearch.takeIf { spec == null && conversation.webSearch != true }
             modelDelegate.updateModelParameters(
                 switch?.let { restored.copy(webSearch = it) } ?: restored,
                 restoring = true,
             )
-            val keepsBuiltIn = _uiState.value.selectedSpec == null && conversation.webSearch == true
-            _uiState.update { it.copy(selection = it.selection.copy(keepsBuiltInSearch = keepsBuiltIn)) }
+            val specTools = remembered.specTools?.takeIf { it.spec == spec }
+                ?.let { SpecTools(it.spec, added = it.tools, addedMcp = it.mcp) }
+            _uiState.update {
+                it.copy(
+                    selection = it.selection.copy(
+                        keepsBuiltInSearch = spec == null && conversation.webSearch == true,
+                        specTools = specTools ?: it.selection.specTools,
+                    ),
+                )
+            }
         },
         onModelLoadSettled = {
             modelDelegate.conversationModelLoaded = true
@@ -731,6 +754,8 @@ class ChatViewModel(
         },
         restoreAnswer = { text -> conversationLoadDelegate.restoreUnsentInput(text) },
         resumePinStore = resumePinStore,
+        pauseExpiredMessage = { getString(Res.string.pending_action_expired) },
+        pauseGoneMessage = { getString(Res.string.pending_action_gone) },
     )
 
     // Explicitly typed: inference cannot close the loop through sendDispatchDelegate.
@@ -761,6 +786,13 @@ class ChatViewModel(
         restageQuotes = { quotes -> sendDispatchDelegate.restagePendingQuotes(quotes) },
         onSteerNotice = { notice -> _steerNotices.trySend(notice) },
         armTimeoutMs = { _uiState.value.gates.steerArmConfirmationMs },
+        promotable = { spec ->
+            _uiState.value.let { it.gates.steerPromotionSupported && it.serverCanOwn(spec) }
+        },
+        adoptPromotedTurns = { receipts ->
+            queuedTurnDelegate.applyReceipts(receipts, QueuedTurnReceiptSource.Enqueue)
+            queuedTurnDelegate.ensurePolling(_uiState.value.conversationId)
+        },
     )
 
     private val streamingManager = StreamingManagerDelegate(
@@ -1150,16 +1182,52 @@ class ChatViewModel(
                     minVersion = "0.8.8-rc3",
                     landedDate = "2026-09-10",
                 )
+                // getModelKey (1f75cf077) and loadBranchReasoningOverride (749c1a394): PRESENT only, dated
+                // the day AFTER landing. See VERSION_GATES.md.
+                val bareBedrockClaudeReasoning = BackendVersion.supportsFeature(
+                    detected = detected,
+                    minVersion = "0.8.9",
+                    landedDate = "2026-11-14",
+                )
+                // ThinkingLevel.xhigh (b075605e9, landed 2026-11-16): PRESENT only, dated the day AFTER
+                // landing. Keep in step with AgentCapabilitiesDelegate; see VERSION_GATES.md.
+                val thinkingLevelXhigh = BackendVersion.supportsFeature(
+                    detected = detected,
+                    minVersion = "0.8.9",
+                    landedDate = "2026-11-17",
+                )
+                val reasoningLastsForConversation = BackendVersion.supportsFeature(
+                    detected = detected,
+                    minVersion = "0.8.9",
+                    landedDate = "2026-10-29",
+                )
+                val specToolsAreDefaults = BackendVersion.supportsFeature(
+                    detected = detected,
+                    minVersion = "0.8.9",
+                    landedDate = "2026-11-09",
+                )
+                val steerPromotion = BackendVersion.supportsFeature(
+                    detected = detected,
+                    minVersion = "0.8.9",
+                    landedDate = "2026-11-11",
+                )
                 _uiState.update {
                     it.copy(
-                        selection = it.selection.copy(thinkingDisplayUpdatesSupported = thinkingDisplayUpdates),
+                        selection = it.selection.copy(
+                            thinkingDisplayUpdatesSupported = thinkingDisplayUpdates,
+                            specToolsAreDefaults = specToolsAreDefaults,
+                        ),
                         gates = it.gates.copy(
                             steeringSupported = supported,
                             subagentThreadsSupported = subagentThreads,
                             serverQueueSupported = serverQueue,
                             serverQueueApprovalModeSupported = serverQueueApprovalMode,
                             serverQueueEnforcedAgentSpecSupported = serverQueueEnforcedAgentSpec,
+                            steerPromotionSupported = steerPromotion,
                             providerScopedUploadsSupported = providerScopedUploads,
+                            bareBedrockClaudeReasoning = bareBedrockClaudeReasoning,
+                            thinkingLevelXhighSupported = thinkingLevelXhigh,
+                            reasoningLastsForConversation = reasoningLastsForConversation,
                             backendVersion = detected?.version,
                         ),
                     )
@@ -1250,7 +1318,7 @@ class ChatViewModel(
         chatConfigDelegate.observeMemoriesPreference()
         chatConfigDelegate.loadFlags()
         chatConfigDelegate.loadWebSearchReadiness()
-        rememberWebSearchChanges()
+        rememberToolChanges()
         observeTraceAvailability()
         chatConfigDelegate.loadFileConfig()
         voiceDelegate.loadSpeechConfig()
@@ -1773,33 +1841,16 @@ class ChatViewModel(
         queueOrchestrationDelegate.clearCompareSetupHold()
         _uiState.update { current ->
             ChatUiState(
-                selection = ModelSelectionState(
-                    choice = current.selection.choice,
+                // Everything else on the selection is server, account or app state whose source
+                // won't re-emit (configs, agents, version gates, the tool toggles), so it carries over.
+                selection = current.selection.copy(
                     // The next new chat starts from the carried spec's preset, not the last chat's tweaks.
                     modelParameters = current.selection.modelSpecs.parametersFor(current.selection.choice.spec)
                         ?: ModelParameters.DEFAULT,
-                    // They describe the agent in `choice`, and the observer that resolves them only
-                    // fires when the agent id changes, so dropping them here would leave the next
-                    // new chat with no provider and its starters unresolved until another agent is
-                    // picked.
-                    selectedAgentProvider = current.selection.selectedAgentProvider,
-                    selectedAgentStarters = current.selection.selectedAgentStarters,
-                    selectedAgentModel = current.selection.selectedAgentModel,
-                    selectedAgentReasoning = current.selection.selectedAgentReasoning,
-                    // Per endpoint, not per chat; the fetcher only refetches when the endpoint changes.
-                    reasoningCatalog = current.selection.reasoningCatalog,
-                    modelSpecs = current.selection.modelSpecs,
-                    availableModels = current.availableModels,
-                    endpointConfigs = current.endpointConfigs,
-                    // Fetched when the configs change, which a reset doesn't make them do.
-                    endpointKeyStates = current.endpointKeyStates,
-                    agents = current.agents,
-                    agentsLoaded = current.agentsLoaded,
-                    mcpServers = current.mcpServers,
-                    selectedMcpServerNames = current.selectedMcpServerNames,
-                    enabledTools = current.enabledTools,
-                    // App-wide, behind distinctUntilChanged: dropped here it would never come back.
-                    artifactsMode = current.selection.artifactsMode,
+                    keepsBuiltInSearch = false,
+                    showModelSheet = false,
+                    specTools = null,
+                    skillsToggle = false,
                 ),
                 presetPrompts = current.presetPrompts,
                 voice = VoiceState(serverSttEnabled = current.serverSttEnabled),
@@ -2115,8 +2166,8 @@ class ChatViewModel(
     fun dropDraftUndo(id: Long) = draftItemsDelegate.dropUndo(id)
 
     /**
-     * Stages [value] from the Thinking sheet for the next message only (v0.8.9-rc1). Picking the
-     * chat's own setting clears the choice instead.
+     * Stages [value] from the Thinking sheet for the next message (v0.8.9-rc1); on a server that
+     * inherits it, for the rest of the conversation. Picking the level already in effect clears it.
      */
     fun selectThinkingLevel(value: String) {
         val chip = _uiState.value.thinkingChip ?: return
@@ -2310,34 +2361,45 @@ class ChatViewModel(
     }
 
     /**
-     * Stores the switch whenever it changes within one conversation, whoever wrote it (a toggle, a
-     * loaded preset, a queued edit's composer swap, the reopen's restore). A change of conversation
+     * Stores the switches whenever they change within one conversation, whoever wrote them (a toggle,
+     * a loaded preset, a queued edit's composer swap, the reopen's restore). A change of conversation
      * is not a change of switch: the reopen's restore is what sets the new one, and a new chat is
      * stored when it is created (`carrySkillsToggle`).
      */
-    private fun rememberWebSearchChanges() {
+    private fun rememberToolChanges() {
         viewModelScope.launch {
-            var last: Pair<String?, Boolean>? = null
-            _uiState.map { it.conversationId to it.modelParameters.webSearch }.distinctUntilChanged().collect { current ->
-                val previous = last
-                last = current
-                val id = current.first
-                if (id != null && previous?.first == id) rememberWebSearch(id)
-            }
+            var last: Triple<String?, Boolean, SpecTools?>? = null
+            _uiState.map { Triple(it.conversationId, it.modelParameters.webSearch, it.selection.specTools) }
+                .distinctUntilChanged()
+                .collect { current ->
+                    val previous = last
+                    last = current
+                    val id = current.first
+                    if (id != null && previous?.first == id) rememberTools(id)
+                }
         }
     }
 
     /**
-     * Stores the user's web-search switch for [conversationId] ([ConversationWebSearchStore]), so a
-     * reopened chat has it back: when it runs LibreChat's search the server saves nothing of it.
-     * Not under a spec, whose chat starts from the spec's tools on reopen, nor in a temporary chat.
+     * Stores the tool switches for [conversationId] ([ConversationWebSearchStore]), so a reopened chat
+     * has them back; the server saves none of them. Off a spec, the web-search switch; under one, the
+     * chat's [SpecTools], once the user changed any. Not in a temporary chat.
      */
-    private fun rememberWebSearch(conversationId: String) {
+    private fun rememberTools(conversationId: String) {
         val state = _uiState.value
-        if (state.isTemporaryChat || state.selectedSpec != null) return
-        val on = state.modelParameters.webSearch
-        viewModelScope.launch { conversationWebSearchStore.set(conversationId, on) }
+        if (state.isTemporaryChat) return
+        val spec = state.selectedSpec
+        if (spec == null) {
+            val on = state.modelParameters.webSearch
+            viewModelScope.launch { conversationWebSearchStore.set(conversationId, on) }
+            return
+        }
+        val tools = state.selection.specTools?.takeIf { it.spec == spec } ?: return
+        viewModelScope.launch {
+            conversationWebSearchStore.setSpecTools(conversationId, SpecChatTools(spec, tools.added, tools.addedMcp))
+        }
     }
+
     fun updateModelParameters(parameters: ModelParameters) = modelDelegate.updateModelParameters(parameters)
 
     fun branchFromComparison(agentId: String) = comparisonDelegate.branchFromComparison(agentId)

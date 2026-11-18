@@ -86,6 +86,9 @@ enum class ChatNotice(val wire: String) {
      */
     TOOL_DECISION_NOT_PERMITTED("tool_decision_not_permitted"),
 
+    /** The resume route's retryable 503 `resume_context_unavailable`; the pause stays answerable. */
+    RESUME_CONTEXT_UNAVAILABLE("resume_context_unavailable"),
+
     /** A fork the server refused, or one that failed in transit. */
     FORK_FAILED("fork_failed"),
 

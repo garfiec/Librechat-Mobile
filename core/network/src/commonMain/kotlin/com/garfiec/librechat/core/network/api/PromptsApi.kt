@@ -7,7 +7,9 @@ import com.garfiec.librechat.core.model.request.CreatePromptRequest
 import com.garfiec.librechat.core.model.request.UpdatePromptGroupRequest
 import com.garfiec.librechat.core.model.response.AddPromptToGroupResponse
 import com.garfiec.librechat.core.model.response.CreatePromptResponse
+import com.garfiec.librechat.core.model.response.PromptRevisionChoices
 import com.garfiec.librechat.core.model.response.ResolvedPromptResponse
+import com.garfiec.librechat.core.network.client.noServerErrorRetry
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.delete
@@ -134,5 +136,15 @@ class PromptsApi constructor(
     suspend fun resolvePromptGroup(groupId: String): ResolvedPromptResponse =
         client.get {
             url { path("api/prompts/groups/$groupId/resolve") }
+        }.body()
+
+    /**
+     * The revisions an agent's linked instructions may pin (v0.8.9). Rate limited, and a Langfuse
+     * group's list is read live, so a server error is not re-sent.
+     */
+    suspend fun getPromptGroupRevisions(groupId: String): PromptRevisionChoices =
+        client.get {
+            url { path("api/prompts/groups/$groupId/revisions") }
+            noServerErrorRetry()
         }.body()
 }

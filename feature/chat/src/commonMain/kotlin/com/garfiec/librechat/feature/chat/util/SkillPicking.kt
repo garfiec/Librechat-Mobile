@@ -68,17 +68,14 @@ private const val SCOPE_NONE = "none"
  *
  * Filtered as web filters its `$` popover (`filterSkillsForPopover`, registered in
  * `scripts/mirrors.json` as `skill-picker-filter`): active for this user, `userInvocable` not
- * `false`, and in a persisted-agent chat only that agent's scope ([agentSkillScope]). Then the
- * active model spec's `skills` setting: [ModelSpecSkills.Only] allows only its names.
+ * `false`, and in a persisted-agent chat only that agent's scope ([agentSkillScope]).
  */
 class SkillPickRules internal constructor(
     /** The persisted agent's allowlist of skill ids, or null for no limit. */
     private val agentScope: Set<String>?,
-    /** The model spec's allowlist of names, or null for no limit. */
-    private val specNames: Set<String>?,
 ) {
     /** Whether a skill named [name] may be staged or sent: what can be checked without the catalog. */
-    fun allowsName(name: String): Boolean = name.isNotEmpty() && (specNames == null || name in specNames)
+    fun allowsName(name: String): Boolean = name.isNotEmpty()
 
     /** Whether the catalog's [skill] may be picked or sent here. */
     fun allows(skill: CatalogSkill): Boolean =
@@ -111,7 +108,7 @@ fun skillPickRules(
         (unloadedAgentRefuses || agents.any { it.id == selectedModel })
     val agentScope = if (checksAgent) agentSkillScope(selectedModel, agents) else null
     if (agentScope?.isEmpty() == true) return null
-    return SkillPickRules(agentScope, (specSkills as? ModelSpecSkills.Only)?.names?.toSet())
+    return SkillPickRules(agentScope)
 }
 
 /**

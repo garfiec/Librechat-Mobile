@@ -5,7 +5,10 @@ import com.garfiec.librechat.core.common.ToolConstants
 import com.garfiec.librechat.core.data.repository.EndpointTokenRepository
 import com.garfiec.librechat.core.data.repository.contextOverheadKey
 import com.garfiec.librechat.core.model.Attachment
+import com.garfiec.librechat.core.model.ContentType
 import com.garfiec.librechat.core.model.StreamEvent
+import com.garfiec.librechat.core.model.content.Compaction
+import com.garfiec.librechat.core.model.mcp.isMcpOAuthPromptCall
 import com.garfiec.librechat.core.model.usage.ContextUsage
 import com.garfiec.librechat.core.model.usage.TokenUsage
 import com.garfiec.librechat.core.model.usage.UsageAmount
@@ -113,7 +116,7 @@ class LiveReplyDelegate(
             }
             is StreamEvent.ToolCallComplete -> {
                 handle.update {
-                    content = content.updateToolCall(event.toolCallId) { it.completedBy(event) }
+                    content = content.settleToolCall(event.toolCallId) { it.completedBy(event) }
                         .withoutSandboxStarting(event.toolCallId)
                         .withoutSubagentAuthFor(event.toolCallId)
                 }
@@ -123,7 +126,7 @@ class LiveReplyDelegate(
             }
             is StreamEvent.ToolCallClosed -> {
                 handle.update {
-                    content = content.updateToolCall(event.toolCallId) { it.closedBy(event) }
+                    content = content.settleToolCall(event.toolCallId) { it.closedBy(event) }
                         .withoutSandboxStarting(event.toolCallId)
                         .withoutSubagentAuthFor(event.toolCallId)
                 }
@@ -149,6 +152,12 @@ class LiveReplyDelegate(
             // already seen live, and its backfill repeats them.
             is StreamEvent.TokenUsageUpdate -> foldUsage(listOf(event.usage))
             is StreamEvent.UsageBackfill -> foldUsage(event.usages)
+            is StreamEvent.SummaryDelta -> handle.update {
+                val summary = if (event.reset) event.text else content.streamingSummary + event.text
+                content = content.copy(streamingSummary = summary)
+            }
+            // The completion carries the whole summary, so it replaces what streamed.
+            is StreamEvent.ContextSummary -> handle.update { content = content.copy(streamingSummary = event.summary) }
             else -> Unit
         }
     }
@@ -208,6 +217,8 @@ class LiveReplyDelegate(
     private fun onSync(event: StreamEvent.Sync) {
         val syncedToolCalls = event.aggregatedContent
             .mapNotNull { part -> part.toolCall?.takeIf { !it.id.isNullOrBlank() } }
+            // A sign-in prompt that already ended is retired, as its live end would have done.
+            .filterNot { tc -> !tc.output.isNullOrBlank() && isMcpOAuthPromptCall(tc.id, tc.name) }
             .map { tc ->
                 ActiveToolCall(
                     id = tc.id.orEmpty(),
@@ -229,6 +240,9 @@ class LiveReplyDelegate(
                 // The partial may already be on screen: the load can read it before the frame lands.
                 displayMessages = content.displayMessages.withoutLivePartial(event.responseMessageId),
                 activeToolCalls = syncedToolCalls,
+                // A summary in flight lives in the snapshot's summary part.
+                streamingSummary = event.aggregatedContent.lastOrNull { it.type == ContentType.SUMMARY }
+                    ?.let(Compaction::summaryText).orEmpty(),
                 sandboxStartingToolCallIds = content.sandboxStartingToolCallIds.filterTo(HashSet()) { it in running },
                 // Inner calls are not content parts, so the snapshot cannot rebuild them and a
                 // settle lost in the gap is never replayed: what was running reads as interrupted.
@@ -301,13 +315,27 @@ internal fun MessagesState.resetLiveReply(
     attachedRun = null,
     streamingContent = text,
     streamingThinking = thinking,
+    streamingSummary = "",
     activeToolCalls = emptyList(),
     sandboxStartingToolCallIds = emptySet(),
     streamingAttachments = emptyList(),
 )
 
-private fun MessagesState.updateToolCall(id: String, transform: (ActiveToolCall) -> ActiveToolCall) =
-    copy(activeToolCalls = activeToolCalls.map { if (it.id == id) transform(it) else it })
+private fun MessagesState.settleToolCall(id: String, settle: (ActiveToolCall) -> ActiveToolCall) =
+    copy(activeToolCalls = activeToolCalls.settled(id, settle))
+
+/**
+ * Applies a completion or closure to the call [id] names. An MCP sign-in prompt's end retires its
+ * card instead ([isMcpOAuthPromptCall]): it has no result to show. Shared with the comparison panes.
+ */
+internal fun List<ActiveToolCall>.settled(id: String, settle: (ActiveToolCall) -> ActiveToolCall): List<ActiveToolCall> =
+    mapNotNull { call ->
+        when {
+            call.id != id -> call
+            isMcpOAuthPromptCall(call.id, call.name) -> null
+            else -> settle(call)
+        }
+    }
 
 /** A subagent's child call finished, so the parent card stops offering its sign-in. */
 private fun MessagesState.withoutSubagentAuthFor(childToolCallId: String): MessagesState {

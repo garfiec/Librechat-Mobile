@@ -61,3 +61,11 @@ fun resolveRawMcpServerName(candidate: String, knownRawNames: Collection<String>
 /** The `[a-zA-Z0-9_.-]` class upstream's regex uses, spelled out so it needs no Regex. */
 private fun Char.isSafeServerNameChar(): Boolean =
     this in 'a'..'z' || this in 'A'..'Z' || this in '0'..'9' || this == '_' || this == '.' || this == '-'
+
+/**
+ * An MCP tool's `agent.tools` entry, `<tool>_mcp_<normalizedServer>`: the editor's selection key.
+ * Two servers may expose the same tool name, so selection never keys on the bare name; a tool
+ * with no server stays bare.
+ */
+fun mcpToolKey(toolName: String, serverName: String?): String =
+    if (serverName == null) toolName else "${toolName}_mcp_${normalizeMcpServerName(serverName)}"

@@ -43,12 +43,14 @@
     <string name="send_reset_link">リセットリンクを送信</string>
     <string name="check_your_email">メールをご確認ください</string>
     <string name="reset_link_sent">%1$s にパスワードリセットリンクを送信しました</string>
+    <string name="reset_password_unavailable">メール送信が設定されていません。パスワードをリセットするには管理者に連絡してください。</string>
     <string name="back_to_sign_in">サインインに戻る</string>
 
     <!-- Reset Password -->
     <string name="reset_password_screen_title">パスワードをリセット</string>
     <string name="password_reset_successful">パスワードのリセットに成功しました</string>
     <string name="password_reset_message">パスワードが更新されました。新しいパスワードでサインインできます。</string>
+    <string name="password_reset_incomplete">新しいパスワードは有効になりましたが、他のセッションの一部は有効期限が切れるまでサインインしたままになる場合があります。新しいパスワードでサインインし、もう一度リセットリンクを申請してそれらをサインアウトしてください。</string>
     <string name="set_new_password">新しいパスワードを設定</string>
     <string name="enter_new_password_hint">新しいパスワードを下に入力してください</string>
     <string name="new_password_label">新しいパスワード</string>
@@ -117,6 +119,7 @@
     <string name="two_factor_setup_codes_acknowledged">これらのコードを保存しました</string>
     <string name="two_factor_setup_complete">設定を完了</string>
     <string name="two_factor_setup_expired">設定セッションの有効期限が切れました。続行するには再度サインインしてください。</string>
+    <string name="two_factor_setup_sessions_incomplete">二要素認証はオンになりましたが、他のセッションの一部は有効期限が切れるまでサインインしたままになる場合があります。続けるには、もう一度サインインしてください。</string>
     <string name="two_factor_setup_back_to_sign_in">サインインに戻る</string>
     <string name="two_factor_setup_error_start">設定を開始できませんでした。もう一度お試しください。</string>
     <string name="two_factor_setup_error_invalid">コードが一致しません。認証アプリに表示されている現在のコードを入力してください。</string>

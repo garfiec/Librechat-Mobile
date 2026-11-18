@@ -43,12 +43,14 @@
     <string name="send_reset_link">Отправить ссылку для сброса</string>
     <string name="check_your_email">Проверьте почту</string>
     <string name="reset_link_sent">Мы отправили ссылку для сброса пароля на %1$s</string>
+    <string name="reset_password_unavailable">Отправка почты не настроена. Чтобы сбросить пароль, обратитесь к администратору.</string>
     <string name="back_to_sign_in">Назад к входу</string>
 
     <!-- Reset Password -->
     <string name="reset_password_screen_title">Сброс пароля</string>
     <string name="password_reset_successful">Пароль успешно сброшен</string>
     <string name="password_reset_message">Ваш пароль обновлён. Теперь вы можете войти с новым паролем.</string>
+    <string name="password_reset_incomplete">Новый пароль действует, но некоторые другие сеансы могут оставаться активными до истечения срока. Войдите с новым паролем, затем запросите ещё одну ссылку для сброса, чтобы завершить их.</string>
     <string name="set_new_password">Задать новый пароль</string>
     <string name="enter_new_password_hint">Введите новый пароль ниже</string>
     <string name="new_password_label">Новый пароль</string>
@@ -117,6 +119,7 @@
     <string name="two_factor_setup_codes_acknowledged">Я сохранил(а) эти коды</string>
     <string name="two_factor_setup_complete">Завершить настройку</string>
     <string name="two_factor_setup_expired">Сеанс настройки истёк. Войдите снова, чтобы продолжить.</string>
+    <string name="two_factor_setup_sessions_incomplete">Двухфакторная аутентификация включена, но некоторые другие сеансы могут оставаться активными до истечения срока. Войдите снова, чтобы продолжить.</string>
     <string name="two_factor_setup_back_to_sign_in">Назад к входу</string>
     <string name="two_factor_setup_error_start">Не удалось начать настройку. Попробуйте ещё раз.</string>
     <string name="two_factor_setup_error_invalid">Код не подошёл. Введите текущий код из приложения-аутентификатора.</string>

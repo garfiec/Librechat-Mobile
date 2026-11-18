@@ -20,6 +20,8 @@ data class MessageNode(
      * draws it as given. Null for the user's messages and on a path not yet mapped.
      */
     val avatar: IconSource? = null,
+    /** The reply's author row is left out: it is the agent the header's selector already names. Mapped with [avatar]. */
+    val authorHidden: Boolean = false,
 )
 
 /**

@@ -159,6 +159,7 @@ internal fun ChatOptionsSheetHost(
             selectedEndpoint = parameterTarget.settingsEndpoint,
             extendedEffortSupported = uiState.extendedEffortSupported,
             thinkingDisplayUpdatesSupported = uiState.thinkingDisplayUpdatesSupported,
+            thinkingLevelXhighSupported = uiState.thinkingLevelXhighSupported,
             selectedProvider = parameterTarget.settingsProvider,
             selectedModel = parameterTarget.model,
             // Remembered: `uiState` emits per SSE delta, so an open sheet recomposes once per

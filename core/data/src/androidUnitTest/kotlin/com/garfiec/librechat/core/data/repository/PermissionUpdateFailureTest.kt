@@ -39,6 +39,10 @@ class PermissionUpdateFailureTest {
             .isEqualTo(PermissionUpdateFailure.UNAVAILABLE)
         assertThat(failureFor(refused(500, "PERMISSION_AUDIT_UNAVAILABLE")).permissionUpdateFailure())
             .isEqualTo(PermissionUpdateFailure.AUDIT_UNAVAILABLE)
+        assertThat(failureFor(refused(500, "PRINCIPAL_PREPARATION_FAILED")).permissionUpdateFailure())
+            .isEqualTo(PermissionUpdateFailure.PRINCIPAL_PREPARATION_FAILED)
+        assertThat(failureFor(refused(502, "DIRECTORY_VERIFICATION_UNAVAILABLE")).permissionUpdateFailure())
+            .isEqualTo(PermissionUpdateFailure.DIRECTORY_VERIFICATION_UNAVAILABLE)
     }
 
     @Test
@@ -54,5 +58,9 @@ class PermissionUpdateFailureTest {
         assertThat(failureFor(refused(409, "RESOURCE_PERMISSIONS_BUSY")).toAclError()).isEqualTo(AclError.BUSY)
         assertThat(failureFor(refused(503, "RESOURCE_PERMISSIONS_UNAVAILABLE")).toAclError()).isEqualTo(AclError.UNAVAILABLE)
         assertThat(failureFor(refused(500, "PERMISSION_AUDIT_UNAVAILABLE")).toAclError()).isEqualTo(AclError.AUDIT_UNAVAILABLE)
+        assertThat(failureFor(refused(500, "PRINCIPAL_PREPARATION_FAILED")).toAclError())
+            .isEqualTo(AclError.PRINCIPAL_PREPARATION_FAILED)
+        assertThat(failureFor(refused(502, "DIRECTORY_VERIFICATION_UNAVAILABLE")).toAclError())
+            .isEqualTo(AclError.DIRECTORY_VERIFICATION_UNAVAILABLE)
     }
 }

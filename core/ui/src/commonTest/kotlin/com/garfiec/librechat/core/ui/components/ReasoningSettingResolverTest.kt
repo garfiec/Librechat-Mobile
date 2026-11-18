@@ -79,6 +79,19 @@ class ReasoningSettingResolverTest {
     }
 
     @Test
+    fun geminiHydrogenTakesALevelWithXhighAndNoMinimal() {
+        val hydrogen = ReasoningSettingResolver.resolve("google", "gemini-4-hydrogen", thinkingLevelXhighSupported = true)
+        assertEquals("thinkingLevel", hydrogen?.key)
+        assertEquals(listOf("", "low", "medium", "high", "xhigh"), hydrogen?.options)
+        // A server before ThinkingLevel.xhigh resolves Hydrogen as any Gemini 3+ model.
+        assertEquals(
+            listOf("", "minimal", "low", "medium", "high"),
+            ReasoningSettingResolver.resolve("google", "gemini-4-hydrogen")?.options,
+        )
+        assertEquals(listOf("", "minimal", "low", "medium", "high"), ReasoningSettingResolver.resolve("google", "gemini-3-pro")?.options)
+    }
+
+    @Test
     fun bedrockRoutesByModelProvider() {
         assertEquals("effort", key("bedrock", "us.anthropic.claude-sonnet-4-6-v1:0"))
         assertEquals("effort", key("bedrock", "anthropic.claude-opus-4-6-v1:0"))
@@ -86,6 +99,17 @@ class ReasoningSettingResolverTest {
         assertEquals("reasoning_effort", moonshot?.key)
         assertTrue(moonshot!!.unsetIsOff)
         assertNull(key("bedrock", "meta.llama3-70b"))
+    }
+
+    @Test
+    fun aBareBedrockClaudeIdKeysAsAnthropicOnlyWhereTheServerDoes() {
+        val keyed = ReasoningSettingResolver.resolve("bedrock", "claude-sonnet-4-6", bareClaudeIsAnthropic = true)
+        assertEquals("effort", keyed?.key)
+        assertNull(ReasoningSettingResolver.resolve("bedrock", "claude-sonnet-4-6", bareClaudeIsAnthropic = false))
+        // The flag leaves a provider-qualified id and another family's bare id alone.
+        val qualified = ReasoningSettingResolver.resolve("bedrock", "us.anthropic.claude-sonnet-4-6-v1:0", bareClaudeIsAnthropic = true)
+        assertEquals("effort", qualified?.key)
+        assertNull(ReasoningSettingResolver.resolve("bedrock", "llama3-70b", bareClaudeIsAnthropic = true))
     }
 
     @Test
@@ -100,6 +124,13 @@ class ReasoningSettingResolverTest {
             ReasoningSettingResolver.resolve("custom", "deployment-model", params(null, null, def("thinkingLevel", options)))
         assertEquals(listOf("", "low", "high"), declared(listOf("", "low", "ultra", "high"))?.options)
         assertNull(declared(listOf("ultra", "turbo")))
+        // A declared thinkingLevel xhigh only where the server's ThinkingLevel has it.
+        val xhigh = params(null, null, def("thinkingLevel", listOf("", "high", "xhigh")))
+        assertEquals(listOf("", "high"), ReasoningSettingResolver.resolve("custom", "m", xhigh)?.options)
+        assertEquals(
+            listOf("", "high", "xhigh"),
+            ReasoningSettingResolver.resolve("custom", "m", xhigh, thinkingLevelXhighSupported = true)?.options,
+        )
         assertEquals(
             listOf("low", "high"),
             ReasoningSettingResolver.resolve(
@@ -119,6 +150,8 @@ class ReasoningSettingResolverTest {
     @Test
     fun modelFamilyRulesNarrowTheEffort() {
         assertFalse("minimal" in ReasoningSettingResolver.resolve("openAI", "gpt-6-sol")!!.options!!)
+        assertFalse("minimal" in ReasoningSettingResolver.resolve("openAI", "gpt-6-terra")!!.options!!)
+        assertNull(ReasoningSettingResolver.resolve("openAI", "gpt-6-cyber"))
         assertEquals(
             listOf("", "low", "medium", "high", "xhigh"),
             ReasoningSettingResolver.resolve("custom", "x-ai/grok-4.7", params(reasoningFormat = "reasoningEffort"))?.options,

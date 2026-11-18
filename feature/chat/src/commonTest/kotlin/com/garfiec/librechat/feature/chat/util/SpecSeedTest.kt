@@ -332,6 +332,12 @@ class SpecSeedTest {
     }
 
     @Test
+    fun an_agent_spec_on_an_ephemeral_agent_id_always_shows() {
+        val specs = ModelSpecs(list = listOf(agent("openAI__gpt-4.1"), agent("agent_gone")))
+        assertEquals(listOf("openAI__gpt-4.1"), specs.visibleSpecs(emptyList(), agentsLoaded = true).map { it.name })
+    }
+
+    @Test
     fun hidden_and_unusable_specs_are_not_listed() {
         val specs = ModelSpecs(
             list = listOf(

@@ -108,6 +108,8 @@ data class AgentQueuedTurnReceipt(
     val effectivePredecessorCreatedAt: Long? = null,
     /** Present, and only ever `true`, when the admission consumed no predecessor boundary. */
     val rootPredecessor: Boolean? = null,
+    /** Set on a turn the server promoted from a steer its run never applied (v0.8.9). */
+    val steer: QueuedTurnSteer? = null,
     val createdAt: String? = null,
     val updatedAt: String? = null,
 ) {
@@ -117,6 +119,28 @@ data class AgentQueuedTurnReceipt(
     val isAdmissionIndeterminate: Boolean
         get() = failure?.code == QueuedTurnFailure.ADMISSION_INDETERMINATE
 }
+
+/**
+ * The steer a queued turn was promoted from, by both its ids, so any client holding that steer can
+ * retire its own copy. [owned]: the turn was proven the only holder of the steer's words.
+ */
+@Serializable
+data class QueuedTurnSteer(
+    val steerId: String,
+    val clientSteerId: String,
+    val owned: Boolean? = null,
+)
+
+/**
+ * A steer the run accepted but ended without applying, which the server turned into a durable
+ * queued turn (`final.promotedSteers`, v0.8.9). Only a steer sent with `promoteLeftover`.
+ */
+@Serializable
+data class PromotedSteer(
+    val steerId: String,
+    val clientSteerId: String? = null,
+    val receipt: AgentQueuedTurnReceipt,
+)
 
 /**
  * Whether this server runs a durable queue at all.

@@ -113,7 +113,7 @@ internal fun FileToolCallCard(
                             wrap = true,
                         )
                     }
-                    view.separateOutput?.let { output ->
+                    view.outputBelowPreview(failed)?.let { output ->
                         Text(
                             text = output,
                             style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),

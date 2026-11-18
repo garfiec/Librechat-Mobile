@@ -1,11 +1,14 @@
 package com.garfiec.librechat.feature.chat.viewmodel
 
+import com.garfiec.librechat.core.common.BackendBuildClass
+import com.garfiec.librechat.core.common.DetectedBackend
 import com.garfiec.librechat.core.common.ToolConstants
 import com.garfiec.librechat.core.common.identity.AccountId
 import com.garfiec.librechat.core.common.identity.AccountState
 import com.garfiec.librechat.core.common.identity.InMemoryActiveAccountProvider
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.LastUsedSelection
+import com.garfiec.librechat.core.data.datastore.SpecChatTools
 import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.Preset
@@ -282,6 +285,57 @@ class ChatViewModelConversationParametersTest {
         assertEquals(0.2f, vm.uiState.value.modelParameters.temperature)
         assertEquals(false, vm.uiState.value.modelParameters.webSearch)
         assertEquals(emptySet<String>(), vm.uiState.value.effectiveEnabledTools)
+    }
+
+    @Test
+    fun aReopenedSpecChatHasTheToolsTheUserTurnedOffStillOff() = runTest(testDispatcher) {
+        every { fixture.configRepository.detectedBackend } returns
+            MutableStateFlow(DetectedBackend("0.8.9", BackendBuildClass.OFFICIAL))
+        startupConfig.value = StartupConfig(
+            modelSpecs = ModelSpecs(
+                list = listOf(
+                    ModelSpec(
+                        name = "search",
+                        preset = Preset(endpoint = "openAI", model = "gpt-4.1"),
+                        webSearch = true,
+                        executeCode = true,
+                    ),
+                ),
+            ),
+        )
+        coEvery { conversationRepository.getConversation("cp-spec-tools", any()) } returns
+            Result.Success(listed("cp-spec-tools").copy(spec = "search"))
+        // The user turned web search off in this chat; code stayed on.
+        coEvery { fixture.conversationWebSearchStore.specTools("cp-spec-tools") } returns
+            SpecChatTools("search", tools = setOf(ToolConstants.CODE_INTERPRETER))
+
+        val vm = open("cp-spec-tools")
+        advanceUntilIdle()
+
+        assertEquals(setOf(ToolConstants.CODE_INTERPRETER), vm.uiState.value.effectiveEnabledTools)
+
+        vm.toggleTool(ToolConstants.CODE_INTERPRETER)
+        advanceUntilIdle()
+
+        coVerify { fixture.conversationWebSearchStore.setSpecTools("cp-spec-tools", SpecChatTools("search")) }
+    }
+
+    @Test
+    fun toolsStoredUnderAnotherSpecAreNotRestored() = runTest(testDispatcher) {
+        startupConfig.value = StartupConfig(
+            modelSpecs = ModelSpecs(
+                list = listOf(ModelSpec(name = "search", preset = Preset(endpoint = "openAI", model = "gpt-4.1"), webSearch = true)),
+            ),
+        )
+        coEvery { conversationRepository.getConversation("cp-spec-other", any()) } returns
+            Result.Success(listed("cp-spec-other").copy(spec = "search"))
+        coEvery { fixture.conversationWebSearchStore.specTools("cp-spec-other") } returns
+            SpecChatTools("plain", tools = setOf(ToolConstants.FILE_SEARCH))
+
+        val vm = open("cp-spec-other")
+        advanceUntilIdle()
+
+        assertEquals(setOf(ToolConstants.WEB_SEARCH), vm.uiState.value.effectiveEnabledTools)
     }
 
     @Test

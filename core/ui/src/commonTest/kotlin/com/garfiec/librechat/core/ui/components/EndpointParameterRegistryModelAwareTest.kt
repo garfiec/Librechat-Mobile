@@ -18,8 +18,8 @@ import kotlin.test.assertTrue
  */
 class EndpointParameterRegistryModelAwareTest {
 
-    private fun google(model: String?) =
-        EndpointParameterRegistry.getDefinitions(endpoint = "google", model = model)
+    private fun google(model: String?, thinkingLevelXhigh: Boolean = true) =
+        EndpointParameterRegistry.getDefinitions(endpoint = "google", model = model, thinkingLevelXhighSupported = thinkingLevelXhigh)
 
     private fun anthropic(model: String?) =
         EndpointParameterRegistry.getDefinitions(endpoint = "anthropic", model = model)
@@ -51,6 +51,30 @@ class EndpointParameterRegistryModelAwareTest {
         val shared = google(null).single { it.key == "thinkingBudget" }
         assertEquals(shared.max, google("gemini-2.0-flash").single { it.key == "thinkingBudget" }.max)
         assertEquals(shared.description, google("gemini-2.0-flash").single { it.key == "thinkingBudget" }.description)
+    }
+
+    @Test
+    fun geminiHydrogenDropsBudgetAndSamplingAndGetsItsOwnLevelsAndOutputCeiling() {
+        for (model in listOf("gemini-4-hydrogen", "Gemini-4-Hydrogen-preview-11-2026", "google/gemini-4-hydrogen")) {
+            val defs = google(model)
+            listOf("thinkingBudget", "temperature", "topP", "topK").forEach {
+                assertFalse(keysOf(defs).contains(it), "$model still offers $it")
+            }
+            assertEquals(listOf("", "low", "medium", "high", "xhigh"), defs.single { it.key == "thinkingLevel" }.options)
+            val maxOutput = defs.single { it.key == "maxOutputTokens" }
+            assertEquals(65536.0, maxOutput.max)
+            assertEquals("65536", maxOutput.default)
+            assertTrue(keysOf(defs).contains("thinking"), model)
+        }
+        // A server before ThinkingLevel.xhigh: Google's shared levels, the model-keyed drops stay.
+        val older = google("gemini-4-hydrogen", thinkingLevelXhigh = false)
+        assertEquals(listOf("", "minimal", "low", "medium", "high"), older.single { it.key == "thinkingLevel" }.options)
+        assertFalse(keysOf(older).contains("thinkingBudget"))
+        // Not a Hydrogen id: the shared Google panel stays.
+        val argon = google("gemini-4-argon")
+        assertTrue(keysOf(argon).contains("temperature"))
+        assertEquals(listOf("", "minimal", "low", "medium", "high"), argon.single { it.key == "thinkingLevel" }.options)
+        assertTrue(keysOf(google("gemini-4-hydrogenic")).contains("temperature"))
     }
 
     @Test
@@ -231,8 +255,12 @@ class EndpointParameterRegistryModelAwareTest {
     }
 
     @Test
-    fun gpt6SolAndLunaDropMinimalEffort() {
-        for (model in listOf("gpt-6-sol", "gpt-6-luna", "GPT-6-Sol-2026-09-01", "gpt-6.1-sol", "gpt-6.1-luna-2026-10-01")) {
+    fun gpt6SolTerraAndLunaDropMinimalEffort() {
+        val models = listOf(
+            "gpt-6-sol", "gpt-6-luna", "GPT-6-Sol-2026-09-01", "gpt-6.1-sol", "gpt-6.1-luna-2026-10-01",
+            "gpt-6-terra", "gpt-6.1-terra-2026-11-01",
+        )
+        for (model in models) {
             val options = effortOf("openAI", model)!!
             assertFalse(options.contains("minimal"), model)
             assertTrue(options.contains("none"), model)
@@ -240,6 +268,40 @@ class EndpointParameterRegistryModelAwareTest {
         assertTrue(effortOf("openAI", "gpt-6-astra")!!.contains("minimal"))
         assertTrue(effortOf("openAI", "gpt-6-solar")!!.contains("minimal"))
         assertTrue(effortOf("openAI", "gpt-6.1-astra")!!.contains("minimal"))
+    }
+
+    @Test
+    fun gpt6CyberOnOpenAiTakesNoReasoningKeysAndCapsMaxTokens() {
+        val reasoningKeys = setOf("reasoning_effort", "reasoning_summary", "reasoning_mode", "reasoning_context")
+        val cyber = EndpointParameterRegistry.getDefinitions(endpoint = "openAI", model = "gpt-6-cyber", extendedEffortSupported = true)
+        assertTrue(cyber.none { it.key in reasoningKeys })
+        val maxTokens = cyber.single { it.key == "max_tokens" }
+        assertEquals(1.0, maxTokens.min)
+        assertEquals(128_000.0, maxTokens.max)
+        assertEquals(1.0, maxTokens.step)
+        // An agent on openAI reads the same rule; another endpoint or spelling keeps its reasoning.
+        val agent = EndpointParameterRegistry.getDefinitions(endpoint = "agents", provider = "openAI", model = "gpt-6-cyber")
+        assertTrue(agent.none { it.key in reasoningKeys })
+        assertTrue(effortOf("azureOpenAI", "gpt-6-cyber") != null)
+        assertTrue(effortOf("openAI", "GPT-6-Cyber") != null)
+    }
+
+    @Test
+    fun numericInputIsClampedToTheDefinitionRange() {
+        val maxTokens = EndpointParameterRegistry.getDefinitions(endpoint = "openAI", model = "gpt-6-cyber")
+            .single { it.key == "max_tokens" }
+        assertEquals("128000", clampNumericText("200000", maxTokens.min, maxTokens.max))
+        assertEquals("1", clampNumericText("0", maxTokens.min, maxTokens.max))
+        assertEquals("64000", clampNumericText("64000", maxTokens.min, maxTokens.max))
+        // Blank, an in-progress sign and non-numbers are left for the field to keep.
+        assertEquals("", clampNumericText("", maxTokens.min, maxTokens.max))
+        assertEquals("-", clampNumericText("-", -1.0, 32_000.0))
+        assertEquals("Auto", clampNumericText("Auto", 1024.0, 200_000.0))
+        // Google's -1 (dynamic) is the floor itself, not lifted.
+        assertEquals("-1", clampNumericText("-1", -1.0, 32_000.0))
+        assertEquals("-1", clampNumericText("-5", -1.0, 32_000.0))
+        // No range: nothing to enforce.
+        assertEquals("999999", clampNumericText("999999", null, null))
     }
 
     @Test

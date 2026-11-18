@@ -80,7 +80,23 @@ fun ForgotPasswordScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
             ) {
-                if (uiState.isSent) {
+                if (uiState.emailUnavailable) {
+                    Text(
+                        text = stringResource(Res.string.forgot_your_password),
+                        style = MaterialTheme.typography.headlineMedium,
+                        modifier = Modifier.semantics { heading() },
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = stringResource(Res.string.reset_password_unavailable),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(modifier = Modifier.height(24.dp))
+                    AdaptiveButton(onClick = onBack) {
+                        Text(stringResource(Res.string.back_to_sign_in))
+                    }
+                } else if (uiState.isSent) {
                     Text(
                         text = stringResource(Res.string.check_your_email),
                         style = MaterialTheme.typography.headlineMedium,

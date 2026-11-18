@@ -43,6 +43,7 @@ import com.garfiec.librechat.core.network.api.TracesApi
 import com.garfiec.librechat.core.network.api.UserApi
 import com.garfiec.librechat.core.network.client.AuthInterceptorPlugin
 import com.garfiec.librechat.core.network.client.CertificateTrustRegistry
+import com.garfiec.librechat.core.network.client.ClientLimitsHolder
 import com.garfiec.librechat.core.network.client.GateCredentialProvider
 import com.garfiec.librechat.core.network.client.GatewayDetectionPlugin
 import com.garfiec.librechat.core.network.client.LibreChatHttpClient
@@ -57,6 +58,7 @@ import com.garfiec.librechat.core.network.client.SwitchGate
 import com.garfiec.librechat.core.network.client.TokenManager
 import com.garfiec.librechat.core.network.client.applyBrowserDefaults
 import com.garfiec.librechat.core.network.client.installGateCredentials
+import com.garfiec.librechat.core.network.client.refreshDeadline
 import com.garfiec.librechat.core.network.sse.SseClient
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.HttpClientEngineFactory
@@ -158,8 +160,11 @@ val networkModule = module {
         }
     }
 
+    single { ClientLimitsHolder() }
+
     single(KoinQualifiers.Refresh) {
         val json = get<Json>()
+        val clientLimits = get<ClientLimitsHolder>()
         val serverUrlProvider = get<ServerUrlProvider>()
         val engineFactory = get<HttpClientEngineFactory<*>>()
         val serverHeadersProvider = get<ServerHeadersProvider>()
@@ -190,9 +195,9 @@ val networkModule = module {
             // redirect being followed — which on a POST it is not. See RefreshAttempt.GatewayBlocked.
             install(GatewayDetectionPlugin)
             install(HttpTimeout) {
-                requestTimeoutMillis = 15_000
                 connectTimeoutMillis = 10_000
             }
+            install(refreshDeadline(clientLimits))
             defaultRequest {
                 contentType(ContentType.Application.Json)
             }

@@ -85,10 +85,9 @@ class SkillPickingTest {
     }
 
     @Test
-    fun aSpecAllowlistLimitsByName() {
+    fun aSpecThatStartsSkillsOnOffersTheCatalog() {
         val catalog = listOf(skill("id-1", name = "pdf"), skill("id-2", name = "voice"))
-        assertEquals(listOf("voice"), names(catalog, spec = ModelSpecSkills.Only(listOf("voice"))))
-        assertEquals(listOf("pdf", "voice"), names(catalog, spec = ModelSpecSkills.All))
+        assertEquals(listOf("pdf", "voice"), names(catalog, spec = ModelSpecSkills.On))
     }
 
     // ── persisted agents ─────────────────────────────────────────────
@@ -166,11 +165,6 @@ class SkillPickingTest {
     }
 
     @Test
-    fun aSendKeepsOnlyTheSpecAllowlist() {
-        assertEquals(listOf("b"), sendable(listOf("a", "b"), spec = ModelSpecSkills.Only(listOf("b"))))
-    }
-
-    @Test
     fun aSendKeepsOnlyChipsInsideTheAgentScope() {
         val scoped = listOf(agent(enabled = true, skills = listOf("id-b"), scope = "selected"))
         assertEquals(listOf("b"), sendable(listOf("a", "b"), endpoint = EndpointConstants.AGENTS, agents = scoped))
@@ -216,7 +210,7 @@ class SkillPickingTest {
             skill("id-e", name = "e"),
         )
         val scoped = listOf(agent(enabled = true, skills = listOf("id-a", "id-b", "id-c", "id-e"), scope = "selected"))
-        val spec = ModelSpecSkills.Only(listOf("a", "b", "c", "d"))
+        val spec = ModelSpecSkills.On
         val picked = pickableSkills(catalog, true, EndpointConstants.AGENTS, "agent_1", scoped, spec, emptyList())
             .map { it.name }
         val sent = sendable(
@@ -226,7 +220,7 @@ class SkillPickingTest {
             agents = scoped,
             spec = spec,
         )
-        assertEquals(listOf("a"), picked)
+        assertEquals(listOf("a", "e"), picked)
         assertEquals(picked, sent)
     }
 
@@ -244,10 +238,9 @@ class SkillPickingTest {
     }
 
     @Test
-    fun theRulesAllowOnlyTheSpecsNames() {
-        val rules = skillPickRules(true, "anthropic", "claude", emptyList(), ModelSpecSkills.Only(listOf("a")), true)
+    fun theRulesRefuseOnlyAnEmptyName() {
+        val rules = skillPickRules(true, "anthropic", "claude", emptyList(), ModelSpecSkills.On, true)
         assertEquals(true, rules?.allowsName("a"))
-        assertEquals(false, rules?.allowsName("b"))
         assertEquals(false, rules?.allowsName(""))
     }
 

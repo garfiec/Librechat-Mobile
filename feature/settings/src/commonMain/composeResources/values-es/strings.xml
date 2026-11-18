@@ -376,6 +376,9 @@
     <!-- Backup codes dialog -->
     <string name="dialog_title_backup_codes">Códigos de respaldo</string>
     <string name="backup_codes_instructions">Guarda estos códigos de respaldo en un lugar seguro. Cada código solo se puede usar una vez.</string>
+    <string name="twofa_sessions_incomplete">La autenticación de dos factores está activada, pero algunas otras sesiones pueden seguir iniciadas hasta que caduquen. Guarda tus códigos de respaldo y vuelve a iniciar sesión.</string>
+    <string name="twofa_other_sessions_signed_out">La autenticación de dos factores está activada. Se cerró la sesión en todos los demás dispositivos conectados a esta cuenta.</string>
+    <string name="twofa_sign_in_again_to_enable">Vuelve a iniciar sesión para activar la autenticación de dos factores.</string>
     <string name="dialog_title_regenerate_backup_codes">¿Regenerar los códigos de respaldo?</string>
     <string name="regenerate_backup_codes_warning">Tus códigos de respaldo actuales dejarán de funcionar. Recibirás un conjunto nuevo para guardar.</string>
     <string name="action_regenerate">Regenerar</string>
@@ -692,8 +695,11 @@
     <string name="role_permissions_saved">Guardado</string>
     <string name="role_permissions_load_failed">No se pudieron cargar los permisos de este rol.</string>
     <string name="role_permissions_save_failed">No se pudieron guardar los permisos. Inténtalo de nuevo.</string>
-    <string name="role_permissions_admin_access_warning">Desactivar el acceso de Administrador a esta función puede causar problemas inesperados hasta que la app vuelva a cargar tus permisos. Una vez guardado, la única forma de revertirlo es la opción interface de librechat.yaml, que afecta a todos los roles.</string>
-    <string name="role_permissions_more_info">Más información</string>
+    <string name="role_permissions_admin_lockout_warning">Al guardar, se desactiva %1$s para todos los administradores, incluido tú, y se ocultan estos ajustes. Solo alguien con acceso a la configuración del servidor puede volver a activarlo.</string>
+    <string name="role_permissions_admin_lockout_title">¿Desactivar %1$s para los administradores?</string>
+    <string name="role_permissions_admin_lockout_confirm_label">Escribe %1$s para confirmar</string>
+    <string name="role_permissions_admin_lockout_confirm">Desactivar para administradores</string>
+    <string name="role_skills_section">Habilidades</string>
     <string name="artifact_shortcuts_title">Accesos directos en la pantalla de inicio</string>
     <string name="artifact_shortcuts_empty">Aún no hay artefactos fijados en la pantalla de inicio.</string>
     <string name="artifact_shortcuts_disabled_message">Se eliminó este acceso directo al artefacto.</string>

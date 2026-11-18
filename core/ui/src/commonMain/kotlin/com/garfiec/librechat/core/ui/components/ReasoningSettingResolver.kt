@@ -70,18 +70,26 @@ object ReasoningSettingResolver {
      * @param endpoint the endpoint's type when it has one (`custom`), else its name; for an agent,
      *   the agent's provider resolved the same way.
      * @param blockedKeys keys a model spec under `enforce` sets: an override of one is refused.
+     * @param bareClaudeIsAnthropic the server keys a provider-less Bedrock `claude` id as Anthropic
+     *   (v0.8.9); an older one keys it by the raw id and refuses an override for it.
+     * @param thinkingLevelXhighSupported the server's `ThinkingLevel` has `xhigh` (v0.8.9). Without
+     *   it a Gemini Hydrogen model resolves Google's shared levels, as an older server does, and no
+     *   `thinkingLevel` offers `xhigh`: the server refuses the override.
      */
-    @Suppress("CyclomaticComplexMethod", "ReturnCount")
+    @Suppress("CyclomaticComplexMethod", "ReturnCount", "LongParameterList")
     fun resolve(
         endpoint: String,
         model: String?,
         customParams: CustomParams? = null,
         blockedKeys: Set<String> = emptySet(),
         catalog: CatalogEfforts = CatalogEfforts.Generic,
+        bareClaudeIsAnthropic: Boolean = false,
+        thinkingLevelXhighSupported: Boolean = false,
     ): ReasoningSetting? {
         if (model.isNullOrEmpty()) return null
         if (customParams?.reasoningFormat == CustomParams.REASONING_FORMAT_DISABLED) return null
-        val combinedKey = "$endpoint-${modelKey(endpoint, model)}"
+        val modelKey = modelKey(endpoint, model, bareClaudeIsAnthropic)
+        val combinedKey = "$endpoint-$modelKey"
         val defaultParamsEndpoint = customParams?.defaultParamsEndpoint ?: endpoint
         val declared = declaredReasoningSettings(customParams)
 
@@ -95,7 +103,8 @@ object ReasoningSettingResolver {
         // An administrator-defined reasoning_effort is authoritative: the catalog never narrows it.
         val effectiveCatalog =
             if (declared.any { it.key == ReasoningOverrideKeys.REASONING_EFFORT }) CatalogEfforts.Generic else catalog
-        val modelAware = applyModelAwareDefaults(base, defaultParamsEndpoint, model, effectiveCatalog)
+        val modelAware =
+            applyModelAwareDefaults(base, defaultParamsEndpoint, model, effectiveCatalog, thinkingLevelXhighSupported)
         val overlaid = modelAware.map { setting ->
             declared.firstOrNull { it.key == setting.key }?.over(setting) ?: setting
         }
@@ -104,13 +113,13 @@ object ReasoningSettingResolver {
         val explicitKey = declared.firstOrNull()?.key
         if (explicitKey != null) {
             val explicit = settings.firstOrNull { it.key == explicitKey }
-            return if (explicit != null && explicit.key in blockedKeys) null else submittable(explicit)
+            return if (explicit != null && explicit.key in blockedKeys) null else submittable(explicit, thinkingLevelXhighSupported)
         }
         val resolutionEndpoint =
             if (defaultParamsEndpoint in KNOWN_REASONING_PROVIDERS) defaultParamsEndpoint else endpoint
         if (resolutionEndpoint == AZURE_OPENAI) return null
-        val resolved = resolveForModel(resolutionEndpoint, model, settings)
-        return if (resolved != null && resolved.key in blockedKeys) null else submittable(resolved)
+        val resolved = resolveForModel(resolutionEndpoint, model, modelKey, settings)
+        return if (resolved != null && resolved.key in blockedKeys) null else submittable(resolved, thinkingLevelXhighSupported)
     }
 
     /** MIRRORED from upstream `isReasoningOverrideSupported`. */
@@ -123,7 +132,12 @@ object ReasoningSettingResolver {
 
     /** MIRRORED from upstream `resolveReasoningSetting`. */
     @Suppress("ReturnCount") // one early return per provider branch, as upstream reads
-    private fun resolveForModel(endpoint: String, model: String, settings: List<ReasoningSetting>): ReasoningSetting? {
+    private fun resolveForModel(
+        endpoint: String,
+        model: String,
+        modelKey: String,
+        settings: List<ReasoningSetting>,
+    ): ReasoningSetting? {
         fun find(key: String) = settings.firstOrNull { it.key == key }
         if (endpoint == GOOGLE) {
             if (EndpointParameterRegistry.hasGoogleThinkingBudget(model)) return find(ReasoningOverrideKeys.THINKING_BUDGET)
@@ -132,7 +146,7 @@ object ReasoningSettingResolver {
         }
         val isAnthropic = endpoint == ANTHROPIC ||
             endpoint == "$BEDROCK-$ANTHROPIC" ||
-            (endpoint == BEDROCK && modelKey(endpoint, model) == ANTHROPIC)
+            (endpoint == BEDROCK && modelKey == ANTHROPIC)
         if (isAnthropic) {
             if (EndpointParameterRegistry.supportsAdaptiveThinking(model)) return find(ReasoningOverrideKeys.EFFORT)
             if (MANUAL_CLAUDE_THINKING.containsMatchIn(model)) return find(ReasoningOverrideKeys.THINKING_BUDGET)
@@ -154,13 +168,21 @@ object ReasoningSettingResolver {
         defaultParamsEndpoint: String,
         model: String,
         catalog: CatalogEfforts,
+        thinkingLevelXhighSupported: Boolean,
     ): List<ReasoningSetting> {
         val grok = EndpointParameterRegistry.grok47Efforts(model)
-        val family = settings.map { setting ->
+        val cyber = grok == null && EndpointParameterRegistry.isGpt6Cyber(defaultParamsEndpoint, model)
+        val hydrogen = defaultParamsEndpoint == GOOGLE && EndpointParameterRegistry.isGeminiHydrogen(model)
+        val hydrogenLevels = hydrogen && thinkingLevelXhighSupported
+        val family = settings.mapNotNull { setting ->
             when {
+                hydrogen && setting.key == ReasoningOverrideKeys.THINKING_BUDGET -> null
+                hydrogenLevels && setting.key == ReasoningOverrideKeys.THINKING_LEVEL ->
+                    setting.copy(options = EndpointParameterRegistry.GEMINI_HYDROGEN_THINKING_LEVELS)
                 setting.key != ReasoningOverrideKeys.REASONING_EFFORT -> setting
                 grok != null -> setting.copy(options = grok)
-                EndpointParameterRegistry.isGpt6SolOrLuna(model) -> setting.copy(options = setting.options?.minus("minimal"))
+                cyber -> null
+                EndpointParameterRegistry.isGpt6NoMinimalTier(model) -> setting.copy(options = setting.options?.minus("minimal"))
                 else -> setting
             }
         }
@@ -179,9 +201,14 @@ object ReasoningSettingResolver {
     }
 
     /** Narrows an enum setting to what the override schema accepts. MIRRORED from `toSubmittableReasoningSetting`. */
-    private fun submittable(setting: ReasoningSetting?): ReasoningSetting? {
+    private fun submittable(setting: ReasoningSetting?, thinkingLevelXhighSupported: Boolean): ReasoningSetting? {
         val options = setting?.options ?: return setting
-        val accepted = SCHEMA_VALUES[setting.key] ?: return setting
+        val schema = SCHEMA_VALUES[setting.key] ?: return setting
+        val accepted = if (setting.key == ReasoningOverrideKeys.THINKING_LEVEL && !thinkingLevelXhighSupported) {
+            schema - "xhigh"
+        } else {
+            schema
+        }
         val kept = options.filter { it in accepted }
         return when {
             kept.size == options.size -> setting
@@ -211,11 +238,16 @@ object ReasoningSettingResolver {
             .map { Declared(it.key, it.options, it.type) }
             .distinctBy { it.key }
 
-    /** MIRRORED from upstream `getModelKey`: a Bedrock model's provider from its id. */
-    private fun modelKey(endpoint: String, model: String): String {
+    /**
+     * MIRRORED from upstream `getModelKey`: a Bedrock model's provider from its id. A bare `claude`
+     * id (one mapped to an inference profile) names none, and keys as Anthropic where [bareClaudeIsAnthropic].
+     */
+    private fun modelKey(endpoint: String, model: String, bareClaudeIsAnthropic: Boolean): String {
         if (endpoint != BEDROCK) return model
         val parts = model.split('.')
-        return parts.take(2).firstOrNull { it in BEDROCK_PROVIDERS } ?: parts[0]
+        val provider = parts.take(2).firstOrNull { it in BEDROCK_PROVIDERS }
+        if (provider == null && bareClaudeIsAnthropic && "claude" in model) return ANTHROPIC
+        return provider ?: parts[0]
     }
 
     private const val OPENAI = "openAI"
@@ -229,13 +261,16 @@ object ReasoningSettingResolver {
     // MIRRORED from upstream `ReasoningEffort`, `AnthropicEffort` and `ThinkingLevel` (schemas.ts).
     private val REASONING_EFFORT_VALUES = listOf("", "none", "minimal", "low", "medium", "high", "xhigh", "max")
     private val ANTHROPIC_EFFORT_VALUES = listOf("", "low", "medium", "high", "xhigh", "max")
-    private val THINKING_LEVEL_VALUES = listOf("", "minimal", "low", "medium", "high")
+    private val THINKING_LEVEL_VALUES = listOf("", "minimal", "low", "medium", "high", "xhigh")
 
     private val SCHEMA_VALUES: Map<String, Set<String>> = mapOf(
         ReasoningOverrideKeys.REASONING_EFFORT to REASONING_EFFORT_VALUES.toSet(),
         ReasoningOverrideKeys.EFFORT to ANTHROPIC_EFFORT_VALUES.toSet(),
         ReasoningOverrideKeys.THINKING_LEVEL to THINKING_LEVEL_VALUES.toSet(),
     )
+
+    /** Google's built-in `thinkingLevel` options (parameterSettings.ts), which offer no `xhigh`. */
+    private val GOOGLE_THINKING_LEVEL_OPTIONS = THINKING_LEVEL_VALUES - "xhigh"
 
     private val OPENAI_EFFORT = ReasoningSetting(ReasoningOverrideKeys.REASONING_EFFORT, REASONING_EFFORT_VALUES)
     private val BEDROCK_EFFORT = ReasoningSetting(
@@ -245,7 +280,7 @@ object ReasoningSettingResolver {
     )
     private val ANTHROPIC_EFFORT = ReasoningSetting(ReasoningOverrideKeys.EFFORT, ANTHROPIC_EFFORT_VALUES)
     private val THINKING_BUDGET = ReasoningSetting(ReasoningOverrideKeys.THINKING_BUDGET, null, isNumeric = true)
-    private val THINKING_LEVEL = ReasoningSetting(ReasoningOverrideKeys.THINKING_LEVEL, THINKING_LEVEL_VALUES)
+    private val THINKING_LEVEL = ReasoningSetting(ReasoningOverrideKeys.THINKING_LEVEL, GOOGLE_THINKING_LEVEL_OPTIONS)
 
     /** What a declared definition that names only its key falls back to. */
     private val BUILT_IN: Map<String, ReasoningSetting> = mapOf(

@@ -60,7 +60,7 @@ class AgentEditorToolOptionsSaveTest {
                 mapOf("create_issue_mcp_github" to chatMode, "search_code_mcp_github" to deferred),
             ),
         )
-        val state = editing(agent).let { it.copy(selectedMcpTools = it.selectedMcpTools - "search_code") }
+        val state = editing(agent).let { it.copy(selectedMcpTools = it.selectedMcpTools - "search_code_mcp_github") }
 
         val sent = state.toUpdateAgentRequest().toolOptions
 

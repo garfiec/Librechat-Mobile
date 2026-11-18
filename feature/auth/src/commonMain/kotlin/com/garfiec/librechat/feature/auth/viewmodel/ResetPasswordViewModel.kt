@@ -28,6 +28,8 @@ data class ResetPasswordUiState(
     /** A coded refusal ([AuthRefusal]) the screen words itself, in place of [error], while [error] is set. */
     val refusal: AuthRefusal? = null,
     val isReset: Boolean = false,
+    /** The new password is active, but some earlier sessions may stay signed in until they expire. */
+    val sessionsNotRetired: Boolean = false,
     /** The server's published policy links, as the sign-in footer shows them; null hides each. */
     val policyLinks: PolicyLinks = PolicyLinks(),
     val banner: Banner? = null,
@@ -98,7 +100,9 @@ class ResetPasswordViewModel(
                         isReset = true,
                     )
                 }
-                is Result.Error -> {
+                is Result.Error -> if (result.isCredentialRetirementIncomplete()) {
+                    _uiState.value = _uiState.value.copy(isLoading = false, isReset = true, sessionsNotRetired = true)
+                } else {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         error = result.rateLimitMessageOrNull()

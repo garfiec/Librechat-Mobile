@@ -2,6 +2,7 @@ package com.garfiec.librechat.feature.chat.viewmodel.delegate
 
 import com.garfiec.librechat.core.data.repository.EndpointTokenRepository
 import com.garfiec.librechat.core.model.ContentType
+import com.garfiec.librechat.core.model.RunStepStatus
 import com.garfiec.librechat.core.model.StreamEvent
 import com.garfiec.librechat.core.model.SubagentPhase
 import com.garfiec.librechat.core.model.content.AgentToolCall
@@ -31,7 +32,7 @@ class LiveReplyMcpSignInTest {
     private val id = "u1:github:123"
 
     @Test
-    fun `the auth delta puts the sign-in on the announced call, and completion takes it off`() = runTest {
+    fun `the auth delta puts the sign-in on the announced call, and its end retires the card`() = runTest {
         val flow = MutableStateFlow(ChatUiState())
         val live = delegate(flow, backgroundScope)
 
@@ -53,8 +54,48 @@ class LiveReplyMcpSignInTest {
 
         live.apply(StreamEvent.ToolCallComplete(toolCallId = id, output = "OAuth authentication completed"))
 
-        // The card shows the action only while the call is not complete.
-        assertThat(flow.value.activeToolCalls.single().isComplete).isTrue()
+        // A sign-in prompt is not a tool the model called: it leaves no result card behind.
+        assertThat(flow.value.activeToolCalls).isEmpty()
+    }
+
+    @Test
+    fun `a re-authentication prompt is its own step and its end leaves the real call running`() = runTest {
+        val flow = MutableStateFlow(ChatUiState())
+        val live = delegate(flow, backgroundScope)
+        live.apply(StreamEvent.ToolCallStart(toolCallId = "call_1", toolName = "list_repos_mcp_github", input = "{}"))
+        live.apply(StreamEvent.ToolCallStart(toolCallId = "oauth:call_1", toolName = "oauth_mcp_github", input = ""))
+        live.apply(StreamEvent.ToolCallAuthRequired(toolCallId = "oauth:call_1", authUrl = "https://idp", serverName = "github"))
+
+        live.apply(StreamEvent.ToolCallComplete(toolCallId = "oauth:call_1", output = "OAuth authentication ended"))
+        live.apply(StreamEvent.ToolCallClosed(toolCallId = "oauth:call_1", status = RunStepStatus.COMPLETED))
+
+        val remaining = flow.value.activeToolCalls.single()
+        assertThat(remaining.id).isEqualTo("call_1")
+        assertThat(remaining.isComplete).isFalse()
+        assertThat(remaining.authUrl).isNull()
+    }
+
+    @Test
+    fun `a snapshot drops a sign-in prompt that already ended`() = runTest {
+        val flow = MutableStateFlow(ChatUiState())
+        val live = delegate(flow, backgroundScope)
+
+        live.apply(
+            StreamEvent.Sync(
+                listOf(
+                    MessageContentPart(
+                        type = ContentType.TOOL_CALL,
+                        toolCall = AgentToolCall(id = "call_1", name = "search", output = "done"),
+                    ),
+                    MessageContentPart(
+                        type = ContentType.TOOL_CALL,
+                        toolCall = AgentToolCall(id = "oauth:call_2", name = "oauth_mcp_github", output = "OAuth authentication ended"),
+                    ),
+                ),
+            ),
+        )
+
+        assertThat(flow.value.activeToolCalls.map { it.id }).containsExactly("call_1")
     }
 
     @Test

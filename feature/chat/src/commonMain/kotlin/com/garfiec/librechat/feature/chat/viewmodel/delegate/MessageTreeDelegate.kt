@@ -144,6 +144,7 @@ class MessageTreeDelegate(
                 isStreaming = false,
                 streamingContent = "",
                 streamingThinking = "",
+                streamingSummary = "",
                 // The stream is over, so no retry can be pending. Matters for a Final that
                 // lands while a reconnect banner is up (e.g. a stop during a retry window):
                 // without this the stale banner survives the finalize.
@@ -225,6 +226,7 @@ class MessageTreeDelegate(
                 isStreaming = false,
                 streamingContent = "",
                 streamingThinking = "",
+                streamingSummary = "",
                 retryInfo = null,
                 activeToolCalls = emptyList(),
                 sandboxStartingToolCallIds = emptySet(),

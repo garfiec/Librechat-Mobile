@@ -98,6 +98,12 @@ data class MessagesState(
      * in the atomic finalize, where the persisted message's THINK part takes over.
      */
     val streamingThinking: String = "",
+    /**
+     * The compaction summary the live run is writing (`on_summarize_delta`, then its completion),
+     * shown in the streaming bubble until the saved message's SUMMARY part takes over. Cleared with
+     * [activeToolCalls].
+     */
+    val streamingSummary: String = "",
     val activeToolCalls: List<ActiveToolCall> = emptyList(),
     /**
      * Code-execution calls whose sandbox is still cold-booting (`on_sandbox_starting`), keyed by

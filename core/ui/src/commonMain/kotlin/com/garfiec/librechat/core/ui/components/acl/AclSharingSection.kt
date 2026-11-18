@@ -61,11 +61,13 @@ import com.garfiec.librechat.core.ui.components.InitialTile
 import com.garfiec.librechat.core.ui.resources.Res
 import com.garfiec.librechat.core.ui.resources.acl_error_audit_unavailable
 import com.garfiec.librechat.core.ui.resources.acl_error_busy
+import com.garfiec.librechat.core.ui.resources.acl_error_directory_unavailable
 import com.garfiec.librechat.core.ui.resources.acl_error_forbidden
 import com.garfiec.librechat.core.ui.resources.acl_error_generic
 import com.garfiec.librechat.core.ui.resources.acl_error_load
 import com.garfiec.librechat.core.ui.resources.acl_error_not_found
 import com.garfiec.librechat.core.ui.resources.acl_error_owner_protected
+import com.garfiec.librechat.core.ui.resources.acl_error_principal_preparation_failed
 import com.garfiec.librechat.core.ui.resources.acl_error_unavailable
 import com.garfiec.librechat.core.ui.resources.acl_people_empty
 import com.garfiec.librechat.core.ui.resources.acl_people_title
@@ -423,6 +425,8 @@ private fun errorText(error: AclError): String = stringResource(
         AclError.BUSY -> Res.string.acl_error_busy
         AclError.UNAVAILABLE -> Res.string.acl_error_unavailable
         AclError.AUDIT_UNAVAILABLE -> Res.string.acl_error_audit_unavailable
+        AclError.PRINCIPAL_PREPARATION_FAILED -> Res.string.acl_error_principal_preparation_failed
+        AclError.DIRECTORY_VERIFICATION_UNAVAILABLE -> Res.string.acl_error_directory_unavailable
         AclError.GENERIC -> Res.string.acl_error_generic
     },
 )
@@ -434,6 +438,8 @@ fun permissionUpdateFailureText(failure: PermissionUpdateFailure): String = stri
         PermissionUpdateFailure.BUSY -> Res.string.acl_error_busy
         PermissionUpdateFailure.UNAVAILABLE -> Res.string.acl_error_unavailable
         PermissionUpdateFailure.AUDIT_UNAVAILABLE -> Res.string.acl_error_audit_unavailable
+        PermissionUpdateFailure.PRINCIPAL_PREPARATION_FAILED -> Res.string.acl_error_principal_preparation_failed
+        PermissionUpdateFailure.DIRECTORY_VERIFICATION_UNAVAILABLE -> Res.string.acl_error_directory_unavailable
     },
 )
 

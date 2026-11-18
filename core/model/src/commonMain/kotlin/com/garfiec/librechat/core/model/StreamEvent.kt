@@ -1,6 +1,7 @@
 package com.garfiec.librechat.core.model
 
 import com.garfiec.librechat.core.model.content.MessageContentPart
+import com.garfiec.librechat.core.model.queuedturn.PromotedSteer
 import com.garfiec.librechat.core.model.usage.ContextUsage
 import com.garfiec.librechat.core.model.usage.TokenUsage
 
@@ -215,8 +216,21 @@ sealed interface StreamEvent {
          * own copy when it writes this, so a frame that carries them and is ignored loses them.
          */
         val pendingSteers: List<PendingSteer> = emptyList(),
+        /**
+         * Unapplied steers the server already made durable queued turns (v0.8.9). They are
+         * not in [pendingSteers] and must never be re-homed locally: the server runs them.
+         */
+        val promotedSteers: List<PromotedSteer> = emptyList(),
+        /** The frame settles a failed turn (`final` and `error` both true). */
+        val settledError: Boolean = false,
     ) : StreamEvent {
         val hasParseErrors: Boolean get() = parseErrors.isNotEmpty()
+
+        /**
+         * A settled error the server never saved: it stamps [Conversation.lastResponseAt] only after
+         * saving the error turn (upstream `isUnsavedSettledError`), so nothing here is on the server.
+         */
+        val isUnsavedError: Boolean get() = settledError && conversation?.lastResponseAt == null
     }
 
     data class Sync(
@@ -317,6 +331,12 @@ sealed interface StreamEvent {
          * the model. The live turn shows it as its own message already shows the original text.
          */
         val privacyRevision: String? = null,
+        /**
+         * The skills the server resolved for the user turn (v0.8.9), always-applied ones
+         * included. Null when the frame names none: older servers echo only the request's lists.
+         */
+        val manualSkills: List<String>? = null,
+        val alwaysAppliedSkills: List<String>? = null,
     ) : StreamEvent
 
     /**
@@ -369,6 +389,16 @@ sealed interface StreamEvent {
         val summary: String,
         val agentId: String? = null,
         val groupId: Int? = null,
+    ) : StreamEvent
+
+    /**
+     * Summary text a compaction streams as it is written (`on_summarize_delta`). [reset] replaces
+     * what streamed so far instead of extending it: the attempt that wrote it was abandoned (a
+     * retry, a fallback provider), and a reset with no text empties the summary.
+     */
+    data class SummaryDelta(
+        val text: String,
+        val reset: Boolean = false,
     ) : StreamEvent
 
     /**

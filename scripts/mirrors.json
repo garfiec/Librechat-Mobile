@@ -281,7 +281,7 @@
         "file": "core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/components/EndpointParameterRegistry.kt",
         "symbol": "(whole file -- per-endpoint/provider/variant parameter builders)"
       },
-      "why": "Which generation parameters each endpoint, provider and Bedrock variant exposes, along with their ranges and defaults. Mirrored across the whole Kotlin registry rather than as one table, so the watch is file-level. Includes the model-aware pass (`applyModelAwareDefaults`), whose per-model rules return EARLY and replace the provider rules after them (rc4: Grok 4.7 effort ladder, gpt-6-sol/luna without `minimal`, Opus 5.5 hiding thinking and sampling; v0.8.8: Opus 5.5+/Mythos-class always-on thinking, the Sonnet 5.5+ `between_tools` floor, and the gpt-6 tier read through families.ts `gpt6Tier`; v0.8.9-rc1: Haiku 5.5+ keeping the thinking toggle while hiding thinkingBudget and sampling). Not mirrored, deliberately: the gpt-6-sol/luna `useResponsesApi` rendered default, which upstream resolves from `/api/endpoints` `responsesApiRouting`.",
+      "why": "Which generation parameters each endpoint, provider and Bedrock variant exposes, along with their ranges and defaults. Mirrored across the whole Kotlin registry rather than as one table, so the watch is file-level. Includes the model-aware pass (`applyModelAwareDefaults`), whose per-model rules return EARLY and replace the provider rules after them (rc4: Grok 4.7 effort ladder, gpt-6-sol/luna (terra from v0.8.9) without `minimal`, Opus 5.5 hiding thinking and sampling; v0.8.8: Opus 5.5+/Mythos-class always-on thinking, the Sonnet 5.5+ `between_tools` floor, and the gpt-6 tier read through families.ts `gpt6Tier`; v0.8.9-rc1: Haiku 5.5+ keeping the thinking toggle while hiding thinkingBudget and sampling; v0.8.9: `gpt-6-cyber` on the openAI parameter set dropping the reasoning keys and capping max_tokens at 128000, matched exactly; Gemini Hydrogen on the google set dropping thinkingBudget and sampling, taking `['', low, medium, high, xhigh]` levels and a 65536 maxOutputTokens ceiling and default). Not mirrored, deliberately: the gpt-6-sol/terra/luna and gpt-6-cyber `useResponsesApi` rendered default, which upstream resolves from `/api/endpoints` `responsesApiRouting`.",
       "failure_mode": "A parameter is offered with a stale range or default, or a newly supported one is missing. Values outside the server's accepted range are rejected at send time."
     },
     {
@@ -313,7 +313,7 @@
     {
       "id": "memory-tool-failure-predicate",
       "upstream": {
-        "file": "client/src/components/Chat/Messages/Content/Parts/MemoryCall.tsx",
+        "file": "packages/chat/src/core/parts/memory.ts",
         "symbol": "isMemoryFailureOutput",
         "mode": "block"
       },
@@ -353,7 +353,7 @@
     {
       "id": "memory-tool-group-outcome",
       "upstream": {
-        "file": "client/src/components/Chat/Messages/Content/outcome.ts",
+        "file": "packages/chat/src/core/parts/outcome.ts",
         "mode": "file"
       },
       "kotlin": {
@@ -371,10 +371,10 @@
       },
       "kotlin": {
         "file": "feature/settings/src/commonMain/kotlin/com/garfiec/librechat/feature/settings/screen/RolePermissionsEditor.kt",
-        "symbol": "AdminAccessWarning / RolePermissionToggle.showAdminWarning / ADMIN_ACCESS_DOCS_URL"
+        "symbol": "revokesAdminUse / RolePermissionToggle.revokesAdminUse / AdminLockoutDialog"
       },
-      "why": "When the warning under a role editor's switch shows: web draws com_ui_admin_access_warning plus a 'More info' link to the librechat.yaml interface docs under the USE permission whenever SystemRoles.ADMIN is selected and the dialog's showAdminWarning is on (the default; the memories and skills dialogs keep it, the marketplace and people-picker dialogs turn it off). The mobile skills and memories editors set showAdminWarning on their USE toggle and copy the docs URL. Watched file-level: the condition is inline in the dialog's render.",
-      "failure_mode": "Web moves the warning to another permission, adds it to another dialog, or changes the docs link, and mobile keeps warning about the old switch (or links a dead page). Nothing errors; an admin can still save ADMIN's access off without the warning web now gives."
+      "why": "Web's lockout guard on every admin settings dialog with a USE permission (isRevokingAdminUse): only when SystemRoles.ADMIN is selected, the saved USE is true and the form's USE is now false, an inline com_ui_admin_lockout_warning shows under USE and Save opens a dialog whose destructive button stays off until 'ADMIN' is typed exactly; the mutation is sent only after that. The mobile skills and memories editors compute revokesAdminUse on their USE toggle. Watched file-level: the condition is inline in the dialog.",
+      "failure_mode": "Web changes when the guard applies or what must be typed, and mobile keeps the old rule. Nothing errors; an admin may lock themselves out where web would have asked, or be asked where web no longer does."
     },
     {
       "id": "admin-role-picker-fallback",
@@ -497,7 +497,7 @@
         "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/error/StreamErrorType.kt",
         "symbol": "StreamErrorType"
       },
-      "why": "StreamErrorType transcribes the wire strings of upstream's ErrorTypes enum by hand -- the server never serves the table, it only sends one of its values on a stream-error payload. The enum lists only the codes with something actionable to say, so upstream ADDING a member is deliberately not drift; upstream RENAMING one of the listed values is, and nothing on this side can see it happen. Six entries are NOT ErrorTypes members and are not watched here: MCP_AUTHENTICATION_REJECTED / MCP_AUTHENTICATION_REFRESH_FAILED are MCPErrorCodes (packages/api/src/mcp/errors.ts, under mcp-error-codes), classified only from the chat start POST's body by startFailureMarker and never by parse; SHARE_LIMIT, MESSAGE_LIMIT, BAN and CONVO_ACCESS are ViolationTypes (under stream-error-violation-types).",
+      "why": "StreamErrorType transcribes the wire strings of upstream's ErrorTypes enum by hand -- the server never serves the table, it only sends one of its values on a stream-error payload. The enum lists only the codes with something actionable to say, so upstream ADDING a member is deliberately not drift; upstream RENAMING one of the listed values is, and nothing on this side can see it happen. Six entries are NOT ErrorTypes members and are not watched here: MCP_AUTHENTICATION_REJECTED / MCP_AUTHENTICATION_REFRESH_FAILED are MCPErrorCodes (packages/api/src/mcp/errors.ts, under mcp-error-codes), classified only from the chat start POST's body by startFailureMarker and never by parse; SHARE_LIMIT, MESSAGE_LIMIT, BAN, CONVO_ACCESS and TOKEN_BALANCE are ViolationTypes (under stream-error-violation-types); AGENT_EXPECTED_MCP_TOOLS_UNAVAILABLE is an agents constant (under agent-expected-mcp-tools-code).",
       "failure_mode": "A renamed value stops matching, so that error silently degrades to the generic message -- the user is told something went wrong instead of being told to reattach their files or pick another model. Nothing fails to decode and nothing errors."
     },
     {
@@ -509,10 +509,24 @@
       },
       "kotlin": {
         "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/error/StreamErrorType.kt",
-        "symbol": "StreamErrorType (SHARE_LIMIT, MESSAGE_LIMIT, BAN, CONVO_ACCESS)"
+        "symbol": "StreamErrorType (SHARE_LIMIT, MESSAGE_LIMIT, BAN, CONVO_ACCESS, TOKEN_BALANCE)"
       },
-      "why": "Four StreamErrorType members are ViolationTypes values, not ErrorTypes, so stream-error-types does not watch them. MESSAGE_LIMIT, BAN and CONVO_ACCESS arrive as the `type` of a refused generation POST's error turn (see deny-request-frames); SHARE_LIMIT keys upstream's error registry off the same field. As with ErrorTypes, upstream ADDING a member is not drift; RENAMING one of these four is.",
+      "why": "Five StreamErrorType members are ViolationTypes values, not ErrorTypes, so stream-error-types does not watch them. MESSAGE_LIMIT, BAN and CONVO_ACCESS arrive as the `type` of a refused generation POST's error turn (see deny-request-frames); SHARE_LIMIT and TOKEN_BALANCE key upstream's error registry off the same field. As with ErrorTypes, upstream ADDING a member is not drift; RENAMING one of these five is.",
       "failure_mode": "A renamed value stops matching, so a refused send falls back to the neutral 'the server refused this message' text, and a saved refusal renders as raw JSON in the thread. Nothing fails to decode."
+    },
+    {
+      "id": "agent-expected-mcp-tools-code",
+      "upstream": {
+        "file": "packages/api/src/agents/errors.ts",
+        "symbol": "AGENT_EXPECTED_MCP_TOOLS_UNAVAILABLE",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/error/StreamErrorType.kt",
+        "symbol": "StreamErrorType.AGENT_EXPECTED_MCP_TOOLS_UNAVAILABLE"
+      },
+      "why": "The code an agent turn fails with when the agent is configured with MCP tools and none could be loaded. It is an agents constant, not an ErrorTypes member, so stream-error-types does not watch it; the failed turn is saved with it as `code` and the server's English sentence beside it.",
+      "failure_mode": "A renamed code stops matching, so the failed turn shows the raw JSON payload in the thread instead of telling the user to check the agent's MCP servers. Nothing fails to decode."
     },
     {
       "id": "deny-request-frames",
@@ -990,7 +1004,7 @@
     {
       "id": "queued-turn-successor-owed",
       "upstream": {
-        "file": "client/src/data-provider/SSE/queuedTurns.ts",
+        "file": "packages/chat/src/core/steer/receipts.ts",
         "symbol": "isQueuedTurnSuccessorOwed",
         "mode": "block"
       },
@@ -1280,6 +1294,19 @@
       "failure_mode": "A new Haiku spelling or version is read wrongly: the panel offers a budget or sampling values the provider rejects with a 400, or hides them from a model that takes them. Nothing errors until the send."
     },
     {
+      "id": "gemini-hydrogen",
+      "upstream": {
+        "file": "packages/data-provider/src/gemini.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/components/EndpointParameterRegistry.kt",
+        "symbol": "isGeminiHydrogen / GEMINI_HYDROGEN_OUTPUT_TOKENS"
+      },
+      "why": "Which Gemini ids are Hydrogen (the bare or provider-prefixed `gemini-4-hydrogen`, or a `gemini-4-hydrogen-` alias) and its output ceiling, which the model-aware pass uses to hide thinkingBudget and sampling, swap the thinkingLevel options and cap maxOutputTokens; ReasoningSettingResolver applies the same rule to the Thinking chip. Lives in gemini.ts, which parameter-settings does not watch.",
+      "failure_mode": "A new Hydrogen alias is missed or the ceiling moves: the panel offers sampling or a budget the server drops, withholds `xhigh`, or caps max output at the wrong value. Nothing errors."
+    },
+    {
       "id": "between-tools-thinking-floor-predicate",
       "upstream": {
         "file": "packages/data-provider/src/bedrock.ts",
@@ -1316,9 +1343,9 @@
       },
       "kotlin": {
         "file": "core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/components/EndpointParameterRegistry.kt",
-        "symbol": "GPT_6_SOL_LUNA"
+        "symbol": "GPT_6_NO_MINIMAL"
       },
-      "why": "The GPT-6 tier pattern applyModelAwareDefaults reads through gpt6Tier to withhold `minimal` effort from sol/luna. Point releases (`gpt-6.1-sol`) and snapshots resolve to their family. Lives in families.ts, which parameter-settings does not watch.",
+      "why": "The GPT-6 tier pattern applyModelAwareDefaults reads through gpt6Tier to withhold `minimal` effort from sol, terra and luna. Point releases (`gpt-6.1-sol`) and snapshots resolve to their family. Lives in families.ts, which parameter-settings does not watch.",
       "failure_mode": "A new point release or tier spelling is offered `minimal` effort, which the provider rejects at send time -- or a tier that accepts it loses the option."
     },
     {
@@ -1366,7 +1393,7 @@
     {
       "id": "wakeup-client-parser",
       "upstream": {
-        "file": "client/src/components/Chat/Messages/Content/Parts/wakeup.ts",
+        "file": "packages/chat/src/core/parts/wakeup.ts",
         "mode": "file"
       },
       "kotlin": {
@@ -1406,7 +1433,7 @@
     {
       "id": "background-task-output-parser",
       "upstream": {
-        "file": "client/src/components/Chat/Messages/Content/Parts/background.ts",
+        "file": "packages/chat/src/core/parts/background.ts",
         "mode": "file"
       },
       "kotlin": {
@@ -1419,7 +1446,7 @@
     {
       "id": "background-task-guidance",
       "upstream": {
-        "file": "client/src/components/Chat/Messages/Content/Parts/guidance.ts",
+        "file": "packages/chat/src/components/parts/guidance.ts",
         "mode": "file"
       },
       "kotlin": {
@@ -1554,14 +1581,14 @@
     {
       "id": "model-spec-agent-visibility",
       "upstream": {
-        "file": "client/src/components/Chat/Menus/Endpoints/ModelSelectorContext.tsx",
+        "file": "client/src/hooks/Agents/specs.ts",
         "mode": "file"
       },
       "kotlin": {
         "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/SpecSeed.kt",
         "symbol": "visibleSpecs"
       },
-      "why": "The `modelSpecs` memo leaves an agent spec out of the picker once the agents map has loaded without its agent, and keeps every spec while there is no map. Mobile ports both halves (a failed or pending fetch keeps them all). Watched as a file because the filter is a nested memo the block extractor cannot isolate.",
+      "why": "`useModelSpecs` leaves an agent spec out of the picker once the agents catalog has loaded without its agent, keeps every spec while the catalog is incomplete or loading, and always keeps one whose `agent_id` is ephemeral (`isEphemeralAgentId`). Mobile ports the three (a failed or pending fetch keeps them all). Watched as a file because the filter is a nested memo the block extractor cannot isolate.",
       "failure_mode": "Upstream changes which specs it hides and the mobile picker lists an agent spec web hides (a send then fails on an agent the user cannot use) or hides one web offers."
     },
     {
@@ -1616,6 +1643,48 @@
       },
       "why": "Under `enforce` the server records every key the spec's preset sets (`enforcedFields = Object.keys(preset)`) and `reasoningOverride.ts` refuses an override of one of them. The client can't read that list, so `reasoningKeys` copies the four reasoning keys a preset can set (web's twin is `Thinking.tsx`'s `blockedReasoningKeys`) to hide the chip for them.",
       "failure_mode": "Upstream adds a reasoning key or stops locking preset keys: the chip offers a level the server refuses with an `Invalid reasoning override` error frame, or hides itself for a key it would take. Nothing fails to decode."
+    },
+    {
+      "id": "branch-reasoning",
+      "upstream": {
+        "file": "packages/chat/src/core/branch.ts",
+        "symbol": "getBranchReasoning",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/ComposerReasoning.kt",
+        "symbol": "branchReasoning"
+      },
+      "why": "The level a fresh turn inherits on a server that carries it down the branch: the `reasoningOverride` on the nearest user message walking up the parent chain. The server resolves it the same way when a turn is sent without an override, so the chip shows what will run.",
+      "failure_mode": "Upstream changes which message the level is inherited from (say, any message rather than the user's): the chip shows one level while the server runs another. Nothing errors."
+    },
+    {
+      "id": "thinking-level-keys",
+      "upstream": {
+        "file": "client/src/components/Chat/Input/Reasoning.tsx",
+        "symbol": "THINKING_LEVEL_KEYS",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/ComposerReasoning.kt",
+        "symbol": "THINKING_LEVEL_KEYS"
+      },
+      "why": "The override keys whose level also turns thinking on, so `thinking: false` outranks an inherited one of them.",
+      "failure_mode": "A key upstream adds or drops here makes the chip show an inherited level the server skips under thinking off, or hide one it applies. Nothing errors."
+    },
+    {
+      "id": "inherited-reasoning-thinking-off",
+      "upstream": {
+        "file": "client/src/components/Chat/Input/Reasoning.tsx",
+        "symbol": "useComposerReasoning",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/ComposerReasoning.kt",
+        "symbol": "branchReasoning (takeUnless thinkingOff) / thinkingChip"
+      },
+      "why": "The `inherited` rule inside the hook: a branch level counts only when the setting supports it and thinking is not switched off for a THINKING_LEVEL_KEYS key; the chip then shows the staged pick, else the inherited level, else the chat's own value.",
+      "failure_mode": "Upstream changes the precedence or the thinking-off exception: the chip shows a level the next turn will not run at. Nothing errors."
     },
     {
       "id": "model-spec-preset-web",
@@ -1720,7 +1789,7 @@
         "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/viewmodel/delegate/ContextProjectionDelegate.kt",
         "symbol": "resolveWindow / resolveModel"
       },
-      "why": "The gauge's denominator before any snapshot: the conversation's maxContextTokens, then the agent's model_parameters, then the spec preset's, then token-config under the agent's provider and model. The token-config key goes through the same catalog alias web applies (model-catalog-key-aliases).",
+      "why": "The gauge's denominator before any snapshot: the conversation's maxContextTokens, then the agent's model_parameters, then the spec preset's, then token-config under the agent's provider and model. The token-config key goes through the same catalog alias web applies (model-catalog-key-aliases). Web asks for `vertexai` by name from v0.8.9, where token-config serves a `vertexai` catalog; the client looks it up in the full map, and `modelCatalogKey` prefers a catalog of the provider's own name, so it reads the same entry and still falls back to `google` on an older server, as that server's web did.",
       "failure_mode": "Upstream reorders the chain or adds a step, and the gauge reads a different percentage from web for the same chat before the first snapshot. No error: just a different number."
     },
     {
@@ -1734,13 +1803,13 @@
         "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/ModelCatalogKey.kt",
         "symbol": "MODEL_CATALOG_ALIASES / modelCatalogKey"
       },
-      "why": "`resolveModelCatalogKey` looks a runtime provider up under its native alias when token-config has no catalog of its own name. Token-config is keyed by endpoint and Vertex AI runs as `google`, so an agent whose provider is `vertexai` (only possible through the API) needs `google` for its context window.",
+      "why": "`resolveModelCatalogKey` looks a runtime provider up under its native alias when token-config has no catalog of its own name. Token-config is keyed by endpoint and Vertex AI runs as `google`, so an agent whose provider is `vertexai` (only possible through the API) needs `google` for its context window. From v0.8.9 token-config also serves a `vertexai` catalog, which the own-name check finds first.",
       "failure_mode": "Upstream adds an alias (another provider that runs under a different endpoint's catalog), and the gauge for such an agent shows no token-config window on mobile while web shows one."
     },
     {
       "id": "context-overhead-key",
       "upstream": {
-        "file": "client/src/components/Chat/Input/TokenUsage/store.ts",
+        "file": "packages/chat/src/react/usage.ts",
         "symbol": "overheadKey",
         "mode": "block"
       },
@@ -1754,7 +1823,7 @@
     {
       "id": "context-breakdown-rows",
       "upstream": {
-        "file": "client/src/components/Chat/Input/TokenUsage/Breakdown.tsx",
+        "file": "packages/chat/src/components/composer/usage/Breakdown.tsx",
         "mode": "file"
       },
       "kotlin": {
@@ -1767,7 +1836,7 @@
     {
       "id": "usage-totals-folding",
       "upstream": {
-        "file": "client/src/hooks/SSE/usage/handlers.ts",
+        "file": "packages/chat/src/react/stream/usage/handlers.ts",
         "symbol": "createUsageHandlers",
         "mode": "block"
       },
@@ -1809,7 +1878,7 @@
     {
       "id": "format-cost",
       "upstream": {
-        "file": "client/src/utils/tokens.ts",
+        "file": "packages/chat/src/core/usage/format.ts",
         "symbol": "formatCost",
         "mode": "block"
       },
@@ -1871,7 +1940,7 @@
         "file": "core/network/src/commonMain/kotlin/com/garfiec/librechat/core/network/api/MessagesApi.kt",
         "symbol": "searchMessages"
       },
-      "why": "What the server's message search returns, which the client merges with its offline hits: one page (no cursor), pageSize defaulting to 25 and capped at MEILI_SEARCH_LIMIT (1000) for both the hit count and the getConvosQueried conversation limit (web sends none; the client sends MessagesApi.SEARCH_PAGE_SIZE and reads a full page as 'the server has more', MessageSearchResult.remoteCapped), archived conversations included, and each hit's model taken from its conversation. Watched file-level because the search branch lives inside the router.get('/') handler.",
+      "why": "What the server's message search returns, which the client merges with its offline hits: one page (no cursor), pageSize defaulting to 25 and capped at librechat.yaml messages.maxPageSize (default 1000, not served) and then MEILI_SEARCH_LIMIT (1000) for both the hit count and the getConvosQueried conversation limit (web sends none; the client sends MessagesApi.SEARCH_PAGE_SIZE and reads a full page as 'the server has more', MessageSearchResult.remoteCapped), archived conversations included, and each hit's model taken from its conversation. Watched file-level because the search branch lives inside the router.get('/') handler.",
       "failure_mode": "Upstream starts paging, renames or caps pageSize lower, raises the limit or filters archived chats, and the merged results quietly drop server hits or label them wrongly, with nothing failing to decode."
     },
     {
@@ -2037,8 +2106,22 @@
         "file": "feature/settings/src/commonMain/kotlin/com/garfiec/librechat/feature/settings/model/AutoRefillInfo.kt",
         "symbol": "usedPercent / Balance.allotment; BalanceUiState.presentedFor in viewmodel/AccountSettingsViewModel.kt"
       },
-      "why": "The share spent (floored, held to 99 while credits remain, 100 once empty) and its allotment (the refill amount under auto-refill, else the config's startBalance), plus the reset-mode wording AutoRefillSettings swaps in for refillMode 'reset'. The server serves only the raw record.",
+      "why": "The share spent (floored, held to 99 while credits remain, 100 once empty) and its allotment (the record's granted allotment, else the refill amount under auto-refill, else the config's startBalance), plus the reset-mode wording AutoRefillSettings swaps in for refillMode 'reset'. The server serves only the raw record.",
       "failure_mode": "Upstream changes the rounding or the allotment and the percent here disagrees with web's for the same account. A wrong percent renders like a right one."
+    },
+    {
+      "id": "balance-granted-allotment",
+      "upstream": {
+        "file": "packages/data-provider/src/balance.ts",
+        "symbol": "getGrantedAllotment",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/settings/src/commonMain/kotlin/com/garfiec/librechat/feature/settings/model/AutoRefillInfo.kt",
+        "symbol": "Balance.grantedAllotment"
+      },
+      "why": "When the balance record's own allotment is the period's grant: positive, allottedAt and lastRefill both parse, and allottedAt is not before lastRefill (a refill by a server that predates the field leaves an older grant behind). The usage percent is measured against it first.",
+      "failure_mode": "Upstream changes the validity rule and the percent here is measured against a different allotment than web's. A wrong percent renders like a right one."
     },
     {
       "id": "preview-poll-interval",
@@ -2686,7 +2769,7 @@
     {
       "id": "share-viewer-active-tail",
       "upstream": {
-        "file": "client/src/utils/messages.ts",
+        "file": "packages/chat/src/core/branch.ts",
         "symbol": "selectActiveBranchTail",
         "mode": "block"
       },
@@ -3321,29 +3404,43 @@
     {
       "id": "model-spec-skills",
       "upstream": {
-        "file": "api/server/services/Endpoints/agents/initialize.js",
-        "mode": "file"
+        "file": "packages/data-provider/src/models.ts",
+        "symbol": "resolveSpecSkillsEnabled",
+        "mode": "block"
       },
       "kotlin": {
         "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/config/ModelSpec.kt",
         "symbol": "ModelSpec.skillsSetting"
       },
-      "why": "A model spec with a `skills` key overrides the ephemeral agent's skills: `true` = full catalog, `false` = none, a list = only those names (an empty list resolves to none). The client hides the Skills toggle while such a spec is active and stops reading or writing the per-conversation value. The override is an inline `if` block inside `initializeClient`, not a declaration, so the whole file is watched. At v0.8.8 the client never sees the key: `GET /api/config` strips it (see `model-spec-skills-sanitized`), so this mapping is inert until upstream sends it.",
-      "failure_mode": "If upstream changes how a spec's `skills` applies, the toggle is hidden while it would matter (or shown while ignored), and the picker offers skills the run drops."
+      "why": "How a spec's `skills` meets the request's toggle: `false` is a hard off, otherwise the request's boolean decides, and with none `true` or a list turns skills on. The client maps `true` to a Skills toggle that starts on and sends an explicit `false` when the user turns it off, and `false` to no toggle and no picks.",
+      "failure_mode": "If upstream changes which side wins, the toggle shows a state the run doesn't have, or the picker offers skills the run drops."
     },
     {
       "id": "model-spec-tools",
       "upstream": {
-        "file": "packages/api/src/agents/load.ts",
-        "symbol": "loadEphemeralAgent",
-        "mode": "block"
+        "file": "packages/api/src/agents/toggles.ts",
+        "mode": "file"
       },
       "kotlin": {
         "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/SpecTools.kt",
-        "symbol": "ModelSpec.forcedTools"
+        "symbol": "ModelSpec.forcedTools / forcedMcpServers"
       },
-      "why": "A model spec's `webSearch`, `fileSearch`, `executeCode` and `memory` are ORed with the request's `ephemeralAgent` flags, and its `mcpServers` are added to the request's own, so the client can add tools to a spec chat but can't turn the spec's off. The toolbar therefore shows the spec's tools on and locked (`forcedTools`, `forcedMcpServers`), and the request sends them with the chat's additions.",
-      "failure_mode": "If upstream lets the client turn a spec's tool off, or stops applying one, the toolbar shows a lock that isn't there, or a tool on that the run no longer has."
+      "why": "A model spec's `webSearch`, `fileSearch`, `executeCode` and `memory` and its `mcpServers` seed the chat; from v0.8.9 an explicit request value decides (`resolveSpecToolFlag`, `resolveEphemeralMCPServers`: an empty `mcp` list deselects, spec servers the picker can't offer stay pinned), where older servers ORed them in. So the toolbar starts a spec chat with the spec's tools on and lets the user turn them off, sending an explicit `false` or a narrowed `mcp` list; on older servers (`specToolsAreDefaults` false) they stay locked.",
+      "failure_mode": "If upstream changes which request value wins, or what an empty selection means, the toolbar shows a tool off that the run still has (or a lock that isn't there)."
+    },
+    {
+      "id": "model-spec-withholds-toggles",
+      "upstream": {
+        "file": "packages/data-provider/src/models.ts",
+        "symbol": "specWithholdsUserToggles",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/viewmodel/ModelSelectionState.kt",
+        "symbol": "ModelSelectionState.specToolsSwitchable (and ChatUiState.specGovernsSkills)"
+      },
+      "why": "A spec with `hideBadgeRow` (or `showInMenu: false`, never served) keeps authority over every capability it configures: the server drops the request's toggle for those (`specOverridesUserToggle`). The client keeps such a spec's tools locked and sends them as the spec has them, and lets the spec decide skills there.",
+      "failure_mode": "Upstream widens or narrows which specs withhold the toggles, and the toolbar offers a switch the server ignores, or locks one the user could turn off."
     },
     {
       "id": "model-spec-tools-web",
@@ -3356,7 +3453,7 @@
         "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/viewmodel/ModelSelectionState.kt",
         "symbol": "ModelSelectionState.effectiveTools"
       },
-      "why": "Web starts a spec chat from exactly the spec's tools and artifacts, not the user's stored toggles, and writes nothing to its non-spec store while a spec is active, so leaving the spec brings the user's toggles back. Mobile mirrors that with `SpecTools`: additions count only while their spec is selected, and the user's own toggles stay untouched underneath. Web keeps a spec chat's additions per conversation; mobile keeps them for the session only (a deliberate divergence). The same block turns a spec's `webSearch` into `ephemeralAgent.web_search` (LibreChat's search), which is why a spec's `webSearch` routes to LibreChat search and its preset's `web_search` (the provider's) to the built-in one (`webSearchRoute`).",
+      "why": "Web starts a spec chat from exactly the spec's tools and artifacts, not the user's stored toggles, and writes nothing to its non-spec store while a spec is active, so leaving the spec brings the user's toggles back. Mobile mirrors that with `SpecTools`: the chat's set counts only while its spec is selected, and the user's own toggles stay untouched underneath. Web restores a spec chat's per-conversation toggles (except those a `hideBadgeRow` spec configures); mobile keeps the tool set for the session only (a deliberate divergence), and restores only the Skills toggle per conversation. The same block turns a spec's `webSearch` into `ephemeralAgent.web_search` (LibreChat's search), which is why a spec's `webSearch` routes to LibreChat search and its preset's `web_search` (the provider's) to the built-in one (`webSearchRoute`).",
       "failure_mode": "If web changes what a spec chat starts from (say, layering the user's toggles over the spec's), mobile sends a different tool set than web for the same spec."
     },
     {
@@ -3370,7 +3467,7 @@
         "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/config/ModelSpec.kt",
         "symbol": "ModelSpec.artifactsMode"
       },
-      "why": "Web turns a spec's `artifacts` into `ephemeralAgent.artifacts` (`true` -> `'default'`, a string as is), and the server reads artifacts only from the ephemeral agent, never from the spec. Separate from model-spec-tools-web because that entry names ModelSelectionState.kt and this rule lives on the model.",
+      "why": "Web turns a spec's `artifacts` into `ephemeralAgent.artifacts` (`true` -> `'default'`, a string as is; `resolveSpecArtifacts`). A server before v0.8.9 reads artifacts only from the ephemeral agent; from rc2 it falls back to the spec's and an explicit `''` turns them off. Separate from model-spec-tools-web because that entry names ModelSelectionState.kt and this rule lives on the model.",
       "failure_mode": "Upstream changes the mapping (a new mode, a different default for `true`), and a spec chat on mobile gets different artifacts from web, or none."
     },
     {
@@ -3524,8 +3621,8 @@
         "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/config/ModelSpec.kt",
         "symbol": "ModelSpec.skills / skillsSetting"
       },
-      "why": "`GET /api/config` (`api/server/routes/config.js`) passes the model specs through this sanitizer, which deletes every spec's `skills` key, so the client always decodes `skills` as absent. The spec-governed skills handling (`model-spec-skills`: hidden toggle, Off/Only picker filters) is kept as forward-compatible code and does nothing until this function stops deleting the key. The server still applies the spec's `skills` to the run, invisibly to the client.",
-      "failure_mode": "If upstream starts sending `skills`, the dormant spec handling switches on with no client change: the Skills toggle hides under such specs and picks outside the spec are refused. That is the intended behaviour, but it was never seen against a real server and must be checked when this region changes."
+      "why": "`GET /api/config` (`api/server/routes/config.js`) passes the model specs through this sanitizer, which from v0.8.9 sends `skills` as a boolean (a list narrowed to `true`) and before deleted it. The client therefore never sees a spec's allowlist: `true` may stand for one the server applies, so the picker can't promise the full catalog.",
+      "failure_mode": "If upstream sends the list again, or stops sending the key, the Skills toggle under a spec starts in the wrong state or hides. Nothing fails to decode."
     },
     {
       "id": "skills-toggle-slots",
@@ -3554,7 +3651,7 @@
       "failure_mode": "If web stops writing the toggle while a spec is active (or writes it elsewhere), a conversation here comes back from a spec with a Skills setting web doesn't show. Nothing errors."
     },
     {
-      "id": "skills-toggle-spec-starts-off",
+      "id": "skills-toggle-spec-seed",
       "upstream": {
         "file": "client/src/utils/endpoints.ts",
         "symbol": "applyModelSpecEphemeralAgent",
@@ -3564,8 +3661,8 @@
         "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/viewmodel/delegate/SkillsToggleDelegate.kt",
         "symbol": "skillsToggleSlot"
       },
-      "why": "Why a chat under a selected model spec starts with Skills off: web rebuilds the ephemeral agent from the spec on every spec change, and the rebuilt agent carries no `skills` key, nor does its per-conversation override map read `LAST_SKILLS_TOGGLE_`. The client mirrors that with `SkillsToggleSlot.SpecSelected` (starts off and reads nothing; a toggle in an existing conversation is still written to its slot, as web's write effect does).",
-      "failure_mode": "If web starts setting `skills` from the spec or restoring a stored skills value there, a spec chat here starts off where web starts on, and the run gets no skill catalog. Nothing errors."
+      "why": "How a chat under a selected spec seeds its Skills toggle: web rebuilds the ephemeral agent from the spec with `skills: resolveSpecSkillsEnabled(undefined, spec.skills)` (on for `true`, else off), and in an existing conversation restores `LAST_SKILLS_TOGGLE_<id>` over it unless the spec withholds the toggle. The client mirrors that with `SkillsToggleSlot.SpecSelected` (`seed`, and the conversation's own slot).",
+      "failure_mode": "If web changes the seed or stops restoring a conversation's value under a spec, a spec chat here starts with skills in a different state from web's. Nothing errors."
     },
     {
       "id": "skill-picker-agent-scope",
@@ -3691,7 +3788,7 @@
     {
       "id": "citation-search-results-by-turn",
       "upstream": {
-        "file": "client/src/hooks/Messages/useSearchResultsByTurn.ts",
+        "file": "packages/chat/src/components/messages/useSearchResultsByTurn.ts",
         "mode": "file"
       },
       "kotlin": {
@@ -3718,7 +3815,7 @@
     {
       "id": "web-search-card-phases",
       "upstream": {
-        "file": "client/src/components/Chat/Messages/Content/WebSearch.tsx",
+        "file": "packages/chat/src/components/parts/WebSearch.tsx",
         "mode": "file"
       },
       "kotlin": {
@@ -3731,7 +3828,7 @@
     {
       "id": "tool-error-output",
       "upstream": {
-        "file": "client/src/components/Chat/Messages/Content/ToolOutput/OutputRenderer.tsx",
+        "file": "packages/chat/src/core/parts/output.ts",
         "symbol": "isError",
         "mode": "block"
       },
@@ -3758,7 +3855,7 @@
     {
       "id": "retrieval-output-parse",
       "upstream": {
-        "file": "client/src/components/Chat/Messages/Content/RetrievalCall.tsx",
+        "file": "packages/chat/src/components/parts/Retrieval.tsx",
         "mode": "file"
       },
       "kotlin": {
@@ -3804,7 +3901,7 @@
         "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/ToolCallParsing.kt",
         "symbol": "parseFormattedSearchOutput"
       },
-      "why": "The web_search tool's text output is built by formatResultsForLLM in the @librechat/agents npm package (src/tools/search/format.ts), not in this repo, so the closest watch is the package pin. A Stop after the search persists that output but not the web_search attachment, and the card lists the sources by parsing its '# Search N: \"title\"' blocks and their URL / Summary / Date / Source lines. Checked identical at 3.2.01 and 3.4.7. When this reports DRIFT, look only at the @librechat/agents version; if it moved, diff dist/esm/tools/search/format.mjs between the two versions (unpkg) and dismiss if formatSource is unchanged.",
+      "why": "The web_search tool's text output is built by formatResultsForLLM in the @librechat/agents npm package (src/tools/search/format.ts), not in this repo, so the closest watch is the package pin. A Stop after the search persists that output but not the web_search attachment, and the card lists the sources by parsing its '# Search N: \"title\"' blocks and their URL / Summary / Date / Source lines. Checked identical at 3.2.01, 3.4.7, 4.2.4 and 4.2.7. When this reports DRIFT, look only at the @librechat/agents version; if it moved, diff dist/esm/tools/search/format.mjs between the two versions (unpkg) and dismiss if formatSource is unchanged.",
       "failure_mode": "A stopped search's card shows 'Searched the web' with no sources, as upstream's web does. Nothing errors."
     },
     {
@@ -4410,7 +4507,7 @@
     {
       "id": "continue-supported",
       "upstream": {
-        "file": "client/src/hooks/useGenerationsByLatest.ts",
+        "file": "packages/chat/src/react/messages/generations.ts",
         "symbol": "continueSupported",
         "mode": "block"
       },
@@ -4846,7 +4943,7 @@
         "file": "scripts/web-assets.json",
         "symbol": "the `bundle` entries (lucide-react, recharts, three, date-fns, react-router, dat-gui, shadcn-ui, vaul); exact pins in scripts/artifact-modules/package.json"
       },
-      "why": "The npm packages web's Sandpack installs for every React artifact, i.e. what an artifact may `import` on web. The client vendors the same set as bundles (no CDN; see scripts/web-assets.json's `bundle` source type) and the runner reads them from the generated VendoredWebAssets.MODULES. Deliberate divergences, each explained in its registry entry: recharts and react-router-dom run AHEAD of web's pins (deprecated line / advisories); tailwindcss-animate is not bundled (a Tailwind plugin, not a module); three's addons and date-fns locales are not bundled. A package added here is one models can be told about and that fails on mobile with 'not bundled'. Reconcile through /update-web-assets: add the pin to package.json, a registry entry (or the shadcn-ui modules list), then --sync. Check the new version against the dependency policy, and give an unmaintained/deprecated/vulnerable one an `advisory` so users are asked before it loads.",
+      "why": "The npm packages web's Sandpack installs for every React artifact, i.e. what an artifact may `import` on web. The client vendors the same set as bundles (no CDN; see scripts/web-assets.json's `bundle` source type) and the runner reads them from the generated VendoredWebAssets.MODULES. Deliberate divergences, each explained in its registry entry: recharts runs AHEAD of web's pin (deprecated line); tailwindcss-animate is not bundled (a Tailwind plugin, not a module); three's addons and date-fns locales are not bundled. A package added here is one models can be told about and that fails on mobile with 'not bundled'. Reconcile through /update-web-assets: add the pin to package.json, a registry entry (or the shadcn-ui modules list), then --sync. Check the new version against the dependency policy, and give an unmaintained/deprecated/vulnerable one an `advisory` so users are asked before it loads.",
       "failure_mode": "An artifact that renders on web shows 'This artifact imports \"X\", which is not bundled with the app' on mobile. A version bump on web (e.g. lucide-react's minor) means icons the prompt-era model writes may not exist in our pin, which fails as an undefined export."
     },
     {
@@ -5211,7 +5308,7 @@
     {
       "id": "tool-call-preparing",
       "upstream": {
-        "file": "client/src/components/Chat/Messages/Content/preparation.tsx",
+        "file": "packages/chat/src/components/parts/preparation.tsx",
         "mode": "file"
       },
       "kotlin": {
@@ -5220,6 +5317,20 @@
       },
       "why": "When a live tool call reads 'Preparing {tool}': a preparation marker without a dispatch, result or terminal status (isToolCallPreparing; dispatch and results outrank the marker), and never for an MCP (`_mcp_`) or action (`_action_`, data-provider actionDelimiter) tool, which keeps its integration name. Upstream also reads incomplete arguments as preparing; this client tracks no argument deltas and does not.",
       "failure_mode": "Upstream changes the precedence or the integration exclusion and live cards say Preparing while a tool runs, or prefix a raw tool_mcp_server string. Nothing errors."
+    },
+    {
+      "id": "tool-call-preparing-predicate",
+      "upstream": {
+        "file": "packages/chat/src/core/parts/preparation.ts",
+        "symbol": "isToolCallPreparing",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/viewmodel/MessagesState.kt",
+        "symbol": "ActiveToolCall.isPreparing"
+      },
+      "why": "Which live tool call counts as preparing: a preparation marker without a dispatch, result or terminal status. The label and the MCP/action exclusion are in the component file tool-call-preparing watches.",
+      "failure_mode": "Upstream changes the precedence and a card says Preparing while its tool runs, or never says it. Nothing errors."
     },
     {
       "id": "permission-update-error-codes",
@@ -5232,7 +5343,7 @@
         "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/acl/PermissionUpdateFailure.kt",
         "symbol": "PermissionUpdateFailure"
       },
-      "why": "The codes a failed audited permission update carries in its error body (permissionErrorCode), which the access editors word as 'try again' (busy lock, lock store down, audit log down) instead of a generic failure. Web maps the same set in client/src/components/Sharing/errors.ts.",
+      "why": "The codes a failed audited permission update carries in its error body (permissionErrorCode), which the access editors word as 'try again' (busy lock, lock store down, audit log down, recipients not prepared, directory unavailable) instead of a generic failure. Web maps the same set in client/src/components/Sharing/errors.ts.",
       "failure_mode": "Upstream adds or renames a code and the editors fall back to the generic failure for a refusal that would pass on retry. Nothing errors."
     },
     {
@@ -5640,7 +5751,7 @@
     {
       "id": "reasoning-uses-capabilities",
       "upstream": {
-        "file": "client/src/hooks/Endpoint/useModelReasoning.ts",
+        "file": "packages/chat/src/core/turns/reasoning.ts",
         "symbol": "usesReasoningCapabilities",
         "mode": "block"
       },
@@ -5664,6 +5775,20 @@
       },
       "why": "The values each override key accepts (ReasoningEffort, AnthropicEffort, ThinkingLevel), used to drop declared options an override can never carry.",
       "failure_mode": "A level upstream added is never offered, or one it removed is offered and 400s."
+    },
+    {
+      "id": "thinking-level-enum",
+      "upstream": {
+        "file": "packages/data-provider/src/schemas.ts",
+        "symbol": "ThinkingLevel",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/components/ReasoningSettingResolver.kt",
+        "symbol": "THINKING_LEVEL_VALUES"
+      },
+      "why": "The values a thinkingLevel override may carry. reasoning-override-schema watches the union, not the enum it references, so a level added here (v0.8.9: `xhigh`, offered to Gemini Hydrogen) changes nothing that entry sees.",
+      "failure_mode": "A level upstream added is dropped from a declared or model-specific option list, or one it removed is offered and 400s."
     },
     {
       "id": "supports-adaptive-thinking",
@@ -5692,6 +5817,34 @@
       },
       "why": "Which Claude models that are not adaptive take a token budget (thinkingBudget) for the reasoning override.",
       "failure_mode": "A manual-thinking Claude model resolves to no setting, or a non-thinking one to thinkingBudget; a replayed budget then 400s or is dropped. Nothing fails to decode."
+    },
+    {
+      "id": "bedrock-model-key",
+      "upstream": {
+        "file": "packages/data-provider/src/schemas.ts",
+        "symbol": "getModelKey",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/components/ReasoningSettingResolver.kt",
+        "symbol": "ReasoningSettingResolver.modelKey"
+      },
+      "why": "How a Bedrock model id names its provider: the first two dot-separated segments, else (v0.8.9) a bare `claude` id keys as Anthropic. The server resolves a reasoningOverride through the same key, so the composer's Thinking chip picks its parameter set the same way, gated on the server version.",
+      "failure_mode": "A Bedrock id the server keys differently gets no Thinking chip, or one whose override the server refuses with an `Invalid reasoning override` error frame. Nothing fails to decode."
+    },
+    {
+      "id": "reasoning-param-definitions",
+      "upstream": {
+        "file": "packages/data-provider/src/parameterSettings.ts",
+        "symbol": "getReasoningParamDefinitions",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/EndpointConfig.kt",
+        "symbol": "EndpointConfig.reasoningCustomParams"
+      },
+      "why": "An Azure deployment's `reasoningEfforts`, served as `/api/endpoints` `modelReasoningEfforts`, become a `reasoning_effort` definition (unset first) appended to the endpoint's paramDefinitions before resolveReasoningSettingForTarget runs, on the client's Thinking chip and on the server's override check alike.",
+      "failure_mode": "Upstream changes how the definition is built (order, unset handling, which endpoints carry it), and the chip offers efforts the server refuses for the deployment, or none where web offers them."
     },
     {
       "id": "passkey-name-max-length",
@@ -5974,7 +6127,7 @@
     {
       "id": "code-workspace-composer",
       "upstream": {
-        "file": "client/src/hooks/Agents/useCodeWorkspace.ts",
+        "file": "packages/chat/src/core/code/workspace.ts",
         "mode": "file"
       },
       "kotlin": {
@@ -5987,7 +6140,7 @@
     {
       "id": "code-workspace-agent-graph",
       "upstream": {
-        "file": "client/src/hooks/Agents/useCodeApprovalMode.ts",
+        "file": "packages/chat/src/core/code/routing.ts",
         "mode": "file"
       },
       "kotlin": {
@@ -6000,7 +6153,7 @@
     {
       "id": "code-workspace-select",
       "upstream": {
-        "file": "client/src/components/Chat/Input/CodeWorkspaceMenu.tsx",
+        "file": "packages/chat/src/components/composer/Workspace.tsx",
         "symbol": "selectWorkspace",
         "mode": "block"
       },
@@ -6577,7 +6730,7 @@
     {
       "id": "code-workspace-transitions",
       "upstream": {
-        "file": "client/src/components/Chat/Input/CodeWorkspaceMenu.tsx",
+        "file": "packages/chat/src/components/composer/Workspace.tsx",
         "mode": "file"
       },
       "kotlin": {
@@ -6597,7 +6750,7 @@
         "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/viewmodel/delegate/CodeWorkspaceDelegate.kt",
         "symbol": "reconcileAfterFailedTurn / CodeApproval.submitted"
       },
-      "why": "Which failed turns re-read the chat's recorded decision before the next send (getFailedCodeDecisionRequest), and which approval mode a turn carries (resolveSubmittedCodeApprovalMode: ask without a workspace).",
+      "why": "Which failed turns re-read the chat's recorded decision before the next send (getFailedCodeDecisionRequest), and which approval mode a turn carries (resolveSubmittedCodeApprovalMode: ask without a workspace; re-exported here from packages/chat/src/core/code/approval.ts, which code-approval-picker watches).",
       "failure_mode": "A send after a failed first turn goes out without a decision and seals the chat, or a turn carries a mode web would not send."
     },
     {
@@ -6616,15 +6769,14 @@
     {
       "id": "code-approval-picker",
       "upstream": {
-        "file": "client/src/hooks/Agents/useCodeApprovalMode.ts",
-        "symbol": "useCodeApprovalMode",
-        "mode": "block"
+        "file": "packages/chat/src/core/code/approval.ts",
+        "mode": "file"
       },
       "kotlin": {
         "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/code/CodeApproval.kt",
         "symbol": "CodeApproval.resolve"
       },
-      "why": "When the approval-mode picker shows (approvals on, ask offered, an attached machine in reach), the modes it intersects across machines, and the fallback to ask. The requested mode's order (conversation's, i.e. a spec preset's on a new chat, then the remembered pick) is CodeWorkspaceDelegate's requestedApprovalMode.",
+      "why": "When the approval-mode picker shows (approvals on, ask offered, an attached machine in reach), the modes it intersects across machines, and the fallback to ask: resolveCodeApprovalAvailability / resolveCodeApprovalModes, which the client's useCodeApprovalMode hook only wraps. The requested mode's order (conversation's, i.e. a spec preset's on a new chat, then the remembered pick) is CodeWorkspaceDelegate's requestedApprovalMode.",
       "failure_mode": "The chip shows on chats where web hides it, or offers Full access on a graph web restricts."
     },
     {
@@ -6809,7 +6961,7 @@
     {
       "id": "approval-preview",
       "upstream": {
-        "file": "client/src/components/Chat/approval/preview.ts",
+        "file": "packages/chat/src/core/parts/approval.ts",
         "mode": "file"
       },
       "kotlin": {
@@ -6822,7 +6974,7 @@
     {
       "id": "approval-preview-titles",
       "upstream": {
-        "file": "client/src/components/Chat/approval/Review.tsx",
+        "file": "packages/chat/src/components/approval/Review.tsx",
         "symbol": "previewTitle",
         "mode": "block"
       },
@@ -6855,7 +7007,7 @@
       },
       "kotlin": {
         "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/FileToolCalls.kt",
-        "symbol": "fileToolView / hasDiff / buildEditArgsPreview"
+        "symbol": "fileToolView / FileToolView.outputBelowPreview / hasDiff / buildEditArgsPreview"
       },
       "why": "What a create_file/edit_file card shows: when the output counts as a diff (hasDiff), the 'Updated ' overwrite rule, the edits/old_text/new_text arg shapes, which pane supersedes which, and when the raw output is repeated below. The rules are spread across the component, so it is watched file-level.",
       "failure_mode": "A create that overwrote a file reads as Created, an edit's diff is drawn twice or not at all, or a new arg shape shows an empty card. Nothing errors."
@@ -6863,7 +7015,7 @@
     {
       "id": "diff-view-parser",
       "upstream": {
-        "file": "client/src/components/Chat/Messages/Content/Parts/DiffView.tsx",
+        "file": "packages/chat/src/components/parts/DiffView.tsx",
         "mode": "file"
       },
       "kotlin": {
@@ -6876,7 +7028,7 @@
     {
       "id": "parse-json-field",
       "upstream": {
-        "file": "client/src/components/Chat/Messages/Content/Parts/parseJsonField.ts",
+        "file": "packages/chat/src/core/parts/parseJsonField.ts",
         "mode": "file"
       },
       "kotlin": {
@@ -6889,8 +7041,8 @@
     {
       "id": "tool-friendly-names",
       "upstream": {
-        "file": "client/src/utils/toolLabels.ts",
-        "symbol": "TOOL_FRIENDLY_NAME_KEYS",
+        "file": "packages/chat/src/core/parts/toolLabels.ts",
+        "symbol": "getToolFriendlyNameKeys",
         "mode": "block"
       },
       "kotlin": {
@@ -6903,7 +7055,7 @@
     {
       "id": "ptc-trace-fold",
       "upstream": {
-        "file": "client/src/hooks/SSE/useStepHandler.ts",
+        "file": "packages/chat/src/react/stream/step.ts",
         "symbol": "applyPtcToolCall",
         "mode": "block"
       },
@@ -6911,7 +7063,7 @@
         "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/PtcTrace.kt",
         "symbol": "PtcTrace.fold / interrupted / PTC_TRACE_MAX_ENTRIES"
       },
-      "why": "How on_ptc_tool_call envelopes become a trace: append on running, update by call_id, drop a settle without its row, the 100-row cap with a dropped count. prunePtcTraces (running -> interrupted on resume) is in the same file, and PTC_TRACE_MAX_ENTRIES in hooks/SSE/ptc.ts.",
+      "why": "How on_ptc_tool_call envelopes become a trace: append on running, update by call_id, drop a settle without its row, the 100-row cap with a dropped count. prunePtcTraces (running -> interrupted on resume) is in the same file, and PTC_TRACE_MAX_ENTRIES in packages/chat/src/react/stream/ptc.ts.",
       "failure_mode": "Rows duplicate, reorder or spin forever after a reconnect; the cap drifts. Nothing errors."
     },
     {
@@ -6945,7 +7097,7 @@
     {
       "id": "command-output-trailer",
       "upstream": {
-        "file": "client/src/components/Chat/Messages/Content/Parts/command.ts",
+        "file": "packages/chat/src/core/parts/command.ts",
         "mode": "file"
       },
       "kotlin": {
@@ -7290,6 +7442,62 @@
       },
       "why": "How a deployment's interface.replyNotifications gates read: each field off only when explicitly false, so an older server that sends nothing keeps notifications on.",
       "failure_mode": "If web changes the default (for example to off when the field is absent), the app keeps notifying on servers whose operators expect silence. Nothing errors."
+    },
+    {
+      "id": "message-author-when-different",
+      "upstream": {
+        "file": "client/src/components/Chat/Menus/Endpoints/shown.ts",
+        "symbol": "useHideSelectedAuthor",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/config/InterfaceConfig.kt",
+        "symbol": "StartupConfig.hidesSelectedAuthor"
+      },
+      "why": "`interface.messageAuthor: 'whenDifferent'` leaves out the author row of a reply by the agent the header selector names, but only while that selector shows (`isModelSelectorShown`: `modelSelect` on or any model spec). Which replies it applies to (the chat's agent, resolved, not a subagent thread) is `packages/chat` `ContentRow`'s `authorHidden`, mirrored in feature/chat `authorHiddenFor`.",
+      "failure_mode": "Upstream widens or narrows when the row is hidden, and mobile shows an author row web leaves out, or hides one web shows. Nothing fails."
+    },
+    {
+      "id": "unsaved-settled-error",
+      "upstream": {
+        "file": "packages/chat/src/core/turns/errors.ts",
+        "symbol": "isUnsavedSettledError",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/StreamEvent.kt",
+        "symbol": "StreamEvent.Final.isUnsavedError (gated in feature/chat SendCompletionDelegate.isUnsavedError)"
+      },
+      "why": "Which settled error the server never saved: a final error event whose conversation carries no lastResponseAt. A new chat's error that matches stays on the new-chat pane instead of navigating to a conversation that has no error row.",
+      "failure_mode": "Upstream changes which field marks a saved error turn, and the app either strands a saved error on the new-chat pane or recovers into a conversation that lost the error. Nothing fails."
+    },
+    {
+      "id": "instructions-prompt-revisions-errors",
+      "upstream": {
+        "file": "client/src/components/SidePanel/Agents/instructionsPromptUtils.ts",
+        "symbol": "getRevisionsLoadErrorKey",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/agents/src/commonMain/kotlin/com/garfiec/librechat/feature/agents/viewmodel/InstructionsPromptLink.kt",
+        "symbol": "promptRevisionsFailure"
+      },
+      "why": "Which revisions-route failures mean the prompt's source is unavailable (404 not_available, 409 not_configured / source_changed, 422 unsupported_type) rather than a load error, and that a 403 offers no retry.",
+      "failure_mode": "Upstream adds or renames a source-unavailable code, and the agent editor shows \"Couldn't load prompts\" with a Retry that cannot succeed. Nothing fails."
+    },
+    {
+      "id": "instructions-prompt-version-options",
+      "upstream": {
+        "file": "client/src/components/SidePanel/Agents/instructionsPromptUtils.ts",
+        "symbol": "buildPromptVersionOptions",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/agents/src/commonMain/kotlin/com/garfiec/librechat/feature/agents/viewmodel/InstructionsPromptLink.kt",
+        "symbol": "promptVersionOptions / selectionKey"
+      },
+      "why": "The linked-instructions version picker: Production first (with the native production revision's number), every listed revision, and the saved pin appended as \"no longer available\" when the list no longer has it.",
+      "failure_mode": "Upstream changes the options or how a pin matches a revision, and mobile labels Production wrongly or drops a saved pin from the picker, so a save can silently move the agent to another revision. Nothing fails."
     }
   ]
 }

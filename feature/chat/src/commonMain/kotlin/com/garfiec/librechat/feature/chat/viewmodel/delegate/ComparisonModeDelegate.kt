@@ -344,16 +344,12 @@ class ComparisonModeDelegate(
     private fun routeToolCallClosed(event: StreamEvent.ToolCallClosed) {
         if (isSecondaryEvent(event.agentId)) {
             handle.update {
-                val updated = comparisonState.secondaryActiveToolCalls.map { tc ->
-                    if (tc.id == event.toolCallId) tc.closedBy(event) else tc
-                }
+                val updated = comparisonState.secondaryActiveToolCalls.settled(event.toolCallId) { it.closedBy(event) }
                 comparisonState = comparisonState.copy(secondaryActiveToolCalls = updated)
             }
         } else {
             handle.update {
-                val updated = comparisonState.primaryActiveToolCalls.map { tc ->
-                    if (tc.id == event.toolCallId) tc.closedBy(event) else tc
-                }
+                val updated = comparisonState.primaryActiveToolCalls.settled(event.toolCallId) { it.closedBy(event) }
                 comparisonState = comparisonState.copy(primaryActiveToolCalls = updated)
             }
         }
@@ -508,16 +504,12 @@ class ComparisonModeDelegate(
     private fun routeToolCallComplete(event: StreamEvent.ToolCallComplete) {
         if (isSecondaryEvent(event.agentId)) {
             handle.update {
-                val updated = comparisonState.secondaryActiveToolCalls.map { tc ->
-                    if (tc.id == event.toolCallId) tc.completedBy(event) else tc
-                }
+                val updated = comparisonState.secondaryActiveToolCalls.settled(event.toolCallId) { it.completedBy(event) }
                 comparisonState = comparisonState.copy(secondaryActiveToolCalls = updated)
             }
         } else {
             handle.update {
-                val updated = comparisonState.primaryActiveToolCalls.map { tc ->
-                    if (tc.id == event.toolCallId) tc.completedBy(event) else tc
-                }
+                val updated = comparisonState.primaryActiveToolCalls.settled(event.toolCallId) { it.completedBy(event) }
                 comparisonState = comparisonState.copy(primaryActiveToolCalls = updated)
             }
         }

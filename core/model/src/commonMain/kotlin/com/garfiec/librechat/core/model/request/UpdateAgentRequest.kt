@@ -12,6 +12,11 @@ data class UpdateAgentRequest(
     val name: String? = null,
     val description: String? = null,
     val instructions: String? = null,
+    /**
+     * The linked-prompt instructions (v0.8.9). Raw JSON so a removal can be sent as an explicit
+     * `null`; omitted, the server keeps the stored link.
+     */
+    val instructionsPrompt: JsonElement? = null,
     val model: String? = null,
     val provider: String? = null,
     @SerialName("model_parameters") val modelParameters: JsonObject? = null,

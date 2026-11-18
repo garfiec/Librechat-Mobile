@@ -63,6 +63,11 @@ data class AccountSettingsUiState(
      * See [profileLoadError].
      */
     val error: String? = null,
+    /**
+     * A transient error with app copy instead of the server's words; shown and cleared like [error],
+     * but with no Retry: each one names a step a retry cannot take (signing in again).
+     */
+    val errorRes: StringResource? = null,
     /** True only when the authenticated user's system role is ADMIN. Gates Administration
      *  fail-CLOSED (defaults false until the profile loads). */
     val isAdmin: Boolean = false,
@@ -79,6 +84,8 @@ data class AccountSettingsUiState(
     val isAvatarUploading: Boolean = false,
     // Sign out & deletion
     val isLoggedOut: Boolean = false,
+    /** Leave for this account's own sign-in, keeping the account and its server: its session was retired. */
+    val isSignInAgainRequested: Boolean = false,
     val isDeletingAccount: Boolean = false,
     val isAccountDeleted: Boolean = false,
     val showDeleteAccountOtpDialog: Boolean = false,
@@ -100,6 +107,10 @@ data class AccountSettingsUiState(
     val showEnableTwoFactorOtpDialog: Boolean = false,
     val showBackupCodesOtpDialog: Boolean = false,
     val showRegenerateBackupCodesConfirm: Boolean = false,
+    /** 2FA was enabled without a session to replace the retired one: closing the backup codes signs in again. */
+    val twoFactorSignInRequired: Boolean = false,
+    /** 2FA was enabled and the server signed out every other session; the backup codes say so. */
+    val twoFactorOtherSessionsSignedOut: Boolean = false,
     /**
      * False while the server enforces 2FA (`twoFactorAuthenticationRequired`, v0.8.9-rc1) for this
      * account's provider; the server then refuses to disable it, so the action is hidden.
@@ -149,7 +160,7 @@ sealed interface BalanceUiState {
 
 /**
  * The reading as the deployment wants it shown (`balance.display`, `interface.currency`), and the
- * share of the allotment spent: the record's refill amount, else the config's `startBalance`. Web's
+ * share of the allotment spent: the record's grant or refill amount, else the config's `startBalance`. Web's
  * `summarizeBalance`. Applied where the config is combined in, so a config change re-presents a
  * balance already loaded.
  */

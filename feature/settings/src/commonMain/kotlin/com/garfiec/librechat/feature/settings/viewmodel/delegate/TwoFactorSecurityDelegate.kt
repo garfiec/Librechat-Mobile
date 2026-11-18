@@ -2,8 +2,11 @@ package com.garfiec.librechat.feature.settings.viewmodel.delegate
 
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.AuthRepository
+import com.garfiec.librechat.feature.settings.resources.Res
+import com.garfiec.librechat.feature.settings.resources.twofa_sign_in_again_to_enable
 import com.garfiec.librechat.feature.settings.viewmodel.AccountSettingsUiState
 import com.garfiec.librechat.feature.settings.viewmodel.SettingsStateHandle
+import com.garfiec.librechat.feature.settings.viewmodel.isCredentialRetirementIncomplete
 import com.garfiec.librechat.feature.settings.viewmodel.isHttpStatus
 import kotlinx.coroutines.launch
 
@@ -81,8 +84,7 @@ class TwoFactorSecurityDelegate(
             stateHandle.update { copy(isTwoFactorLoading = true) }
             when (val result = authRepository.confirmTwoFactor(code)) {
                 is Result.Success -> {
-                    // confirm returns an empty body — the backup codes to display were already
-                    // returned by enable and are held in state; keep them rather than re-reading.
+                    // The backup codes to display came with enable and are held in state.
                     stateHandle.update {
                         copy(
                             isTwoFactorLoading = false,
@@ -90,10 +92,34 @@ class TwoFactorSecurityDelegate(
                             showTwoFactorSetupDialog = false,
                             twoFactorOtpauthUrl = null,
                             showBackupCodesDialog = true,
+                            twoFactorOtherSessionsSignedOut = result.data,
                         )
                     }
                 }
-                is Result.Error -> {
+                // 2FA is on, but no session replaced the retired one: keep the codes, then sign in again.
+                is Result.Error -> if (result.isCredentialRetirementIncomplete()) {
+                    stateHandle.update {
+                        copy(
+                            isTwoFactorLoading = false,
+                            isTwoFactorEnabled = true,
+                            showTwoFactorSetupDialog = false,
+                            twoFactorOtpauthUrl = null,
+                            showBackupCodesDialog = true,
+                            twoFactorSignInRequired = true,
+                        )
+                    }
+                } else if (result.isHttpStatus(401)) {
+                    // No live refresh session to rotate: only a fresh sign-in can enable 2FA, so the
+                    // setup closes (as Cancel does) and the message shows on the page, not behind it.
+                    stateHandle.update {
+                        copy(
+                            isTwoFactorLoading = false,
+                            showTwoFactorSetupDialog = false,
+                            twoFactorOtpauthUrl = null,
+                            errorRes = Res.string.twofa_sign_in_again_to_enable,
+                        )
+                    }
+                } else {
                     stateHandle.update {
                         copy(
                             isTwoFactorLoading = false,
@@ -142,7 +168,17 @@ class TwoFactorSecurityDelegate(
     }
 
     fun dismissBackupCodesDialog() {
-        stateHandle.update { copy(showBackupCodesDialog = false, backupCodes = emptyList()) }
+        val signInRequired = stateHandle.state.twoFactorSignInRequired
+        stateHandle.update {
+            copy(showBackupCodesDialog = false, backupCodes = emptyList(), twoFactorOtherSessionsSignedOut = false)
+        }
+        if (!signInRequired) return
+        stateHandle.scope.launch {
+            // The retirement may have missed this device's own server session: revoke it, as a
+            // sign-out does, while the account still holds it. The sign-in then ends it locally.
+            authRepository.revokeActiveSession()
+            stateHandle.update { copy(isSignInAgainRequested = true) }
+        }
     }
 
     /**

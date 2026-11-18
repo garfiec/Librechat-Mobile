@@ -184,7 +184,7 @@ class ConversationRepositoryImpl(
         return safeApiCall {
             val accountId = resolveWriteAccountId(originAccount, activeAccountProvider, roster)
             val conversation = conversationsApi.getConversation(id)
-            if (accountId != null) {
+            if (accountId != null && !conversation.isUnsavedProjection) {
                 // The single-conversation GET is the full document, tags included: the server's tags
                 // win over the cached ones. Only the list paths, which omit tags, preserve them.
                 val tags = conversation.tags.filter { it.isNotBlank() }
@@ -238,7 +238,13 @@ class ConversationRepositoryImpl(
             val accountId = activeAccountProvider.currentAccountId()?.value
             val updated = conversationsApi.archive(id, isArchived)
             if (accountId != null) {
-                conversationDao.updateArchived(id, isArchived, accountId)
+                // All-data retention can turn the chat temporary on archive; the server lists no
+                // temporary chat, archived or not, so neither may the cache.
+                if (updated.isTemporary == true) {
+                    conversationDao.deleteById(id, accountId)
+                } else {
+                    conversationDao.updateArchived(id, isArchived, accountId)
+                }
             }
             updated
         }

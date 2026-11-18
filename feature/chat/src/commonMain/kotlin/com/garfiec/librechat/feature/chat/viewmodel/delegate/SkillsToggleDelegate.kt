@@ -1,6 +1,7 @@
 package com.garfiec.librechat.feature.chat.viewmodel.delegate
 
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
+import com.garfiec.librechat.core.model.config.ModelSpecSkills
 import com.garfiec.librechat.core.model.config.ModelSpecs
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.SkillsToggleHandle
@@ -28,31 +29,36 @@ internal sealed interface SkillsToggleSlot {
     /** A temporary chat: the value lives in memory only and is never written. */
     data object Memory : SkillsToggleSlot
 
-    /** The active model spec configures `skills`: the toggle is neither read nor written. */
+    /** The active model spec decides skills ([ChatUiState.specGovernsSkills]): the toggle is neither read nor written. */
     data object SpecGoverned : SkillsToggleSlot
 
     /**
-     * A model spec is selected that leaves `skills` alone. Web reads nothing while a spec is
-     * active and rebuilds the ephemeral agent from the spec, which has no `skills` key, so the
-     * chat starts off on every spec change; the session's value is kept in memory. A toggle in an
-     * existing (not temporary) conversation is still written to that conversation's own slot, as
-     * web's `useToolToggle` writes `LAST_SKILLS_TOGGLE_<id>` whatever the spec, so it is what the
-     * conversation reads once the spec is cleared.
+     * A model spec is selected and the toggle is the chat's. Web rebuilds the ephemeral agent from
+     * the spec on every spec change, starting skills at the spec's value ([seed]: on for
+     * `skills: true`), and in an existing conversation restores that conversation's own value
+     * ([conversationKey]) over it. A toggle in an existing (not temporary) conversation is written
+     * to that slot, so it is also what the conversation reads once the spec is cleared.
      */
-    data class SpecSelected(val specName: String) : SkillsToggleSlot
+    data class SpecSelected(val specName: String, val seed: Boolean, val conversationKey: String?) : SkillsToggleSlot
 }
 
 /**
  * The slot [state] maps to.
  *
- * A selected spec reads nothing ([SkillsToggleSlot.SpecSelected]). A new chat uses the separate
- * `__defaults__` slot when the server offers model specs and none is selected (web's
- * `storageContextKey`), else the plain new-chat slot. MIRRORED rule, registered in
+ * A selected spec reads only an existing conversation's own slot ([SkillsToggleSlot.SpecSelected]).
+ * A new chat uses the separate `__defaults__` slot when the server offers model specs and none is
+ * selected (web's `storageContextKey`), else the plain new-chat slot. MIRRORED rule, registered in
  * `scripts/mirrors.json` as `skills-toggle-slots`.
  */
 internal fun skillsToggleSlot(state: ChatUiState): SkillsToggleSlot {
-    if (state.activeSpecSkills != null) return SkillsToggleSlot.SpecGoverned
-    state.selectedSpec?.let { return SkillsToggleSlot.SpecSelected(it) }
+    if (state.specGovernsSkills) return SkillsToggleSlot.SpecGoverned
+    state.selectedSpec?.let { spec ->
+        return SkillsToggleSlot.SpecSelected(
+            specName = spec,
+            seed = state.activeSpecSkills == ModelSpecSkills.On,
+            conversationKey = state.conversationId?.takeUnless { state.isTemporaryChat },
+        )
+    }
     if (state.isTemporaryChat) return SkillsToggleSlot.Memory
     state.conversationId?.let { return SkillsToggleSlot.Stored(it) }
     val specsOffered = state.selection.modelSpecs?.list.orEmpty().isNotEmpty()
@@ -148,9 +154,13 @@ class SkillsToggleDelegate(
                     when (slot) {
                         // A swap keeps its value; later writes to the slot still show.
                         is SkillsToggleSlot.Stored -> storedValue(slot.key).let { if (swapped) it.drop(1) else it }
-                        // Every spec change starts off, as web rebuilds the agent from the spec.
-                        is SkillsToggleSlot.SpecSelected ->
-                            if (swapped) emptyFlow() else flowOf(specOpening.also { specOpening = null } ?: false)
+                        // A spec change starts from the spec, or the conversation's own value.
+                        is SkillsToggleSlot.SpecSelected -> when {
+                            swapped -> emptyFlow()
+                            specOpening != null -> flowOf(specOpening.also { specOpening = null } ?: slot.seed)
+                            slot.conversationKey != null -> storedValue(slot.conversationKey, default = slot.seed)
+                            else -> flowOf(slot.seed)
+                        }
                         // In memory the value stays what it is; a spec ignores it.
                         SkillsToggleSlot.Memory, SkillsToggleSlot.SpecGoverned -> emptyFlow()
                     }
@@ -159,14 +169,14 @@ class SkillsToggleDelegate(
         }
     }
 
-    /** A stored slot's value: a pick on this new chat, else the store, else the carried value. */
-    private fun storedValue(key: String) = combine(
+    /** A stored slot's value: a pick on this new chat, else the store, else the carried value, else [default]. */
+    private fun storedValue(key: String, default: Boolean = false) = combine(
         // Distinct here too: after a swap every later value is trusted over what is on screen.
         settingsDataStore.skillsToggle(key).distinctUntilChanged(),
         pendingStored.map { pending -> pending?.takeIf { it.first == key }?.second }.distinctUntilChanged(),
         pickedOnInNewChat.map { it == key }.distinctUntilChanged(),
     ) { stored, pending, picked ->
-        picked || (stored ?: pending ?: false)
+        picked || (stored ?: pending ?: default)
     }
 
     /** The tools-sheet row and pinned chip. Ignored where the toggle isn't offered. */
@@ -217,25 +227,26 @@ class SkillsToggleDelegate(
         handle.update { skillsToggle = on }
         val key = when (slot) {
             is SkillsToggleSlot.Stored -> slot.key
-            // Written though not read under the spec: it is the conversation's value after it.
-            is SkillsToggleSlot.SpecSelected -> handle.state.conversationId?.takeUnless { handle.state.isTemporaryChat }
+            is SkillsToggleSlot.SpecSelected -> slot.conversationKey
             SkillsToggleSlot.Memory, SkillsToggleSlot.SpecGoverned -> null
         }
         if (key != null) handle.scope.launch { settingsDataStore.setSkillsToggle(key, on) }
     }
 
     /**
-     * A new chat's first send created [conversationId]: an on value moves with it, as web carries
+     * A new chat's first send created [conversationId]: its value moves with it, as web carries
      * the new-chat state to the created id, and the shared new-chat slot keeps its value for the
-     * next new chat. Nothing is carried for a temporary chat or under a spec (their value stays in
-     * memory and reaches the Chat(id) ViewModel through [seed]), nor for off, which is what an
-     * empty slot reads as.
+     * next new chat. Off is carried only under a spec, where an empty slot reads as the spec's
+     * value. Nothing is carried for a temporary chat (its value reaches the Chat(id) ViewModel
+     * through [seed]) or where the spec decides skills.
      */
     fun carryToCreatedConversation(conversationId: String, isTemporary: Boolean) {
         val state = handle.state
-        if (isTemporary || state.activeSpecSkills != null || state.selectedSpec != null || !state.skillsToggle) return
-        pendingStored.value = conversationId to true
-        handle.scope.launch { settingsDataStore.setSkillsToggle(conversationId, true) }
+        if (isTemporary || state.specGovernsSkills) return
+        val on = state.skillsToggle
+        if (!on && state.selectedSpec == null) return
+        pendingStored.value = conversationId to on
+        handle.scope.launch { settingsDataStore.setSkillsToggle(conversationId, on) }
     }
 
     /** Seeds this chat's value from the new-chat handoff. Called before [start]. */

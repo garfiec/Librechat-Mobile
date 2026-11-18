@@ -974,6 +974,7 @@ fun MainNavDisplay(
                 // auth. Forcing navigateToAuth() here would wrongly leave the auth screen up after a
                 // successor was promoted.
                 onLogout = { navHostViewModel.logout() },
+                onSignInAgain = navHostViewModel::signInAgain,
                 onNavigateToArchive = { navigator.navigate(ArchivedConversations) },
                 onOpenConversation = { navigator.navigateToChat(it) },
                 onProviderKeyReturn = { message ->

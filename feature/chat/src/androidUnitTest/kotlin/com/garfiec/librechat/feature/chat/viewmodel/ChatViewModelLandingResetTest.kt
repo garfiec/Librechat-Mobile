@@ -1,6 +1,8 @@
 package com.garfiec.librechat.feature.chat.viewmodel
 
 import androidx.lifecycle.viewModelScope
+import com.garfiec.librechat.core.common.BackendBuildClass
+import com.garfiec.librechat.core.common.DetectedBackend
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.model.ArtifactsMode
 import com.garfiec.librechat.core.model.EndpointConfig
@@ -18,6 +20,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -74,6 +77,30 @@ class ChatViewModelLandingResetTest {
             advanceUntilIdle()
 
             assertEquals(ArtifactsMode.SHADCN_UI, vm.uiState.value.selection.artifactsMode)
+        } finally {
+            vm.viewModelScope.cancel()
+        }
+    }
+
+    @Test
+    fun `the next new chat keeps the server's version gates`() = runTest(testDispatcher) {
+        with(fixture) {
+            every { configRepository.detectedBackendVersion } returns MutableStateFlow("0.8.9")
+            every { configRepository.detectedBackend } returns
+                MutableStateFlow(DetectedBackend("0.8.9", BackendBuildClass.OFFICIAL))
+        }
+        val vm = fixture.build(defaultDispatcher = testDispatcher)
+        try {
+            advanceUntilIdle()
+
+            // The version flows don't re-emit, so a gate dropped here stays off for every later new chat.
+            vm.onPendingNavigationHandled()
+            advanceUntilIdle()
+
+            val selection = vm.uiState.value.selection
+            assertTrue(selection.specToolsAreDefaults)
+            assertTrue(selection.extendedEffortSupported)
+            assertTrue(selection.thinkingDisplayUpdatesSupported)
         } finally {
             vm.viewModelScope.cancel()
         }

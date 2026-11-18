@@ -3,7 +3,6 @@ package com.garfiec.librechat.feature.settings.screen
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,8 +12,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
@@ -31,12 +31,13 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveButton
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
 import com.garfiec.librechat.core.ui.components.AdaptiveExposedDropdownMenu
@@ -48,6 +49,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
 import com.garfiec.librechat.core.ui.components.DiscardChangesDialog
 import com.garfiec.librechat.core.ui.components.ErrorBanner
 import com.garfiec.librechat.core.ui.components.PlatformBackHandler
+import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
 import com.garfiec.librechat.core.ui.components.topbar.BarIcons
@@ -65,11 +67,16 @@ data class RolePermissionToggle(
     val checked: Boolean,
     val onCheckedChange: (Boolean) -> Unit,
     /**
-     * Set on the permission type's USE switch: while the ADMIN role is selected, the editor warns
-     * under it that a saved "off" can only be undone in librechat.yaml (web's `showAdminWarning`).
+     * The permission type's USE switch, with ADMIN selected, saved on and now switched off: saving
+     * hides the feature, and this editor, from every admin. The editor warns under it and makes Save
+     * ask for "ADMIN" to be typed (web's `isRevokingAdminUse`). See [revokesAdminUse].
      */
-    val showAdminWarning: Boolean = false,
+    val revokesAdminUse: Boolean = false,
 )
+
+/** Web's `isRevokingAdminUse`: turning [role]'s USE off while the server has it on, for ADMIN only. */
+internal fun revokesAdminUse(role: String, savedUse: Boolean?, use: Boolean): Boolean =
+    role == ADMIN_ROLE && savedUse == true && !use
 
 /**
  * What a role-permissions editor shows, from the ViewModel of the permission type it edits
@@ -104,6 +111,8 @@ data class RolePermissionsEditorState(
 internal fun RolePermissionsEditor(
     title: String,
     description: String,
+    /** The permission type as a section name ("Skills"), for the ADMIN lockout warning. */
+    section: String,
     state: RolePermissionsEditorState,
     toggles: List<RolePermissionToggle>,
     onSelectRole: (String) -> Unit,
@@ -116,6 +125,18 @@ internal fun RolePermissionsEditor(
     modifier: Modifier = Modifier,
 ) {
     val currentOnNavigateBack by rememberUpdatedState(onNavigateBack)
+    val revokingAdminUse = toggles.any { it.revokesAdminUse }
+    var confirmingLockout by remember { mutableStateOf(false) }
+    if (confirmingLockout && revokingAdminUse && !state.isSaving) {
+        AdminLockoutDialog(
+            section = section,
+            onConfirm = {
+                confirmingLockout = false
+                onSave()
+            },
+            onDismiss = { confirmingLockout = false },
+        )
+    }
 
     LaunchedEffect(state.exitRequested) {
         if (state.exitRequested) currentOnNavigateBack()
@@ -180,8 +201,13 @@ internal fun RolePermissionsEditor(
                             enabled = state.loaded && !state.isSaving,
                             onCheckedChange = toggle.onCheckedChange,
                         )
-                        if (toggle.showAdminWarning && state.selectedRole == ADMIN_ROLE) {
-                            AdminAccessWarning()
+                        if (toggle.revokesAdminUse) {
+                            Text(
+                                text = stringResource(Res.string.role_permissions_admin_lockout_warning, section),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.padding(bottom = 4.dp).semantics { liveRegion = LiveRegionMode.Polite },
+                            )
                         }
                     }
                 }
@@ -214,7 +240,7 @@ internal fun RolePermissionsEditor(
             }
 
             AdaptiveButton(
-                onClick = onSave,
+                onClick = { if (revokingAdminUse) confirmingLockout = true else onSave() },
                 enabled = state.canSave,
                 modifier = Modifier.fillMaxWidth(),
             ) {
@@ -272,47 +298,61 @@ private fun RolePicker(
 }
 
 /**
- * Web's ADMIN warning (`AdminSettingsDialog`, `com_ui_admin_access_warning`): shown whenever ADMIN
- * is selected, whatever the switch reads, because a saved "off" locks the admins out of this
- * screen's permission type. Registered in scripts/mirrors.json as `admin-access-warning`.
+ * Web's lockout confirmation (`AdminSettingsDialog`): the save is sent only once [ADMIN_ROLE] is typed
+ * exactly. Registered in scripts/mirrors.json as `admin-access-warning`.
  */
 @Composable
-private fun AdminAccessWarning() {
-    val uriHandler = LocalUriHandler.current
-    // Set when nothing could open the link: the address is then shown to copy instead.
-    var linkUnopened by remember { mutableStateOf(false) }
-    Column(modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
-        Text(
-            text = stringResource(Res.string.role_permissions_admin_access_warning),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.error,
-        )
-        AdaptiveTextButton(
-            // Android throws when no browser is installed (de-Googled ROMs, work profiles).
-            onClick = { linkUnopened = runCatching { uriHandler.openUri(ADMIN_ACCESS_DOCS_URL) }.isFailure },
-            contentPadding = PaddingValues(horizontal = 0.dp, vertical = 8.dp),
-        ) {
-            Text(stringResource(Res.string.role_permissions_more_info))
-        }
-        if (linkUnopened) {
-            SelectionContainer {
+private fun AdminLockoutDialog(section: String, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    var typed by remember { mutableStateOf("") }
+    AdaptiveAlertDialog(
+        onDismissRequest = onDismiss,
+        // On the dialog's root, not the text: the card then shrinks above the keyboard, the text
+        // scrolls, and the buttons stay in view. Padding inside the text only blanks part of the card.
+        modifier = Modifier.clearFocusOnTap().imePadding(),
+        scrollableText = false,
+        title = { Text(stringResource(Res.string.role_permissions_admin_lockout_title, section)) },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Text(stringResource(Res.string.role_permissions_admin_lockout_warning, section))
+                // The instruction sits above the field, not in its label: a label that wraps crosses the outline.
                 Text(
-                    text = ADMIN_ACCESS_DOCS_URL,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                    stringResource(Res.string.role_permissions_admin_lockout_confirm_label, ADMIN_ROLE),
+                    style = MaterialTheme.typography.labelLarge,
+                )
+                AdaptiveOutlinedTextField(
+                    value = typed,
+                    onValueChange = { typed = it },
+                    placeholder = { Text(ADMIN_ROLE) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters, autoCorrectEnabled = false),
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
-        }
-    }
+        },
+        confirmButton = {
+            AdaptiveTextButton(
+                onClick = onConfirm,
+                enabled = typed == ADMIN_ROLE,
+                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+            ) {
+                Text(stringResource(Res.string.role_permissions_admin_lockout_confirm))
+            }
+        },
+        dismissButton = {
+            AdaptiveTextButton(onClick = onDismiss) {
+                Text(stringResource(Res.string.action_cancel))
+            }
+        },
+    )
 }
 
 /** Upstream SystemRoles.ADMIN. */
 private const val ADMIN_ROLE = "ADMIN"
-
-/** The page web's warning links to: the `interface` block of librechat.yaml. */
-private const val ADMIN_ACCESS_DOCS_URL =
-    "https://www.librechat.ai/docs/configuration/librechat_yaml/object_structure/interface"
 
 @Composable
 private fun PermissionToggle(

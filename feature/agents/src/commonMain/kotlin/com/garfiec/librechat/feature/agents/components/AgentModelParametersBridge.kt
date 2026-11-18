@@ -162,6 +162,7 @@ internal fun agentParameterDefinitions(
     dropParamsMap: Map<String, JsonElement>?,
     thinkingDisplayUpdatesSupported: Boolean = false,
     parameterProvider: String = provider,
+    thinkingLevelXhighSupported: Boolean = false,
 ): List<ParameterDefinition> = EndpointParameterRegistry.getDefinitions(
     endpoint = "agents",
     extendedEffortSupported = extendedEffortSupported,
@@ -169,6 +170,7 @@ internal fun agentParameterDefinitions(
     model = model.takeIf { it.isNotBlank() },
     dropParams = EndpointDropParams.resolve(dropParamsMap, endpoint = "agents", provider = provider, model = model),
     thinkingDisplayUpdatesSupported = thinkingDisplayUpdatesSupported,
+    thinkingLevelXhighSupported = thinkingLevelXhighSupported,
 )
 
 /**

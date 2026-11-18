@@ -86,6 +86,8 @@ fun MessageList(
     modifier: Modifier = Modifier,
     /** The live reply's reasoning, shown collapsed above its text. See [StreamingMessageBubble]. */
     streamingThinking: () -> String = { "" },
+    /** The compaction summary the live run is writing; see [StreamingMessageBubble]. */
+    streamingSummary: String = "",
     activeToolCalls: List<ActiveToolCall> = emptyList(),
     /** Calls whose sandbox is cold-booting; see `MessagesState.sandboxStartingToolCallIds`. */
     sandboxStartingToolCallIds: Set<String> = emptySet(),
@@ -146,6 +148,8 @@ fun MessageList(
     /** The streaming reply's avatar, resolved like each node's [MessageNode.avatar]. */
     streamingAvatar: IconSource? = null,
     streamingSenderName: String = "Assistant",
+    /** The streaming reply leaves out its author row, like a node's [MessageNode.authorHidden]. */
+    streamingAuthorHidden: Boolean = false,
     showImageDescriptions: Boolean = true,
     chatLayoutStyle: String = ChatLayoutConstants.THREAD,
     showAvatars: Boolean = true,
@@ -746,6 +750,7 @@ fun MessageList(
                         showAvatars = showAvatars,
                         showBubbles = showBubbles,
                         avatar = node.avatar,
+                        authorHidden = node.authorHidden,
                         useKatex = useKatex,
                         searchQuery = searchQuery,
                         isSearchMatch = isMatch,
@@ -796,12 +801,14 @@ fun MessageList(
                                 streamingContent = streamingContent(),
                                 senderName = streamingSenderName,
                                 avatar = streamingAvatar,
+                                authorHidden = streamingAuthorHidden,
                                 fontSizeMultiplier = fontSizeMultiplier,
                                 chatLayoutStyle = chatLayoutStyle,
                                 showAvatars = showAvatars,
                                 showBubbles = showBubbles,
                                 useKatex = useKatex,
                                 streamingThinking = streamingThinking(),
+                                streamingSummary = streamingSummary,
                                 // Inside the reply, under its sender row, where the finalized
                                 // message draws the cards that replace them.
                                 pendingSkills = pendingSkills,

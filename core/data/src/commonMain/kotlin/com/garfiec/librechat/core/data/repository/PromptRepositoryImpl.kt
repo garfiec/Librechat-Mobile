@@ -7,6 +7,7 @@ import com.garfiec.librechat.core.model.PromptGroup
 import com.garfiec.librechat.core.model.request.AddPromptToGroupRequest
 import com.garfiec.librechat.core.model.request.CreatePromptRequest
 import com.garfiec.librechat.core.model.request.UpdatePromptGroupRequest
+import com.garfiec.librechat.core.model.response.PromptRevisionChoices
 import com.garfiec.librechat.core.network.api.PromptsApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -73,6 +74,9 @@ class PromptRepositoryImpl(
             promptsApi.getPromptsByGroupId(groupId)
         }
     }
+
+    override suspend fun getRevisionChoices(groupId: String): Result<PromptRevisionChoices> =
+        safeApiCall { promptsApi.getPromptGroupRevisions(groupId) }
 
     override suspend fun withResolvedText(group: PromptGroup): Result<PromptGroup> {
         val id = group.id

@@ -69,6 +69,7 @@ val authModule = module {
     viewModel { params ->
         TwoFactorSetupViewModel(
             authRepository = get(),
+            configRepository = get(),
             tempToken = params.get(),
         )
     }

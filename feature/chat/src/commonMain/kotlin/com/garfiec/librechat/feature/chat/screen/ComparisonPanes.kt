@@ -220,6 +220,7 @@ internal fun ComparisonPanes(
                 userName = uiState.userName,
                 streamingAvatar = uiState.avatars.streaming,
                 streamingSenderName = senderName,
+                streamingAuthorHidden = uiState.avatars.streamingAuthorHidden,
                 showImageDescriptions = showImageDescriptions,
                 chatLayoutStyle = chatLayoutStyle,
                 showAvatars = showAvatars,

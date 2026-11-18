@@ -1,7 +1,9 @@
 package com.garfiec.librechat.feature.chat.viewmodel.delegate
 
 import com.garfiec.librechat.core.data.repository.EndpointTokenRepository
+import com.garfiec.librechat.core.model.ContentType
 import com.garfiec.librechat.core.model.StreamEvent
+import com.garfiec.librechat.core.model.content.MessageContentPart
 import com.garfiec.librechat.core.model.usage.ContextUsage
 import com.garfiec.librechat.core.model.usage.TokenBudgetBreakdown
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
@@ -16,6 +18,7 @@ import io.mockk.verify
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.Json
 import org.junit.Test
 
 /**
@@ -61,5 +64,36 @@ class LiveReplyContextUsageTest {
         delegate(flow, backgroundScope).apply(StreamEvent.ContextUsageUpdate(reading(null, instructions = 900)))
 
         verify { repository.recordContextOverhead("openAI::gpt-4o", 900) }
+    }
+
+    @Test
+    fun `a compaction summary streams, a reset replaces it, and the completion settles it`() = runTest {
+        val flow = MutableStateFlow(ChatUiState())
+        val live = delegate(flow, backgroundScope)
+
+        live.apply(StreamEvent.SummaryDelta("The user asked "))
+        live.apply(StreamEvent.SummaryDelta("about"))
+        assertThat(flow.value.streamingSummary).isEqualTo("The user asked about")
+
+        // The attempt that wrote it was abandoned; the retry starts over.
+        live.apply(StreamEvent.SummaryDelta("Earlier, the user", reset = true))
+        assertThat(flow.value.streamingSummary).isEqualTo("Earlier, the user")
+
+        live.apply(StreamEvent.ContextSummary("Earlier, the user set up the project."))
+        assertThat(flow.value.streamingSummary).isEqualTo("Earlier, the user set up the project.")
+    }
+
+    @Test
+    fun `a resume restores the summary in flight from the snapshot`() = runTest {
+        val flow = MutableStateFlow(ChatUiState())
+        val live = delegate(flow, backgroundScope)
+        val inFlight = MessageContentPart(
+            type = ContentType.SUMMARY,
+            content = Json.parseToJsonElement("""[{"type":"text","text":"So far the user"}]"""),
+        )
+
+        live.apply(StreamEvent.Sync(listOf(inFlight)))
+
+        assertThat(flow.value.streamingSummary).isEqualTo("So far the user")
     }
 }

@@ -13,6 +13,7 @@ import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.core.model.ToolAuthResult
 import com.garfiec.librechat.core.model.config.InterfaceConfig
 import com.garfiec.librechat.core.model.config.contextGaugeEnabled
+import com.garfiec.librechat.core.model.config.hidesSelectedAuthor
 import com.garfiec.librechat.core.model.config.isForcedTemporaryRetention
 import com.garfiec.librechat.core.model.config.landingHeadingIsGreeting
 import com.garfiec.librechat.core.model.config.presetsMenuEnabled
@@ -134,6 +135,7 @@ class ChatConfigDelegate(
                     version,
                     config?.endpointsDropParamsMap,
                     config?.compactionEnabled,
+                    config.hidesSelectedAuthor,
                 )
             }.distinctUntilChanged().collect { inputs ->
                 val role = inputs.role
@@ -167,6 +169,7 @@ class ChatConfigDelegate(
                         parametersEnabled = iface?.parameters ?: true,
                         presetsEnabled = iface.presetsMenuEnabled(),
                         feedbackEnabled = iface?.feedback ?: true,
+                        hidesSelectedAuthor = inputs.hidesSelectedAuthor,
                         // Not gated on /api/endpoints/context-projection: ContextProjectionDelegate
                         // treats it as an optional seed and leaves the gauge to the SSE on failure.
                         contextUsageEnabled = iface.contextGaugeEnabled(version),
@@ -327,6 +330,7 @@ private data class GateInputs(
     val version: String?,
     val dropParamsMap: Map<String, JsonElement>?,
     val compactionEnabled: Boolean?,
+    val hidesSelectedAuthor: Boolean,
 )
 
 /** What the web-search key check depends on; [changes] alone differing is a recheck. */

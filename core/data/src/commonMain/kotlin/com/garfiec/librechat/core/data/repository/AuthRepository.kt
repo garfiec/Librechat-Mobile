@@ -9,6 +9,7 @@ import com.garfiec.librechat.core.model.response.BackupCodesResponse
 import com.garfiec.librechat.core.model.response.TwoFactorSetupConfirmResponse
 import com.garfiec.librechat.core.model.response.TwoFactorSetupResponse
 
+@Suppress("TooManyFunctions") // debt: 21 functions
 interface AuthRepository {
     suspend fun login(email: String, password: String): Result<LoginOutcome>
     suspend fun loginWithOAuthToken(cookies: AuthCookies): Result<User>
@@ -50,7 +51,9 @@ interface AuthRepository {
      */
     suspend fun restoreAccountIfNeeded(): Boolean
     suspend fun enableTwoFactor(token: String? = null, backupCode: String? = null): Result<TwoFactorSetupResponse>
-    suspend fun confirmTwoFactor(code: String): Result<Unit>
+
+    /** True when the server rotated this session and signed out every other one; false when it kept them. */
+    suspend fun confirmTwoFactor(code: String): Result<Boolean>
     suspend fun disableTwoFactor(token: String? = null, backupCode: String? = null): Result<Unit>
     suspend fun regenerateBackupCodes(token: String? = null, backupCode: String? = null): Result<BackupCodesResponse>
 
@@ -69,6 +72,9 @@ interface AuthRepository {
 
     /** Enables 2FA and signs in: on success the session is committed exactly as a 2FA verify commits it. */
     suspend fun finalizeTwoFactorSetup(finalizationToken: String): Result<User>
+
+    /** Leaving setup: the server discards what [tempToken]'s enrollment staged. */
+    suspend fun cancelTwoFactorSetup(tempToken: String): Result<Unit>
     suspend fun requestPasswordReset(email: String): Result<Unit>
     suspend fun resetPassword(userId: String, token: String, password: String, confirmPassword: String): Result<Unit>
 }

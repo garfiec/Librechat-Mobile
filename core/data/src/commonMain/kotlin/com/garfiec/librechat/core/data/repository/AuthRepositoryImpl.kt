@@ -17,6 +17,7 @@ import com.garfiec.librechat.core.model.LoginOutcome
 import com.garfiec.librechat.core.model.User
 import com.garfiec.librechat.core.model.VerifyTwoFactorOutcome
 import com.garfiec.librechat.core.model.auth.AuthCookies
+import com.garfiec.librechat.core.model.auth.RequestAuth
 import com.garfiec.librechat.core.model.auth.SessionCredentials
 import com.garfiec.librechat.core.model.error.ServerErrorCode
 import com.garfiec.librechat.core.model.response.BackupCodesResponse
@@ -26,6 +27,7 @@ import com.garfiec.librechat.core.network.api.AuthApi
 import com.garfiec.librechat.core.network.api.UserApi
 import com.garfiec.librechat.core.network.api.dto.LoginResult
 import com.garfiec.librechat.core.network.client.PendingRequestIdentity
+import com.garfiec.librechat.core.network.client.RefreshCookieCredentials
 import com.garfiec.librechat.core.network.client.RequestIdentity
 import com.garfiec.librechat.core.network.client.SessionEndReason
 import com.garfiec.librechat.core.network.client.SwitchGate
@@ -61,6 +63,7 @@ class AuthRepositoryImpl(
     private val accountSwitcher: AccountSwitcher,
     private val switchGate: SwitchGate,
     private val serverSessionRevoker: ServerSessionRevoker,
+    private val refreshCookieCredentials: RefreshCookieCredentials,
 ) : AuthRepository {
 
     /**
@@ -310,6 +313,11 @@ class AuthRepositoryImpl(
         }
     }
 
+    override suspend fun cancelTwoFactorSetup(tempToken: String): Result<Unit> =
+        safeApiCall {
+            withAuthIdentity(accountSwitcher.pendingAdd) { authApi.cancelTwoFactorSetup(tempToken) }
+        }
+
     /**
      * Undoes a staged sign-in that didn't become an account. Left behind, the staged pair is read as a
      * session on the next cold start and signs in a user who was told the sign-in failed. Best-effort
@@ -462,9 +470,31 @@ class AuthRepositoryImpl(
         }
     }
 
-    override suspend fun confirmTwoFactor(code: String): Result<Unit> {
-        return safeApiCall {
-            authApi.confirmTwoFactor(code)
+    /**
+     * The server rotates the session the refresh cookie names, so the bearer is renewed first and the
+     * cookie read after it, from one generation; the rotated pair then replaces that account's slot.
+     * The account's refreshes wait for the rotation to be stored, so none spends the retired token.
+     */
+    override suspend fun confirmTwoFactor(code: String): Result<Boolean> = safeApiCall {
+        val identity = switchGate.captureSnapshot()
+        val accountId = identity.accountId
+        val renewed = tokenManager.ensureFreshAccessToken(accountId, identity.baseUrl, identity.bearer)
+        tokenManager.withRefreshesHeld(accountId) {
+            val current = accountId?.let { refreshCookieCredentials.sessionFor(it) }
+            val cookies = current?.cookies ?: refreshCookieCredentials.authCookiesFor(accountId)
+            val bearer = current?.accessToken ?: renewed
+            val rotated = withContext(
+                PendingRequestIdentity(
+                    baseUrl = identity.baseUrl,
+                    headers = { identity.customHeaders },
+                    auth = { RequestAuth(bearer, cookies?.openId) },
+                ),
+            ) { authApi.confirmTwoFactor(code, cookies) }
+            // Refused only when a sign-out or a new sign-in replaced the slot, which owns it now.
+            if (rotated != null && accountId != null && cookies != null) {
+                tokenManager.replaceSession(accountId, cookies.refreshToken, rotated)
+            }
+            rotated != null
         }
     }
 

@@ -65,7 +65,7 @@ private val EDGE_JSON = Json {
  * Partitions the agent's raw tools list into:
  * - regular tools (for the tool selector UI)
  * - capability booleans (code interpreter, file search, etc.)
- * - selected MCP tool names (tools containing "_mcp_")
+ * - selected MCP entries: full tool keys, and raw server names for whole-server markers
  *
  * This mirrors how the web frontend splits the tools array when loading
  * an agent for editing (see AgentSelect.tsx resetAgentForm).
@@ -84,14 +84,11 @@ private fun partitionTools(
         when {
             tool in CAPABILITY_TOOLS -> capabilityTools.add(tool)
             tool.contains(MCP_TOOL_SEPARATOR) -> {
-                // MCP tools are stored as "toolName_mcp_serverName" or
-                // "sys__server__sys_mcp_serverName" in the agent's tools list.
-                // Extract the tool name part (before _mcp_) for matching against
-                // the McpTool.name from the MCP tools API.
-                val toolName = tool.substringBefore(MCP_TOOL_SEPARATOR)
+                // MCP tools are stored as "toolName_mcp_serverName" (kept whole: it is the
+                // selection key, see `mcpToolKey`) or "sys__server__sys_mcp_serverName".
                 // The sys__server__sys marker means the entire MCP server was
                 // toggled on -- we still track the server name for display.
-                if (toolName == MCP_SERVER_MARKER) {
+                if (tool.substringBefore(MCP_TOOL_SEPARATOR) == MCP_SERVER_MARKER) {
                     // Server-level toggle. The key holds the NORMALIZED server name, but every
                     // display and match surface (the servers list, the marketplace rows) speaks
                     // the raw configured one — so resolve it back, keeping the raw name in state
@@ -103,7 +100,11 @@ private fun partitionTools(
                     )
                     mcpToolNames.add(serverName)
                 } else {
-                    mcpToolNames.add(toolName)
+                    // Normalized, so a key saved with a raw server name matches its row and saves healed.
+                    mcpToolNames.add(
+                        tool.substringBefore(MCP_TOOL_SEPARATOR) + MCP_TOOL_SEPARATOR +
+                            normalizeMcpServerName(tool.substringAfter(MCP_TOOL_SEPARATOR)),
+                    )
                 }
             }
             else -> regularTools.add(tool)
@@ -168,6 +169,9 @@ internal fun AgentEditorUiState.applyAgentData(agent: Agent): AgentEditorUiState
         description = agent.description ?: "",
         instructions = agent.instructions ?: "",
         instructionsLinkedToPrompt = agent.instructionsPrompt.isPromptLink(),
+        instructionsFromPrompt = agent.instructionsPrompt.isPromptLink(),
+        instructionsLink = agent.instructionsPrompt.toInstructionsPromptLink(),
+        instructionsPromptError = false,
         model = agent.model ?: "",
         provider = agent.provider ?: "",
         category = agent.category ?: "general",
@@ -417,21 +421,11 @@ internal fun buildToolsList(state: AgentEditorUiState): List<String> {
     // NORMALIZED — `GET /api/mcp/servers` advertises the raw configured name, but the tool cache
     // resolves against the normalized one, so a raw name produces a key no producer honours. See
     // `normalizeMcpServerName`.
-    for (mcpToolName in state.selectedMcpTools) {
-        // Check if this is a server name or a tool name by looking at available MCP tools
-        val matchingTool = state.mcpTools.find { it.name == mcpToolName }
-        if (matchingTool != null) {
-            val serverName = matchingTool.serverName
-            if (serverName != null) {
-                // Store as "toolName_mcp_serverName" format
-                tools.add("${mcpToolName}${MCP_TOOL_SEPARATOR}${normalizeMcpServerName(serverName)}")
-            } else {
-                tools.add(mcpToolName)
-            }
-        } else {
-            // May be a server name marker
-            tools.add("${MCP_SERVER_MARKER}${MCP_TOOL_SEPARATOR}${normalizeMcpServerName(mcpToolName)}")
-        }
+    for (entry in state.selectedMcpTools) {
+        val isToolKey = entry.contains(MCP_TOOL_SEPARATOR) ||
+            state.mcpTools.any { it.name == entry && it.serverName == null }
+        // Anything else is a whole server, held by its raw name.
+        tools.add(if (isToolKey) entry else "${MCP_SERVER_MARKER}${MCP_TOOL_SEPARATOR}${normalizeMcpServerName(entry)}")
     }
 
     return tools

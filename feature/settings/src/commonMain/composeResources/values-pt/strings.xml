@@ -376,6 +376,9 @@
     <!-- Backup codes dialog -->
     <string name="dialog_title_backup_codes">Códigos de backup</string>
     <string name="backup_codes_instructions">Guarde estes códigos de backup em um lugar seguro. Cada código só pode ser usado uma vez.</string>
+    <string name="twofa_sessions_incomplete">A autenticação de dois fatores está ativada, mas algumas outras sessões podem continuar conectadas até expirarem. Guarde seus códigos de backup e entre novamente.</string>
+    <string name="twofa_other_sessions_signed_out">A autenticação de dois fatores está ativada. Todos os outros dispositivos conectados a esta conta foram desconectados.</string>
+    <string name="twofa_sign_in_again_to_enable">Entre novamente para ativar a autenticação de dois fatores.</string>
     <string name="dialog_title_regenerate_backup_codes">Gerar novos códigos de backup?</string>
     <string name="regenerate_backup_codes_warning">Seus códigos de backup atuais deixarão de funcionar. Você receberá um novo conjunto para guardar.</string>
     <string name="action_regenerate">Gerar novos</string>
@@ -692,8 +695,11 @@
     <string name="role_permissions_saved">Salvo</string>
     <string name="role_permissions_load_failed">Não foi possível carregar as permissões desta função.</string>
     <string name="role_permissions_save_failed">Não foi possível salvar as permissões. Tente novamente.</string>
-    <string name="role_permissions_admin_access_warning">Desativar o acesso de Admin a este recurso pode causar problemas inesperados até que o app recarregue suas permissões. Depois de salvo, a única forma de reverter é pela configuração interface no librechat.yaml, que afeta todas as funções.</string>
-    <string name="role_permissions_more_info">Mais informações</string>
+    <string name="role_permissions_admin_lockout_warning">Ao salvar, %1$s é desativado para todos os administradores, inclusive você, e estas configurações ficam ocultas. Só alguém com acesso à configuração do servidor pode reativá-lo.</string>
+    <string name="role_permissions_admin_lockout_title">Desativar %1$s para administradores?</string>
+    <string name="role_permissions_admin_lockout_confirm_label">Digite %1$s para confirmar</string>
+    <string name="role_permissions_admin_lockout_confirm">Desativar para administradores</string>
+    <string name="role_skills_section">Habilidades</string>
     <string name="artifact_shortcuts_title">Atalhos na tela inicial</string>
     <string name="artifact_shortcuts_empty">Nenhum artefato fixado na tela inicial ainda.</string>
     <string name="artifact_shortcuts_disabled_message">Este atalho de artefato foi removido.</string>

@@ -58,12 +58,26 @@ fun usedPercent(credits: Double, allotment: Double?): Int? {
 private const val MAX_USED_WHILE_CREDITS_REMAIN = 99
 
 /**
- * Credits one period grants, upstream `summarizeBalance`'s allotment: the refill amount under
- * auto-refill (when positive), else the configured starting balance (when positive).
+ * Credits the current period started with, upstream `summarizeBalance`'s allotment: the stored grant
+ * ([grantedAllotment]), else the refill amount under auto-refill (when positive), else the configured
+ * starting balance (when positive).
  */
 fun Balance.allotment(startBalance: Double?): Double? =
-    refillAmount.takeIf { autoRefillEnabled }?.takeIf { it.isFinite() && it > 0 }
+    grantedAllotment()
+        ?: refillAmount.takeIf { autoRefillEnabled }?.takeIf { it.isFinite() && it > 0 }
         ?: startBalance?.takeIf { it.isFinite() && it > 0 }
+
+/**
+ * Upstream `getGrantedAllotment`: the record's grant when positive and both dates parse with
+ * `allottedAt` not before `lastRefill`. A refill since, by a server that predates the field, leaves
+ * the grant describing an earlier period.
+ */
+internal fun Balance.grantedAllotment(): Double? {
+    val granted = allotment?.takeIf { it.isFinite() && it > 0 } ?: return null
+    val grantedAt = allottedAt?.let(::parseIsoInstantOrNull) ?: return null
+    val refilledAt = lastRefill?.let(::parseIsoInstantOrNull) ?: return null
+    return granted.takeIf { grantedAt >= refilledAt }
+}
 
 /** What the Balance section shows for auto-refill, mirroring web's `AutoRefill` in `BillingControls.tsx`. */
 @Immutable

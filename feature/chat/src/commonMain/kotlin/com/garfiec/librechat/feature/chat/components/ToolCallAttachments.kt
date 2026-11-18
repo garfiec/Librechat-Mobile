@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.core.model.files.CODE_LANGUAGES
 import com.garfiec.librechat.core.model.files.FileKind
+import com.garfiec.librechat.core.model.files.filepathLeaf
 import com.garfiec.librechat.core.model.files.isExpired
 import com.garfiec.librechat.core.model.files.sandboxDisplayName
 import com.garfiec.librechat.core.model.media.resolveAttachmentUrl
@@ -248,7 +249,7 @@ internal fun looksLikePdf(bytes: ByteArray): Boolean {
 }
 
 internal fun attachmentName(attachment: Attachment): String? =
-    attachment.filename ?: attachment.filepath?.substringAfterLast('/')
+    attachment.filename ?: attachment.filepath?.let(::filepathLeaf)
 
 /**
  * Cleans a sandbox-sanitized filename for display: `_.config-abcdef.txt` → `.config.txt`,

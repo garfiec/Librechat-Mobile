@@ -4,6 +4,7 @@ import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.core.model.TextFormat
 import com.garfiec.librechat.core.model.files.CODE_LANGUAGES
 import com.garfiec.librechat.core.model.files.fileExtension
+import com.garfiec.librechat.core.model.files.filepathLeaf
 import com.garfiec.librechat.feature.chat.components.artifact.Artifact
 import com.garfiec.librechat.feature.chat.components.artifact.ArtifactType
 
@@ -69,7 +70,7 @@ private val EXCEL_MIME = Regex(
  */
 internal fun officeBucketOf(attachment: Attachment): String? {
     if (ArtifactType.isOfficePreviewMime(attachment.type)) return attachment.type
-    val name = attachment.filename ?: attachment.filepath?.substringAfterLast('/')
+    val name = attachment.filename ?: attachment.filepath?.let(::filepathLeaf)
     name?.let(::fileExtension)?.let(OFFICE_BUCKET_BY_EXTENSION::get)?.let { return it }
     val mime = attachment.type?.substringBefore(';')?.trim()?.lowercase() ?: return null
     return OFFICE_BUCKET_BY_MIME[mime] ?: SPREADSHEET_PREVIEW.takeIf { EXCEL_MIME.matches(mime) }

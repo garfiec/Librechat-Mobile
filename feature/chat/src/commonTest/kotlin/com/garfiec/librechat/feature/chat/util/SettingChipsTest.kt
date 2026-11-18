@@ -1,15 +1,19 @@
 package com.garfiec.librechat.feature.chat.util
 
 import com.garfiec.librechat.core.common.ToolConstants
+import com.garfiec.librechat.core.model.Message
+import com.garfiec.librechat.core.model.ReasoningOverride
 import com.garfiec.librechat.core.model.mcp.McpDisplayStatus
 import com.garfiec.librechat.core.ui.components.ModelParameters
 import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.FeatureGatesState
+import com.garfiec.librechat.feature.chat.viewmodel.MessagesState
 import com.garfiec.librechat.feature.chat.viewmodel.ModelChoice
 import com.garfiec.librechat.feature.chat.viewmodel.ModelSelectionState
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
@@ -382,5 +386,51 @@ class SettingChipsTest {
         // Code: no agents config yet, which fails open (isCodeInterpreterAvailable). URL context needs
         // a Google model; memory needs the agents endpoint's `memory` capability, which fails closed.
         assertEquals(listOf<SettingChip>(SettingChip.Tool(ToolConstants.CODE_INTERPRETER, SettingChipState.ON, pinned = false)), chips)
+    }
+
+    private fun userTurn(override: ReasoningOverride?) = MessageNode(
+        message = Message(messageId = "u", conversationId = "c", isCreatedByUser = true, reasoningOverride = override),
+        children = emptyList(),
+        siblingIndex = 0,
+        siblingCount = 1,
+    )
+
+    /** An agent chat on a server that carries the branch level, its last user turn at `effort: high`. */
+    private fun agentChat(agentReasoning: Map<String, String>) = ChatUiState(
+        selection = ModelSelectionState(
+            choice = ModelChoice.Raw("agents", "agent_1"),
+            selectedAgentProvider = "anthropic",
+            selectedAgentModel = "claude-opus-4-6",
+            selectedAgentReasoning = agentReasoning,
+        ),
+        gates = FeatureGatesState(backendVersion = "0.8.9", reasoningLastsForConversation = true),
+        content = MessagesState(displayMessages = listOf(userTurn(ReasoningOverride.level("effort", "high")))),
+    )
+
+    @Test
+    fun anAgentWithThinkingOffInheritsNoLevelThatWouldTurnItOn() {
+        assertEquals("high", assertNotNull(agentChat(emptyMap()).settingChipInputs.thinking).inherited)
+        assertNull(assertNotNull(agentChat(mapOf("thinking" to "false")).settingChipInputs.thinking).inherited)
+    }
+
+    @Test
+    fun aMessageReloadWithTheSameBranchLevelGathersNoInputs() {
+        val memo = SettingChipsMemo()
+        val state = agentChat(emptyMap())
+        var gathered = 0
+        memo.resolve(state.settingChipSlices) { gathered++; state.settingChipInputs }
+
+        // A reload decodes the turn again: a new list and a new override, equal to the last.
+        val reloaded = state.copy(
+            content = state.content.copy(displayMessages = listOf(userTurn(ReasoningOverride.level("effort", "high")))),
+        )
+        memo.resolve(reloaded.settingChipSlices) { gathered++; reloaded.settingChipInputs }
+        assertEquals(1, gathered)
+
+        val lowered = state.copy(
+            content = state.content.copy(displayMessages = listOf(userTurn(ReasoningOverride.level("effort", "low")))),
+        )
+        memo.resolve(lowered.settingChipSlices) { gathered++; lowered.settingChipInputs }
+        assertEquals(2, gathered)
     }
 }

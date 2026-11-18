@@ -93,15 +93,6 @@ class QueueOrchestrationDelegate(
         }
     }
 
-    private fun ChatUiState.enforcedSpecRestored(): Boolean {
-        if (!gates.serverQueueEnforcedAgentSpecSupported) return false
-        val active = activeSpec ?: return false
-        val preset = active.preset ?: return false
-        return preset.endpoint == EndpointConstants.AGENTS &&
-            preset.agentId == selectedModel &&
-            modelSpecs?.list.orEmpty().count { it.name == active.name } == 1
-    }
-
     /**
      * Marks [spec] as one the SERVER will admit and run, or returns it unchanged for the legacy
      * local drain.
@@ -134,11 +125,7 @@ class QueueOrchestrationDelegate(
      */
     private fun serverOwnedSpec(spec: QueuedMessage): QueuedMessage {
         val state = handle.state
-        if (!state.gates.serverQueueSupported) return spec
-        if (state.modelSpecs.requiresSpec && !state.enforcedSpecRestored()) return spec
-        // Without v2 the server would run the turn under the machine's own permissions.
-        if (spec.codeWorkspace?.approvalMode != null && !state.gates.serverQueueApprovalModeSupported) return spec
-        if (state.selectedEndpoint != EndpointConstants.AGENTS) return spec
+        if (!state.serverCanOwn(spec)) return spec
         if (!state.isStreaming) return spec
         val parentMessageId = state.displayMessages.lastOrNull()?.message?.messageId
             ?.let(queueAnchor) ?: return spec
@@ -637,4 +624,25 @@ class QueueOrchestrationDelegate(
             state.gates.serverQueueSupported
         queuedTurnDelegate.ensurePolling(state.conversationId.takeIf { eligible })
     }
+}
+
+/**
+ * Whether the server's queue could run [spec] as this client would send it: also what a steer
+ * needs before it may be promoted to a server queued turn.
+ */
+internal fun ChatUiState.serverCanOwn(spec: QueuedMessage): Boolean {
+    if (!gates.serverQueueSupported) return false
+    if (modelSpecs.requiresSpec && !enforcedSpecRestored()) return false
+    // Without v2 the server would run the turn under the machine's own permissions.
+    if (spec.codeWorkspace?.approvalMode != null && !gates.serverQueueApprovalModeSupported) return false
+    return selectedEndpoint == EndpointConstants.AGENTS
+}
+
+private fun ChatUiState.enforcedSpecRestored(): Boolean {
+    if (!gates.serverQueueEnforcedAgentSpecSupported) return false
+    val active = activeSpec ?: return false
+    val preset = active.preset ?: return false
+    return preset.endpoint == EndpointConstants.AGENTS &&
+        preset.agentId == selectedModel &&
+        modelSpecs?.list.orEmpty().count { it.name == active.name } == 1
 }

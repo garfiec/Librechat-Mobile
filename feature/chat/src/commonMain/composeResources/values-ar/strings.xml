@@ -608,6 +608,8 @@
     <string name="cd_minimize_ask_user_question">تصغير الأسئلة</string>
     <string name="cd_restore_ask_user_question">إظهار الأسئلة</string>
     <string name="tool_approval_waiting_marker">بانتظار موافقتك أدناه</string>
+    <string name="pending_action_expired">انتهت صلاحية طلب الإدخال هذا، لذا اكتمل الرد بدونه.</string>
+    <string name="pending_action_gone">لم يعد طلب الإدخال هذا مفتوحًا، لذا لا يمكن الرد عليه.</string>
     <string name="tool_approval_submit_progress">متابعة (%1$d/%2$d)</string>
     <string name="tool_approval_tab_fallback">الأداة %1$d</string>
     <string name="cd_previous_tool_call">استدعاء الأداة السابق</string>
@@ -632,6 +634,10 @@
     <string name="error_mcp_authentication_refresh_failed">تعذّر تحديث تسجيل الدخول لخادم MCP متصل، لذا لم تُرسَل الرسالة. حاول مرة أخرى بعد قليل.</string>
     <string name="error_project_resources_changed">تغيّرت ملفات هذا المشروع أثناء بدء الرسالة، لذا لم تُرسل. حاول مرة أخرى.</string>
     <string name="error_project_context_unavailable">لم يعد مشروع هذه المحادثة متاحًا، لذا لم تُرسل الرسالة. ربما حُذف.</string>
+    <string name="error_account_deletion_in_progress">يجري حذف حسابك، لذا لا يمكن إرسال رسائل جديدة.</string>
+    <string name="error_generation_admission_unavailable">تعذّر على الخادم بدء الرد الآن، لذا لم تُرسل الرسالة. حاول مرة أخرى.</string>
+    <string name="error_token_balance">رصيدك لا يكفي لهذا الطلب.</string>
+    <string name="error_agent_mcp_tools_unavailable">أدوات MCP الخاصة بهذا الوكيل غير متاحة. تحقق من أن خوادم MCP الخاصة به متصلة وأنه يمكنك استخدام أدواتها، ثم حاول مرة أخرى.</string>
     <string name="error_final_context_overflow">لم تعد هذه المحادثة تتسع في نافذة سياق النموذج. ابدأ محادثة جديدة، أو انتقل إلى نموذج بنافذة أكبر.</string>
     <string name="error_compaction_skipped">لا يوجد ما يمكن ضغطه بعد. واصل المحادثة وحاول لاحقًا.</string>
     <string name="error_compaction_failed">تعذّر إنشاء الملخص، لذا لم تتغير المحادثة. حاول مرة أخرى.</string>
@@ -842,6 +848,7 @@
     <string name="attachment_recovery_retry">إعادة المحاولة دون ملفات</string>
     <string name="attachment_recovery_branch">التفريع دون ملفات</string>
     <string name="notice_tool_decision_not_permitted">لم يعد الخادم يسمح بأحد هذه القرارات. اختر قرارًا آخر لكل أداة وحاول مرة أخرى.</string>
+    <string name="notice_resume_context_unavailable">لا يمكن الوصول إلى الرد المتوقف مؤقتًا الآن. حاول مرة أخرى بعد قليل.</string>
     <string name="notice_content_blocked">حظر مرشّح المحتوى في الخادم هذه الرسالة. لم يُرسل شيء.</string>
     <string name="notice_skills_not_sent">لا يمكن استخدام بعض المهارات في هذه المحادثة ولم تُرسَل.</string>
     <string name="notice_skills_removed_from_queued">لا يمكن استخدام بعض المهارات في هذه المحادثة وأُزيلت من الرسالة في قائمة الانتظار.</string>
@@ -1064,10 +1071,13 @@
     </plurals>
     <string name="thinking_title">التفكير</string>
     <string name="thinking_chip_next_message">%1$s · الرسالة التالية</string>
-    <string name="cd_thinking_chip">التفكير للرسالة التالية: %1$s</string>
+    <string name="cd_thinking_chip">التفكير: %1$s</string>
     <string name="thinking_next_message_only">لرسالتك التالية فقط. بعدها تعود هذه المحادثة إلى إعدادها الخاص.</string>
     <string name="thinking_chat_setting">إعداد هذه المحادثة</string>
     <string name="thinking_change_chat_setting">تغيير إعداد هذه المحادثة</string>
+    <string name="thinking_lasts_for_conversation">لبقية هذه المحادثة، حتى تختار مستوى آخر.</string>
+    <string name="thinking_back_to_chat_setting">العودة إلى إعداد هذه المحادثة</string>
+    <string name="thinking_chip_state_conversation">لبقية هذه المحادثة</string>
     <string name="error_code_workspace_required">اختر مساحة عمل متصلة قبل الإرسال.</string>
     <string name="error_code_workspace_invalid">اختيار مساحة العمل غير صالح. اختر مساحة عمل متاحة.</string>
     <string name="error_code_workspace_worker_unavailable">الجهاز غير متاح. أعد توصيله أو اختر جهازًا آخر.</string>

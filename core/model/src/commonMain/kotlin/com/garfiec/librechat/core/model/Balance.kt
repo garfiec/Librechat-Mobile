@@ -15,7 +15,7 @@ data class Balance(
     val refillIntervalValue: Double? = null,
     /** Upstream `RefillIntervalUnit` (`seconds` … `months`), kept raw so a new unit still decodes. */
     val refillIntervalUnit: String? = null,
-    /** ISO-8601 date of the last refill. */
+    /** ISO-8601 date of the last refill (or the period start), sent by every server from 0.8.9. */
     val lastRefill: String? = null,
     val refillAmount: Double? = null,
     /**
@@ -23,4 +23,8 @@ data class Balance(
      * when it runs out; `reset` replaces it with the allowance once the interval has passed.
      */
     val refillMode: String? = null,
+    /** The credits the current period was granted (0.8.9), valid only from [allottedAt] on. */
+    val allotment: Double? = null,
+    /** ISO-8601 date [allotment] was granted. */
+    val allottedAt: String? = null,
 )

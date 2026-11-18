@@ -174,6 +174,8 @@ data class StartupConfig(
     val pullRequestsMaxConcurrentLookups: Int? = null,
     /** The provider users may connect their own account to. Decoded only: mobile has no connect setting. */
     val pullRequestsConnect: String? = null,
+    /** Operator request deadlines; an absent one keeps the client's own ([ClientLimits]). */
+    val clientLimits: ClientLimits? = null,
 ) {
     /** The resolved MCP Apps policy; [McpAppsPolicy.enabled] is the gate for every App row. */
     val mcpAppsPolicy: McpAppsPolicy

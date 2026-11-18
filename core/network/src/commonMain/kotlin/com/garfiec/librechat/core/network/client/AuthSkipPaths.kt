@@ -25,7 +25,7 @@ private val AUTH_SKIP_PATHS = setOf(
     // bearer. Listed one by one — matching is whole-path, so `auth/2fa/setup` does not cover
     // `auth/2fa/setup/confirm`.
     "auth/2fa/setup", "auth/2fa/setup/confirm",
-    "auth/2fa/setup/acknowledge", "auth/2fa/setup/finalize",
+    "auth/2fa/setup/acknowledge", "auth/2fa/setup/finalize", "auth/2fa/setup/cancel",
 )
 
 /**

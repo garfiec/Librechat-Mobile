@@ -19,10 +19,12 @@ import com.garfiec.librechat.core.model.config.StartupConfig
 import com.garfiec.librechat.core.model.endpoint.KeyState
 import com.garfiec.librechat.core.model.permissions.UserRolePermissions
 import com.garfiec.librechat.core.model.response.BackupCodesResponse
+import com.garfiec.librechat.core.model.response.TwoFactorSetupResponse
 import com.garfiec.librechat.core.ui.media.PreparedImage
 import com.garfiec.librechat.feature.settings.model.AutoRefillInfo
 import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.resources.account_profile_load_failed
+import com.garfiec.librechat.feature.settings.resources.twofa_sign_in_again_to_enable
 import com.garfiec.librechat.feature.settings.util.ContentReader
 import com.garfiec.librechat.feature.settings.viewmodel.delegate.ProviderKeysSummary
 import com.google.common.truth.Truth.assertThat
@@ -351,6 +353,92 @@ class AccountSettingsViewModelTest {
         coVerify { authRepository.disableTwoFactor(token = null, backupCode = "abcd1234") }
         assertThat(viewModel.uiState.value.isTwoFactorEnabled).isFalse()
         assertThat(viewModel.uiState.value.showDisableTwoFactorDialog).isFalse()
+    }
+
+    @Test
+    fun `2FA turned on with a rotated session says other devices were signed out, until the codes close`() = runTest {
+        coEvery { authRepository.confirmTwoFactor("123456") } returns Result.Success(true)
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.confirmEnableTwoFactor("123456")
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.showBackupCodesDialog).isTrue()
+        assertThat(viewModel.uiState.value.twoFactorOtherSessionsSignedOut).isTrue()
+
+        viewModel.dismissBackupCodesDialog()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.twoFactorOtherSessionsSignedOut).isFalse()
+        assertThat(viewModel.uiState.value.isLoggedOut).isFalse()
+    }
+
+    @Test
+    fun `2FA on a server that keeps other sessions says nothing about them`() = runTest {
+        coEvery { authRepository.confirmTwoFactor("123456") } returns Result.Success(false)
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.confirmEnableTwoFactor("123456")
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.showBackupCodesDialog).isTrue()
+        assertThat(viewModel.uiState.value.twoFactorOtherSessionsSignedOut).isFalse()
+    }
+
+    @Test
+    fun `a 2FA confirm refused for want of a live session asks for a fresh sign-in in app copy`() = runTest {
+        coEvery { authRepository.confirmTwoFactor("123456") } returns Result.Error(
+            ApiException(401, "Sign in again to enable 2FA", body = """{"message":"Sign in again to enable 2FA"}"""),
+            "Sign in again to enable 2FA",
+        )
+        coEvery { authRepository.enableTwoFactor(null, null) } returns
+            Result.Success(TwoFactorSetupResponse(otpauthUrl = "otpauth://totp/x?secret=ABC", backupCodes = listOf("code-1")))
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        viewModel.toggleTwoFactor()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.showTwoFactorSetupDialog).isTrue()
+
+        viewModel.confirmEnableTwoFactor("123456")
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.errorRes).isEqualTo(Res.string.twofa_sign_in_again_to_enable)
+        assertThat(viewModel.uiState.value.error).isNull()
+        assertThat(viewModel.uiState.value.isTwoFactorEnabled).isFalse()
+        // Closed, so the message isn't drawn under the dialog's scrim.
+        assertThat(viewModel.uiState.value.showTwoFactorSetupDialog).isFalse()
+
+        viewModel.dismissError()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.errorRes).isNull()
+    }
+
+    @Test
+    fun `2FA turned on without a replacement session shows the codes, then signs this account in again`() = runTest {
+        coEvery { authRepository.confirmTwoFactor("123456") } returns Result.Error(
+            ApiException(500, "error", body = """{"code":"CREDENTIAL_RETIREMENT_INCOMPLETE"}"""),
+        )
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.confirmEnableTwoFactor("123456")
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.isTwoFactorEnabled).isTrue()
+        assertThat(viewModel.uiState.value.showBackupCodesDialog).isTrue()
+        assertThat(viewModel.uiState.value.twoFactorSignInRequired).isTrue()
+        assertThat(viewModel.uiState.value.isSignInAgainRequested).isFalse()
+        var signInRequestedDuringRevoke: Boolean? = null
+        coEvery { authRepository.revokeActiveSession() } coAnswers {
+            signInRequestedDuringRevoke = viewModel.uiState.value.isSignInAgainRequested
+        }
+
+        viewModel.dismissBackupCodesDialog()
+        advanceUntilIdle()
+        // Not a sign-out: that removes the account, and with it the server the sign-in needs.
+        assertThat(viewModel.uiState.value.isSignInAgainRequested).isTrue()
+        assertThat(viewModel.uiState.value.isLoggedOut).isFalse()
+        // But this device's server session is revoked as a sign-out would, before the local session ends.
+        coVerify(exactly = 1) { authRepository.revokeActiveSession() }
+        assertThat(signInRequestedDuringRevoke).isFalse()
+        coVerify(exactly = 0) { authRepository.logout() }
     }
 
     @Test

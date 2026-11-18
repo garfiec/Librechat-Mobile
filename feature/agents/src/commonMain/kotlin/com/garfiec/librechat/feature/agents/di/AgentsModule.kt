@@ -48,6 +48,7 @@ val agentsModule = module {
             toolFavoritesRepository = get(),
             codeSources = get(),
             contentReader = get(),
+            promptRepository = get(),
             ioDispatcher = get(KoinQualifiers.IO),
             initialAgentId = params.getOrNull(),
         )

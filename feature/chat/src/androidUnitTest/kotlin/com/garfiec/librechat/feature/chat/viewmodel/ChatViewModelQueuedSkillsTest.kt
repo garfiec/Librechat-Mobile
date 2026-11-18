@@ -49,7 +49,6 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
-import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -492,12 +491,11 @@ class ChatViewModelQueuedSkillsTest {
         val brand = ModelSpec(
             name = "brand",
             preset = Preset(endpoint = ENDPOINT, model = MODEL),
-            skills = JsonArray(listOf(JsonPrimitive("translator"))),
+            skills = JsonPrimitive(false),
         )
         serveSpecs(brand)
         queuedSkillsTest(DuringRunAction.QUEUE) { vm ->
             vm.addPendingManualSkill("pdf-tools")
-            vm.addPendingManualSkill("translator")
             vm.onInputChanged(TEXT)
             vm.queueMessage()
             runCurrent()
@@ -510,7 +508,7 @@ class ChatViewModelQueuedSkillsTest {
             vm.commitQueuedEdit()
             runCurrent()
 
-            assertThat(vm.uiState.value.messageQueue.single().manualSkills).containsExactly("translator")
+            assertThat(vm.uiState.value.messageQueue.single().manualSkills.orEmpty()).isEmpty()
             assertThat(vm.uiState.value.error).isEqualTo(ChatNotice.SKILLS_REMOVED_FROM_QUEUED.marker())
         }
     }

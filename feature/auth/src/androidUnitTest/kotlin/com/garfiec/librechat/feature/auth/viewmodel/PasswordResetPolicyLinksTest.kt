@@ -1,5 +1,6 @@
 package com.garfiec.librechat.feature.auth.viewmodel
 
+import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.repository.AccountSwitcher
@@ -27,7 +28,10 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Test
 
-/** The forgot and reset password screens show the same policy footer as sign-in, as upstream's AuthLayout does. */
+/**
+ * The forgot and reset password screens: the same policy footer as sign-in, as upstream's AuthLayout
+ * does, and what each says once the server answers.
+ */
 @OptIn(ExperimentalCoroutinesApi::class)
 class PasswordResetPolicyLinksTest {
 
@@ -100,5 +104,42 @@ class PasswordResetPolicyLinksTest {
         advanceUntilIdle()
         assertThat(forgot.uiState.value.banner).isEqualTo(banner)
         assertThat(reset.uiState.value.banner).isEqualTo(banner)
+    }
+
+    @Test
+    fun `a reset that could not sign out every session still reports the new password as active`() = runTest {
+        coEvery { authRepository.resetPassword("u1", "t1", "new-password", "new-password") } returns Result.Error(
+            ApiException(500, "x", body = """{"code":"CREDENTIAL_RETIREMENT_INCOMPLETE"}"""),
+        )
+        val viewModel = ResetPasswordViewModel(
+            authRepository,
+            configRepository,
+            accountSwitcher,
+            serverDataStore,
+            bannerRepository,
+            initialUserId = "u1",
+            initialToken = "t1",
+        )
+        viewModel.onPasswordChanged("new-password")
+        viewModel.onConfirmPasswordChanged("new-password")
+
+        viewModel.resetPassword()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.isReset).isTrue()
+        assertThat(viewModel.uiState.value.sessionsNotRetired).isTrue()
+        assertThat(viewModel.uiState.value.error).isNull()
+    }
+
+    @Test
+    fun `forgot password says to ask an administrator when the server sends no mail`() = runTest {
+        val viewModel = forgotPassword()
+        configFlow.value = StartupConfig(emailEnabled = true)
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.emailUnavailable).isFalse()
+
+        configFlow.value = StartupConfig(emailEnabled = false)
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.emailUnavailable).isTrue()
     }
 }

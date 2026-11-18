@@ -20,27 +20,38 @@ internal const val SERVER_TTS_MAX_INPUT_CHARS = 20_000
 internal const val SERVER_TTS_SEGMENT_CHARS = 4_000
 
 /**
+ * The first server read-aloud request's size: the opening plays while the rest is synthesized, so
+ * the first audio waits on a sentence or two, not on a whole segment.
+ */
+internal const val SERVER_TTS_LEAD_CHARS = 300
+
+/**
  * Upstream's sentence separators (`SEPARATORS`, `packages/data-provider/src/parsers.ts`), the
  * boundaries its own streamed speech splits on.
  */
 internal val SPEECH_SEPARATORS = listOf(".", "?", "!", "۔", "。", "‥", ";", "¡", "¿", "\n", "```")
 
 /**
- * [text] cut into pieces of at most [maxChars] for server speech, each ending at the last sentence
- * separator in its window (upstream `findLastSeparatorIndex`), else the last space, else a hard cut
- * that never splits a surrogate pair. Joined, the pieces are exactly [text]. Blank pieces are dropped.
+ * [text] cut into pieces of at most [maxChars] ([firstMaxChars] for the first) for speech, each
+ * ending at the last sentence separator in its window (upstream `findLastSeparatorIndex`), else the
+ * last space, else a hard cut that never splits a surrogate pair. Joined, the pieces are exactly
+ * [text]. Blank pieces are dropped.
  */
-internal fun splitForSpeech(text: String, maxChars: Int = SERVER_TTS_SEGMENT_CHARS): List<String> {
-    require(maxChars > 1)
-    if (text.length <= maxChars) return listOf(text).filter { it.isNotBlank() }
+internal fun splitForSpeech(
+    text: String,
+    maxChars: Int = SERVER_TTS_SEGMENT_CHARS,
+    firstMaxChars: Int = maxChars,
+): List<String> {
+    require(maxChars > 1 && firstMaxChars > 1)
     val segments = mutableListOf<String>()
     var start = 0
     while (start < text.length) {
-        if (text.length - start <= maxChars) {
+        val limit = if (start == 0) firstMaxChars else maxChars
+        if (text.length - start <= limit) {
             segments += text.substring(start)
             break
         }
-        val window = text.substring(start, start + maxChars)
+        val window = text.substring(start, start + limit)
         val cut = separatorCut(window) ?: spaceCut(window) ?: hardCut(window)
         segments += window.substring(0, cut)
         start += cut
@@ -64,8 +75,10 @@ private fun hardCut(window: String): Int =
     if (window.last().isHighSurrogate()) window.length - 1 else window.length
 
 /**
- * Asks the server for [text] one [splitForSpeech] segment at a time, in order, handing each
- * segment's audio to [onSegment] (with whether it is the last) before requesting the next. Stops at
+ * Asks the server for [text] one [splitForSpeech] segment at a time (a [SERVER_TTS_LEAD_CHARS]
+ * opening, then [SERVER_TTS_SEGMENT_CHARS] pieces), in order, handing each segment's audio to
+ * [onSegment] (with whether it is the last) before requesting the next. A caller plays a segment
+ * while the next is requested, so [onSegment] should hand off rather than play. Stops at
  * the first failed request and returns it; returns null when every segment was handed over, or
  * when [onSegment] returned false to end the read early.
  */
@@ -74,7 +87,7 @@ internal suspend fun <T> synthesizeInSegments(
     synthesize: suspend (String) -> Result<T>,
     onSegment: suspend (segment: String, audio: T, isLast: Boolean) -> Boolean,
 ): Result.Error? {
-    val segments = splitForSpeech(text, SERVER_TTS_SEGMENT_CHARS)
+    val segments = splitForSpeech(text, SERVER_TTS_SEGMENT_CHARS, SERVER_TTS_LEAD_CHARS)
     segments.forEachIndexed { index, segment ->
         when (val result = synthesize(segment)) {
             is Result.Success -> if (!onSegment(segment, result.data, index == segments.lastIndex)) return null

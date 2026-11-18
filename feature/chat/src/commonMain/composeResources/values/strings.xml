@@ -608,6 +608,8 @@
     <string name="cd_minimize_ask_user_question">Minimize questions</string>
     <string name="cd_restore_ask_user_question">Show questions</string>
     <string name="tool_approval_waiting_marker">Waiting for your approval below</string>
+    <string name="pending_action_expired">This request for input expired, so the response was finalized without it.</string>
+    <string name="pending_action_gone">This request for input is no longer open, so it can't be answered.</string>
     <string name="tool_approval_submit_progress">Continue (%1$d/%2$d)</string>
     <string name="tool_approval_tab_fallback">Tool %1$d</string>
     <string name="cd_previous_tool_call">Previous tool call</string>
@@ -634,6 +636,10 @@
     <string name="error_mcp_authentication_refresh_failed">Sign-in for a connected MCP server could not be refreshed, so the message was not sent. Try again in a moment.</string>
     <string name="error_project_resources_changed">This project's files changed while the message was starting, so it was not sent. Try again.</string>
     <string name="error_project_context_unavailable">This chat's project is no longer available, so the message was not sent. It may have been deleted.</string>
+    <string name="error_account_deletion_in_progress">Your account is being deleted, so no new messages can be sent.</string>
+    <string name="error_generation_admission_unavailable">The server couldn't start the reply right now, so the message was not sent. Try again.</string>
+    <string name="error_token_balance">You don't have enough balance left for this request.</string>
+    <string name="error_agent_mcp_tools_unavailable">This agent's MCP tools aren't available. Check that its MCP servers are connected and that you can use their tools, then try again.</string>
     <string name="error_final_context_overflow">This conversation no longer fits the model's context window. Start a new conversation, or switch to a model with a larger window.</string>
     <string name="error_compaction_skipped">There was nothing to compact yet. Keep chatting and try again later.</string>
     <string name="error_compaction_failed">The summary couldn't be generated, so the conversation is unchanged. Try again.</string>
@@ -845,6 +851,7 @@
     <string name="attachment_recovery_retry">Retry without files</string>
     <string name="attachment_recovery_branch">Branch without files</string>
     <string name="notice_tool_decision_not_permitted">The server no longer allows one of these decisions. Choose another for each tool and try again.</string>
+    <string name="notice_resume_context_unavailable">The paused response can't be reached right now. Try again in a moment.</string>
     <string name="notice_content_blocked">The server's content filter blocked this message. Nothing was sent.</string>
     <string name="notice_skills_not_sent">Some skills can't be used in this chat and weren't sent.</string>
     <string name="notice_skills_removed_from_queued">Some skills can't be used in this chat and were removed from the queued message.</string>
@@ -1050,10 +1057,13 @@
     <!-- Per-turn thinking (v0.8.9-rc1 reasoningOverride) -->
     <string name="thinking_title">Thinking</string>
     <string name="thinking_chip_next_message">%1$s · next message</string>
-    <string name="cd_thinking_chip">Thinking for the next message: %1$s</string>
+    <string name="cd_thinking_chip">Thinking: %1$s</string>
     <string name="thinking_next_message_only">For your next message only. Afterwards this chat goes back to its own setting.</string>
     <string name="thinking_chat_setting">This chat's setting</string>
     <string name="thinking_change_chat_setting">Change this chat's setting</string>
+    <string name="thinking_lasts_for_conversation">For the rest of this conversation, until you pick another level.</string>
+    <string name="thinking_back_to_chat_setting">Back to this chat's setting</string>
+    <string name="thinking_chip_state_conversation">For the rest of this conversation</string>
     <string name="error_code_workspace_required">Choose an attached workspace before sending.</string>
     <string name="error_code_workspace_invalid">The workspace selection is invalid. Select an available workspace.</string>
     <string name="error_code_workspace_worker_unavailable">The machine is unavailable. Reconnect it, or choose another one.</string>

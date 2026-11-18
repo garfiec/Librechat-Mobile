@@ -65,6 +65,7 @@ import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.util.ContentGroup
 import com.garfiec.librechat.feature.chat.util.IndexedContentPart
+import com.garfiec.librechat.feature.chat.util.SegmentAuthor
 import com.garfiec.librechat.feature.chat.util.activityLabelText
 import com.garfiec.librechat.feature.chat.util.findLateBatchLabelsConsumedByPhase
 import com.garfiec.librechat.feature.chat.util.groupContentParts
@@ -296,6 +297,8 @@ internal fun MessageContentAndActions(
     // Only the two-sided layout, where a user turn sits at the end. The thread layout lines every
     // turn up at the start, so pushing images to the end there would split them from their text.
     alignImagesEnd: Boolean,
+    /** The reply leaves out its author row, and so the segment headers that restate it. */
+    authorHidden: Boolean = false,
 ) {
     // The picker is hosted here — one site for both layouts on both platforms — rather than in
     // ActionButtons, whose action row auto-hides on a timer and would take an open sheet with it.
@@ -573,7 +576,7 @@ internal fun MessageContentAndActions(
                                     // its own content instead of segments interleaving. It is not implicit:
                                     // a plain Column does not set one.
                                     Column(modifier = Modifier.semantics { isTraversalGroup = true }) {
-                                        segment.author?.let { author ->
+                                        segment.author?.takeUnless { authorHidden && it == SegmentAuthor.Message }?.let { author ->
                                             SegmentAuthorHeader(
                                                 author = author,
                                                 messageSender = message.sender,

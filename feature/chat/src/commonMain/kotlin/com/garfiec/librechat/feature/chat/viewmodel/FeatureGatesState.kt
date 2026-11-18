@@ -87,6 +87,8 @@ data class FeatureGatesState(
      *  "not while streaming", and reusing it would tell the user to wait for something that is
      *  never coming. */
     val feedbackEnabled: Boolean = true,
+    /** `interface.messageAuthor: "whenDifferent"` with the model selector showing (`StartupConfig.hidesSelectedAuthor`). */
+    val hidesSelectedAuthor: Boolean = false,
     /** `interface.defaultPinnedTools` (v0.8.7): tool keys the server pins to the prompt bar.
      *  Raw, as sent; mapped and gated into the settings line by `settingChipsOf`. */
     val pinnedTools: List<String> = emptyList(),
@@ -179,6 +181,12 @@ data class FeatureGatesState(
      */
     val serverQueueEnforcedAgentSpecSupported: Boolean = false,
     /**
+     * Whether a steer may ask the server to promote itself to a durable queued turn if the run ends
+     * without applying it (`promoteLeftover`, v0.8.9). Fail-closed: older servers keep the
+     * local re-home.
+     */
+    val steerPromotionSupported: Boolean = false,
+    /**
      * Whether the server validates a saved agent's upload under the agent's provider rather than
      * `agents` (`resolveUploadEndpoint`, v0.8.8-rc3, #15763). Read by
      * [ChatUiState.fileConfigEndpoint].
@@ -188,6 +196,21 @@ data class FeatureGatesState(
      * only lets through a file the server then rejects.
      */
     val providerScopedUploadsSupported: Boolean = false,
+    /**
+     * Whether the server keys a provider-less Bedrock `claude` id as Anthropic when it resolves a
+     * `reasoningOverride` (v0.8.9, PRESENT only); an older one refuses the override for it.
+     */
+    val bareBedrockClaudeReasoning: Boolean = false,
+    /**
+     * Whether the server's `ThinkingLevel` takes `xhigh` (v0.8.9, PRESENT only), so a Gemini Hydrogen
+     * model is offered its own levels; an older server refuses an `xhigh` override.
+     */
+    val thinkingLevelXhighSupported: Boolean = false,
+    /**
+     * Whether a turn sent without a `reasoningOverride` inherits the nearest user turn's on its
+     * branch (v0.8.9, PRESENT only), so a Thinking pick holds for the rest of the conversation.
+     */
+    val reasoningLastsForConversation: Boolean = false,
     /**
      * The conversation whose trace `/availability` confirmed readable (v0.8.8-rc3).
      *

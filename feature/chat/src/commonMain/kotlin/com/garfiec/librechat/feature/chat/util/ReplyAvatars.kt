@@ -56,24 +56,36 @@ internal fun replyIconSource(
 }
 
 /**
- * Each node with its [MessageNode.avatar] resolved ([replyAvatar]). A node whose avatar is unchanged
- * is kept as is, and so is the list when none changed.
+ * Whether this reply leaves out its author row: [selectedAuthorAgentId] (the agent the header's
+ * selector names, null when no author is hidden) wrote it. Its `model`, else the chat's agent, as
+ * web's `ContentRow` reads it.
  */
+internal fun Message.authorHiddenFor(selectedAuthorAgentId: String?): Boolean =
+    selectedAuthorAgentId != null && !isCreatedByUser &&
+        (model?.takeIf { it.isNotEmpty() } ?: selectedAuthorAgentId) == selectedAuthorAgentId
+
+/**
+ * Each node with its [MessageNode.avatar] resolved ([replyAvatar]) and [MessageNode.authorHidden]
+ * ([authorHiddenFor]). A node whose mapping is unchanged is kept as is, and so is the list when none changed.
+ */
+@Suppress("LongParameterList")
 fun List<MessageNode>.withReplyAvatars(
     fallbackEndpoint: String?,
     serverUrl: String,
     endpointConfigs: Map<String, EndpointConfig>?,
     agents: List<Agent> = emptyList(),
     fallbackAgentId: String? = null,
+    selectedAuthorAgentId: String? = null,
 ): List<MessageNode> {
     var changed = false
     val mapped = map { node ->
         val avatar = node.message.replyAvatar(fallbackEndpoint, serverUrl, endpointConfigs, agents, fallbackAgentId)
-        if (avatar == node.avatar) {
+        val authorHidden = node.message.authorHiddenFor(selectedAuthorAgentId)
+        if (avatar == node.avatar && authorHidden == node.authorHidden) {
             node
         } else {
             changed = true
-            node.copy(avatar = avatar)
+            node.copy(avatar = avatar, authorHidden = authorHidden)
         }
     }
     return if (changed) mapped else this
@@ -91,8 +103,10 @@ internal class ReplyAvatarMemo {
     private var endpointConfigs: Map<String, EndpointConfig>? = null
     private var agents: List<Agent>? = null
     private var fallbackAgentId: String? = null
+    private var selectedAuthorAgentId: String? = null
     private var result: List<MessageNode> = emptyList()
 
+    @Suppress("LongParameterList")
     fun resolve(
         nodes: List<MessageNode>,
         fallbackEndpoint: String?,
@@ -100,21 +114,31 @@ internal class ReplyAvatarMemo {
         endpointConfigs: Map<String, EndpointConfig>?,
         agents: List<Agent> = emptyList(),
         fallbackAgentId: String? = null,
+        selectedAuthorAgentId: String? = null,
     ): List<MessageNode> {
         val same = nodes === this.nodes &&
             endpointConfigs === this.endpointConfigs &&
             agents === this.agents &&
             fallbackEndpoint == this.fallbackEndpoint &&
             fallbackAgentId == this.fallbackAgentId &&
+            selectedAuthorAgentId == this.selectedAuthorAgentId &&
             serverUrl == this.serverUrl
         if (!same) {
-            result = nodes.withReplyAvatars(fallbackEndpoint, serverUrl, endpointConfigs, agents, fallbackAgentId)
+            result = nodes.withReplyAvatars(
+                fallbackEndpoint,
+                serverUrl,
+                endpointConfigs,
+                agents,
+                fallbackAgentId,
+                selectedAuthorAgentId,
+            )
             this.nodes = nodes
             this.fallbackEndpoint = fallbackEndpoint
             this.serverUrl = serverUrl
             this.endpointConfigs = endpointConfigs
             this.agents = agents
             this.fallbackAgentId = fallbackAgentId
+            this.selectedAuthorAgentId = selectedAuthorAgentId
         }
         return result
     }

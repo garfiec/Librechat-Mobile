@@ -56,6 +56,7 @@ class PendingActionSkillsPinTest {
             restoreAnswer = {},
             resumePinStore = ResumePinStore(),
             pauseExpiredMessage = { "expired" },
+            pauseGoneMessage = { "gone" },
             nowMillis = { 0L },
         )
     }

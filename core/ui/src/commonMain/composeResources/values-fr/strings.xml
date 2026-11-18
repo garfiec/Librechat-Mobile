@@ -311,6 +311,8 @@
     <string name="acl_error_busy">Une autre modification de cet accès est en cours. Réessayez dans un instant.</string>
     <string name="acl_error_unavailable">L'accès ne peut pas être modifié pour le moment. Réessayez sous peu.</string>
     <string name="acl_error_audit_unavailable">L'accès n'a pas été modifié, car le serveur n'a pas pu enregistrer la modification. Réessayez sous peu.</string>
+    <string name="acl_error_principal_preparation_failed">Impossible de préparer les personnes ou groupes avec qui partager. Réessayez.</string>
+    <string name="acl_error_directory_unavailable">L’annuaire est indisponible. Réessayez sous peu.</string>
     <string name="acl_error_load">Impossible de charger la liste des personnes ayant accès.</string>
     <string name="bookmarks">Signets</string>
     <string name="bookmark_new">Nouveau signet</string>

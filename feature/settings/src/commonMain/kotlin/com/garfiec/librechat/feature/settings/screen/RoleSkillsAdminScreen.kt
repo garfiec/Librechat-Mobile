@@ -21,6 +21,7 @@ fun RoleSkillsAdminScreen(
     RolePermissionsEditor(
         title = stringResource(Res.string.role_skills_title),
         description = stringResource(Res.string.role_skills_description),
+        section = stringResource(Res.string.role_skills_section),
         state = RolePermissionsEditorState(
             roles = uiState.roles,
             selectedRole = uiState.selectedRole,
@@ -39,7 +40,7 @@ fun RoleSkillsAdminScreen(
                 stringResource(Res.string.role_skills_use),
                 uiState.use,
                 viewModel::setUse,
-                showAdminWarning = true,
+                revokesAdminUse = revokesAdminUse(uiState.selectedRole, uiState.savedFlags?.use, uiState.use),
             ),
             RolePermissionToggle(stringResource(Res.string.role_skills_create), uiState.create, viewModel::setCreate),
             RolePermissionToggle(stringResource(Res.string.role_skills_share), uiState.share, viewModel::setShare),

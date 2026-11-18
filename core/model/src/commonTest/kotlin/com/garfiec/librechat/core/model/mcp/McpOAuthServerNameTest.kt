@@ -2,7 +2,9 @@ package com.garfiec.librechat.core.model.mcp
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class McpOAuthServerNameTest {
 
@@ -42,5 +44,22 @@ class McpOAuthServerNameTest {
         assertNull(actionOAuthId(mcpUrl))
         assertNull(actionOAuthId("https://idp/authorize?state=s"))
         assertNull(actionOAuthId(null))
+    }
+
+    @Test
+    fun aSignInPromptIsKnownByItsIdOrName() {
+        assertTrue(isMcpOAuthPromptCall("oauth:call_1", "oauth_mcp_github"))
+        assertTrue(isMcpOAuthPromptCall("oauth:step_1", null))
+        assertTrue(isMcpOAuthPromptCall("u1:github:123", "oauth_mcp_github"))
+        assertFalse(isMcpOAuthPromptCall("call_1", "list_repos_mcp_github"))
+        assertFalse(isMcpOAuthPromptCall(null, null))
+    }
+
+    @Test
+    fun aSignInPromptNamesTheIdItWasBuiltFrom() {
+        assertEquals("call_1", mcpOAuthPromptOwnerId("oauth:call_1"))
+        assertNull(mcpOAuthPromptOwnerId("oauth:"))
+        assertNull(mcpOAuthPromptOwnerId("u1:github:123"))
+        assertNull(mcpOAuthPromptOwnerId(null))
     }
 }

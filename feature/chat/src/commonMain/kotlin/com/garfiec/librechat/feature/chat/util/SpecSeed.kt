@@ -246,15 +246,17 @@ internal fun ModelSpecs?.laneBSpecFor(
 /**
  * The spec rows the picker lists, ascending by `order` with unordered specs after them in list
  * order. An agent spec is left out once [agentsLoaded] shows its agent is not among [agents], as
- * web's `ModelSelectorContext` does; until then every spec shows.
+ * web's `useModelSpecs` does; until then every spec shows, and so does one whose `agent_id` is
+ * ephemeral (not `agent_…`), which no list can prove missing.
  */
 internal fun ModelSpecs?.visibleSpecs(agents: List<Agent>, agentsLoaded: Boolean): List<ModelSpec> {
     val agentIds = if (agentsLoaded) agents.mapTo(HashSet()) { it.id } else null
     return this?.list.orEmpty()
         .filter { spec ->
             val seed = spec.toSeed() ?: return@filter false
-            spec.showInMenu != false &&
-                (agentIds == null || seed.endpoint != EndpointConstants.AGENTS || seed.model in agentIds)
+            val agentShown = agentIds == null || seed.endpoint != EndpointConstants.AGENTS ||
+                isEphemeralAgentId(seed.model) || seed.model in agentIds
+            spec.showInMenu != false && agentShown
         }
         .sortedBy { it.order ?: Double.POSITIVE_INFINITY }
 }

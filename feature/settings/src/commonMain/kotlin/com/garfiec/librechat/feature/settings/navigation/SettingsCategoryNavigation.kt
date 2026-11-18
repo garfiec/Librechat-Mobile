@@ -48,11 +48,12 @@ fun EntryProviderScope<NavKey>.settingsPaneEntries(
     onNavigate: (NavKey) -> Unit,
     onBack: () -> Unit,
     onLogout: () -> Unit,
+    onSignInAgain: () -> Unit,
     onNavigateToArchive: () -> Unit,
 ) {
-    entry<AppearanceSettings> { SettingsPaneScreen(it, onNavigate, onBack, onLogout, onNavigateToArchive) }
-    entry<SettingsCategory> { SettingsPaneScreen(it, onNavigate, onBack, onLogout, onNavigateToArchive) }
-    entry<AdvancedSettings> { SettingsPaneScreen(it, onNavigate, onBack, onLogout, onNavigateToArchive) }
+    entry<AppearanceSettings> { SettingsPaneScreen(it, onNavigate, onBack, onLogout, onSignInAgain, onNavigateToArchive) }
+    entry<SettingsCategory> { SettingsPaneScreen(it, onNavigate, onBack, onLogout, onSignInAgain, onNavigateToArchive) }
+    entry<AdvancedSettings> { SettingsPaneScreen(it, onNavigate, onBack, onLogout, onSignInAgain, onNavigateToArchive) }
 }
 
 /** The bar title of [this] page, on its route and its row on the Settings home. */
@@ -78,6 +79,7 @@ private fun SettingsPaneScreen(
     onNavigate: (NavKey) -> Unit,
     onBack: () -> Unit,
     onLogout: () -> Unit,
+    onSignInAgain: () -> Unit,
     onNavigateToArchive: () -> Unit,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
@@ -90,6 +92,7 @@ private fun SettingsPaneScreen(
             page = route,
             onNavigate = onNavigate,
             onLogout = onLogout,
+            onSignInAgain = onSignInAgain,
             onNavigateToArchive = onNavigateToArchive,
             onOpenAdvancedSettings = { onNavigate(AdvancedSettings(it)) },
             contentPadding = contentPadding,
@@ -107,6 +110,7 @@ internal fun SettingsPaneContent(
     page: SettingsPaneRoute,
     onNavigate: (NavKey) -> Unit,
     onLogout: () -> Unit,
+    onSignInAgain: () -> Unit,
     onNavigateToArchive: () -> Unit,
     onOpenAdvancedSettings: (AdvancedSection) -> Unit,
     contentPadding: PaddingValues,
@@ -128,6 +132,7 @@ internal fun SettingsPaneContent(
         is SettingsCategory -> when (page.category) {
             SettingsCategoryKey.ACCOUNT -> AccountSettingsPage(
                 onLogout = onLogout,
+                onSignInAgain = onSignInAgain,
                 onNavigateToPasskeys = { onNavigate(Passkeys) },
                 contentPadding = contentPadding,
                 snackbarHostState = snackbarHostState,

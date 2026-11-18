@@ -90,4 +90,23 @@ class InterfaceConfigV089Test {
         assertFalse(startup("""{ "interface": { "runningChatRename": true } }""").supportsConversationTitleOwnership)
         assertFalse(startup("""{ "conversationTitleOwnershipVersion": 2 }""").supportsConversationTitleOwnership)
     }
+
+    @Test
+    fun aComposerLandingFooterKeepsTheConfigDecodable() {
+        val config = startup("""{ "interface": { "landingFooter": "composer", "parameters": false } }""")
+        assertEquals(false, config.interfaceConfig?.parameters)
+    }
+
+    @Test
+    fun whenDifferentHidesTheSelectedAuthorOnlyWhileTheSelectorShows() {
+        assertTrue(startup("""{ "interface": { "messageAuthor": "whenDifferent" } }""").hidesSelectedAuthor)
+        assertFalse(startup("""{ "interface": { "messageAuthor": "always" } }""").hidesSelectedAuthor)
+        assertFalse(startup("""{ "interface": {} }""").hidesSelectedAuthor)
+        assertFalse((null as StartupConfig?).hidesSelectedAuthor)
+        val noSelector = """{ "interface": { "messageAuthor": "whenDifferent", "modelSelect": false } }"""
+        assertFalse(startup(noSelector).hidesSelectedAuthor)
+        val specsOnly = """{ "interface": { "messageAuthor": "whenDifferent", "modelSelect": false },
+            "modelSpecs": { "list": [{ "name": "a", "label": "A", "preset": { "endpoint": "openAI" } }] } }"""
+        assertTrue(startup(specsOnly).hidesSelectedAuthor)
+    }
 }

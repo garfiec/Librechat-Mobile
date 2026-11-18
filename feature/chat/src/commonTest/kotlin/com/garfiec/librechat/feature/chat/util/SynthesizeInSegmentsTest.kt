@@ -30,7 +30,8 @@ class SynthesizeInSegmentsTest {
 
         assertNull(failure)
         assertTrue(requested.size > 1)
-        assertEquals(splitForSpeech(longReply, SERVER_TTS_SEGMENT_CHARS), requested)
+        assertEquals(splitForSpeech(longReply, SERVER_TTS_SEGMENT_CHARS, SERVER_TTS_LEAD_CHARS), requested)
+        assertTrue(requested.first().length <= SERVER_TTS_LEAD_CHARS)
         assertEquals(requested, handed.map { it.first })
         assertEquals(listOf(requested.lastIndex), handed.indices.filter { handed[it].second })
         assertEquals(longReply, requested.joinToString(""))

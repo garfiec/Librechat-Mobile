@@ -82,6 +82,7 @@ class AgentEditorStaleParameterSaveTest {
         toolFavoritesRepository = toolFavoritesRepository,
         codeSources = AgentCodeSources(mockk<CodeEnvironmentRepository>(relaxed = true), mockk<UserRepository>(relaxed = true)),
         contentReader = mockk<ContentReader>(relaxed = true),
+        promptRepository = mockk(relaxed = true),
         ioDispatcher = dispatcher,
         initialAgentId = agent.id,
     ).also {

@@ -43,12 +43,14 @@
     <string name="send_reset_link">Zurücksetzungs-Link senden</string>
     <string name="check_your_email">Überprüfe deine E-Mails</string>
     <string name="reset_link_sent">Wir haben einen Link zum Zurücksetzen des Passworts an %1$s gesendet</string>
+    <string name="reset_password_unavailable">Der E-Mail-Versand ist nicht eingerichtet. Wende dich an deine Administration, um dein Passwort zurückzusetzen.</string>
     <string name="back_to_sign_in">Zurück zur Anmeldung</string>
 
     <!-- Reset Password -->
     <string name="reset_password_screen_title">Passwort zurücksetzen</string>
     <string name="password_reset_successful">Passwort erfolgreich zurückgesetzt</string>
     <string name="password_reset_message">Dein Passwort wurde aktualisiert. Du kannst dich jetzt mit deinem neuen Passwort anmelden.</string>
+    <string name="password_reset_incomplete">Dein neues Passwort ist aktiv, aber einige andere Sitzungen bleiben eventuell angemeldet, bis sie ablaufen. Melde dich mit dem neuen Passwort an und fordere dann einen weiteren Link zum Zurücksetzen an, um sie abzumelden.</string>
     <string name="set_new_password">Neues Passwort festlegen</string>
     <string name="enter_new_password_hint">Gib unten dein neues Passwort ein</string>
     <string name="new_password_label">Neues Passwort</string>
@@ -117,6 +119,7 @@
     <string name="two_factor_setup_codes_acknowledged">Ich habe diese Codes gespeichert</string>
     <string name="two_factor_setup_complete">Einrichtung abschließen</string>
     <string name="two_factor_setup_expired">Deine Einrichtungssitzung ist abgelaufen. Melde dich erneut an, um fortzufahren.</string>
+    <string name="two_factor_setup_sessions_incomplete">Die Zwei-Faktor-Authentifizierung ist aktiv, aber einige andere Sitzungen bleiben eventuell angemeldet, bis sie ablaufen. Melde dich erneut an, um fortzufahren.</string>
     <string name="two_factor_setup_back_to_sign_in">Zurück zur Anmeldung</string>
     <string name="two_factor_setup_error_start">Die Einrichtung konnte nicht gestartet werden. Versuche es erneut.</string>
     <string name="two_factor_setup_error_invalid">Dieser Code stimmt nicht. Gib den aktuellen Code aus deiner Authenticator-App ein.</string>

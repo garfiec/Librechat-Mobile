@@ -247,15 +247,15 @@ The streaming reply and Compare lane B (`ChatUiState.avatars`) use the same rule
 
 **Model spec fields.** Fields decoded but unused, or not decoded, are deliberate; don't "fix" them in
 a sync (undecoded ones are also listed in `ModelSpec`'s KDoc). The served list is already through
-`sanitizeModelSpecs`, which strips `skills`, subagent ids and the private preset fields. All other
-spec fields are honoured.
+`sanitizeModelSpecs`, which narrows `skills` to a boolean and strips subagent ids and the private
+preset fields. All other spec fields are honoured.
 
 | Field | Status | Why |
 |---|---|---|
 | `groupIcon` | honoured | An endpoint-named icon draws that endpoint's brand (deliberate divergence) |
 | `showIconInHeader` | decoded, unused | The header chip is text-only by design |
 | `askUserQuestion` | server only | No composer control; web sends none |
-| `skills` | decoded, inert | Stripped by `sanitizeModelSpecs`; the server applies it |
+| `skills` | honoured | `true` starts the Skills toggle on, `false` turns skills off (v0.8.9; not served before) |
 | `authType` | not decoded | Dead upstream |
 | `runInBackground`, `describeIntent`, `subagents` | not decoded | Server-resolved by spec name; web reads none |
 | preset `endpointType` | unused | Taken from `EndpointConfig.type` |
@@ -460,7 +460,8 @@ Models write both the private-use character and its literal escape: convert the 
   lands on the parent `subagent` call (`LiveReplyDelegate.onAuthRequired`) until the child call ends.
   Comparison panes route it too (`ComparisonModeDelegate.routeToolCallAuth`), subagent prompts
   included. A success needs no follow-up beyond the status reload every sign-in end triggers
-  (`McpSignInUiState.ended`).
+  (`McpSignInUiState.ended`). A prompt is its own call (`isMcpOAuthPromptCall`: `oauth:` id or
+  `oauth_mcp_` name); its completion or closure removes the card (`settled`), never completes it.
 - **Stream termination chokepoint.** Every end goes through the private `endStream(reason)`
   (`Finalized`/`StreamError`/`AbortFallback`/`ResumeExpired`/`Reconcile`); a flow ending with neither
   Final nor Error ends as `Reconcile`/`ResumeExpired` unless a Stop is pending. A per-session counter
@@ -537,6 +538,8 @@ Never show both at once. While paused, `AskUserQuestionPanel` replaces the compo
 `withoutUnansweredQuestions()` drops the question from the streaming lists. Once answered it renders as
 `AskUserQuestionRecordCard` from the wire alone (`parseAskUserQuestion` takes object or string
 `args`); nothing is stashed client-side.
+- **The panel over the composer is deliberate**, though web (0.8.9+) opens the question as an
+  inline thread card: don't move it into the thread on a sync.
 - **Stop appears only after a resume failed** (`pendingActionResumeFailed`).
 - Panel submits never re-home text into the hidden composer; only `submitAnswerFromComposer`
   restores.
@@ -590,6 +593,10 @@ Never show both at once. While paused, `AskUserQuestionPanel` replaces the compo
   back un-injected steers. `checkStreamStatus`/`abortChat` take a required `claimSteers` lambda; the
   final frame's copy is claimed outside `handleFinal`. Dedupe by steer id. `reclaimLocalChips()` runs
   on a stream error and must NOT run on `Finalized`.
+- **A promoted steer is the server's** (`final.promotedSteers`, `receipt.steer`): `adoptPromoted` runs
+  before any reclaim, `claimPromoted` retires its record, and a row its words were already re-homed
+  into becomes that server turn (`clientRequestId` `steer-leftover:<clientSteerId>`). Never re-home
+  one locally.
 - **One record per steer** (`SteeringDelegate.records`). `clear()` clears chips and KEEPS records
   (they block late re-homes and resurrections). Settled records are tombstones bounded at 32; live
   ones are never evicted. The map is Main-confined: no `withContext` in the delegate; never mutate it
@@ -711,19 +718,24 @@ and never send both** (the server runs both on OpenAI and custom endpoints).
   (`paramSettingsKey`) is `anthropic`, `google` or `openrouter` or whose name contains `openrouter`
   (`builtInSearchProvider`), unless `dropParams` names `web_search`.
 - **Per-chat memory** (`ConversationWebSearchStore`, account-scoped, 200 chats), written by one
-  observer whenever it changes (`rememberWebSearchChanges`) and when a new chat is created. A reopen
+  observer whenever it changes (`rememberToolChanges`) and when a new chat is created. A reopen
   reads it before applying the model and writes it with the restored parameters in one update; the
-  server's stored `web_search: true` wins over it. Not under a spec or in a temporary chat.
+  server's stored `web_search: true` wins over it. Under a spec the chat's `SpecTools` are stored
+  instead (below). Not in a temporary chat.
 - **Presets** save `sendParameters`: `web_search` is true for `BUILT_IN`, false when the control is
   off, and omitted while LibreChat search is on (a preset has no field for it, on web too).
 - **A model spec drives the tools** (`util/SpecTools.kt`, mirrored). Under a spec:
   - The chat starts from exactly the spec's tools; the user's toggles are neither shown nor sent.
-    The spec's own tools and MCP servers are on and locked (`lockedTools`, `lockedMcpServers`). Its
-    preset's `web_search`/`url_context` (`presetTools`) start on too; the user can turn those off,
-    except under `enforce`, where the server sends the preset anyway.
-  - User additions are `SpecTools`: session-only, keyed by spec name; any change of spec starts clean.
-    They ride the queued-edit swap and the new-chat handoff; a reopened spec chat starts from the
-    spec's tools. Divergence: web keeps them per conversation.
+    From v0.8.9 (`specToolsAreDefaults`) the spec's own tools, artifacts and MCP servers start on
+    and the user can turn them off; a send then says so explicitly (`false`, artifacts `""`, an MCP
+    list even when empty), or the server turns them back on. On older servers, and always under
+    `hideBadgeRow`, they are locked (`lockedTools`, `lockedMcpServers`), as are spec MCP servers the
+    chat doesn't offer. Its preset's `web_search`/`url_context` (`presetTools`) start on too; the user
+    can turn those off, except under `enforce`, where the server sends the preset anyway.
+  - User additions are `SpecTools`, keyed by spec name; any change of spec starts clean. They ride
+    the queued-edit swap and the new-chat handoff, and are stored per chat once changed, so a
+    reopened spec chat has them back on the same spec (web's `applyModelSpecEphemeralAgent`); with
+    none stored it starts from the spec's tools.
   - **Nothing in a spec chat writes the user's toggles** (sheet URL context, loaded presets, reopened
     `web_search` all go to additions or are kept).
   - `hideBadgeRow` hides the controls and drops the additions; the request still carries the spec's
@@ -740,8 +752,10 @@ and never send both** (the server runs both on OpenAI and custom endpoints).
   doesn't set, and levels (a `thinkingBudget` model gets none). `hideBadgeRow` doesn't hide it. Under
   `enforce` a kept spec the config doesn't serve (`showInMenu: false`) hides it: its locked keys can't
   be known. Web shows it there and the send fails.
-- One message only: a staged choice rides that send or its `QueuedMessage`, and makes a mid-run send
-  queue, never steer. A switch of endpoint, agent or model drops it, as web does; a changed setting
+- A staged choice rides the next send or its `QueuedMessage`, and makes a mid-run send queue, never
+  steer. Where the server inherits the branch's level (`reasoningLastsForConversation`) the chip
+  shows that level (`branchReasoning`) and a pick lasts the conversation; elsewhere it is one
+  message. A switch of endpoint, agent or model drops a staged choice, as web does; a changed setting
   drops one it refuses once known. Edit/regenerate/continue send the user message's own
   `reasoningOverride` when the model takes it and no enforced spec locks the key, chip shown or not.
 - **OpenRouter catalog:** an endpoint whose efforts come from the catalog (`usesCatalog`) offers none

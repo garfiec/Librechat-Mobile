@@ -323,6 +323,7 @@ private fun ChatMessageListPane(
         streamingContent = { streamingText().content },
         // Single-stream only: comparison panes fold reasoning into their own buffers.
         streamingThinking = { streamingText().thinking },
+        streamingSummary = uiState.streamingSummary,
         activeToolCalls = activeToolCalls,
         sandboxStartingToolCallIds = uiState.sandboxStartingToolCallIds,
         streamingAttachments = uiState.streamingAttachments,
@@ -358,6 +359,7 @@ private fun ChatMessageListPane(
         userName = uiState.userName,
         streamingAvatar = uiState.avatars.streaming,
         streamingSenderName = streamingSenderName,
+        streamingAuthorHidden = uiState.avatars.streamingAuthorHidden,
         showImageDescriptions = showImageDescriptions,
         chatLayoutStyle = chatLayoutStyle,
         showAvatars = showAvatars,
