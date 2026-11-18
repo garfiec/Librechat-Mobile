@@ -46,6 +46,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.model.EModelEndpoint
 import com.garfiec.librechat.core.ui.components.AdaptiveButton
 import com.garfiec.librechat.core.ui.components.AdaptiveFilterChip
 import com.garfiec.librechat.core.ui.components.AdaptiveInputChip
@@ -80,6 +81,7 @@ import com.garfiec.librechat.feature.conversations.resources.drawer_filter_share
 import com.garfiec.librechat.feature.conversations.resources.drawer_filter_title
 import com.garfiec.librechat.feature.conversations.resources.drawer_filter_today
 import com.garfiec.librechat.feature.conversations.resources.drawer_filter_updated
+import com.garfiec.librechat.feature.conversations.resources.endpoint_label_agents
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
@@ -166,7 +168,7 @@ internal fun DrawerFilterSheet(
                                     endpoints = if (selected) draft.endpoints - endpoint.name else draft.endpoints + endpoint.name,
                                 )
                             },
-                            label = { Text(endpoint.label, maxLines = 1) },
+                            label = { Text(endpoint.chipLabel(), maxLines = 1) },
                             leadingIcon = {
                                 EndpointIcon(
                                     endpointName = endpoint.name,
@@ -269,6 +271,11 @@ private fun FilterSwitchRow(icon: ImageVector, label: String, checked: Boolean, 
     }
 }
 
+/** [FilterEndpointOption.label], except `agents`, which takes the drawer's own translated string. */
+@Composable
+private fun FilterEndpointOption.chipLabel(): String =
+    if (EModelEndpoint.fromName(name) == EModelEndpoint.AGENTS) stringResource(Res.string.endpoint_label_agents) else label
+
 /** One applied filter as the chip row names it, and the filters without it. */
 private class AppliedFilter(val label: String, val without: DrawerFilters)
 
@@ -285,7 +292,7 @@ private fun appliedFilters(filters: DrawerFilters, options: DrawerFilterOptions)
         applied += AppliedFilter(label, filters.copy(dateRange = FilterDateRange.ANY))
     }
     filters.endpoints.forEach { name ->
-        val label = options.endpoints.firstOrNull { it.name == name }?.label ?: name
+        val label = options.endpoints.firstOrNull { it.name == name }?.chipLabel() ?: name
         applied += AppliedFilter(label, filters.copy(endpoints = filters.endpoints - name))
     }
     if (filters.hasFiles) applied += AppliedFilter(stringResource(Res.string.drawer_filter_has_attachments), filters.copy(hasFiles = false))
