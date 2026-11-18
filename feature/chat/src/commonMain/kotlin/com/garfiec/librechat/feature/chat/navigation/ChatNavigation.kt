@@ -118,12 +118,15 @@ val NewChat.handoffKey: String? get() = chatHandoffKey(conversationId = null, ch
  */
 @Serializable data class SharedChat(val shareId: String) : ChatRoute
 
+@Suppress("LongParameterList") // one callback per host navigation action
 fun EntryProviderScope<NavKey>.chatEntries(
     onNavigate: (NavKey) -> Unit,
     onBack: () -> Unit,
     /** Removes the given entry wherever it sits; for a screen closing itself, which may not be on top. */
     onRemove: (NavKey) -> Unit,
     onNavigateToChat: (conversationId: String, isTemporary: Boolean) -> Unit,
+    /** The chat a landing's first message started, replacing [onNavigateToChat] for that hand-off. */
+    onLandingStartedChat: (conversationId: String, isTemporary: Boolean) -> Unit,
     onOpenDrawer: (() -> Unit)? = null,
     /** Starts a new chat as the drawer's New chat does; the chat's side rail offers it. */
     onNewChat: (() -> Unit)? = null,
@@ -165,7 +168,7 @@ fun EntryProviderScope<NavKey>.chatEntries(
             chatProjectId = key.chatProjectId,
             chatProjectName = projectName,
             onConversationStart = { conversationId, isTemporary ->
-                onNavigateToChat(conversationId, isTemporary)
+                onLandingStartedChat(conversationId, isTemporary)
             },
             onOpenDrawer = onOpenDrawer,
             onNewChat = onNewChat,

@@ -130,6 +130,21 @@ class Navigator(
     }
 
     /**
+     * The chat a landing on top just started. That landing has been reset for the next new chat, so
+     * one carrying an agent or model is swapped for a bare landing: its key must stop naming them.
+     */
+    fun navigateToStartedChat(conversationId: String, isTemporary: Boolean = false) = changing {
+        val top = backStack.lastOrNull()
+        if (top is NewChat && top.isPlainLanding) {
+            val bare = top.copy(agentId = null, endpoint = null, model = null, spec = null)
+            if (bare != top) backStack[backStack.lastIndex] = bare
+        } else if (top is Chat || top is NewChat) {
+            backStack.removeLastOrNull()
+        }
+        backStack.add(Chat(conversationId, isTemporary))
+    }
+
+    /**
      * A new chat filed into [projectId], pushed over the current screen so Back returns there (the
      * project page, say). A chat or another project's landing on top is replaced, as [navigateToChat]
      * replaces one, so chats never stack; the same project's landing is kept.
