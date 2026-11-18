@@ -270,11 +270,17 @@ class AccountSettingsViewModel(
 
     /**
      * A return to the tab (back from a page, or from another app): re-reads the profile quietly, so
-     * an avatar, name or email changed on the web shows up, and the passkey count with it.
+     * an avatar, name or email changed on the web shows up, and the passkey count and balance with it.
      */
     fun refreshOnReturn() {
         accountDelegate.refreshQuietly(emailChangeDelegate::onProfileRefreshed)
         if (uiState.value.showPasskeys) loadPasskeyCount()
+        refreshBalance()
+    }
+
+    /** Re-reads the balance quietly, keeping the shown one, when the server tracks balances. */
+    fun refreshBalance() {
+        if (uiState.value.balanceEnabled) accountDelegate.refreshBalanceQuietly()
     }
 
     private var providerKeysSummaryRequested = false
