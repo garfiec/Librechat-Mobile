@@ -34,6 +34,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SheetState
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -41,11 +43,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.contentDescription
@@ -91,6 +95,7 @@ import com.garfiec.librechat.feature.chat.util.PickerRow
 import com.garfiec.librechat.feature.chat.util.blocksSelection
 import com.garfiec.librechat.feature.chat.util.menuIconSource
 import com.garfiec.librechat.feature.chat.util.pickerRows
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 
 private val IconSize = 20.dp
@@ -183,7 +188,24 @@ fun ModelSelectorSheet(
             starredDisplay = starredDisplay,
             endpointKeyStates = endpointKeyStates,
             header = header,
+            onSearchFocus = rememberExpandOnSearchFocus(sheetState),
         )
+    }
+}
+
+/**
+ * Expands a half-height Material sheet when its search takes focus or is typed in, so the keyboard
+ * leaves the results visible.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun rememberExpandOnSearchFocus(sheetState: SheetState): () -> Unit {
+    val scope = rememberCoroutineScope()
+    return remember(sheetState, scope) {
+        {
+            // Liquid Glass never attaches this state (it stays Hidden), so only a partial sheet expands.
+            if (sheetState.currentValue == SheetValue.PartiallyExpanded) scope.launch { sheetState.expand() }
+        }
     }
 }
 
@@ -239,6 +261,7 @@ fun ModelSelectorSheetContent(
     header: (@Composable () -> Unit)? = null,
     /** False when [header] already titles the list (Compare setup). */
     showTitle: Boolean = true,
+    onSearchFocus: () -> Unit = {},
 ) {
     var searchQuery by remember { mutableStateOf("") }
     // Only user toggles land here; an absent key is collapsed unless it holds the selected spec.
@@ -296,11 +319,16 @@ fun ModelSelectorSheetContent(
 
         AdaptiveOutlinedTextField(
             value = searchQuery,
-            onValueChange = { searchQuery = it },
+            onValueChange = {
+                searchQuery = it
+                // A field that kept focus while the sheet dropped to half height gets no new focus event.
+                onSearchFocus()
+            },
             placeholder = { Text(stringResource(Res.string.model_selector_search)) },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp),
+                .padding(horizontal = 16.dp)
+                .onFocusChanged { if (it.isFocused) onSearchFocus() },
             singleLine = true,
             trailingIcon = {
                 if (searchQuery.isNotEmpty()) {

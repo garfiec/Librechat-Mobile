@@ -21,6 +21,7 @@ import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.feature.chat.components.CompareSetupHeader
 import com.garfiec.librechat.feature.chat.components.ComparisonLane
 import com.garfiec.librechat.feature.chat.components.ModelSelectorSheetContent
+import com.garfiec.librechat.feature.chat.components.rememberExpandOnSearchFocus
 import com.garfiec.librechat.feature.chat.util.toSeed
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ChatViewModel
@@ -179,6 +180,7 @@ internal fun CompareSetupPicker(
     /** The header's Cancel: ends setup, or on a wide chat just closes "Browse all models". */
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
+    onSearchFocus: () -> Unit = {},
 ) {
     val labels = compareSetupLabels(pick, uiState, primaryLabel)
     val pickEndpoint = pick.endpoint
@@ -212,6 +214,7 @@ internal fun CompareSetupPicker(
         starredDisplay = uiState.starredModelsDisplay,
         endpointKeyStates = uiState.endpointKeyStates,
         showTitle = false,
+        onSearchFocus = onSearchFocus,
         header = {
             CompareSetupHeader(
                 primaryLabel = labels.primary,
@@ -263,10 +266,11 @@ internal fun CompareSetupSheet(
     onDismiss: (() -> Unit)? = null,
 ) {
     val dismiss = onDismiss ?: actions.onCancel
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
     AdaptiveModalBottomSheet(
         onDismissRequest = dismiss,
         dragHandle = { LowProfileDragHandle() },
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false),
+        sheetState = sheetState,
         modifier = Modifier.clearFocusOnTap(),
     ) {
         CompareSetupPicker(
@@ -277,6 +281,7 @@ internal fun CompareSetupSheet(
             onNavigateToProviderKeys = onNavigateToProviderKeys,
             onCancel = dismiss,
             modifier = Modifier.fillMaxSize(),
+            onSearchFocus = rememberExpandOnSearchFocus(sheetState),
         )
     }
 }
