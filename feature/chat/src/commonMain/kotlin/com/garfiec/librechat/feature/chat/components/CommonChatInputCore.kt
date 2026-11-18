@@ -129,6 +129,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.ChatInputGates
 import com.garfiec.librechat.feature.chat.viewmodel.DuringRunSendTarget
 import com.garfiec.librechat.feature.chat.viewmodel.PendingSteerChip
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedMessage
+import com.garfiec.librechat.feature.chat.viewmodel.withStagedFiles
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
@@ -663,7 +664,7 @@ private fun ComposerTrailing(
                 isStreaming = state.isStreaming,
                 canSend = hasComposerContent,
                 canQueue = duringRunSend,
-                duringRunTarget = state.duringRunSendTarget,
+                duringRunTarget = state.duringRunSendTarget.withStagedFiles(draft.hasFiles),
                 onSend = onSend,
                 onStop = onStop,
                 // Folded, a tap opens the picker, whose first two entries are the two sends.

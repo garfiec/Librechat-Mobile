@@ -1491,7 +1491,7 @@ class ChatViewModel(
         // reaches here (the screens hide the composer behind the question panel) must ANSWER the
         // pause, not queue a next turn. Queueing it fails silently: the pause stays unresolved and
         // the message arrives as a non-sequitur once the run expires.
-        when (state.duringRunSendTarget) {
+        when (state.duringRunSendTarget.withStagedFiles(attachedFiles.value.isNotEmpty())) {
             DuringRunSendTarget.ANSWER_PAUSE -> {
                 val answer = state.inputText.trim()
                 if (answer.isEmpty()) return

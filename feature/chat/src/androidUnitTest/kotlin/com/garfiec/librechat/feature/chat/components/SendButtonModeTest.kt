@@ -1,6 +1,7 @@
 package com.garfiec.librechat.feature.chat.components
 
 import com.garfiec.librechat.feature.chat.viewmodel.DuringRunSendTarget
+import com.garfiec.librechat.feature.chat.viewmodel.withStagedFiles
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
@@ -52,6 +53,22 @@ class SendButtonModeTest {
     @Test
     fun `a send that will queue a follow-up says so`() {
         assertThat(mode(target = DuringRunSendTarget.QUEUE)).isEqualTo(SendButtonMode.QUEUE)
+    }
+
+    @Test
+    fun `a steer or interrupt default with files staged shows the queue face`() {
+        assertThat(mode(target = DuringRunSendTarget.STEER.withStagedFiles(true))).isEqualTo(SendButtonMode.QUEUE)
+        assertThat(mode(target = DuringRunSendTarget.INTERRUPT.withStagedFiles(true))).isEqualTo(SendButtonMode.QUEUE)
+    }
+
+    @Test
+    fun `files leave the other targets alone`() {
+        assertThat(mode(target = DuringRunSendTarget.STEER.withStagedFiles(false))).isEqualTo(SendButtonMode.STEER)
+        assertThat(mode(target = DuringRunSendTarget.INTERRUPT.withStagedFiles(false)))
+            .isEqualTo(SendButtonMode.INTERRUPT)
+        assertThat(mode(target = DuringRunSendTarget.QUEUE.withStagedFiles(true))).isEqualTo(SendButtonMode.QUEUE)
+        assertThat(mode(target = DuringRunSendTarget.ANSWER_PAUSE.withStagedFiles(true)))
+            .isEqualTo(SendButtonMode.ANSWER)
     }
 
     /**

@@ -1213,6 +1213,14 @@ enum class DuringRunSendTarget {
     QUEUE,
 }
 
+/** Steering is text-only on mobile, so staged files send to the queue. The button face and the route both read this. */
+internal fun DuringRunSendTarget.withStagedFiles(hasFiles: Boolean): DuringRunSendTarget =
+    if (hasFiles && (this == DuringRunSendTarget.STEER || this == DuringRunSendTarget.INTERRUPT)) {
+        DuringRunSendTarget.QUEUE
+    } else {
+        this
+    }
+
 /**
  * Web's `quotesSupported`: the assistants endpoints bypass the server-side blockquote merge, so
  * they take no quotes. Shared by the affordance gate ([ChatUiState.quotesSupportedOnEndpoint]) and
