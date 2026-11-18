@@ -234,6 +234,7 @@ fun SharedChatScreen(
         onOpenMemories = null,
         // The sharer's keys: nothing for the viewer to add.
         userKeyErrors = null,
+        agentNames = emptyMap(),
         mcpSignIn = null,
         // Public shares omit App attachments; any that remain say Apps don't run here.
         mcpApps = McpApps.ReadOnly,

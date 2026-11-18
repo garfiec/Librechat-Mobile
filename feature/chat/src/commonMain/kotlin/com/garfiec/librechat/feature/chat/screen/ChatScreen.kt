@@ -82,6 +82,7 @@ import com.garfiec.librechat.feature.chat.components.UserKeyErrors
 import com.garfiec.librechat.feature.chat.components.addToChatSelectionItem
 import com.garfiec.librechat.feature.chat.components.mcpapp.rememberLegacyUiResources
 import com.garfiec.librechat.feature.chat.components.mcpapp.rememberMcpApps
+import com.garfiec.librechat.feature.chat.components.namesById
 import com.garfiec.librechat.feature.chat.components.parsePickerQuery
 import com.garfiec.librechat.feature.chat.components.rememberChatAttachmentActions
 import com.garfiec.librechat.feature.chat.components.rememberChatOptionsSheetController
@@ -453,6 +454,7 @@ fun ChatScreen(
     val userKeyErrors = remember(uiState.selection.endpointConfigs, uiState.agents) {
         UserKeyErrors(uiState.selection.endpointConfigs, uiState.agents) { currentOnNavigateToProviderKeys(it) }
     }
+    val agentNames = remember(uiState.agents) { uiState.agents.namesById() }
     ChatRoot(
         inlineArtifactPrefs = prefs.inlineArtifactPrefs,
         mermaidRenderCache = viewModel.mermaidRenderCache,
@@ -474,6 +476,7 @@ fun ChatScreen(
         onSiteIconsPromptDismiss = viewModel::dismissSiteIconPrompt,
         onOpenMemories = onOpenMemories?.takeIf { uiState.gates.memoriesPageEnabled },
         userKeyErrors = userKeyErrors,
+        agentNames = agentNames,
         mcpSignIn = mcpSignIn,
         mcpApps = mcpApps,
         legacyUiResources = legacyUiResources,

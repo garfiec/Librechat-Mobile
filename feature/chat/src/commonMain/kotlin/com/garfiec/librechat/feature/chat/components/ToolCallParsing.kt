@@ -1008,3 +1008,7 @@ internal fun liveWebSearchPhase(
  */
 internal fun claimsWebSearchCard(toolNameLower: String, hasSources: Boolean): Boolean =
     toolNameLower == ToolConstants.WEB_SEARCH || hasSources
+
+/** The name of the agent an `lc_transfer_to_<agentId>` call hands off to, or null when [agentNames] doesn't list it. */
+internal fun handoffTargetName(toolName: String, agentNames: Map<String, String>): String? =
+    toolName.substring(ToolConstants.LC_TRANSFER_TO_PREFIX.length).takeIf { it.isNotBlank() }?.let(agentNames::get)

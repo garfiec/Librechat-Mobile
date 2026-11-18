@@ -32,4 +32,12 @@ class ToolCallRoutingTest {
         assertThat(isCodeExecutionToolCall("file_search")).isFalse()
         assertThat(isCodeExecutionToolCall("lc_transfer_to_agent")).isFalse()
     }
+
+    @Test
+    fun `a handoff names a listed agent and nothing else`() {
+        val names = mapOf("agent_B1" to "Booking Agent")
+        assertThat(handoffTargetName("lc_transfer_to_agent_B1", names)).isEqualTo("Booking Agent")
+        assertThat(handoffTargetName("lc_transfer_to_agent_X9", names)).isNull()
+        assertThat(handoffTargetName("lc_transfer_to_", names)).isNull()
+    }
 }
