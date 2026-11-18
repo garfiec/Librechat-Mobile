@@ -11,6 +11,7 @@ import com.garfiec.librechat.feature.skills.SkillErrorKind
 import com.garfiec.librechat.feature.skills.SkillFileChanges
 import com.garfiec.librechat.feature.skills.SkillFilePaths
 import com.garfiec.librechat.feature.skills.components.PickedDocument
+import com.garfiec.librechat.feature.skills.displayName
 import com.garfiec.librechat.feature.skills.skillError
 import com.garfiec.librechat.feature.skills.skillFileWriteError
 import kotlinx.coroutines.Job
@@ -56,6 +57,10 @@ data class SkillFilesUiState(
 ) {
     /** The list couldn't be fetched and there's nothing to show: the section offers a retry instead. */
     val listFailed: Boolean get() = error != null && files.isEmpty()
+
+    /** What the replace prompt calls the file [pendingReplacement] would overwrite. */
+    val pendingReplacementName: String?
+        get() = pendingReplacement?.let { path -> files.firstOrNull { it.relativePath == path }?.displayName ?: path }
 }
 
 /** One-shot failures the detail page shows as a snackbar. */

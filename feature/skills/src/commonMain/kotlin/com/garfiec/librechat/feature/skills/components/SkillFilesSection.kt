@@ -40,6 +40,8 @@ import com.garfiec.librechat.core.ui.components.AdaptiveSectionHeader
 import com.garfiec.librechat.core.ui.components.FileTypeTile
 import com.garfiec.librechat.core.ui.components.adaptiveSection
 import com.garfiec.librechat.core.ui.components.fileTypeSubtitle
+import com.garfiec.librechat.feature.skills.displayName
+import com.garfiec.librechat.feature.skills.displayPath
 import com.garfiec.librechat.feature.skills.resources.Res
 import com.garfiec.librechat.feature.skills.resources.skill_cancel
 import com.garfiec.librechat.feature.skills.resources.skill_file_open
@@ -128,8 +130,9 @@ internal fun SkillFileRow(
     isRemoving: Boolean = false,
 ) {
     val name = file.relativePath
-    // The leaf names the file; a path cut at the end would show only the folder, so files in one
-    // folder would look alike. The folder goes last on the second line, where an ellipsis costs least.
+    // The name, not the path, heads the row: a path cut at the end would show only the folder, so
+    // files in one folder would look alike. The folder goes last on the second line, where an
+    // ellipsis costs least.
     val leaf = name.substringAfterLast('/')
     val folder = name.substringBeforeLast('/', missingDelimiterValue = "")
     val kind = fileKindOf(file.filename ?: leaf, file.mimeType)
@@ -151,7 +154,7 @@ internal fun SkillFileRow(
         FileTypeTile(kind = kind)
         Column(Modifier.weight(1f)) {
             Text(
-                text = leaf,
+                text = file.displayName,
                 style = MaterialTheme.typography.bodyLarge,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -168,7 +171,7 @@ internal fun SkillFileRow(
             isRemoving -> Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
                 AdaptiveCircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
             }
-            canEdit -> SkillFileMenu(name = name, enabled = enabled, onOpen = onOpen, onRemove = onRemove)
+            canEdit -> SkillFileMenu(name = file.displayPath, enabled = enabled, onOpen = onOpen, onRemove = onRemove)
         }
     }
 }
@@ -260,7 +263,7 @@ internal fun SkillFileRemoveDialog(file: SkillFile, onConfirm: () -> Unit, onDis
     AdaptiveAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(Res.string.skill_file_remove_confirm_title)) },
-        text = { Text(stringResource(Res.string.skill_file_remove_confirm_message, file.relativePath)) },
+        text = { Text(stringResource(Res.string.skill_file_remove_confirm_message, file.displayPath)) },
         confirmButton = {
             TextButton(onClick = onConfirm) {
                 Text(stringResource(Res.string.skill_file_remove), color = MaterialTheme.colorScheme.error)
@@ -273,15 +276,15 @@ internal fun SkillFileRemoveDialog(file: SkillFile, onConfirm: () -> Unit, onDis
 }
 
 /**
- * Confirms that the picked file replaces the one already at [path]: the server overwrites it in
+ * Confirms that the picked file replaces the existing file [name]: the server overwrites it in
  * place and drops the old content, so Add doesn't do it unasked.
  */
 @Composable
-internal fun SkillFileReplaceDialog(path: String, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+internal fun SkillFileReplaceDialog(name: String, onConfirm: () -> Unit, onDismiss: () -> Unit) {
     AdaptiveAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(Res.string.skill_file_replace_confirm_title)) },
-        text = { Text(stringResource(Res.string.skill_file_replace_confirm_message, path)) },
+        text = { Text(stringResource(Res.string.skill_file_replace_confirm_message, name)) },
         confirmButton = {
             TextButton(onClick = onConfirm) {
                 Text(stringResource(Res.string.skill_file_replace), color = MaterialTheme.colorScheme.error)
