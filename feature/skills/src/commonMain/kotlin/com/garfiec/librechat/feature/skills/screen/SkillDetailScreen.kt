@@ -296,8 +296,8 @@ fun SkillDetailScreen(
     filesState.pendingRemoval?.let { file ->
         SkillFileRemoveDialog(file = file, onConfirm = filesViewModel::confirmRemove, onDismiss = filesViewModel::dismissRemove)
     }
-    filesState.pendingReplacement?.let { path ->
-        SkillFileReplaceDialog(path = path, onConfirm = filesViewModel::confirmReplace, onDismiss = filesViewModel::dismissReplace)
+    filesState.pendingReplacementName?.let { name ->
+        SkillFileReplaceDialog(name = name, onConfirm = filesViewModel::confirmReplace, onDismiss = filesViewModel::dismissReplace)
     }
     if (aclState.showSheet && aclState.canShare) {
         SkillShareSheet(

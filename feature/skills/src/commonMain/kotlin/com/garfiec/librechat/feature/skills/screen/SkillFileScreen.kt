@@ -182,8 +182,8 @@ private fun fileTopBarSpec(state: SkillFileUiState, actions: SkillFileActions): 
     }
     return AdaptiveTopBarSpec(
         navigation = BarNavigation(BarIcons.Back, stringResource(Res.string.skills_back), actions.onBack),
-        // The leaf, not the path: one line cut at the end would show only the folder.
-        title = BarTitle(state.relativePath.substringAfterLast('/'), maxLines = 1),
+        // The name, not the path: one line cut at the end would show only the folder.
+        title = BarTitle(state.displayName, maxLines = 1),
         actions = actionList,
     )
 }
@@ -252,12 +252,12 @@ private fun SkillFileBody(
             onValueChange = actions.onDraftChange,
             readOnly = !state.isEditable || state.isSaving,
             // Names the field for a screen reader, which otherwise hears only "Edit box".
-            label = { Text(state.relativePath, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+            label = { Text(state.displayPath, maxLines = 1, overflow = TextOverflow.Ellipsis) },
             textStyle = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
             modifier = fillModifier,
         )
         state.kind == SkillFileKind.IMAGE -> state.image?.let { file ->
-            image(file, stringResource(Res.string.skill_file_image_description, state.relativePath), fillModifier)
+            image(file, stringResource(Res.string.skill_file_image_description, state.displayPath), fillModifier)
         }
         else -> SkillFileBinaryNote(state, Modifier.fillMaxSize().padding(24.dp))
     }
@@ -282,7 +282,7 @@ private fun SkillFileImageView(
 
 @Composable
 private fun SkillFileBinaryNote(state: SkillFileUiState, modifier: Modifier = Modifier) {
-    val name = state.filename ?: state.relativePath.substringAfterLast('/')
+    val name = state.displayName
     val kind = fileKindOf(name, state.mimeType)
     Column(
         modifier = modifier,

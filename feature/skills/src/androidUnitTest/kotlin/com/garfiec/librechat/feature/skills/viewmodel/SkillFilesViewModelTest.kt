@@ -8,6 +8,8 @@ import com.garfiec.librechat.feature.skills.SkillError
 import com.garfiec.librechat.feature.skills.SkillErrorKind
 import com.garfiec.librechat.feature.skills.SkillFileChanges
 import com.garfiec.librechat.feature.skills.components.PickedDocument
+import com.garfiec.librechat.feature.skills.displayName
+import com.garfiec.librechat.feature.skills.displayPath
 import com.google.common.truth.Truth.assertThat
 import io.mockk.CapturingSlot
 import io.mockk.coEvery
@@ -457,4 +459,32 @@ class SkillFilesViewModelTest {
         advanceUntilIdle()
         assertThat(pathSlot.captured).isEqualTo("other.md")
     }
+
+    @Test
+    fun `a file uploaded under a sanitized path is named by its filename, and so is the replace prompt`() =
+        runTest(testDispatcher) {
+            uploadSlot()
+            coEvery { skillsRepository.listSkillFiles("sk-1") } returns Result.Success(
+                listOf(
+                    SkillFile(relativePath = "____1.md", filename = "参考 #1.md"),
+                    SkillFile(relativePath = "refs/a.md", filename = null),
+                    SkillFile(relativePath = "refs/b.md", filename = " "),
+                ),
+            )
+            val viewModel = vm()
+            viewModel.load()
+            advanceUntilIdle()
+
+            val (uploaded, foldered, blank) = viewModel.uiState.value.files
+            assertThat(uploaded.displayName).isEqualTo("参考 #1.md")
+            assertThat(uploaded.displayPath).isEqualTo("参考 #1.md")
+            assertThat(foldered.displayName).isEqualTo("a.md")
+            assertThat(foldered.displayPath).isEqualTo("refs/a.md")
+            assertThat(blank.displayName).isEqualTo("b.md")
+
+            viewModel.upload(doc("参考 #1.md"))
+            advanceUntilIdle()
+            assertThat(viewModel.uiState.value.pendingReplacement).isEqualTo("____1.md")
+            assertThat(viewModel.uiState.value.pendingReplacementName).isEqualTo("参考 #1.md")
+        }
 }

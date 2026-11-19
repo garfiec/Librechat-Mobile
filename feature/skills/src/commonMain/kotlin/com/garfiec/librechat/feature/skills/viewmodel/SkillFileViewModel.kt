@@ -11,6 +11,7 @@ import com.garfiec.librechat.core.data.skills.resolveSkillAccess
 import com.garfiec.librechat.core.data.skills.toSkillViewer
 import com.garfiec.librechat.core.model.response.SkillFileContentResponse
 import com.garfiec.librechat.feature.skills.SkillFileChanges
+import com.garfiec.librechat.feature.skills.SkillFilePaths
 import com.garfiec.librechat.feature.skills.isSkillFileInlineImage
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
@@ -99,6 +100,10 @@ data class SkillFileUiState(
     /** The user may leave; the screen pops. */
     val exitRequested: Boolean = false,
 ) {
+    val displayName: String get() = SkillFilePaths.displayName(filename, relativePath)
+
+    val displayPath: String get() = SkillFilePaths.displayPath(filename, relativePath)
+
     val isDirty: Boolean get() = kind == SkillFileKind.TEXT && loadedText != null && draft != loadedText
 
     val readOnlyReason: SkillFileReadOnlyReason?

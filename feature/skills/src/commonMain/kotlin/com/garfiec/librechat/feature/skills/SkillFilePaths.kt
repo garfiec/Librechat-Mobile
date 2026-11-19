@@ -1,5 +1,7 @@
 package com.garfiec.librechat.feature.skills
 
+import com.garfiec.librechat.core.model.SkillFile
+
 /**
  * The relative path a picked file is uploaded under, held to the server's rule (upstream
  * `validateRelativePath` in `methods/skill.ts` and the upload handler in `skills/upload.ts`):
@@ -27,6 +29,20 @@ internal object SkillFilePaths {
         return safe.capped()
     }
 
+    /**
+     * What a file is called: the server's `filename`, which keeps the name [sanitize] stripped from
+     * the path, else the path's leaf (imported files, and the viewer before its content lands).
+     */
+    fun displayName(filename: String?, relativePath: String): String =
+        filename?.takeIf { it.isNotBlank() } ?: relativePath.substringAfterLast('/')
+
+    /** [displayName] under the path's folder, if it has one. */
+    fun displayPath(filename: String?, relativePath: String): String {
+        val folder = relativePath.substringBeforeLast('/', missingDelimiterValue = "")
+        val name = displayName(filename, relativePath)
+        return if (folder.isEmpty()) name else "$folder/$name"
+    }
+
     /** Whether [relativePath] is the reserved `SKILL.md`, in the upload handler's case-insensitive sense. */
     fun isReserved(relativePath: String): Boolean = relativePath.uppercase() == RESERVED_UPPER
 
@@ -41,3 +57,7 @@ internal object SkillFilePaths {
         return take(MAX_LENGTH - ext.length - 1).trimEnd('.') + "." + ext
     }
 }
+
+internal val SkillFile.displayName: String get() = SkillFilePaths.displayName(filename, relativePath)
+
+internal val SkillFile.displayPath: String get() = SkillFilePaths.displayPath(filename, relativePath)
