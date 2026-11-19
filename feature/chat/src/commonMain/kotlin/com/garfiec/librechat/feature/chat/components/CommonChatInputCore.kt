@@ -89,6 +89,7 @@ import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
 import com.garfiec.librechat.core.ui.components.pressBounce
 import com.garfiec.librechat.core.ui.components.rememberPressBounce
+import com.garfiec.librechat.core.ui.components.scrollFadingEdges
 import com.garfiec.librechat.core.ui.glass.LocalGlassBackdrop
 import com.garfiec.librechat.core.ui.glass.drawInsetOutlineStroke
 import com.garfiec.librechat.core.ui.glass.glassSurface
@@ -242,6 +243,9 @@ fun CommonChatInputCore(
     // The fade keeps temporary chat's retone (see ModeVeil) rather than painting plain surface over it.
     val retonedSurfaceColor = retonedSurface(surfaceColor)
     val temporaryAmount = ChatInputDefaults.animateTemporaryAmount(isTemporaryChat)
+    val canvas = remember(surfaceColor, retonedSurfaceColor, temporaryAmount) {
+        { lerp(surfaceColor, retonedSurfaceColor, temporaryAmount.value) }
+    }
     // Liquid Glass drops Material's fade: the glass capsule already separates the composer.
     val glass = rememberGlassStyle()
     val glassBackdrop = LocalGlassBackdrop.current
@@ -253,7 +257,7 @@ fun CommonChatInputCore(
                     Modifier
                 } else {
                     Modifier.drawBehind {
-                        val surface = lerp(surfaceColor, retonedSurfaceColor, temporaryAmount.value)
+                        val surface = canvas()
                         drawRect(
                             Brush.verticalGradient(
                                 colors = listOf(
@@ -282,6 +286,7 @@ fun CommonChatInputCore(
                 onSendQueuedMessages = onSendQueuedMessages,
                 onCancelEdit = onCancelEdit,
                 fontSizeMultiplier = fontSizeMultiplier,
+                canvas = canvas,
             )
 
             val pickerQuery = remember(state.inputText, state.canPickSkills) {
@@ -415,6 +420,7 @@ private fun ComposerChromeStack(
     onSendQueuedMessages: () -> Unit,
     onCancelEdit: () -> Unit,
     fontSizeMultiplier: Float,
+    canvas: () -> Color,
 ) {
     val chrome = state.chrome
     Column(modifier = Modifier.fillMaxWidth().passVerticalDragsToThread()) {
@@ -434,6 +440,7 @@ private fun ComposerChromeStack(
             onCancelQueuedItem = chrome.onCancelQueuedMessage,
             onReorderQueue = chrome.onReorderQueuedMessages,
             fontSizeMultiplier = fontSizeMultiplier,
+            canvas = canvas,
         )
 
         // Edit-mode banner takes priority over the paused-queue banner.
@@ -472,6 +479,7 @@ private fun SteerAndQueueRegion(
     onCancelQueuedItem: (localId: String) -> Unit,
     onReorderQueue: (fromIndex: Int, toIndex: Int) -> Unit,
     fontSizeMultiplier: Float,
+    canvas: () -> Color,
 ) {
     if (pendingSteers.isEmpty() && queuedMessages.isEmpty()) return
     val scroll = rememberScrollState()
@@ -480,6 +488,7 @@ private fun SteerAndQueueRegion(
     val reorderScroll = remember(scroll) { ReorderScrollRegion(scroll, reversed = true) }
     SteerAndQueueColumn(
         scroll = scroll,
+        canvas = canvas,
         modifier = Modifier.nestedScroll(handOff),
     ) {
         PendingSteerChipsSection(
@@ -499,10 +508,14 @@ private fun SteerAndQueueRegion(
     }
 }
 
-/** Scrolls only while it overflows, so until then the stack's pass-through takes the drag. */
+/**
+ * Scrolls only while it overflows, so until then the stack's pass-through takes the drag. Its fades
+ * paint the [canvas] colour: an alpha fade would let the thread behind show through the rows.
+ */
 @Composable
 internal fun SteerAndQueueColumn(
     scroll: ScrollState,
+    canvas: () -> Color,
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
@@ -510,6 +523,7 @@ internal fun SteerAndQueueColumn(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(max = STEER_AND_QUEUE_MAX_HEIGHT)
+            .scrollFadingEdges(scroll, reversed = true, fadeTo = canvas)
             .verticalScroll(scroll, enabled = scroll.maxValue > 0, reverseScrolling = true),
         content = content,
     )
