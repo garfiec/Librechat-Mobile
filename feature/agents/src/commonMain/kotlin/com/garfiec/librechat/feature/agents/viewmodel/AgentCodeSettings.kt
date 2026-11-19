@@ -77,14 +77,39 @@ internal fun AgentCodeSettings.isGitIdentityValid(): Boolean {
         email.length <= GIT_EMAIL_MAX && clean(email) && looksLikeEmail(email)
 }
 
-/** `local@domain.tld` by hand (Android's ICU regex isn't the JVM's), which also admits GitHub's bot addresses. */
-private fun looksLikeEmail(email: String): Boolean {
-    val at = email.indexOf('@')
-    if (at <= 0 || at != email.lastIndexOf('@')) return false
-    val domain = email.substring(at + 1)
-    val dot = domain.lastIndexOf('.')
-    return email.none { it.isWhitespace() } && dot > 0 && dot < domain.length - 1
+/**
+ * Upstream's GitHub App bot address, else zod 4's `email()`, ported by hand: Android's ICU regex
+ * isn't the JVM's. Keep in step with `agentGitIdentitySchema` and zod's email pattern.
+ */
+private fun looksLikeEmail(email: String): Boolean = isGitHubBotEmail(email) || isZodEmail(email)
+
+private const val GITHUB_BOT_SUFFIX = "[bot]@users.noreply.github.com"
+
+/** `^\d+\+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\[bot\]@users\.noreply\.github\.com$`, case-insensitive. */
+private fun isGitHubBotEmail(email: String): Boolean {
+    if (!email.endsWith(GITHUB_BOT_SUFFIX, ignoreCase = true)) return false
+    val plus = email.indexOf('+')
+    if (plus <= 0 || email.substring(0, plus).any { it !in '0'..'9' }) return false
+    val slug = email.substring(plus + 1, email.length - GITHUB_BOT_SUFFIX.length)
+    return slug.isNotEmpty() && slug.first() != '-' && slug.last() != '-' && slug.all { it.isAsciiLetterOrDigit() || it == '-' }
 }
+
+/** zod 4.6.7: `^(?:[A-Za-z0-9_'+\-]+\.)*[A-Za-z0-9_'+\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\-]*\.)+[A-Za-z]{2,}$` */
+private fun isZodEmail(email: String): Boolean {
+    val at = email.indexOf('@')
+    if (at <= 0 || at != email.lastIndexOf('@') || ".." in email) return false
+    val local = email.substring(0, at)
+    if (local.first() == '.' || local.last() == '\'' || local.last() == '.') return false
+    if (!local.all { it.isAsciiLetterOrDigit() || it in "_'+.-" }) return false
+    val labels = email.substring(at + 1).split('.')
+    val tld = labels.last()
+    return labels.size >= 2 && tld.length >= 2 && tld.all { it in 'a'..'z' || it in 'A'..'Z' } &&
+        labels.dropLast(1).all { label ->
+            label.isNotEmpty() && label.first() != '-' && label.all { it.isAsciiLetterOrDigit() || it == '-' }
+        }
+}
+
+private fun Char.isAsciiLetterOrDigit() = this in 'a'..'z' || this in 'A'..'Z' || this in '0'..'9'
 
 private fun AgentCodeSettings.gitIdentity(): AgentGitIdentity? {
     val name = gitName.trim()
@@ -138,6 +163,14 @@ internal fun AgentCodeSettings.createFields(codeEnabled: Boolean): AgentCodeWrit
 }
 
 internal fun AgentCodeSettings.createGitIdentity(): AgentGitIdentity? = gitIdentity()
+
+/** Web's `showGitIdentity`: the Git fields are drawn only for an attached machine. */
+internal fun AgentCodeSettings.gitIdentityShown(config: StatefulCodeSessionsConfig?, available: Boolean, codeEnabled: Boolean): Boolean =
+    available && codeEnabled && statefulSessions && effectiveMachine(this, config?.environments)?.isAttached == true
+
+/** Web's `releaseIdentity`: a hidden identity is written only when it's blank or valid; else [loaded]'s is kept. */
+internal fun AgentCodeSettings.releaseHiddenIdentity(loaded: AgentCodeSettings, shown: Boolean): AgentCodeSettings =
+    if (shown || isGitIdentityValid()) this else copy(gitName = loaded.gitName, gitEmail = loaded.gitEmail)
 
 // ── View data ───────────────────────────────────────────────────────────
 
@@ -210,15 +243,15 @@ internal fun agentCodeSection(
     val machine = effectiveMachine(settings, environments)
     val choiceLimit = config?.maxEnvironmentChoices ?: DEFAULT_MACHINE_CHOICES
     val machineChoices = if (stateful && config?.allowEnvironmentSelection == true && machine?.isAttached == true) {
-        val extras = settings.extraEnvironmentIds.filter { it != machine.id }
         environments.filter { it.isAttached }.map { env ->
             val isDefault = env.id == machine.id
-            val checked = isDefault || env.id in extras
+            val checked = isDefault || env.id in settings.extraEnvironmentIds
             AgentCodeMachineChoice(
                 id = env.id,
                 name = env.displayName,
                 checked = checked,
-                enabled = !isDefault && (checked || extras.size < choiceLimit),
+                // The server caps the list that is sent, which may still hold the default.
+                enabled = !isDefault && (checked || settings.extraEnvironmentIds.size < choiceLimit),
                 isDefault = isDefault,
             )
         }
@@ -226,7 +259,9 @@ internal fun agentCodeSection(
         null
     }
     val allowedScopes = StatefulCodeScope.allowed(config?.allowedEnvironments)
-    val attached = if (stateful && machine?.isAttached == true) {
+    // The server runs a missing scope as `user`.
+    val shownScope = settings.scope ?: StatefulCodeScope.USER
+    val attached = if (machine != null && settings.gitIdentityShown(config, available, codeEnabled)) {
         val loaded = status?.status?.takeIf { it.environmentId == machine.id && it.isReady }
         val workspaces = loaded?.workspaces.orEmpty().map { AgentCodeWorkspaceOption(it.id, it.displayName) }
         val saved = settings.workspaceId
@@ -265,8 +300,8 @@ internal fun agentCodeSection(
         machineChoices = machineChoices,
         machineChoiceLimit = choiceLimit,
         scopes = if (stateful) allowedScopes else emptyList(),
-        scope = settings.scope ?: StatefulCodeScope.resolve(StatefulCodeScope.USER, config?.allowedEnvironments),
-        scopeDisallowed = settings.scope != null && settings.scope !in allowedScopes,
+        scope = shownScope,
+        scopeDisallowed = shownScope !in allowedScopes,
         attached = attached,
     )
 }
