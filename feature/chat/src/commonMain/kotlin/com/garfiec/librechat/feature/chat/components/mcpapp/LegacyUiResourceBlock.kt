@@ -5,10 +5,13 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -29,9 +32,19 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
 import com.garfiec.librechat.core.model.mcp.UiResource
 import com.garfiec.librechat.core.model.mcp.isLegacyHtml
+import com.garfiec.librechat.core.ui.components.AdaptiveDialog
+import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
+import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
+import com.garfiec.librechat.core.ui.components.topbar.BarIcons
+import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
+import com.garfiec.librechat.core.ui.components.topbar.BarTitle
+import com.garfiec.librechat.core.ui.components.topbar.MaterialBarStyle
+import com.garfiec.librechat.feature.chat.components.fadeOutBottom
 import com.garfiec.librechat.feature.chat.resources.Res
+import com.garfiec.librechat.feature.chat.resources.cd_close
 import com.garfiec.librechat.feature.chat.resources.mcp_app_loading_interactive_view
 import com.garfiec.librechat.feature.chat.resources.ui_resource_not_found
 import kotlinx.coroutines.delay
@@ -50,8 +63,14 @@ private val MIN_HEIGHT = 80.dp
 private val CAROUSEL_CARD_WIDTH = 230.dp
 private val CAROUSEL_CARD_MIN_HEIGHT = 360.dp
 
-/** A resource never claims more of the thread than this share of the window, as inline artifacts. */
+/** Where [legacyUiInlineCapped], a resource never claims more of the thread than this share of the window, as inline artifacts. */
 private const val MAX_HEIGHT_FRACTION = 0.7f
+
+/**
+ * No frame is taller, cap or not: Compose can't lay out a size much past this at any density, and a
+ * resource may report any height (one that grows with its frame reports more each time).
+ */
+private val MAX_FRAME_HEIGHT = 20_000.dp
 
 /**
  * What one `\ui{…}` marker draws: nothing when `legacyHtmlEnabled` is off or no named resource is a
@@ -93,7 +112,7 @@ internal fun LegacyUiResourceBlock(ids: List<String>, streaming: Boolean, modifi
     }
     val onMessage by rememberUpdatedState(local.onMessage)
     BoxWithConstraints(modifier = modifier) {
-        val cap = (legacyWindowHeight() * MAX_HEIGHT_FRACTION).coerceAtLeast(MIN_HEIGHT)
+        val cap = if (legacyUiInlineCapped) (legacyWindowHeight() * MAX_HEIGHT_FRACTION).coerceAtLeast(MIN_HEIGHT) else null
         val single = resources.singleOrNull()
         if (single != null) {
             key(single.key) {
@@ -110,7 +129,7 @@ internal fun LegacyUiResourceBlock(ids: List<String>, streaming: Boolean, modifi
                             resource,
                             width = CAROUSEL_CARD_WIDTH,
                             minHeight = CAROUSEL_CARD_MIN_HEIGHT,
-                            cap = cap.coerceAtLeast(CAROUSEL_CARD_MIN_HEIGHT),
+                            cap = cap?.coerceAtLeast(CAROUSEL_CARD_MIN_HEIGHT),
                             onMessage = onMessage,
                         )
                     }
@@ -120,12 +139,20 @@ internal fun LegacyUiResourceBlock(ids: List<String>, streaming: Boolean, modifi
     }
 }
 
+internal fun legacyUiFrameHeight(reported: Int?, minHeight: Dp, cap: Dp?): Dp {
+    val height = (reported?.dp ?: DEFAULT_HEIGHT).coerceIn(minHeight, MAX_FRAME_HEIGHT)
+    return if (cap == null) height else height.coerceAtMost(cap)
+}
+
+internal fun legacyUiClipped(reported: Int?, cap: Dp?): Boolean =
+    cap != null && reported != null && reported.dp > cap
+
 @Composable
 private fun LegacyUiFrame(
     resource: UiResource,
     width: Dp,
     minHeight: Dp,
-    cap: Dp,
+    cap: Dp?,
     onMessage: (String, (Boolean) -> Unit) -> Unit,
 ) {
     val html = remember(resource) { resource.inlineHtml().orEmpty() }
@@ -134,18 +161,63 @@ private fun LegacyUiFrame(
     // its own height.
     key(html) {
         var reported by remember { mutableStateOf<Int?>(null) }
+        var showFull by remember { mutableStateOf(false) }
         val host = remember {
             LegacyUiFrameHost(onHeight = { reported = it }, onMessage = { text, reply -> onMessage(text, reply) })
         }
-        val height = (reported?.dp ?: DEFAULT_HEIGHT.coerceAtLeast(minHeight)).coerceIn(minHeight, cap)
-        LegacyUiResourceWebView(
-            page = remember { LegacyUiRelayPage.build(html) },
-            host = host,
+        val clipped = legacyUiClipped(reported, cap)
+        Column(modifier = Modifier.width(width)) {
+            LegacyUiResourceWebView(
+                page = remember { LegacyUiRelayPage.build(html) },
+                host = host,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(legacyUiFrameHeight(reported, minHeight, cap))
+                    .clip(FRAME_SHAPE)
+                    .then(if (clipped) Modifier.fadeOutBottom() else Modifier),
+            )
+            if (clipped) ShowFullAppButton(onClick = { showFull = true })
+        }
+        if (showFull) {
+            LegacyUiFullView(html = html, onMessage = onMessage, onClose = { showFull = false })
+        }
+    }
+}
+
+/** The whole resource, a screen tall and scrolling: a fresh page beside the inline one. */
+@Composable
+private fun LegacyUiFullView(html: String, onMessage: (String, (Boolean) -> Unit) -> Unit, onClose: () -> Unit) {
+    AdaptiveDialog(
+        onDismissRequest = onClose,
+        properties = DialogProperties(usePlatformDefaultWidth = false, dismissOnClickOutside = false),
+    ) {
+        Column(
             modifier = Modifier
-                .width(width)
-                .height(height)
-                .clip(FRAME_SHAPE),
-        )
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.surface)
+                .systemBarsPadding(),
+        ) {
+            AdaptiveTopBar(
+                spec = AdaptiveTopBarSpec(
+                    navigation = BarNavigation(
+                        icon = BarIcons.Close,
+                        contentDescription = stringResource(Res.string.cd_close),
+                        onClick = onClose,
+                    ),
+                    title = BarTitle(text = null),
+                ),
+                materialStyle = MaterialBarStyle(containerColor = MaterialTheme.colorScheme.surface),
+            )
+            val host = remember {
+                LegacyUiFrameHost(onHeight = {}, onMessage = { text, reply -> onMessage(text, reply) })
+            }
+            LegacyUiResourceWebView(
+                page = remember { LegacyUiRelayPage.build(html, fullView = true) },
+                host = host,
+                modifier = Modifier.fillMaxWidth().weight(1f),
+                fullView = true,
+            )
+        }
     }
 }
 

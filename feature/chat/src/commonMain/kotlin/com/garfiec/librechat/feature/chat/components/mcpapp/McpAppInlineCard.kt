@@ -174,20 +174,23 @@ private fun InlineBody(session: McpAppSession, frozenHeightDp: Int?, controller:
                 )
             }
         }
-        // Under the App, never over it: a button on the web view hides the App's content and takes its taps.
-        if (wantsMore) {
-            AdaptiveTextButton(
-                onClick = { viewModel.expand(session.id) },
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.OpenInFull,
-                    contentDescription = null,
-                    modifier = Modifier.padding(end = 8.dp).size(18.dp),
-                )
-                Text(stringResource(Res.string.mcp_app_show_full))
-            }
-        }
+        if (wantsMore) ShowFullAppButton(onClick = { viewModel.expand(session.id) })
+    }
+}
+
+/** "Show full app", for under a clipped web view, never over it: there it hides content and takes taps. */
+@Composable
+internal fun ShowFullAppButton(onClick: () -> Unit) {
+    AdaptiveTextButton(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.OpenInFull,
+            contentDescription = null,
+            modifier = Modifier.padding(end = 8.dp).size(18.dp),
+        )
+        Text(stringResource(Res.string.mcp_app_show_full))
     }
 }
 

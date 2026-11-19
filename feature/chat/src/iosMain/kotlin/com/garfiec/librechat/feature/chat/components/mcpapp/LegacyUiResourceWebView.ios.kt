@@ -24,6 +24,9 @@ import platform.WebKit.WKWebViewConfiguration
 import platform.WebKit.WKWebsiteDataStore
 import platform.darwin.NSObject
 
+/** WKWebView draws a frame of any height, so an inline resource takes all it reports, as on web. */
+internal actual val legacyUiInlineCapped: Boolean = false
+
 /** Its own isolated world, apart from the MCP App relay's. */
 private const val CONTENT_WORLD = "switchboard-mcp-ui"
 
@@ -33,7 +36,7 @@ function __sb_post(m) { window.webkit.messageHandlers.${LegacyUiPage.BRIDGE_NAME
 
 @OptIn(ExperimentalForeignApi::class)
 @Composable
-internal actual fun LegacyUiResourceWebView(page: LegacyUiPage, host: LegacyUiFrameHost, modifier: Modifier) {
+internal actual fun LegacyUiResourceWebView(page: LegacyUiPage, host: LegacyUiFrameHost, modifier: Modifier, fullView: Boolean) {
     val handler = remember(host) { LegacyFrameMessageHandler(host) }
     val navigation = remember(host) { LegacyShellNavigationPolicy() }
     val surface = MaterialTheme.colorScheme.surface
@@ -61,7 +64,7 @@ internal actual fun LegacyUiResourceWebView(page: LegacyUiPage, host: LegacyUiFr
             webView.setOpaque(false)
             webView.backgroundColor = background
             webView.scrollView.backgroundColor = background
-            webView.scrollView.scrollEnabled = false
+            webView.scrollView.scrollEnabled = fullView
             webView.navigationDelegate = navigation
             host.send = { raw ->
                 webView.evaluateJavaScript(

@@ -112,8 +112,8 @@ internal fun CollapsibleUserText(
     }
 }
 
-/** Fades the clamped content's last [FADE_HEIGHT_DP] to transparent, whatever the bubble behind it. */
-private fun Modifier.fadeOutBottom(): Modifier = this
+/** Fades the clipped content's last [FADE_HEIGHT_DP] to transparent, whatever is drawn behind it. */
+internal fun Modifier.fadeOutBottom(): Modifier = this
     .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
     .drawWithContent {
         drawContent()
