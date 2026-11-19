@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -45,6 +46,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicato
 import com.garfiec.librechat.core.ui.components.AdaptiveDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveDropdownMenu
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
+import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
 import com.garfiec.librechat.core.ui.components.AdaptiveTabRow
 import com.garfiec.librechat.core.ui.components.AdaptiveTabRowKind
 import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
@@ -99,6 +101,7 @@ private val SUBTITLE_PADDING = PaddingValues(start = 16.dp, end = 16.dp, bottom 
  * and Close (tears this App down), a tab per open App once there are two, then the App's own web
  * view, the same live one its card showed. Loading, timeout and failure draw over the web view.
  * [dialogs] is the foreground App's question, drawn here so it sits above the panel's window.
+ * [snackbarHostState] is the chat's: its host draws under this window, so its notices show here too.
  */
 @Composable
 internal fun McpAppPanel(
@@ -111,6 +114,7 @@ internal fun McpAppPanel(
     onClose: (Long) -> Unit,
     onRetry: (Long) -> Unit,
     onHostContext: (Long, JsonObject) -> Unit,
+    snackbarHostState: SnackbarHostState,
     dialogs: @Composable () -> Unit,
 ) {
     val autoRunTools by current.host.autoRunTools.collectAsStateWithLifecycle()
@@ -125,55 +129,58 @@ internal fun McpAppPanel(
         onDismissRequest = onMinimize,
         properties = DialogProperties(usePlatformDefaultWidth = false, dismissOnClickOutside = false),
     ) {
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.surface)
                 .systemBarsPadding(),
         ) {
-            AdaptiveTopBar(
-                spec = AdaptiveTopBarSpec(
-                    navigation = BarNavigation(
-                        icon = BarIcons.Back,
-                        contentDescription = stringResource(Res.string.mcp_app_minimize),
-                        onClick = onMinimize,
+            Column(modifier = Modifier.fillMaxSize()) {
+                AdaptiveTopBar(
+                    spec = AdaptiveTopBarSpec(
+                        navigation = BarNavigation(
+                            icon = BarIcons.Back,
+                            contentDescription = stringResource(Res.string.mcp_app_minimize),
+                            onClick = onMinimize,
+                        ),
+                        title = BarTitle(text = toolName, maxLines = 1),
+                        actions = listOf(
+                            BarAction.Icon(id = "close", icon = BarIcons.Close, label = closeLabel, onClick = { onClose(current.id) }),
+                        ),
                     ),
-                    title = BarTitle(text = toolName, maxLines = 1),
-                    actions = listOf(
-                        BarAction.Icon(id = "close", icon = BarIcons.Close, label = closeLabel, onClick = { onClose(current.id) }),
-                    ),
-                ),
-                materialStyle = MaterialBarStyle(containerColor = MaterialTheme.colorScheme.surface),
-                belowBar = if (sessions.size < 2) {
-                    null
-                } else {
-                    {
-                        AdaptiveTabRow(
-                            titles = sessions.map { it.occurrence.resource.toolName.orEmpty() },
-                            selectedIndex = sessions.indexOfFirst { it.id == current.id }.coerceAtLeast(0),
-                            onSelect = { index -> sessions.getOrNull(index)?.let { onSelect(it.id) } },
-                            kind = AdaptiveTabRowKind.SECONDARY,
-                            // A tab whose App waits on the user carries a dot.
-                            dotColors = sessions.map { if (it.id in awaiting) waitingDot else Color.Transparent },
-                        )
-                    }
-                },
-            )
-            McpAppSubtitle(
-                serverName = resource.serverName.orEmpty(),
-                autoRunTools = autoRunTools,
-                onAskAgain = current.host::revokeAutoRun,
-            )
-            key(current.id) {
-                McpAppFrame(
-                    session = current,
-                    pool = pool,
-                    inline = false,
-                    onHostContext = { onHostContext(current.id, it) },
-                    onRetry = { onRetry(current.id) },
-                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    materialStyle = MaterialBarStyle(containerColor = MaterialTheme.colorScheme.surface),
+                    belowBar = if (sessions.size < 2) {
+                        null
+                    } else {
+                        {
+                            AdaptiveTabRow(
+                                titles = sessions.map { it.occurrence.resource.toolName.orEmpty() },
+                                selectedIndex = sessions.indexOfFirst { it.id == current.id }.coerceAtLeast(0),
+                                onSelect = { index -> sessions.getOrNull(index)?.let { onSelect(it.id) } },
+                                kind = AdaptiveTabRowKind.SECONDARY,
+                                // A tab whose App waits on the user carries a dot.
+                                dotColors = sessions.map { if (it.id in awaiting) waitingDot else Color.Transparent },
+                            )
+                        }
+                    },
                 )
+                McpAppSubtitle(
+                    serverName = resource.serverName.orEmpty(),
+                    autoRunTools = autoRunTools,
+                    onAskAgain = current.host::revokeAutoRun,
+                )
+                key(current.id) {
+                    McpAppFrame(
+                        session = current,
+                        pool = pool,
+                        inline = false,
+                        onHostContext = { onHostContext(current.id, it) },
+                        onRetry = { onRetry(current.id) },
+                        modifier = Modifier.fillMaxWidth().weight(1f),
+                    )
+                }
             }
+            AdaptiveSnackbarHost(snackbarHostState, Modifier.align(Alignment.BottomCenter))
         }
         dialogs()
     }
