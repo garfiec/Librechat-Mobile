@@ -159,7 +159,7 @@
   identity are explicit `JsonNull`s (`explicitNulls = false` would drop them). Code off saves stateful sessions
   off. Enabling stateful sessions applies the Settings default scope, else the first allowed. Picking a default
   workspace also writes the effective machine. A half-filled/malformed Git identity blocks Save
-  (`codeGitIdentityError`).
+  (`codeGitIdentityError`) while the Git fields show; hidden, it is left out of the write (web `releaseIdentity`).
 - **Background execution** (`AgentCodeBackgroundRow`): shown while code interpreter is on and
   `agents.capabilities` has `run_in_background` (fail-closed). `withCodeBackground` (port of
   `withNativeBooleanOptOut`) edits `tool_options` for BOTH `execute_code` and `bash_tool`: off writes

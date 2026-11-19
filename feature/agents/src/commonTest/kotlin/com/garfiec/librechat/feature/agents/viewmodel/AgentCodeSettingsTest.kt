@@ -124,4 +124,98 @@ class AgentCodeSettingsTest {
         assertNull(agentCodeSection(onDefault, config, available = false, codeEnabled = true, null, false))
         assertNull(agentCodeSection(onDefault, config, available = true, codeEnabled = false, null, false))
     }
+
+    @Test
+    fun gitEmailFollowsTheServersRule() {
+        fun valid(email: String) = AgentCodeSettings(gitName = "Lia", gitEmail = email).isGitIdentityValid()
+        listOf(
+            "1+[bot]@users.noreply.github.com",
+            "1+-a[bot]@users.noreply.github.com",
+            "1+a-[bot]@users.noreply.github.com",
+            "1+a_b[bot]@users.noreply.github.com",
+            "1+a\u0000[bot]@users.noreply.github.com",
+            "1+a\r[bot]@users.noreply.github.com",
+            "lia-by-librechat[bot]@users.noreply.github.com",
+            "328778573+lia-by-librechat[bot]@example.com",
+            "328778573+lia-by-librechat[bot]@users.noreply.github.com\nInjected",
+            "dev@example.c",
+            "dev.@example.com",
+            "dev'@example.com",
+            ".dev@example.com",
+            "de..v@example.com",
+            "first!last@example.com",
+            "josé@example.com",
+            "dev@-example.com",
+            "dev@ex_ample.com",
+            "dev@example.c0m",
+            "dev@example.com.",
+            "dev@localhost",
+        ).forEach { assertFalse(valid(it), "accepted $it") }
+        listOf(
+            "a+b@example.co",
+            "d'ev@example.com",
+            "dev@example-.com",
+            "dev@1example.com",
+            "d_e@example.co",
+            "123+my-app[bot]@users.noreply.github.com",
+            "123+My-App[BOT]@USERS.NOREPLY.GITHUB.COM",
+        ).forEach { assertTrue(valid(it), "rejected $it") }
+    }
+
+    @Test
+    fun theMachineCapCountsTheListThatIsSent() {
+        val machines = listOf("a", "b", "c", "d").map { PublicCodeEnvironment(id = it, name = it, type = "attached") }
+        val capped = StatefulCodeSessionsConfig(
+            environments = machines,
+            allowEnvironmentSelection = true,
+            maxEnvironmentChoices = 2,
+        )
+        val settings = AgentCodeSettings(
+            statefulSessions = true,
+            environmentId = "b",
+            extraEnvironmentIds = listOf("b", "c"),
+        )
+        val view = assertNotNull(agentCodeSection(settings, capped, available = true, codeEnabled = true, null, false))
+        assertEquals(false, view.machineChoices?.single { it.id == "d" }?.enabled)
+    }
+
+    @Test
+    fun aMissingScopeShowsAsUserAndDisallowed() {
+        val conversationOnly = config.copy(allowedEnvironments = listOf("conversation"))
+        val settings = AgentCodeSettings(statefulSessions = true, scope = null)
+        val view = assertNotNull(
+            agentCodeSection(settings, conversationOnly, available = true, codeEnabled = true, null, false),
+        )
+        assertEquals("user", view.scope)
+        assertTrue(view.scopeDisallowed)
+    }
+
+    @Test
+    fun aHiddenInvalidIdentityIsLeftOutOfTheWrite() {
+        val halfFilled = AgentCodeSettings.of(saved).copy(gitName = "Lia", gitEmail = "")
+        val shown = AgentEditorUiState(
+            isEditMode = true,
+            agentId = saved.id,
+            loadedAgent = saved,
+            codeInterpreterEnabled = true,
+            isCodeInterpreterAvailable = true,
+            isStatefulCodeAvailable = true,
+            statefulCodeConfig = config,
+            code = halfFilled,
+        )
+        assertNotNull(shown.toUpdateAgentRequest().gitIdentity, "a shown identity is sent as typed")
+        listOf(
+            "code off" to shown.copy(codeInterpreterEnabled = false),
+            "managed machine" to shown.copy(code = halfFilled.copy(environmentId = managed.id)),
+            "stateful off" to shown.copy(code = halfFilled.copy(statefulSessions = false)),
+        ).forEach { (hide, state) -> assertNull(state.toUpdateAgentRequest().gitIdentity, hide) }
+        val create = shown.copy(
+            isEditMode = false,
+            agentId = null,
+            loadedAgent = null,
+            codeInterpreterEnabled = false,
+            code = AgentCodeSettings(statefulSessions = true, environmentId = mbp.id, gitName = "Lia"),
+        )
+        assertNull(create.toCreateAgentRequest().gitIdentity)
+    }
 }

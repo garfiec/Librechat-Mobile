@@ -28,10 +28,14 @@ internal fun AgentEditorUiState.hasUnsavedChanges(): Boolean {
 
 private val EMPTY_AGENT = Agent(id = "")
 
+internal fun AgentEditorUiState.isCodeGitIdentityShown(): Boolean =
+    code.gitIdentityShown(statefulCodeConfig, isStatefulCodeAvailable, codeInterpreterEnabled && isCodeInterpreterAvailable)
+
 internal fun AgentEditorUiState.toUpdateAgentRequest(): UpdateAgentRequest {
     val fields = writeFields()
     val loadedCode = loadedAgent?.let(AgentCodeSettings::of) ?: AgentCodeSettings()
-    val code = code.updateFields(loadedCode, codeInterpreterEnabled && isCodeInterpreterAvailable)
+    val code = code.releaseHiddenIdentity(loadedCode, isCodeGitIdentityShown())
+        .updateFields(loadedCode, codeInterpreterEnabled && isCodeInterpreterAvailable)
     return UpdateAgentRequest(
         name = name,
         description = description.ifBlank { null },
@@ -105,7 +109,7 @@ internal fun AgentEditorUiState.toCreateAgentRequest(): CreateAgentRequest {
         codeEnvironmentIds = code.extraEnvironmentIds,
         codeWorkspaceId = code.workspaceId,
         repositoryInstructions = code.repositoryInstructions,
-        gitIdentity = this.code.createGitIdentity(),
+        gitIdentity = this.code.releaseHiddenIdentity(AgentCodeSettings(), isCodeGitIdentityShown()).createGitIdentity(),
     )
 }
 
