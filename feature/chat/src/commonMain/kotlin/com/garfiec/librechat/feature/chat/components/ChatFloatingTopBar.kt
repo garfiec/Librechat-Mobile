@@ -308,7 +308,7 @@ internal fun ChatFloatingTopBar(
 
     // Hosted here like the context sheet, whichever surface opened it (the ⋮ item, the bar chip, the
     // composer chip). It reads the live state, so a poll that turns the checks green updates it in
-    // place; it closes on its own if the pull request goes away (a chat switch).
+    // place; it closes on its own if the pull request goes away (a chat switch, or an answer with none).
     val pullRequest = uiState.pullRequest.pullRequest
     if (uiState.pullRequest.sheetOpen && pullRequest != null) {
         PullRequestSheet(
