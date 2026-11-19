@@ -27,7 +27,7 @@ class LegacyUiResourceBlockTest {
     }
 
     @Test
-    fun `before its first report a resource takes the default height, never less than its floor`() {
+    fun `before its first report a resource takes the default height and never less than its floor`() {
         assertEquals(240.dp, legacyUiFrameHeight(reported = null, minHeight = 80.dp, cap = 646.dp))
         assertEquals(360.dp, legacyUiFrameHeight(reported = null, minHeight = 360.dp, cap = null))
         assertFalse(legacyUiClipped(reported = null, cap = 646.dp))
