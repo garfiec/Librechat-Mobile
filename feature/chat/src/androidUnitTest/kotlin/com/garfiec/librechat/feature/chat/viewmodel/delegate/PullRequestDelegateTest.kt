@@ -242,6 +242,30 @@ class PullRequestDelegateTest {
     }
 
     @Test
+    fun `a sheet whose pull request goes away stays closed when one comes back`() {
+        var answer: ConversationPullRequest? = running
+        val repository = FakeRepository { answer }
+        val h = harness(repository)
+        try {
+            h.delegate.openSheet()
+            h.scope.runCurrent()
+            assertThat(h.state.value.pullRequest.sheetOpen).isTrue()
+
+            answer = null
+            h.scope.advanceTimeBy(20_001)
+            assertThat(h.state.value.pullRequest.pullRequest).isNull()
+            assertThat(h.state.value.pullRequest.sheetOpen).isFalse()
+
+            answer = running
+            h.scope.advanceTimeBy(60_001)
+            assertThat(h.state.value.pullRequest.pullRequest).isEqualTo(running)
+            assertThat(h.state.value.pullRequest.sheetOpen).isFalse()
+        } finally {
+            h.scope.cancel()
+        }
+    }
+
+    @Test
     fun `nothing to open while no pull request is known`() {
         val repository = FakeRepository { null }
         val h = harness(repository)
