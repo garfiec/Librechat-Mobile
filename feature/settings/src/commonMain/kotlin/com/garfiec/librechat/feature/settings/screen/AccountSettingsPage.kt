@@ -64,8 +64,9 @@ fun AccountSettingsPage(
     var showLogoutDialog by remember { mutableStateOf(false) }
     // Each resume after the first (back from a sub-page, or from another app) re-reads the profile,
     // so an email confirmed in the browser (or an avatar or name changed on the web) shows up, along
-    // with the passkey count.
-    OnResume {
+    // with the passkey count and balance. The first resume re-reads the balance too: in the two-pane
+    // home this page shares the home's ViewModel, so re-entering it builds no fresh one.
+    OnResume(onFirst = viewModel::refreshBalance) {
         viewModel.refreshOnReturn()
         // A connect made on the web, or one whose page was closed, shows on return.
         pullRequestAccountViewModel.refresh()

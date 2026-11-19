@@ -22,6 +22,7 @@ import com.garfiec.librechat.core.model.response.BackupCodesResponse
 import com.garfiec.librechat.core.model.response.TwoFactorSetupResponse
 import com.garfiec.librechat.core.ui.media.PreparedImage
 import com.garfiec.librechat.feature.settings.model.AutoRefillInfo
+import com.garfiec.librechat.feature.settings.model.autoRefillInfo
 import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.resources.account_profile_load_failed
 import com.garfiec.librechat.feature.settings.resources.twofa_sign_in_again_to_enable
@@ -32,6 +33,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
@@ -40,6 +42,7 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
@@ -609,6 +612,10 @@ class AccountSettingsViewModelTest {
         val viewModel = createViewModel()
         advanceUntilIdle()
 
+        viewModel.refreshOnReturn()
+        viewModel.refreshBalance()
+        advanceUntilIdle()
+
         assertThat(viewModel.uiState.value.balanceEnabled).isFalse()
         coVerify(exactly = 0) { balanceRepository.getBalance() }
     }
@@ -643,6 +650,79 @@ class AccountSettingsViewModelTest {
 
         assertThat(viewModel.uiState.value.balance)
             .isEqualTo(BalanceUiState.Loaded(tokenCredits = 5.0, autoRefill = AutoRefillInfo.Off))
+    }
+
+    @Test
+    fun `a return re-reads the balance without blanking the shown one`() = runTest {
+        startupConfig.value = StartupConfig(balance = BalanceConfig(enabled = true))
+        coEvery { balanceRepository.getBalance() } returns Result.Success(Balance(tokenCredits = 5.0))
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.balance)
+            .isEqualTo(BalanceUiState.Loaded(tokenCredits = 5.0, autoRefill = AutoRefillInfo.Off))
+
+        val refilled = Balance(
+            tokenCredits = 7.0,
+            autoRefillEnabled = true,
+            refillAmount = 5000.0,
+            refillIntervalValue = 30.0,
+            refillIntervalUnit = "days",
+            lastRefill = "2026-11-01T00:00:00.000Z",
+        )
+        val gate = CompletableDeferred<Unit>()
+        coEvery { balanceRepository.getBalance() } coAnswers {
+            gate.await()
+            Result.Success(refilled)
+        }
+        viewModel.refreshOnReturn()
+        runCurrent()
+        assertThat(viewModel.uiState.value.balance)
+            .isEqualTo(BalanceUiState.Loaded(tokenCredits = 5.0, autoRefill = AutoRefillInfo.Off))
+
+        gate.complete(Unit)
+        advanceUntilIdle()
+        val balance = viewModel.uiState.value.balance as BalanceUiState.Loaded
+        assertThat(balance.tokenCredits).isEqualTo(7.0)
+        assertThat(balance.autoRefill).isEqualTo(refilled.autoRefillInfo())
+        assertThat(balance.autoRefill).isNotEqualTo(AutoRefillInfo.Off)
+    }
+
+    @Test
+    fun `a failed balance refresh on return keeps the shown balance`() = runTest {
+        startupConfig.value = StartupConfig(balance = BalanceConfig(enabled = true))
+        coEvery { balanceRepository.getBalance() } returns Result.Success(Balance(tokenCredits = 5.0))
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        coEvery { balanceRepository.getBalance() } returns Result.Error(RuntimeException("boom"), "boom")
+        viewModel.refreshOnReturn()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.balance)
+            .isEqualTo(BalanceUiState.Loaded(tokenCredits = 5.0, autoRefill = AutoRefillInfo.Off))
+        coVerify(exactly = 2) { balanceRepository.getBalance() }
+    }
+
+    @Test
+    fun `the first resume skips a balance load still running, then re-reads on re-entry`() = runTest {
+        startupConfig.value = StartupConfig(balance = BalanceConfig(enabled = true))
+        val gate = CompletableDeferred<Unit>()
+        coEvery { balanceRepository.getBalance() } coAnswers {
+            gate.await()
+            Result.Success(Balance(tokenCredits = 5.0))
+        }
+        val viewModel = createViewModel()
+        runCurrent()
+
+        viewModel.refreshBalance()
+        runCurrent()
+        coVerify(exactly = 1) { balanceRepository.getBalance() }
+
+        gate.complete(Unit)
+        advanceUntilIdle()
+        viewModel.refreshBalance()
+        advanceUntilIdle()
+        coVerify(exactly = 2) { balanceRepository.getBalance() }
     }
 
     @Test
