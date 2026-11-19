@@ -604,6 +604,7 @@
     <string name="error_mcp_authentication_refresh_failed">接続されている MCP サーバーのサインインを更新できなかったため、メッセージは送信されませんでした。しばらくしてからもう一度お試しください。</string>
     <string name="error_project_resources_changed">メッセージの開始中にこのプロジェクトのファイルが変更されたため、送信されませんでした。もう一度お試しください。</string>
     <string name="error_project_context_unavailable">このチャットのプロジェクトは利用できなくなったため、メッセージは送信されませんでした。削除された可能性があります。</string>
+    <string name="error_project_context_changed">応答の一時停止中にこのチャットのプロジェクトが変更されたため、応答は停止しました。続けるにはメッセージをもう一度送信してください。</string>
     <string name="error_account_deletion_in_progress">アカウントの削除処理中のため、新しいメッセージは送信できません。</string>
     <string name="error_generation_admission_unavailable">サーバーが今は応答を開始できなかったため、メッセージは送信されませんでした。もう一度お試しください。</string>
     <string name="error_token_balance">このリクエストに必要な残高が不足しています。</string>

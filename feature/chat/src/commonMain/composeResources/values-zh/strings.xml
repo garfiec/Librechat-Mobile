@@ -604,6 +604,7 @@
     <string name="error_mcp_authentication_refresh_failed">无法刷新已连接 MCP 服务器的登录，因此消息未发送。请稍后重试。</string>
     <string name="error_project_resources_changed">消息开始发送时此项目的文件发生了变化，因此未发送。请重试。</string>
     <string name="error_project_context_unavailable">此对话所属的项目已不可用，因此消息未发送。该项目可能已被删除。</string>
+    <string name="error_project_context_changed">回复暂停期间此对话所属的项目发生了变化，因此回复已停止。请重新发送消息以继续。</string>
     <string name="error_account_deletion_in_progress">你的账户正在删除，因此无法发送新消息。</string>
     <string name="error_generation_admission_unavailable">服务器暂时无法开始回复，因此消息未发送。请重试。</string>
     <string name="error_token_balance">你的余额不足以完成此请求。</string>

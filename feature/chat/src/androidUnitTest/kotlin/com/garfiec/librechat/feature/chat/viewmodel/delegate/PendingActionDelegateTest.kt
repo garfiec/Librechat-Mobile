@@ -548,6 +548,25 @@ class PendingActionDelegateTest {
         }
 
     @Test
+    fun `a 409 for a changed project context takes the card and says to send again`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val (delegate, flow) = delegateWith(this, nowMillis = { 1_000L })
+            val body = """{"code":"PROJECT_CONTEXT_CHANGED","error":"Project context changed; start a new turn.",""" +
+                """"generationProtocolVersion":1}"""
+            coEvery { chatRepository.resumeChat(any()) } returns Result.Error(
+                ApiException(409, "Project context changed; start a new turn.", body = body),
+                "Project context changed; start a new turn.",
+            )
+
+            delegate.onPendingAction(toolApproval().copy(expiresAt = 60_000L))
+            delegate.submitAnswer("yes")
+
+            assertThat(flow.value.pendingAction).isNull()
+            assertThat(flow.value.pendingActionResumeFailed).isFalse()
+            assertThat(flow.value.error).isEqualTo("stream_error:PROJECT_CONTEXT_CHANGED")
+        }
+
+    @Test
     fun `an accepted decision clears the pause`() = runTest(UnconfinedTestDispatcher()) {
         val (delegate, flow) = delegateWith(this)
         coEvery { chatRepository.resumeChat(any()) } returns Result.Success(ChatResumeResponse())

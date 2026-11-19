@@ -636,6 +636,7 @@
     <string name="error_mcp_authentication_refresh_failed">Sign-in for a connected MCP server could not be refreshed, so the message was not sent. Try again in a moment.</string>
     <string name="error_project_resources_changed">This project's files changed while the message was starting, so it was not sent. Try again.</string>
     <string name="error_project_context_unavailable">This chat's project is no longer available, so the message was not sent. It may have been deleted.</string>
+    <string name="error_project_context_changed">This chat's project changed while the response was paused, so it stopped. Send your message again to continue.</string>
     <string name="error_account_deletion_in_progress">Your account is being deleted, so no new messages can be sent.</string>
     <string name="error_generation_admission_unavailable">The server couldn't start the reply right now, so the message was not sent. Try again.</string>
     <string name="error_token_balance">You don't have enough balance left for this request.</string>

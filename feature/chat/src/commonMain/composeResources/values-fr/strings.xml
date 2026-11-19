@@ -613,6 +613,7 @@
     <string name="error_mcp_authentication_refresh_failed">La connexion d'un serveur MCP connecté n'a pas pu être actualisée, le message n'a donc pas été envoyé. Réessayez dans un instant.</string>
     <string name="error_project_resources_changed">Les fichiers de ce projet ont changé pendant le démarrage du message, il n'a donc pas été envoyé. Réessayez.</string>
     <string name="error_project_context_unavailable">Le projet de cette discussion n'est plus disponible, le message n'a donc pas été envoyé. Il a peut-être été supprimé.</string>
+    <string name="error_project_context_changed">Le projet de cette discussion a changé pendant que la réponse était en pause, elle s'est donc arrêtée. Renvoyez votre message pour continuer.</string>
     <string name="error_account_deletion_in_progress">Votre compte est en cours de suppression, aucun nouveau message ne peut donc être envoyé.</string>
     <string name="error_generation_admission_unavailable">Le serveur n'a pas pu démarrer la réponse pour le moment, le message n'a donc pas été envoyé. Réessayez.</string>
     <string name="error_token_balance">Votre solde est insuffisant pour cette requête.</string>

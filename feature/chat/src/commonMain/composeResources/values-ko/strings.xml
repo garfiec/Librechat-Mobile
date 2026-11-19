@@ -604,6 +604,7 @@
     <string name="error_mcp_authentication_refresh_failed">연결된 MCP 서버의 로그인을 갱신할 수 없어 메시지가 전송되지 않았습니다. 잠시 후 다시 시도하세요.</string>
     <string name="error_project_resources_changed">메시지를 시작하는 동안 이 프로젝트의 파일이 변경되어 전송되지 않았습니다. 다시 시도하세요.</string>
     <string name="error_project_context_unavailable">이 채팅의 프로젝트를 더 이상 사용할 수 없어 메시지가 전송되지 않았습니다. 삭제되었을 수 있습니다.</string>
+    <string name="error_project_context_changed">응답이 일시 중지된 동안 이 채팅의 프로젝트가 변경되어 응답이 중지되었습니다. 계속하려면 메시지를 다시 보내세요.</string>
     <string name="error_account_deletion_in_progress">계정을 삭제하는 중이라 새 메시지를 보낼 수 없습니다.</string>
     <string name="error_generation_admission_unavailable">서버가 지금 응답을 시작할 수 없어 메시지가 전송되지 않았습니다. 다시 시도하세요.</string>
     <string name="error_token_balance">이 요청에 필요한 잔액이 부족합니다.</string>

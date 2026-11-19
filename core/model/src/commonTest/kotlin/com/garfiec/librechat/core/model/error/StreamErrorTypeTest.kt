@@ -179,6 +179,18 @@ class StreamErrorTypeTest {
         assertNull(StreamErrorType.parse(changed))
     }
 
+    /** `PROJECT_CONTEXT_CHANGED_REASON` / `PROJECT_CONTEXT_CHANGED_RESPONSE` (`packages/api/src/projects/resume.ts`). */
+    @Test
+    fun the_resume_project_context_reason_maps_to_its_marker() {
+        val reason = "Project context changed before approval could be resumed"
+        val conflict = """{"code":"PROJECT_CONTEXT_CHANGED","error":"Project context changed; start a new turn."}"""
+
+        assertEquals("stream_error:PROJECT_CONTEXT_CHANGED", StreamErrorType.markerOrText(reason))
+        assertNull(StreamErrorType.parse(reason))
+        // The resume 409's code is read at that one site, never from a run's error text.
+        assertEquals(conflict, StreamErrorType.markerOrText(conflict))
+    }
+
     /** `GenerationAdmissionDeniedError` / `GenerationAdmissionUnavailableError` (IJobStore.ts). */
     @Test
     fun a_start_post_refused_at_generation_admission_maps_to_its_marker() {

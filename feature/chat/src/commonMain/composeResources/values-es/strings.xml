@@ -613,6 +613,7 @@
     <string name="error_mcp_authentication_refresh_failed">No se pudo renovar el inicio de sesión de un servidor MCP conectado, así que el mensaje no se envió. Inténtalo de nuevo en un momento.</string>
     <string name="error_project_resources_changed">Los archivos de este proyecto cambiaron mientras se iniciaba el mensaje, así que no se envió. Inténtalo de nuevo.</string>
     <string name="error_project_context_unavailable">El proyecto de este chat ya no está disponible, así que el mensaje no se envió. Puede que se haya eliminado.</string>
+    <string name="error_project_context_changed">El proyecto de este chat cambió mientras la respuesta estaba en pausa, así que se detuvo. Envía tu mensaje de nuevo para continuar.</string>
     <string name="error_account_deletion_in_progress">Tu cuenta se está eliminando, así que no se pueden enviar mensajes nuevos.</string>
     <string name="error_generation_admission_unavailable">El servidor no pudo iniciar la respuesta en este momento, así que el mensaje no se envió. Inténtalo de nuevo.</string>
     <string name="error_token_balance">No tienes saldo suficiente para esta solicitud.</string>

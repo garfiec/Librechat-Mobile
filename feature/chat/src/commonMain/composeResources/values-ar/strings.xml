@@ -634,6 +634,7 @@
     <string name="error_mcp_authentication_refresh_failed">تعذّر تحديث تسجيل الدخول لخادم MCP متصل، لذا لم تُرسَل الرسالة. حاول مرة أخرى بعد قليل.</string>
     <string name="error_project_resources_changed">تغيّرت ملفات هذا المشروع أثناء بدء الرسالة، لذا لم تُرسل. حاول مرة أخرى.</string>
     <string name="error_project_context_unavailable">لم يعد مشروع هذه المحادثة متاحًا، لذا لم تُرسل الرسالة. ربما حُذف.</string>
+    <string name="error_project_context_changed">تغيّر مشروع هذه المحادثة أثناء إيقاف الرد مؤقتًا، لذا توقّف. أرسل رسالتك مرة أخرى للمتابعة.</string>
     <string name="error_account_deletion_in_progress">يجري حذف حسابك، لذا لا يمكن إرسال رسائل جديدة.</string>
     <string name="error_generation_admission_unavailable">تعذّر على الخادم بدء الرد الآن، لذا لم تُرسل الرسالة. حاول مرة أخرى.</string>
     <string name="error_token_balance">رصيدك لا يكفي لهذا الطلب.</string>

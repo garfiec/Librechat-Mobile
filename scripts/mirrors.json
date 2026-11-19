@@ -5972,6 +5972,33 @@
       "failure_mode": "Upstream renames the code or rewords the 404: the send fails with a generic error that doesn't say the project changed or is gone."
     },
     {
+      "id": "resume-project-context-changed-reason",
+      "upstream": {
+        "file": "packages/api/src/projects/resume.ts",
+        "symbol": "PROJECT_CONTEXT_CHANGED_REASON",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/error/StreamErrorType.kt",
+        "symbol": "PROJECT_CONTEXT_CHANGED_REASON"
+      },
+      "why": "The uncoded sentence a run ends with when a project chat's instructions or files changed during a tool-approval or ask pause. Matched exactly so the stream-end banner shows localized copy telling the user to send again.",
+      "failure_mode": "Upstream rewords the sentence: the banner shows the server's raw English again, with no hint to send again. Nothing fails to decode."
+    },
+    {
+      "id": "resume-project-context-changed-code",
+      "upstream": {
+        "file": "packages/api/src/projects/resume.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/error/ServerErrorCode.kt",
+        "symbol": "PROJECT_CONTEXT_CHANGED"
+      },
+      "why": "The code on the resume POST's 409 (PROJECT_CONTEXT_CHANGED_RESPONSE) when the pause's project context changed; PendingActionDelegate dismisses the card on it. Whole file, because the response constant's typed declaration ends a block before the code literal.",
+      "failure_mode": "Upstream renames the code: when the 409 lands before the stream's error, or the stream is detached, the card stays up with a Retry that can only 409 again."
+    },
+    {
       "id": "attachment-recovery-error-patterns",
       "upstream": {
         "file": "client/src/components/Messages/Content/Error/attachments.ts",
