@@ -298,13 +298,9 @@ object CodeWorkspaceResolver {
             emptyList()
         }
         val machineOptionGroups = if (undecided) machineChoiceOwners.map { it.environmentIds } else emptyList()
-        val maxChoices = config?.maxEnvironmentChoices
         val machineOptions = if (machineOptionGroups.isNotEmpty()) {
             environmentsConfig.orEmpty().filter { env ->
                 env.isAttached && machineOptionGroups.any { env.id in it }
-            }.let { options ->
-                // The default machine is always allowed; the cap counts the extras.
-                if (maxChoices != null && maxChoices >= 0) options.take(maxChoices + 1) else options
             }
         } else {
             emptyList()

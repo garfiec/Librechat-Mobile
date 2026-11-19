@@ -6,6 +6,8 @@ import com.garfiec.librechat.core.model.code.CodeWorkspaceResolver.Capabilities
 import com.garfiec.librechat.core.model.code.CodeWorkspaceResolver.Chat
 import com.garfiec.librechat.core.model.code.CodeWorkspaceResolver.State
 import com.garfiec.librechat.core.model.code.CodeWorkspaceResolver.StatusResult
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -391,6 +393,36 @@ class CodeWorkspaceResolverTest {
         assertEquals(listOf(mbp.id, vm.id), on.machineOptions.map { it.id })
         val off = CodeWorkspaceResolver.resolve(capabilities(), newChat(), mapOf(dev.id to chooser), statuses)
         assertTrue(off.machineOptions.isEmpty())
+    }
+
+    @Test
+    fun aChoiceLimitDoesNotHideAMachineAnAgentMayUse() {
+        val machines = listOf("a", "b", "c", "d").map { PublicCodeEnvironment(id = it, name = it, type = "attached") }
+        val caps = capabilities(allowSelection = true).copy(
+            statefulCodeSessions = StatefulCodeSessionsConfig(
+                environments = listOf(managed) + machines,
+                allowEnvironmentSelection = true,
+                maxEnvironmentChoices = 1,
+            ),
+        )
+        fun coder(id: String, default: String, choices: List<String>) = Agent(
+            id = id,
+            name = id,
+            tools = listOf("execute_code"),
+            statefulCodeSessions = true,
+            codeEnvironmentId = default,
+            codeEnvironmentIds = choices,
+        )
+        val y = coder("agent_y", "c", listOf("d"))
+        val x = coder("agent_x", "a", listOf("b")).copy(
+            edges = listOf(buildJsonObject { put("from", "agent_x"); put("to", y.id) }),
+        )
+        val handoff = CodeWorkspaceResolver.resolve(caps, newChat(agentId = x.id), mapOf(x.id to x, y.id to y), emptyMap())
+        assertEquals(listOf("a", "b", "c", "d"), handoff.machineOptions.map { it.id })
+
+        val widened = coder("agent_z", "a", listOf("b", "c"))
+        val lowered = CodeWorkspaceResolver.resolve(caps, newChat(agentId = widened.id), mapOf(widened.id to widened), emptyMap())
+        assertEquals(listOf("a", "b", "c"), lowered.machineOptions.map { it.id })
     }
 
     @Test
