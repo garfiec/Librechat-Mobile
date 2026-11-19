@@ -87,6 +87,8 @@ fun ChatRoot(
     onOpenMemories: (() -> Unit)?,
     /** Backs [LocalUserKeyErrors]; null where the keys aren't the reader's (the shared-chat viewer). */
     userKeyErrors: UserKeyErrors?,
+    /** Backs [LocalAgentNames]; empty where the reader has no agents list (the shared-chat viewer). */
+    agentNames: Map<String, String>,
     /** Backs [LocalMcpSignIn]; null where nothing can sign in (the shared-chat viewer). */
     mcpSignIn: McpSignIn?,
     /**
@@ -174,6 +176,7 @@ fun ChatRoot(
         LocalSiteIcons provides siteIconsLocal,
         LocalOpenMemories provides onOpenMemories,
         LocalUserKeyErrors provides userKeyErrors,
+        LocalAgentNames provides agentNames,
         LocalMcpSignIn provides mcpSignIn,
         LocalMcpApps provides mcpApps,
         LocalLegacyUiResources provides legacyUiResources,

@@ -222,7 +222,9 @@ private fun ToolCallDispatcherContent(
                 )
             }
             toolNameLower.startsWith(ToolConstants.LC_TRANSFER_TO_PREFIX) -> {
-                val target = toolName.substring(ToolConstants.LC_TRANSFER_TO_PREFIX.length).ifBlank { toolName }
+                // Never the id: an agent not in the list reads as "Agent", as on web.
+                val target = handoffTargetName(toolName, LocalAgentNames.current)
+                    ?: stringResource(Res.string.chat_agent_fallback_label)
                 AgentHandoffCard(
                     handoff = AgentHandoff(fromAgent = null, toAgent = target, reason = null),
                     modifier = cardModifier,

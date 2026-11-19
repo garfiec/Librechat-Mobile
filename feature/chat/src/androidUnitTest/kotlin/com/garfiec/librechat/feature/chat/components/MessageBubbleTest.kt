@@ -13,7 +13,9 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsNotFocused
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -21,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.ContentType
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.Message
+import com.garfiec.librechat.core.model.content.AgentToolCall
 import com.garfiec.librechat.core.model.content.MessageContentPart
 import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.core.ui.theme.LibreChatTheme
@@ -78,11 +81,35 @@ class MessageBubbleTest {
         composeRule.onAllNodesWithText("Add key").assertCountEquals(0)
     }
 
-    private fun showThread(thread: List<Message>, userKeyErrors: UserKeyErrors?) {
+    @Test
+    fun aHandoffToAnUnlistedAgentReadsAgentNeverTheId() {
+        showThread(HANDOFF_THREAD, userKeyErrors = null)
+
+        composeRule.onAllNodesWithText(HANDOFF_TARGET, substring = true).assertCountEquals(0)
+        composeRule.onAllNodesWithContentDescription(HANDOFF_TARGET, substring = true).assertCountEquals(0)
+        composeRule.onNodeWithText("Agent").assertExists()
+    }
+
+    @Test
+    fun aHandoffCardNamesTheTargetAgent() {
+        showThread(HANDOFF_THREAD, userKeyErrors = null, agentNames = mapOf(HANDOFF_TARGET to "Booking Agent"))
+
+        composeRule.onNodeWithText("Booking Agent").assertExists()
+        composeRule.onNodeWithContentDescription("Agent handoff from unknown to Booking Agent").assertExists()
+        composeRule.onAllNodesWithText(HANDOFF_TARGET, substring = true).assertCountEquals(0)
+        composeRule.onAllNodesWithContentDescription(HANDOFF_TARGET, substring = true).assertCountEquals(0)
+    }
+
+    private fun showThread(
+        thread: List<Message>,
+        userKeyErrors: UserKeyErrors?,
+        agentNames: Map<String, String> = emptyMap(),
+    ) {
         composeRule.setContent {
             CompositionLocalProvider(
                 LocalParsedMarkdownCache provides remember { ParsedMarkdownCache() },
                 LocalUserKeyErrors provides userKeyErrors,
+                LocalAgentNames provides agentNames,
             ) {
                 LibreChatTheme {
                     MessageList(
@@ -167,6 +194,18 @@ class MessageBubbleTest {
             error = true,
             endpoint = "openAI",
             model = "gpt-4o-mini",
+        )
+
+        const val HANDOFF_TARGET = "agent_B1"
+
+        val HANDOFF_THREAD = THREAD.take(1) + THREAD[1].copy(
+            content = listOf(
+                MessageContentPart(
+                    type = ContentType.TOOL_CALL,
+                    toolCall = AgentToolCall(id = "call_1", name = "lc_transfer_to_$HANDOFF_TARGET"),
+                ),
+                MessageContentPart(type = ContentType.TEXT, text = LAST_TEXT),
+            ),
         )
 
         val THREAD_WITH_THINKING = THREAD.take(1) + THREAD[1].copy(
