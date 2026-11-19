@@ -69,3 +69,7 @@ internal fun dateLabel(range: DateRange): String = stringResource(
 
 /** A model id as shown: an agent's name when it is one and the name is known, else the id. */
 internal fun String?.named(agentNames: Map<String, String>): String? = this?.let { agentNames[it] ?: it }
+
+/** A chat's model as its preview header shows it: an agent's name once known, never the agent's id. */
+internal fun String?.chatLabel(agentNames: Map<String, String>): String? =
+    this?.let { agentNames[it] ?: it.takeUnless { id -> id.startsWith(SearchViewModel.AGENT_ID_PREFIX) } }

@@ -10,6 +10,7 @@ import com.garfiec.librechat.core.common.extensions.dayBoundaryReferences
 import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.bookmarks.BookmarkPickerController
+import com.garfiec.librechat.core.data.repository.AgentRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.data.repository.FileRepository
@@ -23,6 +24,7 @@ import com.garfiec.librechat.core.model.ChatProject
 import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.config.ChatProjectLimits
 import com.garfiec.librechat.core.model.permissions.canCreateSharedLinks
+import com.garfiec.librechat.feature.conversations.components.AgentNameLookup
 import com.garfiec.librechat.feature.conversations.components.ConversationDisplayData
 import com.garfiec.librechat.feature.conversations.components.message
 import com.garfiec.librechat.feature.conversations.export.ConversationExporter
@@ -92,11 +94,14 @@ class ProjectChatsViewModel(
     private val configRepository: ConfigRepository,
     private val projectRepository: ProjectRepository,
     fileRepository: FileRepository,
+    agentRepository: AgentRepository,
     // Defaulted rather than Koin-provided: this one is built by an explicit `viewModel { }` block
     // (projectId arrives via parametersOf), so a default costs no DI wiring. Tests override it —
     // the production flow never completes, which would hang `advanceUntilIdle()`.
     private val dayBoundaries: Flow<RelativeTimeReference> = dayBoundaryReferences(),
 ) : ViewModel() {
+
+    private val agentNames = AgentNameLookup(agentRepository, viewModelScope)
 
     private val _uiState = MutableStateFlow(ProjectChatsUiState())
     val uiState: StateFlow<ProjectChatsUiState> = _uiState.asStateFlow()
@@ -284,8 +289,10 @@ class ProjectChatsViewModel(
                 configRepository.endpointConfigs,
                 configRepository.serverUrl,
                 dayBoundaries,
-            ) { convos, configs, serverUrl, reference ->
-                groupConversationsByDate(convos, configs, serverUrl, reference) to convos.size
+                agentNames.names,
+            ) { convos, configs, serverUrl, reference, names ->
+                agentNames.request(convos)
+                groupConversationsByDate(convos, configs, serverUrl, reference, names) to convos.size
             }.collect { (grouped, count) ->
                 _uiState.value = _uiState.value.copy(groupedConversations = grouped, conversationCount = count)
             }

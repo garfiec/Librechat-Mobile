@@ -31,11 +31,12 @@ data class ConversationDisplayData(
 fun Conversation.toDisplayData(
     endpointConfigs: Map<String, EndpointConfig>,
     serverUrl: String,
+    agentNames: Map<String, String> = emptyMap(),
 ): ConversationDisplayData = ConversationDisplayData(
     conversationId = conversationId ?: "",
     title = title ?: "New Chat",
     endpoint = endpoint,
-    model = model,
+    model = rowModelLabel(null, agentNames),
     updatedAt = updatedAt,
     isFavorite = SAVED_TAG in tags,
     endpointIconUrl = resolveEndpointIconUrl(endpointConfigs, serverUrl),

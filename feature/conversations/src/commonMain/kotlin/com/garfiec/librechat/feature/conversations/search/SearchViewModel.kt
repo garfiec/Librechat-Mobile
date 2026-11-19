@@ -33,6 +33,7 @@ import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.content.LegacyThinking
 import com.garfiec.librechat.core.model.content.flattenSearchableText
 import com.garfiec.librechat.core.model.content.stripCitations
+import com.garfiec.librechat.feature.conversations.components.agentKey
 import com.garfiec.librechat.feature.conversations.drawer.DrawerSearchSources
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -402,7 +403,7 @@ class SearchViewModel(
         previewJob = viewModelScope.launch {
             val conversation = (conversationRepository.observeConversations().first() as? Result.Success)
                 ?.data?.firstOrNull { it.conversationId == group.conversationId }
-            resolveAgentName(conversation?.model)
+            resolveAgentName(conversation?.agentKey())
             val messages = messageRepository.conversationMessages(group.conversationId, firstHit, fetch = group.fromServer)
             if (openableConversation(group.conversationId) == null) return@launch
             val turns = withContext(defaultDispatcher) {
@@ -420,7 +421,7 @@ class SearchViewModel(
                 } else {
                     current.copy(
                         chatPreview = preview.copy(
-                            model = conversation?.model,
+                            model = conversation?.let { it.agentKey() ?: it.model },
                             updatedAt = conversation?.updatedAt?.toEpochMilliseconds(),
                             thread = turns.orEmpty(),
                             focusIndex = focus,

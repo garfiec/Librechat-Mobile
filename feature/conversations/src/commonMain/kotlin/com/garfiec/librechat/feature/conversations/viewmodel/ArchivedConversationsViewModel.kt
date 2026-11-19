@@ -10,6 +10,7 @@ import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.feature.conversations.ArchivedConversationDisplayData
+import com.garfiec.librechat.feature.conversations.components.AgentNameLookup
 import com.garfiec.librechat.feature.conversations.toArchivedDisplayData
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -42,7 +43,7 @@ sealed interface ArchivedConversationsEvent {
 class ArchivedConversationsViewModel(
     private val conversationRepository: ConversationRepository,
     private val configRepository: ConfigRepository,
-    private val agentRepository: AgentRepository,
+    agentRepository: AgentRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ArchivedConversationsUiState())
@@ -59,9 +60,7 @@ class ArchivedConversationsViewModel(
     /** Bumped by each first page, so a next page started before it doesn't land its stale cursor. */
     private var generation = 0
 
-    /** An agent chat's model is the agent's id; its name is looked up once per id. */
-    private val agentNames = MutableStateFlow<Map<String, String>>(emptyMap())
-    private val requestedAgentIds = mutableSetOf<String>()
+    private val agentNames = AgentNameLookup(agentRepository, viewModelScope)
 
     init {
         observeArchivedConversations()
@@ -77,11 +76,11 @@ class ArchivedConversationsViewModel(
                 conversationRepository.observeConversations(isArchived = true),
                 configRepository.endpointConfigs,
                 configRepository.startupConfig.map { it?.modelSpecs }.distinctUntilChanged(),
-                agentNames,
+                agentNames.names,
                 configRepository.serverUrl,
             ) { result, configs, modelSpecs, names, serverUrl ->
                 if (result is Result.Success) {
-                    result.data.forEach { resolveAgentName(it.model) }
+                    agentNames.request(result.data)
                     result to result.data.map { it.toArchivedDisplayData(configs, serverUrl, modelSpecs, names) }
                 } else {
                     result to null
@@ -100,15 +99,6 @@ class ArchivedConversationsViewModel(
                     is Result.Loading -> { /* no-op */ }
                 }
             }
-        }
-    }
-
-    private fun resolveAgentName(model: String?) {
-        if (model == null || !model.startsWith(AGENT_ID_PREFIX) || !requestedAgentIds.add(model)) return
-        viewModelScope.launch {
-            val name = (agentRepository.getAgent(model) as? Result.Success)?.data?.name
-                ?.takeIf { it.isNotBlank() } ?: return@launch
-            agentNames.update { it + (model to name) }
         }
     }
 
@@ -207,9 +197,5 @@ class ArchivedConversationsViewModel(
 
     fun dismissError() {
         _uiState.value = _uiState.value.copy(error = null)
-    }
-
-    private companion object {
-        const val AGENT_ID_PREFIX = "agent_"
     }
 }

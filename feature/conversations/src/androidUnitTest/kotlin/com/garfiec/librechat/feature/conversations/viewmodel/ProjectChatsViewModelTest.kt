@@ -2,13 +2,16 @@ package com.garfiec.librechat.feature.conversations.viewmodel
 
 import com.garfiec.librechat.core.common.BackendBuildClass
 import com.garfiec.librechat.core.common.DetectedBackend
+import com.garfiec.librechat.core.common.extensions.RelativeTimeReference
 import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.bookmarks.BookmarkPickerFailure
+import com.garfiec.librechat.core.data.repository.AgentRepository
 import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.data.repository.FileRepository
 import com.garfiec.librechat.core.data.repository.ProjectRepository
 import com.garfiec.librechat.core.data.repository.TagRepository
+import com.garfiec.librechat.core.model.Agent
 import com.garfiec.librechat.core.model.ChatProject
 import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.ConversationPage
@@ -30,6 +33,7 @@ import io.mockk.mockk
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flowOf
@@ -49,6 +53,7 @@ class ProjectChatsViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
     private val conversationRepository = mockk<ConversationRepository>(relaxed = true)
+    private val agentRepository = mockk<AgentRepository>(relaxed = true)
     private val projectRepository = mockk<ProjectRepository>(relaxed = true)
     private val revision = MutableStateFlow(0L)
     private val cachedTags = MutableStateFlow<Map<String, List<String>>>(emptyMap())
@@ -67,7 +72,7 @@ class ProjectChatsViewModelTest {
     private suspend fun MockKMatcherScope.chats(cursor: String? = null, sortBy: String = "updatedAt") =
         conversationRepository.getConversationsForProject("p1", cursor, any(), sortBy, "desc")
 
-    private fun viewModel() = ProjectChatsViewModel(
+    private fun viewModel(dayBoundaries: Flow<RelativeTimeReference> = emptyFlow()) = ProjectChatsViewModel(
         projectId = "p1",
         conversationRepository = conversationRepository,
         tagRepository = tagRepository,
@@ -84,7 +89,8 @@ class ProjectChatsViewModelTest {
         },
         projectRepository = projectRepository,
         fileRepository = fileRepository,
-        dayBoundaries = emptyFlow(),
+        agentRepository = agentRepository,
+        dayBoundaries = dayBoundaries,
     )
 
     @Before
@@ -98,6 +104,19 @@ class ProjectChatsViewModelTest {
     @After
     fun tearDown() {
         Dispatchers.resetMain()
+    }
+
+    @Test
+    fun `an agent chat's row shows the agent's name`() = runTest(testDispatcher) {
+        coEvery { chats() } returns Result.Success(
+            ConversationPage(listOf(Conversation(conversationId = "a", endpoint = "agents", agentId = "agent_x", model = "agent_x")), null),
+        )
+        coEvery { agentRepository.getAgent("agent_x") } returns Result.Success(Agent(id = "agent_x", name = "Pelican Pal"))
+        val vm = viewModel(dayBoundaries = flowOf(RelativeTimeReference.current()))
+        advanceUntilIdle()
+
+        assertThat(vm.uiState.value.groupedConversations.flatMap { (_, rows) -> rows }.single().model).isEqualTo("Pelican Pal")
+        coVerify(exactly = 1) { agentRepository.getAgent("agent_x") }
     }
 
     @Test
@@ -415,6 +434,7 @@ class ProjectChatsViewModelTest {
             },
             projectRepository = projectRepository,
             fileRepository = fileRepository,
+            agentRepository = agentRepository,
             dayBoundaries = emptyFlow(),
         )
         advanceUntilIdle()

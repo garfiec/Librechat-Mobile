@@ -185,6 +185,21 @@ class ArchivedConversationsViewModelTest {
     }
 
     @Test
+    fun `a forked agent chat is named by its agent, not the model`() {
+        val conversation = Conversation(conversationId = "c1", agentId = "agent_abc", model = "gpt-4o-mini")
+
+        assertThat(conversation.toArchivedDisplayData(serverUrl = "", agentNames = mapOf("agent_abc" to "Researcher")).modelLabel)
+            .isEqualTo("Researcher")
+    }
+
+    @Test
+    fun `an unresolved agent chat shows no id`() {
+        val conversation = Conversation(conversationId = "c1", agentId = "agent_abc", model = "agent_abc")
+
+        assertThat(conversation.toArchivedDisplayData(serverUrl = "").modelLabel).isNull()
+    }
+
+    @Test
     fun `a spec's label wins over the model id`() {
         val specs = ModelSpecs(list = listOf(ModelSpec(name = "fast", label = "Fast")))
         val conversation = Conversation(conversationId = "c1", model = "gpt-4o", spec = "fast")

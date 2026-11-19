@@ -512,6 +512,39 @@ class SearchViewModelTest {
     }
 
     @Test
+    fun `a forked agent chat's preview header names the agent, not the fork's model`() = runTest(dispatcher) {
+        every { conversationRepository.observeConversations(any()) } returns flowOf(
+            Result.Success(
+                listOf(Conversation(conversationId = "c-title", title = "Pelican facts", agentId = "agent_pelican", model = "gpt-4o-mini")),
+            ),
+        )
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        vm.selectConversation("c-title")
+        advanceUntilIdle()
+
+        assertThat(vm.state.value.chatPreview?.model).isEqualTo("agent_pelican")
+        assertThat(vm.state.value.agentNames).containsExactly("agent_pelican", "Pelican Pal")
+        assertThat(vm.state.value.chatPreview?.model.chatLabel(vm.state.value.agentNames)).isEqualTo("Pelican Pal")
+    }
+
+    @Test
+    fun `an agent chat's preview header shows no agent id while its name is unknown`() = runTest(dispatcher) {
+        every { conversationRepository.observeConversations(any()) } returns flowOf(
+            Result.Success(listOf(Conversation(conversationId = "c-title", title = "Pelican facts", agentId = "agent_gone"))),
+        )
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        vm.selectConversation("c-title")
+        advanceUntilIdle()
+
+        assertThat(vm.state.value.chatPreview?.model.chatLabel(vm.state.value.agentNames)).isNull()
+        assertThat("gpt-4o".chatLabel(emptyMap())).isEqualTo("gpt-4o")
+    }
+
+    @Test
     fun `a regex is searched however short it is`() = runTest(dispatcher) {
         advanced.value = true
         val vm = viewModel(query = ".")
