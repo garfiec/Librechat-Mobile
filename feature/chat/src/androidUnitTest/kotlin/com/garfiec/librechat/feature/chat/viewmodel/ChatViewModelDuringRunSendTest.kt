@@ -25,6 +25,7 @@ import com.garfiec.librechat.core.model.request.SteerRequest
 import com.garfiec.librechat.core.model.response.ChatResumeResponse
 import com.garfiec.librechat.core.model.response.ChatStatusResponse
 import com.garfiec.librechat.core.model.response.SteerResponse
+import com.garfiec.librechat.feature.chat.components.AttachedFile
 import com.garfiec.librechat.feature.chat.util.AskAnswerDraft
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PickedFile
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PlatformFileHandler
@@ -84,6 +85,7 @@ import org.junit.Test
  * `advanceUntilIdle()`.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
+@Suppress("LargeClass") // debt: 978-line file
 class ChatViewModelDuringRunSendTest {
 
     private val testDispatcher = UnconfinedTestDispatcher()
@@ -312,6 +314,24 @@ class ChatViewModelDuringRunSendTest {
             coVerify(exactly = 0) { chatRepository.steerChat(any()) }
             assertThat(vm.uiState.value.messageQueue.map { it.text }).containsExactly(TEXT)
         }
+
+    @Test
+    fun `send during a run with a file attached queues instead of steering`() {
+        val file = AttachedFile(uri = "content://a.pdf", name = "a.pdf", uploadProgress = 1f, fileId = "file-1")
+        return duringRunTest(
+            preference = DuringRunAction.STEER,
+            arrange = { every { fileHandler.attachedFiles } returns MutableStateFlow(listOf(file)) },
+        ) { vm ->
+            vm.onInputChanged(TEXT)
+            vm.sendDuringRun()
+            runCurrent()
+
+            coVerify(exactly = 0) { chatRepository.steerChat(any()) }
+            val queued = vm.uiState.value.messageQueue.single()
+            assertThat(queued.text).isEqualTo(TEXT)
+            assertThat(queued.attachments.map { it.fileId }).containsExactly("file-1")
+        }
+    }
 
     /**
      * The composer, not the card, is the input the user reaches for — and the resume route picks
