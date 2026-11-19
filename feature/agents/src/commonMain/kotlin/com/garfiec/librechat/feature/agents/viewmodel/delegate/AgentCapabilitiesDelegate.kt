@@ -359,7 +359,8 @@ class AgentCapabilitiesDelegate(
             configRepository.endpointConfigs.collect { configs ->
                 val agentsCapabilities = configs["agents"]?.capabilities ?: emptyList()
                 val available = agentsCapabilities.isEmpty() || "subagents" in agentsCapabilities
-                stateHandle.update { copy(isSubagentsAvailable = available) }
+                val cap = configs["agents"]?.maxSubagents ?: AgentEditorViewModel.MAX_SUBAGENTS
+                stateHandle.update { copy(isSubagentsAvailable = available, maxSubagents = cap) }
             }
         }
     }
@@ -377,10 +378,10 @@ class AgentCapabilitiesDelegate(
 
     fun addSubagent(agentId: String) {
         val current = stateHandle.state.selectedSubagentIds
-        // Upstream caps subagents at MAX_SUBAGENTS; never list the agent itself.
+        // Server caps subagents at `maxSubagents`; never list the agent itself.
         if (agentId != stateHandle.state.agentId &&
             agentId !in current &&
-            current.size < AgentEditorViewModel.MAX_SUBAGENTS
+            current.size < stateHandle.state.maxSubagents
         ) {
             stateHandle.update { copy(selectedSubagentIds = current + agentId) }
         }

@@ -320,7 +320,7 @@ internal fun AgentEditorForm(
                 selectedSubagentIds = uiState.selectedSubagentIds,
                 // Self can't be a listed subagent — it spawns itself via allowSelf.
                 availableAgents = uiState.allAgents.filter { it.id != uiState.agentId },
-                maxSubagents = AgentEditorViewModel.MAX_SUBAGENTS,
+                maxSubagents = uiState.maxSubagents,
                 onToggle = viewModel::onSubagentsToggled,
                 onAllowSelfToggle = viewModel::onSubagentAllowSelfToggled,
                 onAddSubagent = viewModel::addSubagent,

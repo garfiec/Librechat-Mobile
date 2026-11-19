@@ -102,4 +102,14 @@ class EndpointConfigSerializationTest {
         assertEquals(true, decoded.linkedInstructions?.langfuse?.enabled)
         assertEquals(null, json.decodeFromString(EndpointConfig.serializer(), "{}").linkedInstructions)
     }
+
+    @Test
+    fun agentsMaxSubagentsDecodes() {
+        val decoded = json.decodeFromString(
+            EndpointConfig.serializer(),
+            """{"capabilities": ["subagents"], "maxSubagents": 3}""",
+        )
+        assertEquals(3, decoded.maxSubagents)
+        assertEquals(null, json.decodeFromString(EndpointConfig.serializer(), "{}").maxSubagents)
+    }
 }

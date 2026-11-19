@@ -7525,6 +7525,20 @@
       },
       "why": "The linked-instructions version picker: Production first (with the native production revision's number), every listed revision, and the saved pin appended as \"no longer available\" when the list no longer has it.",
       "failure_mode": "Upstream changes the options or how a pin matches a revision, and mobile labels Production wrongly or drops a saved pin from the picker, so a save can silently move the agent to another revision. Nothing fails."
+    },
+    {
+      "id": "max-subagents-default",
+      "upstream": {
+        "file": "packages/data-provider/src/limits.ts",
+        "symbol": "MAX_SUBAGENTS",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/agents/src/commonMain/kotlin/com/garfiec/librechat/feature/agents/viewmodel/AgentEditorViewModel.kt",
+        "symbol": "MAX_SUBAGENTS"
+      },
+      "why": "The agent editor's subagent cap when the agents entry of /api/endpoints carries no `maxSubagents` (older servers, or a yaml without `endpoints.agents`). The server enforces its own default on `agent_ids` either way.",
+      "failure_mode": "Upstream changes the default, and on a server that sends no `agents.maxSubagents` the editor allows more subagents than the server accepts (Save fails with a 400) or fewer than it would. Nothing fails until the user saves."
     }
   ]
 }

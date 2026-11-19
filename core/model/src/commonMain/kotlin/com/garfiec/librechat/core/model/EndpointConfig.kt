@@ -60,6 +60,11 @@ data class EndpointConfig(
     val statefulCodeSessions: StatefulCodeSessionsConfig? = null,
     /** An Azure entry's per-deployment reasoning efforts, by model name ([reasoningCustomParams]). */
     val modelReasoningEfforts: Map<String, List<String>>? = null,
+    /**
+     * The agents entry's cap on an agent's listed subagents; absent on servers before v0.8.8-rc2
+     * and when the yaml has no `endpoints.agents`.
+     */
+    val maxSubagents: Int? = null,
 ) {
     /**
      * The [customParams] a reasoning control for [model] resolves against: the endpoint's own, plus a
