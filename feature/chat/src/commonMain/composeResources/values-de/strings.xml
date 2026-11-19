@@ -610,6 +610,7 @@
     <string name="error_mcp_authentication_refresh_failed">Die Anmeldung für einen verbundenen MCP-Server konnte nicht erneuert werden, daher wurde die Nachricht nicht gesendet. Versuche es gleich noch einmal.</string>
     <string name="error_project_resources_changed">Die Dateien dieses Projekts haben sich geändert, während die Nachricht gestartet wurde, daher wurde sie nicht gesendet. Versuche es erneut.</string>
     <string name="error_project_context_unavailable">Das Projekt dieses Chats ist nicht mehr verfügbar, daher wurde die Nachricht nicht gesendet. Es wurde möglicherweise gelöscht.</string>
+    <string name="error_project_context_changed">Das Projekt dieses Chats hat sich geändert, während die Antwort pausiert war, daher wurde sie beendet. Sende deine Nachricht erneut, um fortzufahren.</string>
     <string name="error_account_deletion_in_progress">Dein Konto wird gerade gelöscht, daher können keine neuen Nachrichten gesendet werden.</string>
     <string name="error_generation_admission_unavailable">Der Server konnte die Antwort gerade nicht starten, daher wurde die Nachricht nicht gesendet. Versuche es erneut.</string>
     <string name="error_token_balance">Dein Guthaben reicht für diese Anfrage nicht aus.</string>

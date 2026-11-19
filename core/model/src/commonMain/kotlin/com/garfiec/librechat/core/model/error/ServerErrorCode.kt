@@ -142,6 +142,13 @@ object ServerErrorCode {
     const val GENERATION_ADMISSION_UNAVAILABLE = "GENERATION_ADMISSION_UNAVAILABLE"
 
     /**
+     * 409 from `POST /api/agents/chat/resume` (v0.8.9-rc1, `packages/api/src/projects/resume.ts`): a
+     * project chat's instructions or files changed during the pause. The run is already finalized, so
+     * no retry can resume it.
+     */
+    const val PROJECT_CONTEXT_CHANGED = "PROJECT_CONTEXT_CHANGED"
+
+    /**
      * The uncoded 404 body on the chat start POST when a project chat's context can't be resolved
      * (v0.8.9-rc1): the project is gone or not the user's. It is the server's `error` sentence, not a
      * code, so it is matched only together with the 404 at that one site.

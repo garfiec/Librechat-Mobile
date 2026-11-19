@@ -10,6 +10,7 @@ import com.garfiec.librechat.core.data.repository.ResumeTurnPin
 import com.garfiec.librechat.core.model.PendingAction
 import com.garfiec.librechat.core.model.ToolApprovalDecisions
 import com.garfiec.librechat.core.model.error.ServerErrorCode
+import com.garfiec.librechat.core.model.error.StreamErrorType
 import com.garfiec.librechat.core.model.request.ChatResumeRequest
 import com.garfiec.librechat.core.model.request.EphemeralAgent
 import com.garfiec.librechat.core.model.request.ToolApprovalResolution
@@ -692,15 +693,18 @@ class PendingActionDelegate(
                 }
                 is Result.Error -> {
                     Logger.w(result.exception) { "Failed to resume paused run: ${result.message}" }
-                    val statusCode = (result.exception as? ApiException)?.statusCode
-                    val dismissal = action.dismissalAfterFailure(statusCode, nowMillis())
+                    val dismissal = action.dismissalAfterFailure(result.exception as? ApiException, nowMillis())
                     if (dismissal != null) {
                         // The panel goes with the pause, so the words typed into it go back to the
                         // composer too, ahead of the composer's own.
                         val typed = handle.state.askAnswerDrafts.values.map { it.freeText } + listOfNotNull(answerText)
                         typed.map { it.trim() }.filter { it.isNotEmpty() }.joinToString("\n").ifEmpty { null }?.let(restoreAnswer)
-                        val gone = dismissal == ResumeDismissal.GONE
-                        expireNow(actionId, if (gone) pauseGoneMessage() else pauseExpiredMessage())
+                        val message = when (dismissal) {
+                            ResumeDismissal.PROJECT_CONTEXT_CHANGED -> StreamErrorType.PROJECT_CONTEXT_CHANGED.marker
+                            ResumeDismissal.EXPIRED -> pauseExpiredMessage()
+                            ResumeDismissal.GONE -> pauseGoneMessage()
+                        }
+                        expireNow(actionId, message)
                         return@launch
                     }
                     // The card stays up so a transient failure can be retried. A composer-origin
@@ -781,18 +785,25 @@ class PendingActionDelegate(
     }
 }
 
-private enum class ResumeDismissal { EXPIRED, GONE }
+private enum class ResumeDismissal { PROJECT_CONTEXT_CHANGED, EXPIRED, GONE }
 
 /**
- * Why a failed resume dismisses this pause, or null when the card stays for a retry. A 409 past the
- * pause's own expiry is the expiry: the server has finalized the run (clock skew can land this
- * before the local timer), so retrying can only 409. A 404: the server holds no paused generation
- * for this chat (gone, or not a chat run).
+ * Why a failed resume dismisses this pause, or null when the card stays for a retry. A 409 coded
+ * `PROJECT_CONTEXT_CHANGED`, at any time: the server finalized the run because the chat's project
+ * changed during the pause. Any other 409 past the pause's own expiry is the expiry: the server has
+ * finalized the run (clock skew can land this before the local timer), so retrying can only 409.
+ * A 404: the server holds no paused generation for this chat (gone, or not a chat run).
  */
-private fun PendingAction.dismissalAfterFailure(statusCode: Int?, now: Long): ResumeDismissal? = when {
-    statusCode == HTTP_CONFLICT && expiresAt?.let { now >= it } == true -> ResumeDismissal.EXPIRED
-    statusCode == HTTP_NOT_FOUND -> ResumeDismissal.GONE
-    else -> null
+private fun PendingAction.dismissalAfterFailure(exception: ApiException?, now: Long): ResumeDismissal? {
+    val statusCode = exception?.statusCode
+    return when {
+        statusCode == HTTP_CONFLICT &&
+            ServerErrorCode.generationCodeOf(exception?.body) == ServerErrorCode.PROJECT_CONTEXT_CHANGED ->
+            ResumeDismissal.PROJECT_CONTEXT_CHANGED
+        statusCode == HTTP_CONFLICT && expiresAt?.let { now >= it } == true -> ResumeDismissal.EXPIRED
+        statusCode == HTTP_NOT_FOUND -> ResumeDismissal.GONE
+        else -> null
+    }
 }
 
 private const val HTTP_CONFLICT = 409

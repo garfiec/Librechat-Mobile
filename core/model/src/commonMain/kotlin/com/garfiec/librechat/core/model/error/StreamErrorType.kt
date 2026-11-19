@@ -191,6 +191,13 @@ enum class StreamErrorType(
     PROJECT_CONTEXT_UNAVAILABLE("project_context_unavailable", classifiesPayload = false),
 
     /**
+     * A project chat's context changed during a tool-approval or ask pause (v0.8.9-rc1), so the server
+     * ended the run. Classified from the resume POST's 409 code and from the run's terminal sentence
+     * ([PROJECT_CONTEXT_CHANGED_REASON]), never by [parse].
+     */
+    PROJECT_CONTEXT_CHANGED(ServerErrorCode.PROJECT_CONTEXT_CHANGED, classifiesPayload = false),
+
+    /**
      * The chat start POST was refused 409 because the account is being deleted (generation
      * admission). Nothing ran. Classified only from the start POST.
      */
@@ -441,7 +448,20 @@ enum class StreamErrorType(
          *
          * Keeping the server's text on no match is the contract, not a fallback: see [parse].
          */
-        fun markerOrText(rawMessage: String): String = parse(rawMessage)?.let { markerFor(it, rawMessage) } ?: rawMessage
+        fun markerOrText(rawMessage: String): String =
+            if (rawMessage == PROJECT_CONTEXT_CHANGED_REASON) {
+                PROJECT_CONTEXT_CHANGED.marker
+            } else {
+                parse(rawMessage)?.let { markerFor(it, rawMessage) } ?: rawMessage
+            }
+
+        /**
+         * The uncoded text a run ends with when its project context changed during a pause: upstream's
+         * `PROJECT_CONTEXT_CHANGED_REASON` (`packages/api/src/projects/resume.ts`), matched exactly. If
+         * upstream rewords it, the banner silently shows the server's English again; watched in
+         * `scripts/mirrors.json`.
+         */
+        const val PROJECT_CONTEXT_CHANGED_REASON = "Project context changed before approval could be resumed"
 
         /**
          * [type]'s marker, carrying what the localized copy needs from the payload: a

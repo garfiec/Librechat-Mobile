@@ -613,6 +613,7 @@
     <string name="error_mcp_authentication_refresh_failed">Não foi possível renovar o login de um servidor MCP conectado, então a mensagem não foi enviada. Tente novamente em instantes.</string>
     <string name="error_project_resources_changed">Os arquivos deste projeto mudaram enquanto a mensagem era iniciada, então ela não foi enviada. Tente novamente.</string>
     <string name="error_project_context_unavailable">O projeto desta conversa não está mais disponível, então a mensagem não foi enviada. Ele pode ter sido excluído.</string>
+    <string name="error_project_context_changed">O projeto desta conversa mudou enquanto a resposta estava pausada, então ela parou. Envie sua mensagem novamente para continuar.</string>
     <string name="error_account_deletion_in_progress">Sua conta está sendo excluída, então não é possível enviar novas mensagens.</string>
     <string name="error_generation_admission_unavailable">O servidor não conseguiu iniciar a resposta agora, então a mensagem não foi enviada. Tente novamente.</string>
     <string name="error_token_balance">Você não tem saldo suficiente para esta solicitação.</string>

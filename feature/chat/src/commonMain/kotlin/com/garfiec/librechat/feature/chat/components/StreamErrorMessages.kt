@@ -86,6 +86,7 @@ internal fun localizedStreamError(raw: String): String {
             stringResource(Res.string.error_mcp_authentication_refresh_failed)
         StreamErrorType.PROJECT_RESOURCES_CHANGED -> stringResource(Res.string.error_project_resources_changed)
         StreamErrorType.PROJECT_CONTEXT_UNAVAILABLE -> stringResource(Res.string.error_project_context_unavailable)
+        StreamErrorType.PROJECT_CONTEXT_CHANGED -> stringResource(Res.string.error_project_context_changed)
         StreamErrorType.ACCOUNT_DELETION_IN_PROGRESS -> stringResource(Res.string.error_account_deletion_in_progress)
         StreamErrorType.GENERATION_ADMISSION_UNAVAILABLE ->
             stringResource(Res.string.error_generation_admission_unavailable)
