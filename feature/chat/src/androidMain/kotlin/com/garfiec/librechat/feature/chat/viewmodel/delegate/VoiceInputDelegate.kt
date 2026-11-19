@@ -281,7 +281,8 @@ class VoiceInputDelegate(
                     return@launch
                 }
 
-                when (val result = speechRepository.transcribeAudio(audioData, mimeType)) {
+                val language = mapSttLanguageToLocale(sttLanguage.value)
+                when (val result = speechRepository.transcribeAudio(audioData, mimeType, language)) {
                     is Result.Success -> {
                         val transcribedText = result.data.text
                         val merged = appendToBase(handle.state.inputText, transcribedText)

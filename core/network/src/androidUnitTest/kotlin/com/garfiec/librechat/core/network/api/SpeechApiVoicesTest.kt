@@ -7,6 +7,7 @@ import com.google.common.truth.Truth.assertThat
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
+import io.ktor.client.engine.mock.toByteArray
 import io.ktor.client.plugins.HttpRequestRetry
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.http.HttpHeaders
@@ -18,8 +19,8 @@ import org.junit.Test
 import kotlin.test.assertFails
 
 /**
- * Pins `GET /api/files/speech/tts/voices`. Every server provider answers with plain names; the
- * object shape is accepted defensively.
+ * Pins the speech routes. For `GET /api/files/speech/tts/voices` every server provider answers with
+ * plain names; the object shape is accepted defensively.
  */
 class SpeechApiVoicesTest {
 
@@ -76,5 +77,39 @@ class SpeechApiVoicesTest {
 
         assertFails { SpeechApi(client, librechatJson).getVoices() }
         assertThat(attempts).isEqualTo(1)
+    }
+
+    private suspend fun sttRequest(language: String?): Pair<String, String> {
+        var body = ""
+        var path = ""
+        val engine = MockEngine { request ->
+            body = String(request.body.toByteArray())
+            path = request.url.encodedPath
+            respond(
+                content = """{"text":"hi"}""",
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        val client = HttpClient(engine) { install(ContentNegotiation) { json(librechatJson) } }
+        SpeechApi(client, librechatJson).speechToText(byteArrayOf(1, 2, 3), "audio/ogg", language)
+        return path to body
+    }
+
+    @Test
+    fun `speechToText sends the language as a form field`() = runTest {
+        val (path, body) = sttRequest(language = "de-DE")
+
+        assertThat(path).isEqualTo("/api/files/speech/stt")
+        assertThat(body).containsMatch("name=\"?audio\"?")
+        assertThat(body).containsMatch("(?s)name=\"?language\"?.*?\r\n\r\nde-DE\r\n")
+    }
+
+    @Test
+    fun `speechToText omits the language field for auto-detect`() = runTest {
+        val (_, body) = sttRequest(language = null)
+
+        assertThat(body).containsMatch("name=\"?audio\"?")
+        assertThat(body).doesNotContainMatch("name=\"?language\"?")
     }
 }

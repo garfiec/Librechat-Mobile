@@ -6,7 +6,8 @@ import com.garfiec.librechat.core.model.speech.SpeechToTextResponse
 import com.garfiec.librechat.core.model.speech.TtsVoice
 
 interface SpeechRepository {
-    suspend fun transcribeAudio(audioData: ByteArray, mimeType: String): Result<SpeechToTextResponse>
+    /** [language] is a BCP-47 tag, or null to let the server's provider auto-detect. */
+    suspend fun transcribeAudio(audioData: ByteArray, mimeType: String, language: String?): Result<SpeechToTextResponse>
     suspend fun synthesizeSpeech(text: String, voice: String? = null, model: String? = null): Result<ByteArray>
     suspend fun getVoices(): Result<List<TtsVoice>>
     suspend fun getSpeechConfig(): Result<SpeechConfig>

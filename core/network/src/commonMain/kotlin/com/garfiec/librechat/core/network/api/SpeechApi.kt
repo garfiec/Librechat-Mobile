@@ -28,7 +28,7 @@ class SpeechApi constructor(
     private val json: Json,
     private val clientLimits: ClientLimitsHolder = ClientLimitsHolder(),
 ) {
-    suspend fun speechToText(audioData: ByteArray, mimeType: String): SpeechToTextResponse {
+    suspend fun speechToText(audioData: ByteArray, mimeType: String, language: String?): SpeechToTextResponse {
         val extension = mimeTypeToExtension(mimeType)
         return client.submitFormWithBinaryData(
             formData = formData {
@@ -36,6 +36,7 @@ class SpeechApi constructor(
                     append(HttpHeaders.ContentDisposition, "filename=\"audio.$extension\"")
                     append(HttpHeaders.ContentType, mimeType)
                 })
+                if (language != null) append("language", language)
             },
         ) {
             url { path("api/files/speech/stt") }
