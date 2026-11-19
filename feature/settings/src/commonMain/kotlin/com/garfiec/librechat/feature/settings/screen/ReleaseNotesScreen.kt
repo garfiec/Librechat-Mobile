@@ -32,10 +32,10 @@ import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
 import com.garfiec.librechat.core.ui.components.topbar.BarIcons
 import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
 import com.garfiec.librechat.core.ui.components.topbar.BarTitle
+import com.garfiec.librechat.core.ui.platform.rememberUriOpener
 import com.garfiec.librechat.core.ui.platform.verticalBarColumn
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
-import com.garfiec.librechat.feature.settings.util.rememberUriOpener
 import com.garfiec.librechat.feature.settings.viewmodel.InstalledNotes
 import com.garfiec.librechat.feature.settings.viewmodel.OlderStatus
 import com.garfiec.librechat.feature.settings.viewmodel.ReleaseNotesViewModel
