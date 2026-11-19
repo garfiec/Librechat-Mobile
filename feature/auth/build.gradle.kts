@@ -4,6 +4,11 @@ plugins {
 
 android {
     namespace = "com.garfiec.librechat.feature.auth"
+    testOptions {
+        // The Robolectric Compose tests need the merged manifest (ui-test-manifest's activity) and
+        // the Compose resources on the host-JVM unit-test classpath.
+        unitTests.isIncludeAndroidResources = true
+    }
 }
 
 kotlin {
@@ -19,6 +24,9 @@ kotlin {
         named("androidUnitTest").dependencies {
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.koin.test)
+            implementation(libs.robolectric)
+            implementation(libs.compose.ui.test)
+            implementation(libs.compose.ui.test.manifest)
         }
     }
 }

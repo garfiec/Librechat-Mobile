@@ -37,10 +37,10 @@ import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
 import com.garfiec.librechat.core.ui.components.topbar.BarIcons
 import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
 import com.garfiec.librechat.core.ui.components.topbar.BarTitle
+import com.garfiec.librechat.core.ui.platform.rememberUriOpener
 import com.garfiec.librechat.core.ui.platform.verticalBarColumn
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
-import com.garfiec.librechat.feature.settings.util.rememberUriOpener
 import com.garfiec.librechat.feature.settings.viewmodel.WhatsNewUiState
 import com.garfiec.librechat.feature.settings.viewmodel.WhatsNewViewModel
 import org.jetbrains.compose.resources.stringResource

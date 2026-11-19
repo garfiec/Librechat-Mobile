@@ -1,4 +1,4 @@
-package com.garfiec.librechat.feature.settings.util
+package com.garfiec.librechat.core.ui.platform
 
 import androidx.compose.runtime.Composable
 

@@ -31,7 +31,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -54,6 +53,7 @@ import com.garfiec.librechat.core.ui.components.topbar.BarIcons
 import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
 import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.core.ui.platform.TextFileSaver
+import com.garfiec.librechat.core.ui.platform.rememberUriOpener
 import com.garfiec.librechat.feature.auth.resources.*
 import com.garfiec.librechat.feature.auth.resources.Res
 import com.garfiec.librechat.feature.auth.viewmodel.TwoFactorSetupError
@@ -206,9 +206,9 @@ private fun StartPhase(isLoading: Boolean, onStart: () -> Unit) {
 }
 
 @Composable
-private fun AuthenticatorPhase(state: TwoFactorSetupUiState, onNext: () -> Unit) {
+internal fun AuthenticatorPhase(state: TwoFactorSetupUiState, onNext: () -> Unit) {
     val otpauthUrl = state.otpauthUrl ?: return
-    val uriHandler = LocalUriHandler.current
+    val uriOpener = rememberUriOpener()
     var noAuthenticator by rememberSaveable { mutableStateOf(false) }
     var showQr by rememberSaveable { mutableStateOf(false) }
 
@@ -223,7 +223,7 @@ private fun AuthenticatorPhase(state: TwoFactorSetupUiState, onNext: () -> Unit)
         // to the authenticator is the path that works here. The key and QR code are the fallbacks.
         AdaptiveFilledTonalButton(
             onClick = {
-                noAuthenticator = !runCatching { uriHandler.openUri(otpauthUrl) }.isSuccess
+                noAuthenticator = !uriOpener.open(otpauthUrl)
             },
             modifier = Modifier.fillMaxWidth(),
         ) {
