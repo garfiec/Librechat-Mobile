@@ -7537,7 +7537,7 @@
         "file": "feature/agents/src/commonMain/kotlin/com/garfiec/librechat/feature/agents/viewmodel/AgentEditorViewModel.kt",
         "symbol": "MAX_SUBAGENTS"
       },
-      "why": "The agent editor's subagent cap when the agents entry of /api/endpoints carries no `maxSubagents` (older servers, or a yaml without `endpoints.agents`). The server enforces its own default on `agent_ids` either way.",
+      "why": "The agent editor's subagent cap when the agents entry of /api/endpoints carries no `maxSubagents` (servers before v0.8.8-rc2). The server enforces its own default on `agent_ids` either way.",
       "failure_mode": "Upstream changes the default, and on a server that sends no `agents.maxSubagents` the editor allows more subagents than the server accepts (Save fails with a 400) or fewer than it would. Nothing fails until the user saves."
     }
   ]
