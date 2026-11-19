@@ -891,6 +891,9 @@ fun MainNavDisplay(
                 onNavigateToChat = { conversationId, isTemporary ->
                     navigator.navigateToChat(conversationId, isTemporary)
                 },
+                onLandingStartedChat = { conversationId, isTemporary ->
+                    navigator.navigateToStartedChat(conversationId, isTemporary)
+                },
                 onOpenDrawer = onMenuClick,
                 onNewChat = navigator::navigateToNewChat,
                 onNavigateToProviderKeys = { endpointName ->
