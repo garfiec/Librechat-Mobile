@@ -457,6 +457,7 @@ fun AvailableProjectFilesSheet(
                                     text = stringResource(Res.string.project_available_load_failed),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.weight(1f, fill = false),
                                 )
                                 AdaptiveTextButton(onClick = onRetry) { Text(stringResource(Res.string.project_files_retry)) }
                             }
