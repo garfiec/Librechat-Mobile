@@ -78,6 +78,15 @@ class DrawerFiltersTest {
     }
 
     @Test
+    fun anEndpointChipNamesAFirstPartyKeyTheWayWebDoes() {
+        val url = "https://chat.example"
+        assertEquals("Anthropic", filterEndpointOption("anthropic", mapOf("anthropic" to EndpointConfig()), url).label)
+        val azure = mapOf("azureOpenAI" to EndpointConfig(modelDisplayLabel = ""))
+        assertEquals("Azure OpenAI", filterEndpointOption("azureOpenAI", azure, url).label)
+        assertEquals("Mock", filterEndpointOption("Mock", mapOf("Mock" to EndpointConfig()), url).label)
+    }
+
+    @Test
     fun filtersSurviveTheSavedStateRoundTrip() {
         val filters = DrawerFilters(
             dateRange = FilterDateRange.MONTH,
