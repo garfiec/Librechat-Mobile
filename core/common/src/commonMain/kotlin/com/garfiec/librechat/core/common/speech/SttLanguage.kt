@@ -29,7 +29,8 @@ val sttLanguageOptions: List<String> = STT_LANGUAGES.map { it.first }
  * any unmapped name so the recognizer falls back to the device default.
  *
  * Android feeds the tag to `RecognizerIntent.EXTRA_LANGUAGE` (on-device controller + legacy Intent
- * overlay); iOS feeds it to `SFSpeechRecognizer(locale:)`.
+ * overlay) and as the `language` field of the server STT upload; iOS feeds it to
+ * `SFSpeechRecognizer(locale:)`.
  */
 fun mapSttLanguageToLocale(language: String): String? =
     STT_LANGUAGES.firstOrNull { it.first.equals(language, ignoreCase = true) }?.second

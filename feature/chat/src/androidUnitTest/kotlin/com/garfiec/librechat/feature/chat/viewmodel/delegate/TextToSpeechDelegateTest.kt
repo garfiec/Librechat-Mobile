@@ -137,7 +137,11 @@ class TextToSpeechDelegateTest {
             }
         }
 
-        override suspend fun transcribeAudio(audioData: ByteArray, mimeType: String): Result<SpeechToTextResponse> =
+        override suspend fun transcribeAudio(
+            audioData: ByteArray,
+            mimeType: String,
+            language: String?,
+        ): Result<SpeechToTextResponse> =
             error("unused")
 
         override suspend fun getVoices(): Result<List<TtsVoice>> = Result.Success(emptyList())
