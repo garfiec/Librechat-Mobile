@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -74,7 +73,8 @@ internal fun TwoFactorSetupDialog(
     AdaptiveAlertDialog(
         // On the dialog's root, not the text: the card then shrinks above the keyboard, the text
         // scrolls, and the buttons stay in view even with the QR code expanded.
-        modifier = Modifier.clearFocusOnTap().imePadding(),
+        modifier = Modifier.clearFocusOnTap().twoFactorDialogInsets(),
+        properties = twoFactorDialogProperties(),
         onDismissRequest = onDismiss,
         scrollableText = false,
         title = { Text(stringResource(Res.string.dialog_title_enable_2fa)) },
