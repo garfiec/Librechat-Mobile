@@ -85,10 +85,6 @@ class FilesApi constructor(
 
         val multipart = MultiPartFormDataContent(
             formData {
-                append("file", bytes, Headers.build {
-                    append(HttpHeaders.ContentDisposition, "filename=\"${encodeFilename(filename)}\"")
-                    append(HttpHeaders.ContentType, wireType)
-                })
                 append("file_id", fileId)
                 if (endpoint != null) append("endpoint", endpoint)
                 if (model != null) append("model", model)
@@ -99,6 +95,12 @@ class FilesApi constructor(
                 if (height != null) append("height", height.toString())
                 if (conversationId != null) append("conversationId", conversationId)
                 if (isTemporary) append("isTemporary", "true")
+                // Last: the server's upload gate picks the file-type policy from the fields multer
+                // has already parsed when it reaches the file part, so `endpoint` must come first.
+                append("file", bytes, Headers.build {
+                    append(HttpHeaders.ContentDisposition, "filename=\"${encodeFilename(filename)}\"")
+                    append(HttpHeaders.ContentType, wireType)
+                })
             },
         )
 

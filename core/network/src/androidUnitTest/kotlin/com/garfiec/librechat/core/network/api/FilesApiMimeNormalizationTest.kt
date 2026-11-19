@@ -5,6 +5,7 @@ import co.touchlab.kermit.Logger
 import co.touchlab.kermit.Severity
 import com.garfiec.librechat.core.network.di.librechatJson
 import com.google.common.truth.Truth.assertThat
+import com.google.common.truth.Truth.assertWithMessage
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
@@ -51,6 +52,7 @@ class FilesApiMimeNormalizationTest {
         conversationId: String? = null,
         isTemporary: Boolean = false,
         filename: String = "deploy.sh",
+        endpoint: String? = null,
     ): String {
         var body: String? = null
         val engine = MockEngine { request ->
@@ -66,6 +68,7 @@ class FilesApiMimeNormalizationTest {
             bytes = "#!/bin/sh\n".encodeToByteArray(),
             filename = filename,
             type = type,
+            endpoint = endpoint,
             conversationId = conversationId,
             isTemporary = isTemporary,
         )
@@ -107,6 +110,20 @@ class FilesApiMimeNormalizationTest {
         assertThat(body).contains(
             "filename=\"50%25%20off%20%22Gr%C3%B6%C3%9Fe%22%20%E6%97%A5%E6%9C%AC.pdf\"",
         )
+    }
+
+    @Test
+    fun `the file part follows the fields the upload gate reads`() = runTest {
+        val body = uploadWithType("text/plain", endpoint = "agents")
+
+        val partName = { name: String -> Regex("(?<!file)name=\"?$name\"?(?!\\w)") }
+        val endpointIdx = partName("endpoint").find(body)?.range?.first ?: -1
+        val fileIdx = partName("file").find(body)?.range?.first ?: -1
+        assertThat(endpointIdx).isAtLeast(0)
+        assertThat(fileIdx).isAtLeast(0)
+        assertWithMessage("endpoint part must precede the file part").that(endpointIdx).isLessThan(fileIdx)
+        assertWithMessage("the file part must be the last part")
+            .that(Regex("(?<!file)name=").find(body, fileIdx + 1)).isNull()
     }
 
     @Test
