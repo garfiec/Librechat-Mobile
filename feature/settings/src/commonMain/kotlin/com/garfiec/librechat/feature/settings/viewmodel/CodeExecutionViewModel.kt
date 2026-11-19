@@ -98,7 +98,7 @@ data class CodeExecutionUiState(
     val pairingCommand: CodePairingView? = null,
     val pendingRemoval: CodeMachineRow? = null,
     val removingId: String? = null,
-    val savingPermissionsId: String? = null,
+    val savingPermissionIds: Set<String> = emptySet(),
     val setupLink: String = "",
     val setupLinkInvalid: Boolean = false,
 ) {
@@ -325,15 +325,15 @@ class CodeExecutionViewModel(
     }
 
     fun setPermission(machineId: String, category: CodePermissionCategory, decision: String) {
-        if (state.value.savingPermissionsId != null) return
+        if (machineId in state.value.savingPermissionIds) return
         val settings = when (category) {
             CodePermissionCategory.FILE_WRITE -> CodeEnvironmentPermissionSettings(fileWrite = decision)
             CodePermissionCategory.COMMAND_EXECUTION -> CodeEnvironmentPermissionSettings(commandExecution = decision)
         }
-        state.update { it.copy(savingPermissionsId = machineId) }
+        state.update { it.copy(savingPermissionIds = it.savingPermissionIds + machineId) }
         viewModelScope.launch {
             val saved = machines.updatePermissions(machineId, CodeEnvironmentUserSettings(settings))
-            state.update { it.copy(savingPermissionsId = null) }
+            state.update { it.copy(savingPermissionIds = it.savingPermissionIds - machineId) }
             _events.emit(if (saved) CodeExecutionEvent.PermissionsSaved else CodeExecutionEvent.PermissionsFailed)
             if (saved) load()
         }

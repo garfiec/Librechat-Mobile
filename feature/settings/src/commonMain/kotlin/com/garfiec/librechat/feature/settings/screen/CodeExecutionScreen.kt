@@ -218,7 +218,7 @@ private fun LazyListScope.machinesSection(state: CodeExecutionUiState, viewModel
                 MachineRow(
                     machine = machine,
                     removing = state.removingId == machine.id,
-                    saving = state.savingPermissionsId == machine.id,
+                    saving = machine.id in state.savingPermissionIds,
                     onRemove = { viewModel.requestRemoval(machine.id) },
                     onPermission = { category, decision -> viewModel.setPermission(machine.id, category, decision) },
                 )
