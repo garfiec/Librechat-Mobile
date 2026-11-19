@@ -295,8 +295,10 @@ data class AgentEditorUiState(
     /** `subagents.allowSelf` — agent may spawn itself in an isolated context.
      *  Defaults true (upstream `allowSelf !== false`). */
     val subagentAllowSelf: Boolean = true,
-    /** `subagents.agent_ids` — other agents that may be spawned (cap 10, self excluded). */
+    /** `subagents.agent_ids` — other agents that may be spawned (cap [maxSubagents], self excluded). */
     val selectedSubagentIds: List<String> = emptyList(),
+    /** The server's cap on [selectedSubagentIds] (agents `maxSubagents`). */
+    val maxSubagents: Int = AgentEditorViewModel.MAX_SUBAGENTS,
     /**
      * `subagents.shareFiles` and `subagents.graphs`, carried from the loaded agent untouched. No
      * control edits them, but the server `$set`s `subagents` whole, so a save that omitted them
@@ -907,7 +909,7 @@ class AgentEditorViewModel(
         /** Upstream caps chain (sequential multi-agent) at 10 entries. */
         const val CHAIN_MAX = 10
 
-        /** Upstream `MAX_SUBAGENTS` (config.ts) — subagent agent_ids cap. */
+        /** Upstream `MAX_SUBAGENTS` (limits.ts): the cap when the server sends no `agents.maxSubagents`. */
         const val MAX_SUBAGENTS = 10
 
         // Sentinel error strings the screen layer recognizes and substitutes with
