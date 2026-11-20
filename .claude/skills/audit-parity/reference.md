@@ -123,8 +123,9 @@ Things that exist in our code and don't work:
 - Admin-only routes (`admin/*`) unless our app calls them.
 - Features listed in `.claude/skills/sync-upstream/reference/upstream-backend-gaps.md` (no working
   backend).
-- Deliberate divergences recorded in the repo's `CLAUDE.md` files or in `known.md`. If you suspect
-  a difference is deliberate but can't find it recorded, report it with `maybe_intentional: true`.
+- Deliberate divergences recorded in the repo's `CLAUDE.md` files. Ones recorded only in `known.md`
+  are triage's to mark. If you suspect a difference is deliberate but can't find it recorded,
+  report it with `maybe_intentional: true`.
 - Hypotheticals with no trigger ("could race if…" with no path to the race).
 
 ## Severity
