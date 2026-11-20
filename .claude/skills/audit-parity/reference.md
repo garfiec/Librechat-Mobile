@@ -23,15 +23,18 @@ belongs to another area only when it is central to yours; that area's own audit 
 rest.
 
 **Known issues.** `known.md` lists board drafts, filed issues, recorded bugs, backend-less web
-features and deliberate divergences.
-- A defect that is already **filed**: still report it, with `duplicate_of: "#N"`, or
-  `duplicate_of: "draft: <title>"` for a board draft. The audit needs the count, and the ticket
-  may be incomplete.
+features and deliberate divergences. Only triage reads it: finders and verifiers leave
+`duplicate_of` empty and report a defect even if it may be filed, because the audit needs the
+count and the ticket may be incomplete. Triage sets `duplicate_of` by these rules:
+- A defect that is already **filed**: `duplicate_of: "#N"`, or `duplicate_of: "draft: <title>"`
+  for a board draft.
 - An issue marked **`[moved to board]`** is still open work. Its draft is the duplicate target,
   never "closed, regression".
-- A **closed** issue whose defect still reproduces in the code: report it with
+- A **closed** issue whose defect still reproduces in the code:
   `duplicate_of: "#N (closed, regression)"`.
-- **Deliberate divergences** and **backend-less features**: don't report them (see below).
+- A **deliberate divergence** or **backend-less feature** listed there:
+  `duplicate_of: "divergence: <entry>"`. Finders skip the ones recorded in the repo's `CLAUDE.md`
+  files (see below).
 
 There is **no cap** on findings. Report everything that survives your own check. A finder who
 stops at five has hidden the sixth.
@@ -120,8 +123,9 @@ Things that exist in our code and don't work:
 - Admin-only routes (`admin/*`) unless our app calls them.
 - Features listed in `.claude/skills/sync-upstream/reference/upstream-backend-gaps.md` (no working
   backend).
-- Deliberate divergences recorded in the repo's `CLAUDE.md` files or in `known.md`. If you suspect
-  a difference is deliberate but can't find it recorded, report it with `maybe_intentional: true`.
+- Deliberate divergences recorded in the repo's `CLAUDE.md` files. Ones recorded only in `known.md`
+  are triage's to mark. If you suspect a difference is deliberate but can't find it recorded,
+  report it with `maybe_intentional: true`.
 - Hypotheticals with no trigger ("could race if…" with no path to the race).
 
 ## Severity
@@ -135,7 +139,9 @@ Things that exist in our code and don't work:
 ## Verifying a finding
 
 You are trying to **break** it. Default to `REFUTED` when the evidence is not solid and
-`PLAUSIBLE` when it hinges on runtime data you can't see.
+`PLAUSIBLE` when it hinges on runtime data you can't see. A finding gets a second verifier only
+when the first doesn't confirm it or it is high severity, so a `CONFIRMED` from you usually
+stands alone.
 - Open every cited line yourself. Does it say what the finding says?
 - Trace the path end to end, including callers and the other platform's source set.
 - For server claims, read the handler and middleware at the pin yourself. A third-party reference
