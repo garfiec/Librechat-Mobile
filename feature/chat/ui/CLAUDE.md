@@ -8,6 +8,6 @@ and the other screen contents, previews and every chat string. The general rules
 - Platform rendering (WebViews for math, mermaid and artifacts, players, native PDF, MCP Apps) goes
   through `LocalChatContentRenderers`, provided once in shared's `LibreChatNavHost`; a null slot draws
   the source or nothing. Add a slot there, not an `expect`.
-- `nonAndroidMain` (iOS + browser) holds the iOS `MessageBubble`, `MarkdownContent` and `keyboardRising`.
+- `nonAndroidMain` (iOS + browser) holds the iOS `MessageBubble` and `MarkdownContent`.
 - `:feature:chat` keeps `files/web` (vendored web assets) with its own `Res` in
   `…feature.chat.web.resources`.

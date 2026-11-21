@@ -1,0 +1,66 @@
+# A second demo account for the website's account switcher: the same person at work. Its chats
+# are office errands, so switching accounts visibly changes the whole drawer. The office
+# agent's Dubai chocolate habit ties it to the main scenario's running joke.
+
+[account]
+name = "Garfie (Acme)"
+starred_roles = ["smart", "fast"]
+
+[[chats]]
+key = "email"
+title = "Make this email less passive-aggressive"
+role = "reasoning"
+pinned = true
+[[chats.turns]]
+text = "Make this email less passive-aggressive, but keep the deadline: \"Per my last email, as I've already mentioned twice, the report is due Friday. Please advise if this is somehow unclear.\""
+
+[[chats]]
+key = "snack-budget"
+title = "Office snack budget"
+role = "smart"
+[[chats.turns]]
+text = "Our team's AI agent keeps ordering Dubai chocolate for the office kitchen. Draft a monthly snack budget for 15 people that keeps everyone happy."
+
+[[chats]]
+key = "overdue"
+title = "Formula for overdue invoices"
+role = "smart"
+[[chats.turns]]
+text = "Spreadsheet formula: flag invoices that are more than 30 days past their due date and still unpaid. Due date is in column C, paid date in D."
+
+[[chats]]
+key = "ooo"
+title = "An out-of-office that isn't boring"
+role = "fast"
+[[chats.turns]]
+text = "Write an out-of-office reply for a week off that isn't boring. Keep it professional enough for clients."
+
+[[chats]]
+key = "decline"
+title = "Declining a meeting politely"
+role = "fast"
+[[chats.turns]]
+text = "How do I decline a meeting without sounding rude?"
+
+[[chats]]
+key = "offsite"
+title = "One-day offsite agenda"
+role = "smart"
+project = "Team offsite"
+[[chats.turns]]
+text = "Plan a one-day team offsite for 12 people. We want to actually talk to each other, not sit through slides."
+
+[[chats]]
+key = "icebreakers"
+title = "Icebreakers that aren't awful"
+role = "fast"
+project = "Team offsite"
+[[chats.turns]]
+text = "Icebreakers that aren't awful. For adults who've worked together for a while."
+
+[[chats]]
+key = "slides"
+title = "Better slide titles"
+role = "fast"
+[[chats.turns]]
+text = "Make these slide titles less boring: \"Q3 Results\", \"Challenges\", \"Next Steps\"."

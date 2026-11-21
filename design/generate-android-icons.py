@@ -9,6 +9,8 @@ Rewrites, for all five densities:
     app/src/main/res/mipmap-*/ic_launcher.png
     app/src/main/res/mipmap-*/ic_launcher_round.png
 
+and the website's icons (site/icons/, site/favicon.ico), the same square tile.
+
 The background colour is read from values/ic_launcher_background.xml rather
 than set here, so the legacy bitmaps -- which bake it in -- cannot drift from
 the colour the adaptive icon actually uses. Change the colour there, re-run
@@ -27,6 +29,7 @@ ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / 'design' / 'SwitchboardLogo.png'
 RES = ROOT / 'app' / 'src' / 'main' / 'res'
 BG_XML = RES / 'values' / 'ic_launcher_background.xml'
+WEB = ROOT / 'site' / 'icons'
 
 # Launchers reveal the centre 72dp of a 108dp layer and inscribe their mask in
 # it. 66dp is the diameter that clears the roundest mask a launcher can apply.
@@ -121,17 +124,36 @@ def main():
         vis = disc.crop((ss * 18 // 108, ss * 18 // 108, ss * 90 // 108, ss * 90 // 108))
         v = vis.width
         for filename, shape in (('ic_launcher.png', 'sq'), ('ic_launcher_round.png', 'round')):
-            mask = Image.new('L', (v, v), 0)
-            d = ImageDraw.Draw(mask)
-            if shape == 'round':
-                d.ellipse((0, 0, v - 1, v - 1), fill=255)
-            else:
-                d.rounded_rectangle((0, 0, v - 1, v - 1), radius=int(v * 0.20), fill=255)
-            out = Image.new('RGBA', (v, v), (0, 0, 0, 0))
-            out.paste(vis, (0, 0), mask)
-            out.resize((px, px), Image.LANCZOS).save(RES / f'mipmap-{name}' / filename)
+            tile(vis, shape).resize((px, px), Image.LANCZOS).save(RES / f'mipmap-{name}' / filename)
 
     print('wrote 20 bitmaps')
+
+    # The website shows the launcher's square tile. The touch icon stays full-bleed: iOS and
+    # Android round it themselves.
+    ss = 2048
+    disc = Image.alpha_composite(Image.new('RGBA', (ss, ss), bg + (255,)), layer(ss, fg_src))
+    vis = disc.crop((ss * 18 // 108, ss * 18 // 108, ss * 90 // 108, ss * 90 // 108))
+    rounded = tile(vis, 'sq')
+    WEB.mkdir(exist_ok=True)
+    for px in (64, 192, 512):
+        rounded.resize((px, px), Image.LANCZOS).save(WEB / f'icon-{px}.png', optimize=True)
+    vis.convert('RGB').resize((180, 180), Image.LANCZOS).save(WEB / 'apple-touch-icon.png', optimize=True)
+    rounded.resize((48, 48), Image.LANCZOS).save(ROOT / 'site' / 'favicon.ico', sizes=[(16, 16), (32, 32), (48, 48)])
+    print(f'wrote the website icons to {WEB.relative_to(ROOT)} and site/favicon.ico')
+
+
+def tile(vis, shape):
+    """The visible tile cut to a launcher shape: a circle, or the square's rounded corners."""
+    v = vis.width
+    mask = Image.new('L', (v, v), 0)
+    d = ImageDraw.Draw(mask)
+    if shape == 'round':
+        d.ellipse((0, 0, v - 1, v - 1), fill=255)
+    else:
+        d.rounded_rectangle((0, 0, v - 1, v - 1), radius=int(v * 0.20), fill=255)
+    out = Image.new('RGBA', (v, v), (0, 0, 0, 0))
+    out.paste(vis, (0, 0), mask)
+    return out
 
 
 if __name__ == '__main__':

@@ -51,6 +51,7 @@ import com.garfiec.librechat.core.ui.components.PlatformBackHandler
 import com.garfiec.librechat.core.ui.components.SidebarWidth
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveRailPane
 import com.garfiec.librechat.core.ui.components.topbar.LocalSidebarOpen
+import com.garfiec.librechat.core.ui.glass.GlassSidebarPanel
 import com.garfiec.librechat.core.ui.glass.rememberGlassStyle
 import com.garfiec.librechat.core.ui.navigation.FullWidthRoute
 import com.garfiec.librechat.core.ui.navigation.LocalSidebarAsideRequests

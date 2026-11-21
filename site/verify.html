@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Verify your download · Switchboard</title>
+  <meta name="description" content="Check that your Switchboard install was built by this project.">
+  <link rel="icon" href="favicon.ico" sizes="48x48">
+  <link rel="icon" href="icons/icon-192.png" type="image/png" sizes="192x192">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="./"><img class="brand-mark" src="icons/icon-64.png" width="28" height="28" alt="">Switchboard</a>
+    <nav class="site-nav" aria-label="Main">
+      <a class="hide-sm" href="./#features">Features</a>
+      <a class="hide-sm" href="./#faq">FAQ</a>
+      <a class="hide-sm" href="demo.html">Live demo</a>
+      <a class="hide-sm" href="admins.html">For admins</a>
+      <a class="btn" href="./#get">Get the app</a>
+      <button class="menu-btn" type="button" popovertarget="site-menu" aria-label="Menu"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+    </nav>
+    <nav id="site-menu" class="site-menu" popover aria-label="Menu" onclick="if (event.target.closest('a')) this.hidePopover()">
+      <a href="./#features">Features</a>
+      <a href="./#faq">FAQ</a>
+      <a href="demo.html">Live demo</a>
+      <a href="admins.html">For admins</a>
+      <a href="changelog.html">What's new</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+  <div class="wrap narrow">
+    <p class="eyebrow">Trust</p>
+    <h1>Verify your download</h1>
+    <p class="lede">Check that the app you installed is the one this project built.</p>
+
+    <h2>Signing certificates</h2>
+    <div class="table-scroll">
+    <table>
+      <thead><tr><th>Where you got it</th><th>SHA-256 fingerprint</th></tr></thead>
+      <tbody>
+        <tr><td>GitHub Releases, Obtainium, F-Droid</td><td><code>66:8A:71:96:6A:07:06:14:D1:44:95:5D:83:E7:23:6A:3C:ED:77:F8:64:08:57:C3:FA:84:B0:3C:CD:E4:0E:59</code></td></tr>
+        <tr><td>Google Play</td><td><code>DB:BF:5C:20:7B:DA:39:C8:36:D3:5E:6E:17:62:68:F4:F5:8C:09:1F:7A:68:65:7D:4A:FC:F2:13:54:BB:3D:D3</code><br><span class="muted">or, on some Android versions, the earlier key</span><br><code>9E:98:24:A2:0E:2D:D8:42:B2:59:86:C6:3A:92:CF:98:EB:71:37:FC:0F:30:2F:33:D0:18:EC:20:3D:80:15:19</code></td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>The Google Play version is a separate app, signed with Google's key, so it installs beside the open-source build rather than over it. Android refuses an update signed with a different key, so never install a build with another certificate over an existing install.</p>
+
+    <h2>Check an APK</h2>
+    <pre><code>apksigner verify --print-certs switchboard-vYYYY.MM.P.apk
+sha256sum -c switchboard-vYYYY.MM.P.apk.sha256</code></pre>
+
+    <h2>Check where it was built (strongest)</h2>
+    <p>Every release APK carries a build-provenance attestation signed by GitHub Actions. A pass proves the exact bytes you downloaded came from this repository's release workflow.</p>
+    <pre><code>gh attestation verify switchboard-vYYYY.MM.P.apk \
+  --repo garfiec/Librechat-Mobile \
+  --signer-workflow garfiec/Librechat-Mobile/.github/workflows/release.yml</code></pre>
+
+    <h2>iPhone and iPad</h2>
+    <p>The TestFlight beta comes from Apple, signed by Apple, so there's nothing to check. The <code>.ipa</code> on GitHub Releases is for sideloading tools, which sign it with your own certificate. Its <code>.sha256</code> file confirms the download is complete. Most IPAs also carry a build attestation you can check the same way as the APK's, but unlike the APK's it isn't guaranteed for every release.</p>
+    <pre><code>shasum -a 256 -c switchboard-vYYYY.MM.P.ipa.sha256</code></pre>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <nav aria-label="Footer">
+      <a href="https://github.com/garfiec/Librechat-Mobile">GitHub</a>
+      <a href="https://github.com/garfiec/Librechat-Mobile/releases">Releases</a>
+      <a href="changelog.html">What's new</a>
+      <a href="compatibility.html">Compatibility</a>
+      <a href="admins.html">For admins</a>
+      <a href="demo.html">Live demo</a>
+      <a href="verify.html">Verify your download</a>
+      <a href="privacy.html">Privacy</a>
+    </nav>
+    <p class="disclaimer">What you can do depends on your LibreChat server: its version, the models and features it enables, and how sign-in is set up. Switchboard is an independent project, not affiliated with LibreChat.</p>
+  </div>
+</footer>
+<script src="prefetch.js" defer></script>
+</body>
+</html>

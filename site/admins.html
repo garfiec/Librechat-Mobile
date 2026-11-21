@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>For server admins · Switchboard</title>
+  <meta name="description" content="Set up your LibreChat server for the Switchboard app.">
+  <link rel="icon" href="favicon.ico" sizes="48x48">
+  <link rel="icon" href="icons/icon-192.png" type="image/png" sizes="192x192">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="./"><img class="brand-mark" src="icons/icon-64.png" width="28" height="28" alt="">Switchboard</a>
+    <nav class="site-nav" aria-label="Main">
+      <a class="hide-sm" href="./#features">Features</a>
+      <a class="hide-sm" href="./#faq">FAQ</a>
+      <a class="hide-sm" href="demo.html">Live demo</a>
+      <a class="hide-sm" href="admins.html">For admins</a>
+      <a class="btn" href="./#get">Get the app</a>
+      <button class="menu-btn" type="button" popovertarget="site-menu" aria-label="Menu"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+    </nav>
+    <nav id="site-menu" class="site-menu" popover aria-label="Menu" onclick="if (event.target.closest('a')) this.hidePopover()">
+      <a href="./#features">Features</a>
+      <a href="./#faq">FAQ</a>
+      <a href="demo.html">Live demo</a>
+      <a href="admins.html">For admins</a>
+      <a href="changelog.html">What's new</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+  <div class="wrap narrow">
+    <p class="eyebrow">For server admins</p>
+    <h1>Set up your server for Switchboard</h1>
+    <p class="lede">Switchboard works with any standard LibreChat server. A few settings make it work smoothly for everyone on yours.</p>
+
+    <h2>Recommended: one line in <code>.env</code></h2>
+    <pre><code>NON_BROWSER_VIOLATION_SCORE=0</code></pre>
+    <p>The app identifies itself like a browser, but if that check ever fails, LibreChat adds ban points against the account. Without this setting, a single misread request can lock an account out for two hours.</p>
+
+    <h2 id="authelia">Sign-in behind Authelia</h2>
+    <p>When your server sits behind an Authelia forward-auth gate, the app recognises the gate when someone connects and offers <strong>Sign in with Authelia</strong>. They sign in on Authelia's own pages in the system browser (password, two-factor, passkeys and password managers all work), then to LibreChat as usual. Without the setup below, the app falls back to Authelia's page inside the app, where passkeys don't work and the session lasts only as long as Authelia's cookie.</p>
+    <p>You need Authelia 4.38 or later. Register a public client for the app. The <code>client_id</code> can be anything (users enter a name other than <code>switchboard</code> under <strong>Advanced</strong>); the redirect URI must be exactly <code>http://127.0.0.1/callback</code>:</p>
+    <pre><code>identity_providers:
+  oidc:
+    clients:
+      - client_id: 'switchboard'
+        client_name: 'Switchboard'
+        public: true
+        authorization_policy: 'two_factor'
+        require_pkce: true
+        pkce_challenge_method: 'S256'
+        require_pushed_authorization_requests: true
+        redirect_uris:
+          - 'http://127.0.0.1/callback'
+        scopes: ['offline_access', 'authelia.bearer.authz']
+        audience: ['https://chat.example.com']
+        grant_types: ['authorization_code', 'refresh_token']
+        response_types: ['code']
+        response_modes: ['form_post']
+        consent_mode: 'explicit'
+        token_endpoint_auth_method: 'none'</code></pre>
+    <p>LibreChat uses the <code>Authorization</code> header for its own sign-in, so the app sends Authelia's token as <code>Proxy-Authorization</code>. Let the authz endpoint read it, and keep the cookie strategy for browsers:</p>
+    <pre><code>server:
+  endpoints:
+    authz:
+      forward-auth:
+        implementation: 'ForwardAuth'
+        authn_strategies:
+          - name: 'HeaderProxyAuthorization'
+            schemes: ['Bearer']
+          - name: 'CookieSession'</code></pre>
+    <p>Your reverse proxy must pass <code>Proxy-Authorization</code> on to Authelia. Caddy drops it unless told otherwise:</p>
+    <pre><code>forward_auth authelia:9091 {
+	uri /api/authz/forward-auth
+	header_up Proxy-Authorization {http.request.header.Proxy-Authorization}
+	copy_headers Remote-User Remote-Groups Remote-Email Remote-Name
+}</code></pre>
+    <p>Refresh tokens last 90 minutes by default, so a phone left alone longer has to sign in to Authelia again. To keep users signed in longer, give the client longer lifespans (<code>identity_providers.oidc.lifespans.custom</code>, then <code>lifespan:</code> on the client), for example 30 days for refresh tokens.</p>
+
+    <h2 id="gateways">Cloudflare Access and other header-based gateways</h2>
+    <p>For a gateway that lets requests through on fixed headers, such as a Cloudflare Access service token, users add the headers when they connect: under <strong>Advanced</strong> on the server address screen, or later in <strong>Settings → Advanced → Server connection</strong>. For Cloudflare Access, create a service token and give them its <code>CF-Access-Client-Id</code> and <code>CF-Access-Client-Secret</code>.</p>
+
+    <h2 id="tls">Self-signed TLS certificates</h2>
+    <p>Both platforms trust a private certificate authority once it's installed on the device, but they check certificates more strictly than browsers do. A certificate that works in Chrome or Safari can still be refused by the app. It needs:</p>
+    <ul>
+      <li>The server's DNS name in the <strong>Subject Alternative Name</strong> (the CommonName alone is ignored).</li>
+      <li>A <strong>SHA-256</strong> or stronger signature, and an RSA key of at least 2048 bits or a modern ECDSA curve.</li>
+      <li><strong>Extended Key Usage</strong> with TLS Web Server Authentication on the leaf, and <code>CA:TRUE</code> on the issuing CA.</li>
+      <li>On iPhone and iPad, a leaf certificate valid for <strong>825 days or less</strong>.</li>
+    </ul>
+    <p><a href="https://github.com/FiloSottile/mkcert">mkcert</a> makes certificates that meet all of these. Then each user installs your CA certificate on their phone:</p>
+    <ul>
+      <li><strong>iPhone and iPad:</strong> Settings → General → VPN &amp; Device Management to install it, then Settings → General → About → Certificate Trust Settings to turn on full trust.</li>
+      <li><strong>Android:</strong> Settings → Security → Encryption &amp; credentials → Install a certificate → CA certificate (search Settings for "CA certificate" if it's elsewhere).</li>
+    </ul>
+    <p>If users can't install a CA (a managed phone, for example), use a publicly trusted certificate such as Let's Encrypt, or a reverse proxy that serves one. Plain <code>http://</code> works on Android with a warning, and on iPhone only to a local address (a local IP, a <code>.local</code> name or a single-word name like <code>http://nas</code>). The <a href="https://github.com/garfiec/Librechat-Mobile/blob/develop/FAQ.md#can-i-use-a-self-signed-tls-certificate">full guide</a> has the details.</p>
+
+    <h2 id="subpath">Running LibreChat under a subpath</h2>
+    <p>Users enter the full address, path included, for example <code>https://example.com/librechat</code>. The app keeps the path for every request.</p>
+
+    <h2>Registration</h2>
+    <p>The app follows your server's registration settings. If registration is off, users only see the sign-in form.</p>
+
+    <h2>Tell your users</h2>
+    <p>A message you can paste into your team chat or wiki. Put your server's address in the last line:</p>
+    <pre><code id="announce">Our LibreChat now works in the Switchboard app.
+Android: Google Play, F-Droid or Obtainium
+iPhone and iPad: TestFlight beta
+Get it at <span data-site-url>this website</span>, then enter https://your-server-address as the server.</code></pre>
+  </div>
+</main>
+<script>
+  // The message names this site wherever it's hosted.
+  document.querySelectorAll('[data-site-url]').forEach(function (el) {
+    el.textContent = location.origin + location.pathname.replace(/[^/]*$/, '');
+  });
+</script>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <nav aria-label="Footer">
+      <a href="https://github.com/garfiec/Librechat-Mobile">GitHub</a>
+      <a href="https://github.com/garfiec/Librechat-Mobile/releases">Releases</a>
+      <a href="changelog.html">What's new</a>
+      <a href="compatibility.html">Compatibility</a>
+      <a href="admins.html">For admins</a>
+      <a href="demo.html">Live demo</a>
+      <a href="verify.html">Verify your download</a>
+      <a href="privacy.html">Privacy</a>
+    </nav>
+    <p class="disclaimer">What you can do depends on your LibreChat server: its version, the models and features it enables, and how sign-in is set up. Switchboard is an independent project, not affiliated with LibreChat.</p>
+  </div>
+</footer>
+<script src="prefetch.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <!-- resizes-content: the page shrinks above an on-screen keyboard, so the composer rides it as in the app. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-content">
+    <title>Switchboard UI demo</title>
+    <!-- The site serves the demo from demo/, beside its own icon. -->
+    <link rel="icon" href="../favicon.ico" sizes="48x48">
+    <script>
+        // Matches the demo's first theme (Main.kt's InitialState): the browser's, unless the hash says dark or light.
+        (() => {
+            const has = (word) => new RegExp(`(^|[#,])\\s*${word}\\s*(,|$)`, "i").test(location.hash);
+            const dark = has("dark") || (matchMedia("(prefers-color-scheme: dark)").matches && !has("light"));
+            if (dark) document.documentElement.classList.add("dark");
+        })();
+    </script>
+    <style>
+        :root { --bg: #f4f4f8; --fg: #1b1b21; --muted: #5d5e6a; --track: #dcdce6; --bar: #4f46e5; }
+        :root.dark { --bg: #111; --fg: #e6e6ee; --muted: #a0a0ad; --track: #2b2b33; --bar: #8b85ff; }
+        html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: var(--bg); }
+        #compose-root { width: 100%; height: 100%; }
+        #loader {
+            position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 16px; padding: 0 24px; background: var(--bg); color: var(--fg); transition: opacity 250ms ease;
+            font: 15px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; text-align: center;
+        }
+        #loader.done { opacity: 0; pointer-events: none; }
+        #loader h1 { margin: 0; font-size: 22px; font-weight: 600; }
+        #loader .track { width: min(280px, 100%); height: 6px; border-radius: 3px; background: var(--track); overflow: hidden; }
+        #loader .bar { width: 0; height: 100%; border-radius: 3px; background: var(--bar); transition: width 200ms linear; }
+        #loader.starting .bar { width: 100%; animation: pulse 1.2s ease-in-out infinite; }
+        @keyframes pulse { 50% { opacity: .45; } }
+        #loader .status { color: var(--muted); min-height: 1.4em; }
+        #loader button { display: none; font: inherit; padding: 8px 20px; border-radius: 20px; border: 0; background: var(--bar); color: #fff; cursor: pointer; }
+        #loader.failed .track { display: none; }
+        #loader.failed button { display: block; }
+    </style>
+</head>
+<body>
+<div id="compose-root"></div>
+<div id="loader" role="status" aria-live="polite">
+    <h1>Switchboard</h1>
+    <div class="track"><div class="bar"></div></div>
+    <div class="status">Downloading the demo…</div>
+    <button type="button" onclick="location.reload()">Try again</button>
+</div>
+<script>
+    // Shows download progress until the app draws its first frame and calls switchboardReady().
+    (() => {
+        const loader = document.getElementById("loader");
+        const bar = loader.querySelector(".bar");
+        const status = loader.querySelector(".status");
+        // The uncompressed size of the .wasm files, written in at build time; the stream counts uncompressed bytes.
+        const total = Number("__WASM_BYTES__") || 0;
+        let received = 0;
+        let ready = false;
+        let failed = false;
+        const fail = (message) => {
+            if (ready || failed) return;
+            failed = true;
+            loader.className = "failed";
+            status.textContent = message;
+        };
+        const gc = WebAssembly.validate(new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0, 1, 5, 1, 95, 1, 120, 0]));
+        if (!gc) {
+            fail("This browser can't run the demo. Try a recent Chrome, Edge, Firefox or Safari 18.2 or later.");
+            return;
+        }
+        const nativeFetch = window.fetch.bind(window);
+        window.fetch = async (input, init) => {
+            const url = String(input instanceof Request ? input.url : input);
+            let response;
+            try {
+                response = await nativeFetch(input, init);
+            } catch (e) {
+                if (url.endsWith(".wasm")) fail("The download stopped. Check your connection and try again.");
+                throw e;
+            }
+            if (!url.endsWith(".wasm") || !response.body) return response;
+            if (!response.ok) {
+                fail("The demo couldn't be downloaded. Try again in a moment.");
+                return response;
+            }
+            const reader = response.body.getReader();
+            const counted = new ReadableStream({
+                async pull(controller) {
+                    try {
+                        const { done, value } = await reader.read();
+                        if (done) { controller.close(); return; }
+                        received += value.byteLength;
+                        if (total && !failed) {
+                            const percent = Math.min(99, Math.floor((received / total) * 100));
+                            bar.style.width = percent + "%";
+                            status.textContent = `Downloading the demo… ${percent}%`;
+                            if (received >= total) {
+                                loader.className = "starting";
+                                status.textContent = "Starting…";
+                            }
+                        }
+                        controller.enqueue(value);
+                    } catch (e) {
+                        fail("The download stopped. Check your connection and try again.");
+                        controller.error(e);
+                    }
+                },
+            });
+            return new Response(counted, { status: response.status, statusText: response.statusText, headers: response.headers });
+        };
+        window.addEventListener("error", () => fail("The demo couldn't start. Try reloading the page."));
+        window.addEventListener("unhandledrejection", () => fail("The demo couldn't start. Try reloading the page."));
+        window.switchboardReady = () => {
+            ready = true;
+            loader.className = "done";
+            setTimeout(() => loader.remove(), 300);
+        };
+    })();
+</script>
+<script type="application/javascript" src="switchboard-demo.js"></script>
+</body>
+</html>
