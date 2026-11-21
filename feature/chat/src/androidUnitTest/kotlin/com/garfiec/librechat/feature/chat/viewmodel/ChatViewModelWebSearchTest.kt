@@ -5,7 +5,6 @@ import com.garfiec.librechat.core.common.EndpointConstants
 import com.garfiec.librechat.core.common.ToolConstants
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.LastUsedSelection
-import com.garfiec.librechat.core.data.datastore.WebSearchPreference
 import com.garfiec.librechat.core.data.repository.ChatPayloadBuilder
 import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.EndpointConfig
@@ -16,6 +15,7 @@ import com.garfiec.librechat.core.model.config.ModelSpecs
 import com.garfiec.librechat.core.model.config.StartupConfig
 import com.garfiec.librechat.core.model.permissions.PermissionType
 import com.garfiec.librechat.core.model.permissions.UserRolePermissions
+import com.garfiec.librechat.core.model.preferences.WebSearchPreference
 import com.garfiec.librechat.core.model.request.EphemeralAgent
 import com.garfiec.librechat.core.network.di.librechatJson
 import com.garfiec.librechat.feature.chat.model.PresetDisplayData

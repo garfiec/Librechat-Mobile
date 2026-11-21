@@ -57,16 +57,3 @@ internal fun projectContextGate(
         limits = ChatProjectLimits.from(config?.projects),
     )
 }
-
-/** The project page's Instructions and Files cards, as the screen draws them. */
-@Immutable
-data class ProjectContextUi(
-    /** The saved instructions, never a draft. Blank shows the empty-state line. */
-    val instructions: String,
-    /** Null hides the Files card (no RAG API on the server). */
-    val files: ProjectFilesUi?,
-    val canUploadFiles: Boolean,
-    val maxFiles: Int,
-) {
-    val atFileLimit: Boolean get() = files != null && files.usedCount >= maxFiles
-}

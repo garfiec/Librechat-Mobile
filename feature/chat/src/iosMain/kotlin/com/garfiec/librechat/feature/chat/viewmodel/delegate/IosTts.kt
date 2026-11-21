@@ -3,6 +3,7 @@ package com.garfiec.librechat.feature.chat.viewmodel.delegate
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.repository.SpeechRepository
+import com.garfiec.librechat.core.model.preferences.TTS_SOURCE_SERVER
 import com.garfiec.librechat.core.model.speech.TtsVoice
 import com.garfiec.librechat.core.ui.media.AudioClipPlayer
 import com.garfiec.librechat.core.ui.media.deviceUtterance
@@ -96,7 +97,7 @@ class IosTts(
         handle.update { voice = voice.copy(currentlyReadingMessageId = readingId) }
 
         readJob = handle.scope.launch {
-            if (settingsDataStore.ttsSource.first() == SettingsDataStore.TTS_SOURCE_SERVER) {
+            if (settingsDataStore.ttsSource.first() == TTS_SOURCE_SERVER) {
                 readAloudViaServer(text)
             } else {
                 queueUtterance(

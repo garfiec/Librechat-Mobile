@@ -1,0 +1,272 @@
+package com.garfiec.librechat.feature.chat.util
+
+import com.garfiec.librechat.core.common.EndpointConstants
+import com.garfiec.librechat.core.model.Agent
+import com.garfiec.librechat.core.model.config.ModelSpec
+import com.garfiec.librechat.core.model.config.ModelSpecs
+import com.garfiec.librechat.feature.chat.viewmodel.ModelChoice
+
+/**
+ * The selection a server's model spec asks new chats to open on.
+ *
+ * [prioritized] specs open every new chat, ahead of the user's last-used model. The others are
+ * soft defaults: they apply only when the user has no usable selection of their own.
+ */
+data class SpecSeed(
+    val endpoint: String,
+    val model: String,
+    val prioritized: Boolean,
+    val spec: String,
+)
+
+/**
+ * Port of upstream's `getDefaultModelSpec` (`client/src/utils/endpoints.ts`) combined with the
+ * `shouldApplyModelSpec` gate in `useNewConvo.ts`, which decides whether its answer is used.
+ * [modelSelect] is `interface.modelSelect`, true when the server leaves it out.
+ *
+ * [lastSpec] is upstream's stored `LAST_CONVO_SETUP.spec`: the spec name of the user's last pick,
+ * null when that pick was a raw model. "Yields to the user's prior selection" for a soft default
+ * with no stored spec is decided by the seeder (a usable last-used wins), not here.
+ */
+fun resolveDefaultModelSpec(specs: ModelSpecs?, modelSelect: Boolean, lastSpec: String?): SpecSeed? {
+    if (specs == null || specs.list.isEmpty()) return null
+    val prioritized = specs.prioritize == true || !modelSelect
+
+    val hard = specs.list.firstOrNull { it.isDefault }
+    if (hard != null) {
+        // `useNewConvo` applies it only under these conditions. Web's other two paths, the first
+        // load of `/c/new` and the `defaultPreset` every later new chat starts from, apply it
+        // whatever `prioritize` says; the seeder adds those ([withUngatedDefault]).
+        return if (prioritized) hard.toSeed(prioritized = true) else null
+    }
+    val soft = specs.list.firstOrNull { it.softDefault }
+    // Upstream applies a stored spec on every new chat, whatever `prioritize` says.
+    val last = lastSpec?.let { name -> specs.list.firstOrNull { it.name == name } }
+    if (last != null && last.name != soft?.name) {
+        last.toSeed(prioritized = true)?.let { return it }
+    }
+    if (soft != null) {
+        // With the selector off there is no prior selection to yield to. `prioritize` does not
+        // upgrade a soft default: upstream checks the soft branch first.
+        return soft.toSeed(prioritized = !modelSelect)
+    }
+    return if (prioritized) specs.list.first().toSeed(prioritized = true) else null
+}
+
+fun SpecSeed.toChoice(): ModelChoice = ModelChoice.Spec(spec, endpoint, model)
+
+/**
+ * A stored selection (a conversation, preset, last-used pick or staged Compare pick) as a [ModelChoice]:
+ * a spec when it names one and has a model to pair it with, else raw. The spec is not checked
+ * against the config here; see [ModelChoice.Companion.stored].
+ */
+fun ModelChoice.Companion.restore(endpoint: String, model: String?, spec: String?): ModelChoice =
+    if (spec != null && model != null) ModelChoice.Spec(spec, endpoint, model) else ModelChoice.Raw(endpoint, model)
+
+/**
+ * The pair this spec opens on, by `preset.endpoint` alone, as upstream's `resolveModelSpecEndpoint`
+ * (`packages/data-provider/src/models.ts`) reads it: an agents spec runs its `agent_id`, any other
+ * its `model`, and a spec with no endpoint opens nothing. The server writes an endpoint it infers
+ * from `agent_id` into the served config (`materializeModelSpecEndpoints`), so no inference here;
+ * a stray `agent_id` on another endpoint is ignored, as the server ignores it.
+ */
+fun ModelSpec.toSeed(prioritized: Boolean = false): SpecSeed? {
+    if (name.isBlank()) return null
+    val preset = preset ?: return null
+    val endpoint = preset.endpoint?.takeIf { it.isNotBlank() } ?: return null
+    val model = (if (endpoint == EndpointConstants.AGENTS) preset.agentId else preset.model)
+        ?.takeIf { it.isNotBlank() } ?: return null
+    return SpecSeed(endpoint, model, prioritized, name)
+}
+
+/**
+ * A stored pick (last-used, a model shortcut) reopened against the live config: the spec it names
+ * on that spec's current pair, as web's `getDefaultModelSpec` reopens `LAST_CONVO_SETUP.spec`, while
+ * the server offers one by that name; else the raw pair. A spec an admin moved to another model is
+ * still the user's pick, so it follows the spec rather than falling back to the old raw model.
+ *
+ * Only for picks. A loaded conversation or preset keeps its own pair ([ModelChoice.Companion.stored]),
+ * as web keeps `conversation.spec` with the conversation's model.
+ */
+fun ModelSpecs?.reopenedPick(endpoint: String, model: String, spec: String?): ModelChoice {
+    val seed = spec?.let { name -> this?.list.orEmpty().firstOrNull { it.name == name }?.toSeed() }
+    return seed?.toChoice() ?: ModelChoice.Raw(endpoint, model)
+}
+
+/**
+ * Whether the picker lists [endpoint]'s raw models and agents next to the named specs. Mirrors
+ * upstream's `useEndpoints` filter: nothing raw with `interface.modelSelect` off ([modelSelect]),
+ * else only `addedEndpoints` when set. Under `enforce` with no `addedEndpoints`, nothing raw is
+ * listed: web lists everything there, and every pick fails.
+ */
+fun ModelSpecs?.showsRawEndpoint(endpoint: String, modelSelect: Boolean): Boolean =
+    modelSelect && (this == null || (addedEndpoints.isEmpty() && !enforce) || endpoint in addedEndpoints)
+
+/**
+ * Whether the server rejects any send that names no spec (`buildEndpointOption.js`). It has no
+ * exception for `addedEndpoints`, so raw rows shown under it can't be sent to.
+ */
+val ModelSpecs?.requiresSpec: Boolean
+    get() = this != null && enforce && list.isNotEmpty()
+
+/**
+ * A stored selection (a conversation, preset, queued turn or Compare lane) as the server resolves
+ * its spec on send (`resolveModelSpecForEndpoint`, `buildEndpointOption.js`). The server checks a
+ * stored spec against its full list, hidden specs included, and only by endpoint:
+ * - a served spec by that name whose preset is on another endpoint: raw, since the server refuses
+ *   the name there ("Model spec mismatch");
+ * - a served spec on the same endpoint: kept on the stored model, which is what the server runs
+ *   without `enforce`. Under `enforce` the server replaces the body with the spec's preset, so the
+ *   selection moves to the spec's pair, the model the server runs;
+ * - a name the served list doesn't contain: kept. `/api/config` leaves out `showInMenu: false`
+ *   specs, which the server still applies, so a hidden spec and a deleted one look the same here.
+ *   The server applies a hidden one and ignores a deleted one, or refuses it under `enforce`
+ *   ("Invalid model spec").
+ *
+ * With no spec config yet ([specs] null) the spec is kept, and the config's arrival re-checks it.
+ */
+fun ModelChoice.Companion.stored(
+    endpoint: String,
+    model: String?,
+    spec: String?,
+    specs: ModelSpecs?,
+): ModelChoice {
+    val kept = restore(endpoint, model, spec)
+    if (kept !is ModelChoice.Spec) return kept
+    val served = specs?.list.orEmpty().firstOrNull { it.name == kept.name } ?: return kept
+    if (served.preset?.endpoint?.takeIf { it.isNotBlank() } != endpoint) return ModelChoice.Raw(endpoint, model)
+    return served.toSeed()?.takeIf { specs.requiresSpec }?.toChoice() ?: kept
+}
+
+/** This selection held against [specs] as the server would hold it ([ModelChoice.Companion.stored]). */
+fun ModelChoice.storedAgainst(specs: ModelSpecs?): ModelChoice =
+    if (this is ModelChoice.Spec) ModelChoice.stored(endpoint, model, name, specs) else this
+
+/**
+ * The seeder's own landing selection on [specs]: kept only while the server still offers its spec on
+ * the same endpoint and model, else the raw pair. Stricter than [storedAgainst] on purpose: the seeder
+ * opens only specs the server serves, so one it no longer serves on that pair is re-seeded through
+ * the tiers (a retargeted prioritized spec re-applies with its new preset) rather than sent.
+ */
+internal fun ModelChoice.seededAgainst(specs: ModelSpecs?): ModelChoice {
+    if (this !is ModelChoice.Spec) return this
+    val offered = specs?.list.orEmpty().any { spec ->
+        spec.toSeed()?.let { it.spec == name && it.endpoint == endpoint && it.model == model } == true
+    }
+    return if (offered) this else ModelChoice.Raw(endpoint, model)
+}
+
+/** [seededAgainst] for the seeder's own landing pick ([seeded]), else [storedAgainst]. */
+fun ModelChoice.heldAgainst(specs: ModelSpecs?, seeded: Boolean): ModelChoice =
+    if (seeded) seededAgainst(specs) else storedAgainst(specs)
+
+/**
+ * This raw choice as the one spec [uniqueSpecFor] finds for it, while it still holds the [tier0]
+ * raw pair an entry point asked for and [specs] are enforced.
+ */
+internal fun ModelChoice.inferredFor(tier0: Pair<String, String>?, specs: ModelSpecs?): ModelChoice {
+    val (endpoint, model) = tier0 ?: return this
+    if (this !is ModelChoice.Raw || this.endpoint != endpoint || this.model != model) return this
+    if (!specs.requiresSpec) return this
+    return ModelChoice.restore(endpoint, model, specs.uniqueSpecFor(endpoint, model))
+}
+
+/** A start-chat entry point's pair: an agent card's agent, or a model shortcut's pair and the spec it was recorded from. */
+data class StartChatPick(val endpoint: String, val model: String, val spec: String?, val shortcut: Boolean)
+
+/**
+ * What a start-chat entry point opens on once the spec config is known, or null when it opens
+ * nothing. An agent card opens its agent, with the selector off too, as on web. An enforced server
+ * refuses a send without a spec, so a raw pair adopts the spec when exactly one opens on it;
+ * otherwise the send preflight asks.
+ *
+ * A model shortcut reopens the spec it was recorded from, on that spec's current pair, as a
+ * last-used pick does ([reopenedPick]). Without one (a raw pick, or one recorded before shortcuts
+ * kept their spec) its raw pair opens only where the picker lists that endpoint: a start-chat link
+ * wins over the server's spec, so it must not open a raw model an admin hid. There the one spec on
+ * the pair opens instead, or nothing when none or several do. Under `enforce` it takes the one
+ * spec on its pair as any entry point does, and otherwise opens the raw pair for the send
+ * preflight to ask.
+ */
+fun StartChatPick.resolvedAgainst(specs: ModelSpecs?, modelSelect: Boolean): ModelChoice? {
+    val pair = endpoint to model
+    if (!shortcut) return ModelChoice.Raw(endpoint, model).inferredFor(pair, specs)
+    val reopened = specs.reopenedPick(endpoint, model, spec)
+    if (reopened is ModelChoice.Spec) return reopened
+    if (specs.requiresSpec || specs.showsRawEndpoint(endpoint, modelSelect)) return reopened.inferredFor(pair, specs)
+    return specs.uniqueSpecFor(endpoint, model)?.let { ModelChoice.Spec(it, endpoint, model) }
+}
+
+/**
+ * The one spec that opens on [endpoint] and [model], for an entry point that names only the raw
+ * pair (an agent card, a model shortcut) on a server that [requiresSpec]. Null when no spec or
+ * more than one matches: the user picks, rather than the client guessing between them.
+ */
+internal fun ModelSpecs?.uniqueSpecFor(endpoint: String, model: String): String? =
+    this?.list.orEmpty()
+        .mapNotNull { it.toSeed() }
+        .filter { it.endpoint == endpoint && it.model == model }
+        .singleOrNull()
+        ?.spec
+
+/**
+ * The spec a reopened comparison's second lane was sent with, read back from its ephemeral agent
+ * id. The server saves no spec for the added convo; the id's sender segment is
+ * `modelLabel ?? spec.label ?? modelDisplayLabel` (`added.ts`, left out when empty), and the
+ * client never sends a `modelLabel` for lane B, so a spec lane's sender is its label. The one
+ * spec on [endpoint] and [model] with that label wins, else the one on [endpoint] with that label
+ * (an admin moved it to another model there, which the server still applies). A hidden spec is
+ * never served, so its lane reopens without it. Failing that, an enforced server, which
+ * only a spec lane can have come from, takes the one spec on the pair ([uniqueSpecFor]); any other
+ * server reopens the raw pair, since a raw lane with that pair is just as likely.
+ *
+ * A sender equal to the endpoint's [displayLabel] (its `modelDisplayLabel`) is also what a raw lane
+ * on that endpoint saves, so outside `enforce` it names no spec and the lane reopens raw: a wrong
+ * raw reopen loses only the preset, while a wrong spec reopen sends the spec's name and preset unasked.
+ * Until the endpoint's config has loaded ([displayLabelKnown] false) any sender might be that label,
+ * so the lane reopens raw meanwhile, and the next read decides once it arrives.
+ */
+internal fun ModelSpecs?.laneBSpecFor(
+    endpoint: String,
+    model: String,
+    sender: String?,
+    displayLabel: String? = null,
+    displayLabelKnown: Boolean = true,
+): String? {
+    val ambiguous = sender != null && !requiresSpec && (!displayLabelKnown || sender == displayLabel)
+    val byLabel = sender?.takeUnless { ambiguous }?.let { label ->
+        val labelled = this?.list.orEmpty().filter { spec ->
+            spec.label == label && spec.toSeed()?.endpoint == endpoint
+        }
+        labelled.singleOrNull { it.toSeed()?.model == model } ?: labelled.singleOrNull()
+    }
+    return byLabel?.name ?: uniqueSpecFor(endpoint, model).takeIf { requiresSpec }
+}
+
+/**
+ * The spec rows the picker lists, ascending by `order` with unordered specs after them in list
+ * order. An agent spec is left out once [agentsLoaded] shows its agent is not among [agents], as
+ * web's `useModelSpecs` does; until then every spec shows, and so does one whose `agent_id` is
+ * ephemeral (not `agent_…`), which no list can prove missing.
+ */
+internal fun ModelSpecs?.visibleSpecs(agents: List<Agent>, agentsLoaded: Boolean): List<ModelSpec> {
+    val agentIds = if (agentsLoaded) agents.mapTo(HashSet()) { it.id } else null
+    return this?.list.orEmpty()
+        .filter { spec ->
+            val seed = spec.toSeed() ?: return@filter false
+            val agentShown = agentIds == null || seed.endpoint != EndpointConstants.AGENTS ||
+                isEphemeralAgentId(seed.model) || seed.model in agentIds
+            spec.showInMenu != false && agentShown
+        }
+        .sortedBy { it.order ?: Double.POSITIVE_INFINITY }
+}
+
+/**
+ * The start POST's refusals of the selection's spec (`buildEndpointOption.js`): under `enforce`, no
+ * spec or a name the server doesn't know; with or without it, a spec on another endpoint. Each means
+ * the selection must change, so the client opens the picker. Server sentences, matched verbatim
+ * (`scripts/mirrors.json`, `model-spec-refusals`).
+ */
+fun isSpecRefusal(refusalText: String?): Boolean = refusalText in SPEC_REFUSALS
+
+private val SPEC_REFUSALS = setOf("No model spec selected", "Invalid model spec", "Model spec mismatch")

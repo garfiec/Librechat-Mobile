@@ -6,11 +6,11 @@ import com.garfiec.librechat.core.common.DetectedBackend
 import com.garfiec.librechat.core.common.EndpointConstants
 import com.garfiec.librechat.core.common.ToolConstants
 import com.garfiec.librechat.core.common.result.Result
-import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.StreamEvent
 import com.garfiec.librechat.core.model.mcp.McpDisplayStatus
+import com.garfiec.librechat.core.model.preferences.DuringRunAction
 import com.garfiec.librechat.core.model.response.ChatResumeResponse
 import com.garfiec.librechat.core.model.response.ChatStatusResponse
 import com.garfiec.librechat.core.model.response.SteerResponse

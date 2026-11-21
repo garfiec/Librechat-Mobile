@@ -1,6 +1,6 @@
 package com.garfiec.librechat.feature.chat.components.artifact
 
-import com.garfiec.librechat.core.data.datastore.FlaggedArtifactLibraries
+import com.garfiec.librechat.core.model.preferences.FlaggedArtifactLibraries
 import com.garfiec.librechat.feature.chat.components.buildKatexHtml
 import com.garfiec.librechat.feature.chat.components.buildMermaidHtml
 import com.garfiec.librechat.feature.chat.components.web.VendoredWebAssets

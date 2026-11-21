@@ -6,6 +6,7 @@ import com.garfiec.librechat.core.common.identity.deriveServerId
 import com.garfiec.librechat.core.common.identity.normalizeServerUrl
 import com.garfiec.librechat.core.data.db.dao.ServerDao
 import com.garfiec.librechat.core.data.db.entity.ServerEntity
+import com.garfiec.librechat.core.model.server.HeaderWriteFailure
 import com.garfiec.librechat.core.network.client.CustomHeaderRules
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred

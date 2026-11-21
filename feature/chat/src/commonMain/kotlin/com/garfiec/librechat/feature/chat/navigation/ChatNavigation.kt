@@ -13,8 +13,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
 import com.garfiec.librechat.core.data.datastore.AppPreferences
-import com.garfiec.librechat.core.data.datastore.ArtifactDisplayMode
 import com.garfiec.librechat.core.data.datastore.PreferenceStore
+import com.garfiec.librechat.core.model.preferences.ArtifactDisplayMode
 import com.garfiec.librechat.feature.chat.components.LocalArtifactFileActions
 import com.garfiec.librechat.feature.chat.components.artifact.Artifact
 import com.garfiec.librechat.feature.chat.components.artifact.ArtifactOrigin
@@ -25,6 +25,7 @@ import com.garfiec.librechat.feature.chat.components.artifact.ArtifactViewerHand
 import com.garfiec.librechat.feature.chat.components.artifact.LocalArtifactOrigin
 import com.garfiec.librechat.feature.chat.components.artifact.LocalOpenArtifact
 import com.garfiec.librechat.feature.chat.components.artifact.ProvideAddArtifactToHomeScreen
+import com.garfiec.librechat.feature.chat.components.artifact.rememberAddArtifactToHomeScreen
 import com.garfiec.librechat.feature.chat.components.rememberAttachmentFileActions
 import com.garfiec.librechat.feature.chat.prompts.PromptEditorScreen
 import com.garfiec.librechat.feature.chat.prompts.PromptsLibraryScreen
@@ -215,7 +216,7 @@ fun EntryProviderScope<NavKey>.chatEntries(
     sharedChatEntry(onNavigate = onNavigate, onBack = onBack, onRemove = onRemove)
     entry<ArtifactFullscreen> { key ->
         // Provider present so the fullscreen viewer's toolbar can pin the artifact too.
-        ProvideAddArtifactToHomeScreen {
+        ProvideAddArtifactToHomeScreen(rememberAddArtifactToHomeScreen()) {
             ProvideAttachmentDownloader {
                 ArtifactFullscreenScreen(
                     identifier = key.identifier,
@@ -314,7 +315,7 @@ internal fun ProvideOpenArtifact(
 
     // Wraps the content and the viewer alike, so the pin action reaches inline cards and the viewer
     // (no-op on platforms without a pin action).
-    ProvideAddArtifactToHomeScreen {
+    ProvideAddArtifactToHomeScreen(rememberAddArtifactToHomeScreen()) {
         CompositionLocalProvider(LocalOpenArtifact provides openArtifact, LocalArtifactOrigin provides origin) {
             ArtifactPresentationHost(
                 state = presentation,

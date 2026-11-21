@@ -2,21 +2,9 @@ package com.garfiec.librechat.core.data.update
 
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.model.AppRelease
+import com.garfiec.librechat.core.model.update.UpdateCheckState
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
-
-sealed interface UpdateCheckState {
-    data object Idle : UpdateCheckState
-    data object Checking : UpdateCheckState
-    data object UpToDate : UpdateCheckState
-
-    /** [releases] holds every stable release newer than the installed build, newest first. */
-    data class Available(val releases: List<AppRelease>) : UpdateCheckState {
-        val latest: AppRelease get() = releases.first()
-    }
-
-    data class Failed(val message: String?) : UpdateCheckState
-}
 
 /** One page of [AppUpdateRepository.olderReleases]. [hasMore] is false once GitHub's list ran out. */
 data class ReleasePage(val releases: List<AppRelease>, val hasMore: Boolean)

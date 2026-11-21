@@ -1,0 +1,236 @@
+package com.garfiec.librechat.feature.chat.components
+
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.width
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.model.endpoint.EndpointDispatch
+import com.garfiec.librechat.core.model.preferences.ContextBarPlacement
+import com.garfiec.librechat.core.model.ui.UiStyle
+import com.garfiec.librechat.core.model.usage.ContextDetailPreset
+import com.garfiec.librechat.core.model.usage.ContextUsage
+import com.garfiec.librechat.core.model.usage.ContextUsageTotals
+import com.garfiec.librechat.core.model.usage.TokenBudgetBreakdown
+import com.garfiec.librechat.core.ui.contextusage.ContextBreakdownModel
+import com.garfiec.librechat.core.ui.platform.BarSide
+import com.garfiec.librechat.core.ui.platform.LocalWindowFeatures
+import com.garfiec.librechat.core.ui.platform.VerticalBars
+import com.garfiec.librechat.core.ui.platform.WindowFeatures
+import com.garfiec.librechat.core.ui.preview.PreviewNarrowScreens
+import com.garfiec.librechat.core.ui.theme.LibreChatTheme
+import com.garfiec.librechat.feature.chat.viewmodel.CompactNudge
+import com.garfiec.librechat.feature.chat.viewmodel.ContextGaugeDetails
+import com.garfiec.librechat.feature.chat.viewmodel.DuringRunSendTarget
+import com.garfiec.librechat.feature.chat.viewmodel.ModelChoice
+import com.garfiec.librechat.feature.chat.viewmodel.QueuedMessage
+import com.garfiec.librechat.feature.chat.viewmodel.QueuedTurnServerState
+
+// The composer and what docks with it: the during-run row, the notices and queue above it, the
+// context gauge on each of its surfaces, and the options sheet the "+" opens.
+
+@PreviewNarrowScreens
+@Composable
+private fun ComposerMidRunMaterialPreview() = ComposerSurface(UiStyle.MATERIAL) { MidRunComposerHost() }
+
+@PreviewNarrowScreens
+@Composable
+private fun ComposerMidRunGlassPreview() = ComposerSurface(UiStyle.LIQUID_GLASS) { MidRunComposerHost() }
+
+@PreviewNarrowScreens
+@Composable
+private fun ComposerQueueHeldPreview() = ComposerSurface(UiStyle.MATERIAL) { QueueHeldComposerHost() }
+
+@PreviewNarrowScreens
+@Composable
+private fun ComposerTemporaryChatMaterialPreview() = ComposerSurface(UiStyle.MATERIAL) { TemporaryChatComposerHost() }
+
+@PreviewNarrowScreens
+@Composable
+private fun ComposerTemporaryChatGlassPreview() = ComposerSurface(UiStyle.LIQUID_GLASS) { TemporaryChatComposerHost() }
+
+@PreviewNarrowScreens
+@Composable
+private fun ComposerCompareMaterialPreview() = ComposerSurface(UiStyle.MATERIAL) { CompareComposerHost() }
+
+@PreviewNarrowScreens
+@Composable
+private fun ComposerCompareGlassPreview() = ComposerSurface(UiStyle.LIQUID_GLASS) { CompareComposerHost() }
+
+@PreviewNarrowScreens
+@Composable
+private fun ComposerCompareEmptyMaterialPreview() = ComposerSurface(UiStyle.MATERIAL) { CompareComposerHost(draft = "") }
+
+@PreviewNarrowScreens
+@Composable
+private fun ComposerContextRingPreview() = ComposerSurface(UiStyle.MATERIAL) { ContextRingComposerHost() }
+
+@PreviewNarrowScreens
+@Composable
+private fun QueuedNeedsAttentionPreview() = ComposerSurface(UiStyle.MATERIAL) {
+    QueuedMessagesSection(
+        queuedMessages = listOf(queuedRefused, queuedPlain),
+        onEdit = {},
+        onCancel = {},
+        onReorder = { _, _ -> },
+    )
+}
+
+/** iPhone Duo's cover screen: the fade runs under the bar column on the right, the controls stop at it. */
+@PreviewNarrowScreens
+@Composable
+private fun ComposerBarColumnMaterialPreview() = ComposerSurface(UiStyle.MATERIAL) { BarColumn { MidRunComposerHost() } }
+
+@PreviewNarrowScreens
+@Composable
+private fun ComposerBarColumnGlassPreview() = ComposerSurface(UiStyle.LIQUID_GLASS) { BarColumn { MidRunComposerHost() } }
+
+/** Measured the way a DropdownMenu measures its items, at the menu's widest. */
+@Preview(name = "1.3x · ja", widthDp = 360, fontScale = 1.3f, locale = "ja", showBackground = true)
+@PreviewNarrowScreens
+@Composable
+private fun ContextMenuItemPreview() = ComposerSurface(UiStyle.MATERIAL) {
+    Column(Modifier.width(IntrinsicSize.Max)) {
+        ContextUsageMenuItem(details = gaugeWithNudge, onClick = {})
+    }
+}
+
+@Composable
+private fun ComposerSurface(style: UiStyle, content: @Composable () -> Unit) {
+    LibreChatTheme(darkTheme = true, uiStyle = style, content = content)
+}
+
+@Composable
+private fun BarColumn(content: @Composable () -> Unit) {
+    val bars = VerticalBars(side = BarSide.RIGHT, columnWidth = 84.dp, systemZoneHeight = 174.dp)
+    CompositionLocalProvider(LocalWindowFeatures provides WindowFeatures(verticalBars = bars), content = content)
+}
+
+/** A steer-capable server mid-run, with a draft typed: the caret beside the send button shows. */
+@Composable
+private fun MidRunComposerHost() {
+    var text by remember { mutableStateOf("Also check whether the parking garage opens before the park does") }
+    ChatInput(
+        inputText = text,
+        isStreaming = true,
+        onInputChange = { text = it },
+        onSend = {},
+        onStop = {},
+        onOpenTools = {},
+        canQueue = true,
+        canSteer = true,
+        duringRunSendTarget = DuringRunSendTarget.STEER,
+    )
+}
+
+/** A refused follow-up holds the queue mid-run, so the notice explaining it sits above the composer. */
+@Composable
+private fun QueueHeldComposerHost() {
+    ChatInput(
+        inputText = "",
+        isStreaming = true,
+        onInputChange = {},
+        onSend = {},
+        onStop = {},
+        onOpenTools = {},
+        queueHeldForRefusal = true,
+        chrome = ComposerChrome(queuedMessages = listOf(queuedRefused)),
+    )
+}
+
+@Composable
+private fun TemporaryChatComposerHost() {
+    ChatInput(
+        inputText = "",
+        isStreaming = false,
+        onInputChange = {},
+        onSend = {},
+        onStop = {},
+        onOpenTools = {},
+        isTemporaryChat = true,
+    )
+}
+
+/** A phone tab while comparing: the compact A·B badges in the empty field, the dots once a draft is typed. */
+@Composable
+private fun CompareComposerHost(draft: String = "Which of these sorting algorithms is stable?") {
+    var text by remember { mutableStateOf(draft) }
+    ChatInput(
+        inputText = text,
+        isStreaming = false,
+        onInputChange = { text = it },
+        onSend = {},
+        onStop = {},
+        onOpenTools = {},
+        comparison = ComposerComparison(
+            primaryLabel = "gpt-5",
+            secondaryLabel = "claude-opus-4-5-20251101-thinking",
+            onChangePrimary = {},
+            onChangeSecondary = {},
+            compact = true,
+        ),
+        comparisonHint = ComposerComparisonHint.BOTH,
+    )
+}
+
+/** The context ring at the end of the settings line (the above-the-field placement), with a compact suggestion due. */
+@Composable
+private fun ContextRingComposerHost() {
+    ChatInput(
+        inputText = "",
+        isStreaming = false,
+        onInputChange = {},
+        onSend = {},
+        onStop = {},
+        onOpenTools = {},
+        chrome = ComposerChrome(
+            contextGauge = gaugeWithNudge,
+            contextUsageEnabled = true,
+            onCompact = {},
+            contextBarPlacement = ContextBarPlacement.ABOVE_INPUT,
+            contextRingDialogs = ContextRingDialogs(),
+        ),
+    )
+}
+
+/** 82% of a 128k window, with a compact suggestion due. */
+internal val gaugeWithNudge = ContextGaugeDetails(
+    model = ContextBreakdownModel(
+        usage = ContextUsage(
+            breakdown = TokenBudgetBreakdown(
+                maxContextTokens = 128_000,
+                instructionTokens = 12_000,
+                messageTokens = 93_000,
+                messageCount = 48,
+            ),
+        ),
+        isEstimate = false,
+        totals = ContextUsageTotals(),
+        costEnabled = false,
+        currency = null,
+        isCompacting = false,
+        compactionAvailable = true,
+    ),
+    sections = ContextDetailPreset.STANDARD.sections,
+    nudge = CompactNudge(band = 1, percent = 82),
+)
+
+private val previewDispatch = EndpointDispatch(endpointType = null, key = null, modelDisplayLabel = null)
+
+/** A follow-up the server refused: held for the user, so it carries the "needs attention" cue. */
+private val queuedRefused = QueuedMessage(
+    localId = "refused",
+    text = "And book the character breakfast for the second morning if it's still open",
+    choice = ModelChoice.Raw("openAI", "gpt-5.1"),
+    dispatch = previewDispatch,
+    server = QueuedTurnServerState(status = QueuedTurnServerState.Status.Rejected),
+)
+
+private val queuedPlain = queuedRefused.copy(localId = "plain", text = "Then a packing list", server = null)

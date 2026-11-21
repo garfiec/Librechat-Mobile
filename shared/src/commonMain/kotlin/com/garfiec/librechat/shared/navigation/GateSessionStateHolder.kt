@@ -4,8 +4,8 @@ import com.garfiec.librechat.core.common.extensions.serverHostLabel
 import com.garfiec.librechat.core.common.identity.AccountState
 import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.common.identity.deriveServerId
-import com.garfiec.librechat.core.data.gate.DEFAULT_GATE_CLIENT_ID
 import com.garfiec.librechat.core.data.gate.GateAccess
+import com.garfiec.librechat.core.model.auth.DEFAULT_GATE_CLIENT_ID
 import com.garfiec.librechat.core.network.client.ServerUrlProvider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow

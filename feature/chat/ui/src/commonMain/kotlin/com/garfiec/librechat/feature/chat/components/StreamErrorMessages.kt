@@ -1,0 +1,259 @@
+package com.garfiec.librechat.feature.chat.components
+
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
+import com.garfiec.librechat.core.model.Message
+import com.garfiec.librechat.core.model.code.CodeWorkspaceUnavailableReason
+import com.garfiec.librechat.core.model.error.StreamErrorType
+import com.garfiec.librechat.core.model.error.classifiedProviderInfo
+import com.garfiec.librechat.core.ui.datetime.LocalDateTimeFormat
+import com.garfiec.librechat.feature.chat.resources.*
+import com.garfiec.librechat.feature.chat.resources.Res
+import com.garfiec.librechat.feature.chat.screen.userKeyErrorMessage
+import com.garfiec.librechat.feature.chat.viewmodel.ChatNotice
+import org.jetbrains.compose.resources.pluralStringResource
+import org.jetbrains.compose.resources.stringResource
+
+/**
+ * Resolves the shared error channel's value for display, swapping a typed marker for the localized
+ * sentence that says what the user can actually do about it.
+ *
+ * **Anything unrecognized passes through unchanged.** That is the contract, not a fallback: the
+ * channel carries server-authored text and app-authored text as well as markers, a newer server
+ * will emit codes this build has never heard of, and none of those may reach the user as a bare
+ * identifier or an empty string.
+ *
+ * **Every surface that renders `ChatUiState.error` calls this** — the two platform snackbars and
+ * both model-selector banners. The value a user sees must not depend on which one is showing it,
+ * and the two are concurrent: `error` is cleared only when the Long snackbar returns, so a selector
+ * opened in that window renders the same value at the same time. The model-related codes are the
+ * ones that send a user to the selector, so that overlap is the expected path, not an edge case.
+ */
+@Composable
+fun localizedStreamError(raw: String): String {
+    ChatNotice.parse(raw)?.let { return localizedNotice(it) }
+    if (!raw.startsWith(StreamErrorType.MARKER_PREFIX)) return raw
+    // A marker may carry an argument after the separator (a code-workspace rejection's reason).
+    val wire = raw.removePrefix(StreamErrorType.MARKER_PREFIX).substringBefore(StreamErrorType.ARG_SEPARATOR)
+    // Matched on the enum rather than on the marker string so a code removed from the enum stops
+    // resolving here too, instead of leaving a branch that can never be reached.
+    val type = StreamErrorType.entries.firstOrNull { it.wire == wire } ?: return raw
+    return when (type) {
+        StreamErrorType.RESOURCE_RECOVERY_REQUIRED -> stringResource(Res.string.error_resource_recovery_required)
+        StreamErrorType.MODEL_NOT_FOUND -> stringResource(Res.string.error_model_not_found)
+        StreamErrorType.MODEL_RATE_LIMIT -> stringResource(Res.string.error_model_rate_limit)
+        StreamErrorType.MODEL_STREAM_CLOSED -> stringResource(Res.string.error_model_stream_closed)
+        StreamErrorType.MODEL_STREAM_STALLED -> stringResource(Res.string.error_model_stream_stalled)
+        StreamErrorType.MISSING_MODEL -> stringResource(Res.string.error_missing_model)
+        StreamErrorType.MODELS_NOT_LOADED -> stringResource(Res.string.error_models_not_loaded)
+        StreamErrorType.ENDPOINT_MODELS_NOT_LOADED -> stringResource(Res.string.error_endpoint_models_not_loaded)
+        StreamErrorType.INVALID_AGENT_PROVIDER -> stringResource(Res.string.error_invalid_agent_provider)
+        StreamErrorType.REFUSAL -> stringResource(Res.string.error_refusal)
+        StreamErrorType.INPUT_LENGTH -> stringResource(Res.string.error_input_length)
+        StreamErrorType.FINAL_CONTEXT_OVERFLOW -> stringResource(Res.string.error_final_context_overflow)
+        StreamErrorType.COMPACTION_SKIPPED -> stringResource(Res.string.error_compaction_skipped)
+        StreamErrorType.COMPACTION_FAILED -> stringResource(Res.string.error_compaction_failed)
+        StreamErrorType.MODERATION -> stringResource(Res.string.error_moderation)
+        StreamErrorType.AUTH_RATE_LIMITED -> stringResource(Res.string.error_auth_rate_limited)
+        StreamErrorType.AUTH_BANNED -> stringResource(Res.string.error_auth_banned)
+        StreamErrorType.AUTH_CROSS_ORIGIN -> stringResource(Res.string.error_auth_cross_origin)
+        StreamErrorType.SHARE_LIMIT -> stringResource(Res.string.error_share_limit)
+        StreamErrorType.MESSAGE_LIMIT -> stringResource(Res.string.error_message_limit)
+        StreamErrorType.BAN -> stringResource(Res.string.error_ban)
+        StreamErrorType.CONVO_ACCESS -> stringResource(Res.string.error_convo_access)
+        StreamErrorType.STREAM_EXPIRED -> stringResource(Res.string.error_stream_expired)
+        StreamErrorType.UPSTREAM_MODEL_ERROR -> stringResource(Res.string.error_upstream_model_error)
+        StreamErrorType.EMPTY_MESSAGES -> stringResource(Res.string.error_empty_messages)
+        StreamErrorType.CODE_WORKSPACE_UNAVAILABLE -> stringResource(
+            when (StreamErrorType.codeWorkspaceReasonOfMarker(raw)) {
+                CodeWorkspaceUnavailableReason.REQUIRED -> Res.string.error_code_workspace_required
+                CodeWorkspaceUnavailableReason.INVALID -> Res.string.error_code_workspace_invalid
+                CodeWorkspaceUnavailableReason.WORKER_UNAVAILABLE -> Res.string.error_code_workspace_worker_unavailable
+                CodeWorkspaceUnavailableReason.UNSUPPORTED -> Res.string.error_code_workspace_unsupported
+                CodeWorkspaceUnavailableReason.MISSING -> Res.string.error_code_workspace_missing
+                CodeWorkspaceUnavailableReason.LOCKED -> Res.string.error_code_workspace_locked
+                null -> Res.string.error_code_workspace_unavailable
+            },
+        )
+        StreamErrorType.STATEFUL_CODE_ENVIRONMENT_NOT_ALLOWED ->
+            stringResource(Res.string.error_stateful_code_environment_not_allowed)
+        StreamErrorType.TOKEN_BALANCE -> stringResource(Res.string.error_token_balance)
+        StreamErrorType.AGENT_EXPECTED_MCP_TOOLS_UNAVAILABLE ->
+            stringResource(Res.string.error_agent_mcp_tools_unavailable)
+        StreamErrorType.MCP_AUTHENTICATION_REJECTED -> stringResource(Res.string.error_mcp_authentication_rejected)
+        StreamErrorType.MCP_AUTHENTICATION_REFRESH_FAILED ->
+            stringResource(Res.string.error_mcp_authentication_refresh_failed)
+        StreamErrorType.PROJECT_RESOURCES_CHANGED -> stringResource(Res.string.error_project_resources_changed)
+        StreamErrorType.PROJECT_CONTEXT_UNAVAILABLE -> stringResource(Res.string.error_project_context_unavailable)
+        StreamErrorType.PROJECT_CONTEXT_CHANGED -> stringResource(Res.string.error_project_context_changed)
+        StreamErrorType.ACCOUNT_DELETION_IN_PROGRESS -> stringResource(Res.string.error_account_deletion_in_progress)
+        StreamErrorType.GENERATION_ADMISSION_UNAVAILABLE ->
+            stringResource(Res.string.error_generation_admission_unavailable)
+    }
+}
+
+@Composable
+private fun localizedNotice(parsed: ChatNotice.Parsed): String {
+    if (parsed.notice == ChatNotice.MESSAGE_LIMIT_RETRY) {
+        parsed.args.firstOrNull()?.toLongOrNull()?.let { return messageLimitRetry(it) }
+    }
+    val res = when (parsed.notice) {
+        ChatNotice.RENAME_FAILED -> Res.string.notice_rename_failed
+        ChatNotice.RENAME_NOT_READY -> Res.string.notice_rename_not_ready
+        ChatNotice.RENAME_NOT_FOUND -> Res.string.notice_rename_not_found
+        ChatNotice.DELETE_FAILED -> Res.string.notice_delete_failed
+        ChatNotice.ARCHIVE_FAILED -> Res.string.notice_archive_failed
+        ChatNotice.DUPLICATE_FAILED -> Res.string.notice_duplicate_failed
+        ChatNotice.PRESET_SAVE_FAILED -> Res.string.notice_preset_save_failed
+        ChatNotice.PRESET_DELETE_FAILED -> Res.string.notice_preset_delete_failed
+        ChatNotice.PRESET_UPDATE_FAILED -> Res.string.notice_preset_update_failed
+        ChatNotice.PROMPT_RESOLVE_FAILED -> Res.string.notice_prompt_resolve_failed
+        ChatNotice.CONTINUE_RESPONSE_FAILED -> Res.string.notice_continue_response_failed
+        ChatNotice.MESSAGE_SAVE_FAILED -> Res.string.notice_message_save_failed
+        ChatNotice.FAVORITES_LIMIT -> Res.string.notice_favorites_limit
+        ChatNotice.FAVORITES_UPDATE_FAILED -> Res.string.notice_favorites_update_failed
+        ChatNotice.BOOKMARKS_LOAD_FAILED -> Res.string.notice_bookmarks_load_failed
+        ChatNotice.BOOKMARK_UPDATE_FAILED -> Res.string.notice_bookmark_update_failed
+        ChatNotice.BOOKMARK_CREATE_FAILED -> Res.string.notice_bookmark_create_failed
+        ChatNotice.UPLOAD_FAILED -> Res.string.notice_upload_failed
+        ChatNotice.UPLOAD_FAILED_UNKNOWN -> Res.string.notice_upload_failed_unknown
+        ChatNotice.UPLOAD_UNREADABLE -> Res.string.notice_upload_unreadable
+        ChatNotice.UPLOAD_TOO_LARGE -> Res.string.notice_upload_too_large
+        ChatNotice.SPEECH_PERMISSION_DENIED -> Res.string.notice_speech_permission_denied
+        ChatNotice.SPEECH_UNAVAILABLE -> Res.string.notice_speech_unavailable
+        ChatNotice.SEND_REFUSED -> Res.string.notice_send_refused
+        ChatNotice.CONTENT_BLOCKED -> Res.string.notice_content_blocked
+        ChatNotice.SKILLS_NOT_SENT -> Res.string.notice_skills_not_sent
+        ChatNotice.SKILLS_REMOVED_FROM_QUEUED -> Res.string.notice_skills_removed_from_queued
+        ChatNotice.TOOL_DECISION_NOT_PERMITTED -> Res.string.notice_tool_decision_not_permitted
+        ChatNotice.RESUME_CONTEXT_UNAVAILABLE -> Res.string.notice_resume_context_unavailable
+        ChatNotice.FORK_FAILED -> Res.string.notice_fork_failed
+        ChatNotice.RUN_CODE_FAILED -> Res.string.notice_run_code_failed
+        ChatNotice.FORK_RATE_LIMITED -> Res.string.notice_fork_rate_limited
+        ChatNotice.BRANCH_WITHOUT_FILES_UNSUPPORTED -> Res.string.notice_branch_without_files_unsupported
+        ChatNotice.CODE_WORKSPACE_SENT_WITHOUT -> Res.string.code_workspace_sent_without
+        ChatNotice.CODE_WORKSPACE_MOVE_STALE -> Res.string.code_workspace_move_stale
+        ChatNotice.CODE_WORKSPACE_MOVE_BUSY -> Res.string.code_workspace_move_busy
+        ChatNotice.CODE_WORKSPACE_MOVE_FAILED -> Res.string.code_workspace_move_error
+        ChatNotice.COPY_TOOL_CONTENT_FAILED -> Res.string.notice_copy_tool_content_failed
+        ChatNotice.QUEUE_WITHDRAW_REFUSED -> Res.string.notice_queue_withdraw_refused
+        ChatNotice.QUEUE_WITHDRAW_BUSY -> Res.string.notice_queue_withdraw_busy
+        ChatNotice.QUEUE_EDIT_OVERTAKEN -> Res.string.notice_queue_edit_overtaken
+        ChatNotice.QUEUE_EDIT_WAITS_FOR_UPLOADS -> Res.string.notice_queue_edit_waits_for_uploads
+        ChatNotice.QUEUE_SERVER_HOLDS -> Res.string.notice_queue_server_holds
+        ChatNotice.QUEUE_RESTORED_TO_COMPOSER -> Res.string.notice_queue_restored_to_composer
+        // Reached only with an unreadable argument; the generic message-limit copy still applies.
+        ChatNotice.MESSAGE_LIMIT_RETRY -> Res.string.error_message_limit
+    }
+    val args = parsed.args
+    // A notice with a third argument needs its own branch here; `else` would drop it.
+    return when (args.size) {
+        0 -> stringResource(res)
+        1 -> stringResource(res, args[0])
+        else -> stringResource(res, args[0], args[1])
+    }
+}
+
+/**
+ * The message limit with the wait in the largest whole unit that fits, rounded up so the user is
+ * never told to retry before the window reopens. Operators set the window freely (upstream's own
+ * tests use an hour and three days), so minutes alone would say "4320 minutes".
+ */
+@Composable
+private fun messageLimitRetry(seconds: Long): String {
+    val minutes = ceilDiv(seconds, SECONDS_PER_MINUTE)
+    val hours = ceilDiv(minutes, MINUTES_PER_HOUR)
+    return when {
+        minutes < MINUTES_PER_HOUR -> minutes.toInt().let {
+            pluralStringResource(Res.plurals.notice_message_limit_retry_minutes, it, it)
+        }
+        hours < HOURS_PER_DAY -> hours.toInt().let {
+            pluralStringResource(Res.plurals.notice_message_limit_retry_hours, it, it)
+        }
+        else -> ceilDiv(hours, HOURS_PER_DAY).toInt().let {
+            pluralStringResource(Res.plurals.notice_message_limit_retry_days, it, it)
+        }
+    }
+}
+
+private fun ceilDiv(value: Long, divisor: Long): Long = (value + divisor - 1) / divisor
+
+private const val SECONDS_PER_MINUTE = 60L
+private const val MINUTES_PER_HOUR = 60L
+private const val HOURS_PER_DAY = 24L
+
+/**
+ * The failure a turn was saved with, ready for [localizedStreamError], or null for any other
+ * message.
+ *
+ * From v0.8.8-rc2 the server persists a failed turn as `error: true` with no content parts and
+ * the failure itself as `text` — for an initialization failure, the JSON of its typed payload.
+ * Rendered as ordinary text that JSON is what the thread showed, where the web shows the error.
+ */
+internal fun persistedTurnError(message: Message): String? =
+    if (isPersistedTurnError(message)) StreamErrorType.markerOrText(message.text) else null
+
+/**
+ * Whether [message] is a persisted failed turn — the test [persistedTurnError] classifies, without
+ * classifying. The thread and search only branch on it, and search runs it for every message on
+ * every keystroke.
+ */
+internal fun isPersistedTurnError(message: Message): Boolean =
+    message.error && message.content.isNullOrEmpty() && message.text.isNotBlank()
+
+/**
+ * A stream error as it sits in the thread — the in-band `error` part and a persisted failed turn
+ * both render through here.
+ *
+ * Adds what [localizedStreamError] cannot carry through a string: for an `upstream_model_error`,
+ * the provider's status in the headline and, from v0.8.8-rc4, the provider's own message under it;
+ * for a classified rate limit or unknown model, the gateway's `info` under the headline.
+ * A gateway or proxy rejection explains itself only there. The shared error channel (snackbar,
+ * selector banners) keeps the headline alone; the full account is in the thread.
+ *
+ * A key error ([savedUserKeyError]) reads as the key snackbar does, named after the key the reply's
+ * [endpoint] / [model] uses, with Add key from [LocalUserKeyErrors].
+ */
+@Composable
+internal fun StreamErrorPart(raw: String, modifier: Modifier = Modifier, endpoint: String? = null, model: String? = null) {
+    val keys = LocalUserKeyErrors.current
+    val keyError = remember(raw, endpoint, model, keys) { savedUserKeyError(raw, endpoint, model, keys) }
+    if (keyError != null) {
+        UserKeyErrorPart(keyError, keys?.onAddKey, modifier)
+        return
+    }
+    val classified = remember(raw) { StreamErrorType.markerOrText(raw) }
+    val detail = remember(raw) { StreamErrorType.upstreamModelErrorDetail(raw) }
+    val status = detail?.status
+    val headline = if (status != null) {
+        stringResource(Res.string.error_upstream_model_error_status, status)
+    } else {
+        localizedStreamError(classified)
+    }
+    val providerInfo = remember(raw) { StreamErrorType.classifiedProviderInfo(raw) }
+    ErrorContentPart(errorText = headline, detail = detail?.message ?: providerInfo, modifier = modifier)
+}
+
+@Composable
+private fun UserKeyErrorPart(shown: SavedUserKeyError, onAddKey: ((String) -> Unit)?, modifier: Modifier = Modifier) {
+    val format = LocalDateTimeFormat.current
+    val message = remember(shown, format) { userKeyErrorMessage(shown.error, shown.label, format) }
+    val target = shown.addKeyEndpoint
+    ErrorContentPart(
+        errorText = message.text(),
+        modifier = modifier,
+        actionLabel = stringResource(Res.string.set_api_key_action),
+        onAction = if (target != null && onAddKey != null) ({ onAddKey(target) }) else null,
+    )
+}
+
+/**
+ * Whether an error detail reads in place or collapses. Mirrors upstream `ErrorWithDetail`
+ * (`client/src/components/Messages/Content/Error/parts.tsx`): up to 240 characters on one line is
+ * a sentence; anything longer, or spanning lines, is a body to open.
+ */
+internal fun isInlineErrorDetail(detail: String): Boolean =
+    detail.length <= INLINE_DETAIL_LENGTH && detail.none { it == '\n' || it == '\r' }
+
+private const val INLINE_DETAIL_LENGTH = 240

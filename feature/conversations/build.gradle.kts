@@ -9,13 +9,9 @@ android {
 kotlin {
     sourceSets {
         commonMain.dependencies {
-            implementation(libs.paging.common)
+            api(project(":feature:conversations:ui"))
             implementation(libs.kermit)
             implementation(libs.kotlinx.serialization.json)
-        }
-        androidMain.dependencies {
-            implementation(libs.paging.runtime)
-            implementation(libs.paging.compose)
         }
         named("androidUnitTest").dependencies {
             implementation(libs.koin.test)

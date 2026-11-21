@@ -1,7 +1,7 @@
 package com.garfiec.librechat.feature.chat.components.web
 
 import co.touchlab.kermit.Logger
-import com.garfiec.librechat.feature.chat.resources.Res
+import com.garfiec.librechat.feature.chat.web.resources.Res
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.addressOf

@@ -85,8 +85,8 @@
   the first write if that failed; a failed read is an error, not a write of `[thisAgent]`. `isPinned` follows
   the repository flow (pins from the chat picker show). Over
   `FavoritesLimits.MAX_FAVORITES` = `PinLimit` error, nothing sent.
-- **Copy link**: `agentChatLink()` = `<server>/c/new?agent_id=<id>` (mirror `agent-chat-link`), via this
-  module's `ClipboardWriter`.
+- **Copy link**: `agentChatLink()` = `<server>/c/new?agent_id=<id>` (mirror `agent-chat-link`), via `:core:ui`'s
+  `ClipboardWriter`.
 - Errors: never-loaded page = `loadError` (ErrorBanner + Retry); failed Delete/Duplicate/pin = `actionError`
   snackbar. No English in the VM.
 

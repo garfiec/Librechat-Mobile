@@ -4,6 +4,7 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import com.garfiec.librechat.core.common.AppInfo
 import com.garfiec.librechat.core.common.DistributionChannel
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.model.update.UpdateCheckState
 import com.garfiec.librechat.core.network.api.GitHubReleasesApi
 import com.garfiec.librechat.core.network.di.librechatJson
 import com.google.common.truth.Truth.assertThat

@@ -13,20 +13,9 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.model.endpoint.KeyState
-import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
-import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
-import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
-import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
-import com.garfiec.librechat.core.ui.components.topbar.BarIcons
-import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
-import com.garfiec.librechat.core.ui.components.topbar.BarTitle
-import com.garfiec.librechat.feature.settings.resources.Res
-import com.garfiec.librechat.feature.settings.resources.cd_back
-import com.garfiec.librechat.feature.settings.resources.provider_keys_title
 import com.garfiec.librechat.feature.settings.viewmodel.providerkeys.ProviderKeysViewModel
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.getString
-import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -84,31 +73,7 @@ fun ProviderKeysScreen(
         viewModel.consumeTransientMessage()
     }
 
-    AdaptiveScaffold(
-        modifier = modifier,
-        snackbarHost = { AdaptiveSnackbarHost(snackbarHostState) },
-        topBar = {
-            AdaptiveTopBar(
-                spec = AdaptiveTopBarSpec(
-                    navigation = BarNavigation(BarIcons.Back, stringResource(Res.string.cd_back), onNavigateBack),
-                    title = BarTitle(stringResource(Res.string.provider_keys_title)),
-                    actions = emptyList(),
-                ),
-            )
-        },
-    ) { innerPadding ->
-        ProviderKeysContent(
-            uiState = uiState,
-            contentPadding = innerPadding,
-            onOpen = viewModel::openDialog,
-            onRetryRow = viewModel::retry,
-            onRetryLoad = viewModel::retry,
-            onRevokeAll = viewModel::showRevokeAllConfirm,
-        )
-    }
-
-    val pending = uiState.pendingDialogEndpoint
-    if (pending != null) {
+    val setKeyDialog: @Composable (String) -> Unit = { pending ->
         val row = uiState.dialogEntry
         SetProviderKeyDialog(
             endpointName = pending,
@@ -125,12 +90,17 @@ fun ProviderKeysScreen(
             onShowMessage = viewModel::emitTransientMessage,
         )
     }
-
-    if (uiState.showRevokeAllConfirm) {
-        RevokeAllDialog(
-            isRevoking = uiState.isRevokingAll,
-            onConfirm = viewModel::revokeAll,
-            onDismiss = viewModel::dismissRevokeAllConfirm,
-        )
-    }
+    ProviderKeysScreenContent(
+        uiState = uiState,
+        snackbarHostState = snackbarHostState,
+        onNavigateBack = onNavigateBack,
+        onOpen = viewModel::openDialog,
+        onRetryRow = viewModel::retry,
+        onRetryLoad = viewModel::retry,
+        onRevokeAll = viewModel::showRevokeAllConfirm,
+        onConfirmRevokeAll = viewModel::revokeAll,
+        onDismissRevokeAll = viewModel::dismissRevokeAllConfirm,
+        setKeyDialog = setKeyDialog,
+        modifier = modifier,
+    )
 }

@@ -1,6 +1,7 @@
 package com.garfiec.librechat.core.data.search
 
 import com.garfiec.librechat.core.data.db.AccountIsolationTestBase
+import com.garfiec.librechat.core.model.search.ScanCursor
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.runTest

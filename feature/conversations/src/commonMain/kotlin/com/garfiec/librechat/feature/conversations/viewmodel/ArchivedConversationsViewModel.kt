@@ -1,6 +1,5 @@
 package com.garfiec.librechat.feature.conversations.viewmodel
 
-import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import co.touchlab.kermit.Logger
@@ -9,7 +8,6 @@ import com.garfiec.librechat.core.data.repository.AgentRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.model.Conversation
-import com.garfiec.librechat.feature.conversations.ArchivedConversationDisplayData
 import com.garfiec.librechat.feature.conversations.components.AgentNameLookup
 import com.garfiec.librechat.feature.conversations.toArchivedDisplayData
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -23,18 +21,6 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-
-@Immutable
-data class ArchivedConversationsUiState(
-    val conversations: List<ArchivedConversationDisplayData> = emptyList(),
-    val isLoading: Boolean = false,
-    val isRefreshing: Boolean = false,
-    val error: String? = null,
-    val isLoadingMore: Boolean = false,
-    /** Only the server's cursor decides this: the cache can hold archived chats past the pages loaded. */
-    val hasMore: Boolean = true,
-    val loadMoreFailed: Boolean = false,
-)
 
 sealed interface ArchivedConversationsEvent {
     data class ShowError(val message: String) : ArchivedConversationsEvent

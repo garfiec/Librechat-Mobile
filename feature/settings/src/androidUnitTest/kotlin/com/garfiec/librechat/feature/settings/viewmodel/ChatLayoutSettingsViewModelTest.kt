@@ -1,10 +1,10 @@
 package com.garfiec.librechat.feature.settings.viewmodel
 
 import com.garfiec.librechat.core.common.ChatLayoutConstants
-import com.garfiec.librechat.core.data.datastore.ChatFontSize
-import com.garfiec.librechat.core.data.datastore.ChatHeaderAlignment
-import com.garfiec.librechat.core.data.datastore.ChatHeaderContent
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
+import com.garfiec.librechat.core.model.preferences.ChatFontSize
+import com.garfiec.librechat.core.model.preferences.ChatHeaderAlignment
+import com.garfiec.librechat.core.model.preferences.ChatHeaderContent
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coVerify
 import io.mockk.every

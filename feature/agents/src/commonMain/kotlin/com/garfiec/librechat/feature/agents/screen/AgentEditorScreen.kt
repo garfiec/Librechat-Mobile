@@ -1,37 +1,34 @@
 package com.garfiec.librechat.feature.agents.screen
 
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
-import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
-import com.garfiec.librechat.core.ui.components.LoadingIndicator
-import com.garfiec.librechat.core.ui.components.PdfPasswordDialog
+import com.garfiec.librechat.core.model.Agent
 import com.garfiec.librechat.core.ui.components.PlatformBackHandler
+import com.garfiec.librechat.feature.agents.components.AgentAclActions
+import com.garfiec.librechat.feature.agents.components.AgentAclSharingSection
+import com.garfiec.librechat.feature.agents.components.AgentAvatarPicker
 import com.garfiec.librechat.feature.agents.components.approvalResetText
 import com.garfiec.librechat.feature.agents.components.rememberAgentFilePicker
 import com.garfiec.librechat.feature.agents.resources.*
 import com.garfiec.librechat.feature.agents.resources.Res
+import com.garfiec.librechat.feature.agents.viewmodel.AgentAclViewModel
 import com.garfiec.librechat.feature.agents.viewmodel.AgentEditorEvent
 import com.garfiec.librechat.feature.agents.viewmodel.AgentEditorViewModel
 import com.garfiec.librechat.feature.agents.viewmodel.AgentFileSlot
+import com.garfiec.librechat.feature.agents.viewmodel.delegate.isMarketplaceItemSelected
+import com.garfiec.librechat.feature.agents.viewmodel.delegate.marketplaceCatalog
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
-// The screen owns the editor ViewModel and forwards it to its own private child
-// composables (dialogs, form). These are screen-internal, not reusable components,
-// so this is intentional structure, not the cross-component forwarding the rule targets.
-@Suppress("ViewModelForwarding")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AgentEditorScreen(
@@ -45,6 +42,9 @@ fun AgentEditorScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val hasUnsavedChanges by viewModel.hasUnsavedChanges.collectAsStateWithLifecycle()
+    val codeSection by viewModel.codeSection.collectAsStateWithLifecycle()
+    val instructionsPromptView by viewModel.instructionsPromptView.collectAsStateWithLifecycle()
+    val mcpRows by viewModel.mcpToolRows.collectAsStateWithLifecycle()
     val currentOnBack by rememberUpdatedState(onBack)
     val currentOnSaved by rememberUpdatedState(onSave)
     val currentOnDuplicated by rememberUpdatedState(onDuplicate)
@@ -71,18 +71,6 @@ fun AgentEditorScreen(
     // we replace at LaunchedEffect time. `%1$d` -> "%d" makes the substitution trivial.
     val tooLargeTemplate = stringResource(Res.string.agent_file_too_large, 0)
         .replaceFirst("0", "%d")
-    uiState.pdfPasswordPrompt?.let { prompt ->
-        // Keyed so a re-prompt after a wrong password starts from an empty field.
-        key(prompt) {
-            PdfPasswordDialog(
-                filename = prompt.filename,
-                incorrectPassword = prompt.incorrectPassword,
-                onSubmit = viewModel::submitPdfPassword,
-                onDismiss = viewModel::dismissPdfPassword,
-            )
-        }
-    }
-
     LaunchedEffect(uiState.error) {
         val err = uiState.error ?: return@LaunchedEffect
         val localized = when {
@@ -127,44 +115,146 @@ fun AgentEditorScreen(
         onBack = viewModel::onBackRequested,
     )
 
-    AgentEditorDialogs(
-        uiState = uiState,
-        viewModel = viewModel,
-        showToolDialog = uiState.showToolsMarketplace,
-        onDismissToolDialog = viewModel::closeToolsMarketplace,
-    )
+    val toolCatalog = if (uiState.showToolsMarketplace) {
+        remember(uiState) { uiState.marketplaceCatalog() }
+    } else {
+        emptyList()
+    }
+    val selectedToolKeys = if (uiState.showToolsMarketplace) {
+        remember(uiState, toolCatalog) {
+            toolCatalog.filter { uiState.isMarketplaceItemSelected(it) }.map { it.itemKey }.toSet()
+        }
+    } else {
+        emptySet()
+    }
 
-    AdaptiveScaffold(
+    val actions = remember(viewModel, codeFilePicker, knowledgeFilePicker, contextFilePicker) {
+        AgentEditorActions(
+            onBackRequested = viewModel::onBackRequested,
+            onShowDuplicateConfirmation = viewModel::showDuplicateConfirmation,
+            onShowVersionHistory = viewModel::showVersionHistory,
+            onShowDeleteConfirmation = viewModel::showDeleteConfirmation,
+            onSubmitPdfPassword = viewModel::submitPdfPassword,
+            onDismissPdfPassword = viewModel::dismissPdfPassword,
+            onAddCodeFile = { codeFilePicker.launch("*/*") },
+            onAddKnowledgeFile = { knowledgeFilePicker.launch("*/*") },
+            onAddContextFile = { contextFilePicker.launch("*/*") },
+            onOpenToolsMarketplace = viewModel::openToolsMarketplace,
+            onCloseToolsMarketplace = viewModel::closeToolsMarketplace,
+            onDismissAgentFileRemoval = viewModel::dismissAgentFileRemoval,
+            onConfirmAgentFileRemoval = viewModel::confirmAgentFileRemoval,
+            onDismissError = viewModel::dismissError,
+            onResetAvatar = viewModel::resetAvatar,
+            onNameChanged = viewModel::onNameChanged,
+            onDescriptionChanged = viewModel::onDescriptionChanged,
+            onCategoryChanged = viewModel::onCategoryChanged,
+            onInstructionsSourceChanged = viewModel::onInstructionsSourceChanged,
+            onInstructionsPromptGroupSelected = viewModel::onInstructionsPromptGroupSelected,
+            onInstructionsPromptVersionSelected = viewModel::onInstructionsPromptVersionSelected,
+            onRetryPromptGroups = viewModel::retryPromptGroups,
+            onRetryPromptRevisions = viewModel::retryPromptRevisions,
+            onInstructionsChanged = viewModel::onInstructionsChanged,
+            onModelSelected = viewModel::onModelSelected,
+            onCapabilitiesChanged = viewModel::onCapabilitiesChanged,
+            onCodeInterpreterToggled = viewModel::onCodeInterpreterToggled,
+            onRemoveAgentFile = viewModel::removeAgentFile,
+            onCodeBackgroundToggled = viewModel::onCodeBackgroundToggled,
+            onCodeSettingsEvent = viewModel::onCodeSettingsEvent,
+            onWebSearchToggled = viewModel::onWebSearchToggled,
+            onOpenWebSearchKeys = viewModel::openWebSearchKeys,
+            onSaveWebSearchKeys = viewModel::saveWebSearchKeys,
+            onRemoveWebSearchKeys = viewModel::removeWebSearchKeys,
+            onDismissWebSearchKeys = viewModel::dismissWebSearchKeys,
+            onSkillsToggled = viewModel::onSkillsToggled,
+            onSkillSelectionToggled = viewModel::onSkillSelectionToggled,
+            onSkillRemoved = viewModel::onSkillRemoved,
+            onSubagentsToggled = viewModel::onSubagentsToggled,
+            onSubagentAllowSelfToggled = viewModel::onSubagentAllowSelfToggled,
+            onAddSubagent = viewModel::addSubagent,
+            onRemoveSubagent = viewModel::removeSubagent,
+            onFileSearchToggled = viewModel::onFileSearchToggled,
+            onFileContextToggled = viewModel::onFileContextToggled,
+            onToolRemoved = viewModel::onToolRemoved,
+            onMcpToolToggled = viewModel::onMcpToolToggled,
+            onToolApprovalModeChanged = viewModel::onToolApprovalModeChanged,
+            onResetToolApprovals = viewModel::resetToolApprovals,
+            onSaveAction = viewModel::saveAction,
+            onDeleteAction = viewModel::deleteAction,
+            onSupportContactChanged = viewModel::onSupportContactChanged,
+            onConversationStarterAdded = viewModel::onConversationStarterAdded,
+            onConversationStarterRemoved = viewModel::onConversationStarterRemoved,
+            onSharingChanged = viewModel::onSharingChanged,
+            onAddChainAgent = viewModel::addChainAgent,
+            onRemoveChainAgent = viewModel::removeChainAgent,
+            onAddHandoffEdge = viewModel::addHandoffEdge,
+            onUpdateHandoffEdge = viewModel::updateHandoffEdge,
+            onRemoveHandoffEdge = viewModel::removeHandoffEdge,
+            onAdvancedSettingsChanged = viewModel::onAdvancedSettingsChanged,
+            onSave = viewModel::save,
+            onDiscardChanges = viewModel::discardChanges,
+            onDismissDiscardConfirmation = viewModel::dismissDiscardConfirmation,
+            onDelete = viewModel::delete,
+            onDismissDeleteConfirmation = viewModel::dismissDeleteConfirmation,
+            onDuplicate = viewModel::duplicate,
+            onDismissDuplicateConfirmation = viewModel::dismissDuplicateConfirmation,
+            onRevertToVersion = viewModel::revertToVersion,
+            onDismissVersionHistory = viewModel::dismissVersionHistory,
+            onMarketplaceQueryChanged = viewModel::onMarketplaceQueryChanged,
+            onMarketplaceFilterChanged = viewModel::onMarketplaceFilterChanged,
+            onMarketplaceItemToggled = viewModel::onMarketplaceItemToggled,
+            onMarketplaceFavoriteToggled = viewModel::onMarketplaceFavoriteToggled,
+            onSubmitCodeToolApiKey = viewModel::submitCodeToolApiKey,
+            onRevokeCodeToolApiKey = viewModel::revokeCodeToolApiKey,
+            onDismissCodeToolAuthDialog = viewModel::dismissCodeToolAuthDialog,
+        )
+    }
+
+    AgentEditorContent(
+        uiState = uiState,
+        codeSection = codeSection,
+        instructionsPromptView = instructionsPromptView,
+        mcpRows = mcpRows,
+        toolCatalog = toolCatalog,
+        selectedToolKeys = selectedToolKeys,
+        actions = actions,
+        snackbarHostState = snackbarHostState,
         modifier = modifier,
-        snackbarHost = { AdaptiveSnackbarHost(snackbarHostState) },
-        topBar = {
-            AgentEditorTopBar(
-                isEditMode = uiState.isEditMode,
-                onBack = viewModel::onBackRequested,
-                onDuplicate = viewModel::showDuplicateConfirmation,
-                onVersionHistory = viewModel::showVersionHistory,
-                onDelete = viewModel::showDeleteConfirmation,
+        avatarPicker = { avatarUrl, agentName ->
+            AgentAvatarPicker(
+                avatarUrl = avatarUrl,
+                agentName = agentName,
+                onImageSelect = viewModel::uploadAvatar,
             )
         },
-    ) { innerPadding ->
-        when {
-            uiState.isLoading -> {
-                LoadingIndicator(modifier = Modifier.padding(innerPadding))
-            }
+        aclSection = { AgentAclSharing(loadedAgent = uiState.loadedAgent) },
+    )
+}
 
-            else -> {
-                AgentEditorForm(
-                    uiState = uiState,
-                    viewModel = viewModel,
-                    onAddCodeFile = { codeFilePicker.launch("*/*") },
-                    onAddKnowledgeFile = { knowledgeFilePicker.launch("*/*") },
-                    onAddContextFile = { contextFilePicker.launch("*/*") },
-                    onShowToolDialog = viewModel::openToolsMarketplace,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding),
-                )
-            }
-        }
+/** The ACL sharing section, over its own ViewModel; created only where the section is drawn. */
+@Composable
+private fun AgentAclSharing(loadedAgent: Agent?) {
+    val aclViewModel: AgentAclViewModel = koinViewModel()
+    // The permissions routes take the agent's database _id, not its agent_… id; until the
+    // agent has loaded there is nothing to ask for, and the section stays hidden.
+    val agentDbId = loadedAgent?.mongoId
+    val authorId = loadedAgent?.author
+    LaunchedEffect(agentDbId, authorId) {
+        if (agentDbId != null) aclViewModel.load(agentDbId, authorId)
     }
+    val aclState by aclViewModel.uiState.collectAsState()
+    AgentAclSharingSection(
+        uiState = aclState,
+        actions = AgentAclActions(
+            onRetryShareCheck = aclViewModel::retryShareCheck,
+            onSetPublic = aclViewModel::setPublic,
+            onRetryLoad = aclViewModel::retryLoad,
+            onRevoke = aclViewModel::revoke,
+            onOpenGrantDialog = aclViewModel::openGrantDialog,
+            onSearchQueryChanged = aclViewModel::onSearchQueryChanged,
+            onRetrySearch = aclViewModel::retrySearch,
+            onRetryRoles = aclViewModel::retryRoles,
+            onGrant = aclViewModel::grant,
+            onDismissGrantDialog = aclViewModel::dismissGrantDialog,
+        ),
+    )
 }

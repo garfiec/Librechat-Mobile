@@ -6,9 +6,9 @@ import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.SkillsRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
 import com.garfiec.librechat.core.data.skills.resolveSkillActive
-import com.garfiec.librechat.core.data.skills.toSkillViewer
 import com.garfiec.librechat.core.model.SkillSummary
 import com.garfiec.librechat.core.model.config.skillsDefaultActiveOnShare
+import com.garfiec.librechat.core.model.skills.toSkillViewer
 import com.garfiec.librechat.feature.chat.util.CatalogSkill
 import com.garfiec.librechat.feature.chat.util.toCatalogSkill
 import com.garfiec.librechat.feature.chat.viewmodel.SkillPickerHandle

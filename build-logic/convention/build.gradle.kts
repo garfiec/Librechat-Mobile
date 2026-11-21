@@ -39,6 +39,14 @@ gradlePlugin {
             id = "librechat.mobile.koin"
             implementationClass = "AndroidKoinConventionPlugin"
         }
+        register("kmpWeb") {
+            id = "librechat.kmp.web"
+            implementationClass = "KmpWebConventionPlugin"
+        }
+        register("kmpFeatureUi") {
+            id = "librechat.kmp.feature.ui"
+            implementationClass = "KmpFeatureUiConventionPlugin"
+        }
         register("kotlinSerialization") {
             id = "librechat.kotlin.serialization"
             implementationClass = "KotlinSerializationConventionPlugin"

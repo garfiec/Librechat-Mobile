@@ -2,13 +2,13 @@ package com.garfiec.librechat.feature.chat.viewmodel
 
 import com.garfiec.librechat.core.common.EndpointConstants
 import com.garfiec.librechat.core.common.ToolConstants
-import com.garfiec.librechat.core.data.datastore.WebSearchPreference
 import com.garfiec.librechat.core.data.repository.ChatPayloadBuilder
 import com.garfiec.librechat.core.model.CustomParams
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.Preset
 import com.garfiec.librechat.core.model.config.ModelSpec
 import com.garfiec.librechat.core.model.config.ModelSpecs
+import com.garfiec.librechat.core.model.preferences.WebSearchPreference
 import com.garfiec.librechat.core.network.di.librechatJson
 import com.garfiec.librechat.core.ui.components.ModelParameters
 import com.garfiec.librechat.feature.chat.util.BuiltInSearchProvider

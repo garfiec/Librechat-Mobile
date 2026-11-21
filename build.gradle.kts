@@ -39,3 +39,21 @@ subprojects {
         }
     }
 }
+
+// Compiles the browser target of every module that applies librechat.kmp.web; CI runs it so an
+// Android- or iOS-only API in a :feature:*:ui module fails the build.
+val compileUiWasm by tasks.registering {
+    group = "verification"
+    description = "Compiles every librechat.kmp.web module for wasmJs. Needs -Plibrechat.web=true."
+    if (providers.gradleProperty("librechat.web").orNull != "true") {
+        doFirst { throw GradleException("compileUiWasm needs -Plibrechat.web=true") }
+    }
+}
+subprojects {
+    plugins.withId("librechat.kmp.web") {
+        if (providers.gradleProperty("librechat.web").orNull == "true") {
+            val compileTask = "$path:compileKotlinWasmJs"
+            compileUiWasm.configure { dependsOn(compileTask) }
+        }
+    }
+}

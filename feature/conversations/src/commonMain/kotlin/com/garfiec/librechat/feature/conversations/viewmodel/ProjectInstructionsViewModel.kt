@@ -1,6 +1,5 @@
 package com.garfiec.librechat.feature.conversations.viewmodel
 
-import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import co.touchlab.kermit.Logger
@@ -9,7 +8,6 @@ import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.ProjectContextFailure
 import com.garfiec.librechat.core.data.repository.ProjectRepository
 import com.garfiec.librechat.core.data.repository.toProjectContextFailure
-import com.garfiec.librechat.core.model.config.ChatProjectLimits
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,33 +17,6 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-
-@Immutable
-data class ProjectInstructionsUiState(
-    val isLoading: Boolean = true,
-    val loadFailed: Boolean = false,
-    /** The text the server holds, as last loaded. Dirty is measured against it. */
-    val saved: String = "",
-    val draft: String = "",
-    /** The `contextRevision` the next save is based on. */
-    val revision: Int? = null,
-    val maxLength: Int = ChatProjectLimits.DEFAULT_MAX_INSTRUCTIONS_LENGTH,
-    val isSaving: Boolean = false,
-    /** After a conflict: the other device's text, reloaded, for "View theirs". */
-    val theirs: String? = null,
-    val showTheirs: Boolean = false,
-    val discardPrompt: Boolean = false,
-    /** The screen should close: saved, discarded, left clean, or the project is gone. */
-    val exitRequested: Boolean = false,
-) {
-    val isDirty: Boolean get() = !isLoading && !loadFailed && draft.trim() != saved.trim()
-
-    /**
-     * A save with nothing changed is refused even when it would succeed: on a stale revision the
-     * server answers it with a conflict, for an edit that changes nothing.
-     */
-    val canSave: Boolean get() = isDirty && !isSaving
-}
 
 sealed interface ProjectInstructionsEvent {
     /** The project changed on another device; the draft is kept and the project reloaded behind it. */

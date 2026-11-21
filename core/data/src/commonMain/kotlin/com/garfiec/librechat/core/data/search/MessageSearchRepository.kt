@@ -17,6 +17,20 @@ import com.garfiec.librechat.core.data.repository.SearchCapabilityRepository
 import com.garfiec.librechat.core.logging.Diag
 import com.garfiec.librechat.core.logging.LogOrigin
 import com.garfiec.librechat.core.model.Message
+import com.garfiec.librechat.core.model.search.HighlightedSnippet
+import com.garfiec.librechat.core.model.search.HitSource
+import com.garfiec.librechat.core.model.search.MessageSearchHit
+import com.garfiec.librechat.core.model.search.MessageSearchResult
+import com.garfiec.librechat.core.model.search.RemoteSearchStatus
+import com.garfiec.librechat.core.model.search.RemoteSkipReason
+import com.garfiec.librechat.core.model.search.RoleFilter
+import com.garfiec.librechat.core.model.search.ScanCursor
+import com.garfiec.librechat.core.model.search.ScanProgress
+import com.garfiec.librechat.core.model.search.SearchFilterValues
+import com.garfiec.librechat.core.model.search.SearchOptions
+import com.garfiec.librechat.core.model.search.SearchSort
+import com.garfiec.librechat.core.model.search.SearchSource
+import com.garfiec.librechat.core.model.search.TermMatch
 import com.garfiec.librechat.core.network.api.MessagesApi
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -65,11 +79,6 @@ interface MessageSearchRepository {
         const val DEFAULT_LIMIT: Int = 200
     }
 }
-
-data class SearchFilterValues(
-    val models: List<String> = emptyList(),
-    val endpoints: List<String> = emptyList(),
-)
 
 /**
  * **Every local query here must be bounded.** SQLite runs a statement to completion whatever

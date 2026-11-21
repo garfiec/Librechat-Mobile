@@ -1,0 +1,172 @@
+package com.garfiec.librechat.feature.chat.components
+
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performTextInput
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.garfiec.librechat.core.common.EndpointConstants
+import com.garfiec.librechat.core.model.Agent
+import com.garfiec.librechat.core.model.EndpointConfig
+import com.garfiec.librechat.core.model.Preset
+import com.garfiec.librechat.core.model.config.ModelSpec
+import com.garfiec.librechat.core.model.config.ModelSpecs
+import com.garfiec.librechat.core.model.preferences.StarredModelsDisplay
+import com.garfiec.librechat.core.ui.theme.LibreChatTheme
+import org.junit.Assert.assertTrue
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+
+/**
+ * The model selector's rows are keyed from server data, and Compose throws on a duplicate
+ * LazyColumn key (#541). Each case feeds the sheet a shape that produced a duplicate key before, and
+ * passes only if the sheet composes. Searching expands every group, so collapsed rows are composed
+ * too.
+ */
+@RunWith(AndroidJUnit4::class)
+class ModelSelectorSheetKeysInstrumentedTest {
+
+    @get:Rule
+    val composeRule = createComposeRule()
+
+    private fun setSheet(
+        availableModels: Map<String, List<String>>,
+        endpointConfigs: Map<String, EndpointConfig>,
+        agents: List<Agent> = emptyList(),
+        favoriteModelKeys: Set<String> = emptySet(),
+        modelSpecs: ModelSpecs? = null,
+        selectedSpec: String? = null,
+        favoriteSpecNames: Set<String> = emptySet(),
+    ) {
+        composeRule.setContent {
+            LibreChatTheme {
+                ModelSelectorSheetContent(
+                    endpointConfigs = endpointConfigs,
+                    availableModels = availableModels,
+                    agents = agents,
+                    selectedEndpoint = EndpointConstants.AGENTS,
+                    selectedModel = null,
+                    onModelSelect = { _, _ -> },
+                    modelSelect = true,
+                    onSetApiKey = {},
+                    favoriteModelKeys = favoriteModelKeys,
+                    modelSpecs = modelSpecs,
+                    selectedSpec = selectedSpec,
+                    favoriteSpecNames = favoriteSpecNames,
+                    onToggleSpecFavorite = {},
+                    starredDisplay = StarredModelsDisplay.TOP,
+                )
+            }
+        }
+        composeRule.waitForIdle()
+    }
+
+    private fun search(query: String) {
+        composeRule.onNode(hasSetTextAction()).performTextInput(query)
+        composeRule.waitForIdle()
+    }
+
+    private fun assertShown(text: String) {
+        val nodes = composeRule.onAllNodes(hasText(text, substring = true), useUnmergedTree = true)
+            .fetchSemanticsNodes()
+        assertTrue("expected a row reading \"$text\"", nodes.isNotEmpty())
+    }
+
+    @Test
+    fun anAgentsKeyInTheModelMapDoesNotDuplicateTheAgentsHeader() {
+        // An agents-only server that lists its agents under /api/models.
+        setSheet(
+            availableModels = mapOf(EndpointConstants.AGENTS to listOf("a1")),
+            endpointConfigs = mapOf(EndpointConstants.AGENTS to EndpointConfig()),
+            agents = listOf(Agent(id = "a1", name = "Helper")),
+        )
+        search("Help")
+        assertShown("Helper")
+    }
+
+    @Test
+    fun anEndpointNamedStarredDoesNotCollideWithTheStarredSection() {
+        setSheet(
+            availableModels = mapOf("starred" to listOf("m1")),
+            endpointConfigs = mapOf("starred" to EndpointConfig()),
+            favoriteModelKeys = setOf("starred::m1"),
+        )
+        assertShown("starred")
+    }
+
+    @Test
+    fun modelNamesContainingUnderscoresDoNotCollideAcrossEndpoints() {
+        // "a_b" + "c" and "a" + "b_c" joined with "_" are both "a_b_c".
+        setSheet(
+            availableModels = mapOf("a_b" to listOf("c"), "a" to listOf("b_c")),
+            endpointConfigs = mapOf("a_b" to EndpointConfig(), "a" to EndpointConfig()),
+        )
+        search("c")
+        assertShown("b_c")
+    }
+
+    @Test
+    fun repeatedModelsAndAgentsDoNotRepeatRows() {
+        setSheet(
+            availableModels = mapOf("openAI" to listOf("gpt-4o", "gpt-4o")),
+            endpointConfigs = mapOf("openAI" to EndpointConfig()),
+            agents = listOf(Agent(id = "a1", name = "gpt helper"), Agent(id = "a1", name = "gpt helper")),
+        )
+        search("gpt")
+        assertShown("gpt-4o")
+        assertShown("gpt helper")
+    }
+
+    @Test
+    fun aGroupedSpecAlsoStarredAndAGroupNamedLikeASectionDoNotCollide() {
+        fun spec(name: String, label: String, group: String) =
+            ModelSpec(name = name, label = label, preset = Preset(endpoint = "openAI", model = "gpt-4o"), group = group)
+        setSheet(
+            availableModels = mapOf("openAI" to listOf("gpt-4o")),
+            endpointConfigs = mapOf("openAI" to EndpointConfig()),
+            modelSpecs = ModelSpecs(
+                list = listOf(spec("coder", "Coder", group = "openAI"), spec("pinned", "Pinned", group = "starred")),
+            ),
+            // The selected spec's section opens by itself, so its row composes beside the starred copy.
+            selectedSpec = "coder",
+            favoriteSpecNames = setOf("coder", "pinned"),
+        )
+        val coderRows = composeRule.onAllNodes(hasText("Coder"), useUnmergedTree = true).fetchSemanticsNodes()
+        assertTrue("expected the starred row and the opened section's row", coderRows.size == 2)
+        assertShown("starred (1)")
+    }
+
+    @Test
+    fun theEnforceNoteHeadsTheListAboveStarredAndGroupedRows() {
+        fun spec(name: String, group: String? = null) =
+            ModelSpec(name = name, label = name, preset = Preset(endpoint = "openAI", model = "gpt-4o"), group = group)
+        setSheet(
+            availableModels = mapOf("openAI" to listOf("gpt-4o")),
+            endpointConfigs = mapOf("openAI" to EndpointConfig(modelDisplayLabel = "OpenAI")),
+            favoriteModelKeys = setOf("openAI::gpt-4o"),
+            modelSpecs = ModelSpecs(
+                list = listOf(spec("General"), spec("Fast", group = "openAI")),
+                enforce = true,
+                addedEndpoints = listOf("openAI"),
+            ),
+            // Opens openAI's section, so its grouped spec composes below the note too.
+            selectedSpec = "Fast",
+            favoriteSpecNames = setOf("General"),
+        )
+        val notes = composeRule.onAllNodes(hasText(SPEC_ONLY_NOTE), useUnmergedTree = true).fetchSemanticsNodes()
+        assertTrue("expected one note", notes.size == 1)
+        val noteTop = composeRule.onNodeWithText(SPEC_ONLY_NOTE, useUnmergedTree = true).getUnclippedBoundsInRoot().top
+        listOf("General", "gpt-4o", "OpenAI", "Fast").forEach { text ->
+            val rows = composeRule.onAllNodes(hasText(text, substring = true), useUnmergedTree = true).fetchSemanticsNodes()
+            assertTrue("expected a row reading \"$text\"", rows.isNotEmpty())
+            rows.forEach { assertTrue("\"$text\" sits above the note", it.boundsInRoot.top > noteTop.value) }
+        }
+    }
+
+    private companion object {
+        const val SPEC_ONLY_NOTE = "Only the server's model specs can be sent; greyed models are for reference."
+    }
+}

@@ -249,7 +249,7 @@ class QueueOrchestrationDelegate(
     /** Whether [QueuedTurnDelegate.cancel] can succeed for this row at all: local, addressed, or
      *  refused with nothing committed. */
     private fun QueuedMessage.isWithdrawable(): Boolean =
-        server == null || server.id != null || server.status == QueuedTurnServerState.Status.Rejected
+        server == null || server?.id != null || server?.status == QueuedTurnServerState.Status.Rejected
 
     /** Drops every trace of server ownership, leaving a row the local drain may send. */
     private fun QueuedMessage.asLegacyRow(): QueuedMessage = copy(
@@ -446,8 +446,8 @@ class QueueOrchestrationDelegate(
         // An unconfirmed delivery: its window expired with no id, so nothing can withdraw it and
         // it refuses every drain. Upstream's × dismisses it locally, leaving the server to run it
         // if it did land. Only the × — an edit would resend words the server may already hold.
-        if (item.server.status == QueuedTurnServerState.Status.Uncertain &&
-            item.server.reconciliationExpired
+        if (item.server?.status == QueuedTurnServerState.Status.Uncertain &&
+            item.server?.reconciliationExpired == true
         ) {
             queueDelegate.cancel(localId)
             tryResumeDrain()
@@ -522,7 +522,7 @@ class QueueOrchestrationDelegate(
      */
     fun sendQueuedNow() {
         val refused = handle.state.messageQueue.firstOrNull {
-            it.server?.status == QueuedTurnServerState.Status.Rejected && it.server.id != null
+            it.server?.status == QueuedTurnServerState.Status.Rejected && it.server?.id != null
         }
         if (refused == null) {
             queueDelegate.resume()

@@ -1,8 +1,8 @@
 package com.garfiec.librechat.feature.chat.viewmodel
 
-import com.garfiec.librechat.core.data.endpoint.EndpointClassifier
-import com.garfiec.librechat.core.data.endpoint.EndpointDispatch
 import com.garfiec.librechat.core.model.EndpointConfig
+import com.garfiec.librechat.core.model.endpoint.EndpointClassifier
+import com.garfiec.librechat.core.model.endpoint.EndpointDispatch
 import com.garfiec.librechat.core.model.endpoint.KeyState
 
 /**

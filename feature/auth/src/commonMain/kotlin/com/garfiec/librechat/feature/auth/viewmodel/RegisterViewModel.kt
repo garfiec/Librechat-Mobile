@@ -1,6 +1,5 @@
 package com.garfiec.librechat.feature.auth.viewmodel
 
-import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.garfiec.librechat.core.common.result.ApiException
@@ -10,7 +9,6 @@ import com.garfiec.librechat.core.data.repository.AccountSwitcher
 import com.garfiec.librechat.core.data.repository.AuthRepository
 import com.garfiec.librechat.core.data.repository.BannerRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
-import com.garfiec.librechat.core.model.Banner
 import com.garfiec.librechat.core.model.LoginOutcome
 import com.garfiec.librechat.feature.auth.diagnostics.offersDiagnosticLog
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,45 +16,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-
-@Immutable
-data class RegisterUiState(
-    val name: String = "",
-    val email: String = "",
-    val username: String = "",
-    val password: String = "",
-    val confirmPassword: String = "",
-    val isLoading: Boolean = false,
-    val error: String? = null,
-    /** [error] came from a failure the diagnostic log can help with; see `offersDiagnosticLog`. */
-    val offerDiagnosticLog: Boolean = false,
-    /** A coded refusal ([AuthRefusal]) the screen words itself, in place of [error], while [error] is set. */
-    val refusal: AuthRefusal? = null,
-    /** A form problem the screen words itself; shown in place of [error]. */
-    val registerError: RegisterError? = null,
-    /** Where the screen goes once the account exists. */
-    val outcome: RegisterOutcome? = null,
-    /** The server mails a verification link (`emailEnabled`); otherwise the new account is already verified. */
-    val emailEnabled: Boolean = true,
-    val emailLoginEnabled: Boolean = true,
-    val minPasswordLength: Int = 8,
-    /** The server's published policy links, as the sign-in footer shows them; null hides each. */
-    val policyLinks: PolicyLinks = PolicyLinks(),
-    val banner: Banner? = null,
-)
-
-enum class RegisterError { MissingFields, PasswordTooShort, PasswordMismatch, EmailTaken }
-
-sealed interface RegisterOutcome {
-    /** The server mailed a verification link to [email]. */
-    data class VerifyEmail(val email: String) : RegisterOutcome
-    data object SignedIn : RegisterOutcome
-    data class TwoFactor(val tempToken: String) : RegisterOutcome
-    data class TwoFactorSetup(val tempToken: String) : RegisterOutcome
-
-    /** The account exists but this server doesn't take email sign-in; the user signs in from Login. */
-    data object SignIn : RegisterOutcome
-}
 
 class RegisterViewModel(
     private val authRepository: AuthRepository,

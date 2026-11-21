@@ -8,6 +8,7 @@ import com.garfiec.librechat.core.common.identity.deriveServerId
 import com.garfiec.librechat.core.data.db.LibreChatDatabase
 import com.garfiec.librechat.core.data.db.dao.ServerDao
 import com.garfiec.librechat.core.data.db.entity.ServerEntity
+import com.garfiec.librechat.core.model.server.HeaderWriteFailure
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi

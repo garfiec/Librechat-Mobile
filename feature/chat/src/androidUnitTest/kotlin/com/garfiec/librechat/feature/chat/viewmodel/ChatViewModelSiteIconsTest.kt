@@ -2,8 +2,8 @@ package com.garfiec.librechat.feature.chat.viewmodel
 
 import com.garfiec.librechat.core.common.ChatLayoutConstants
 import com.garfiec.librechat.core.data.datastore.AppPreferences
-import com.garfiec.librechat.core.data.datastore.InlineArtifactPrefs
-import com.garfiec.librechat.core.data.datastore.LatexRenderer
+import com.garfiec.librechat.core.model.preferences.InlineArtifactPrefs
+import com.garfiec.librechat.core.model.preferences.LatexRenderer
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coVerify
 import io.mockk.every

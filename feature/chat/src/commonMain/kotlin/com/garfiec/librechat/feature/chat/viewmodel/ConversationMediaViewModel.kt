@@ -28,21 +28,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-/** Whether the gallery shows media from the whole conversation tree or only the active branch. */
-enum class MediaScope { ENTIRE, ACTIVE_BRANCH }
-
-data class ConversationMediaUiState(
-    val isLoading: Boolean = true,
-    val scope: MediaScope = MediaScope.ACTIVE_BRANCH,
-    val media: List<MediaItem> = emptyList(),
-    val files: List<ConversationFile> = emptyList(),
-    val links: List<ConversationLink> = emptyList(),
-    /** Each entry is one artifact's version history (sorted ascending); tile shows the latest. */
-    val artifacts: List<List<Artifact>> = emptyList(),
-    val mediaPreview: MediaPreviewState? = null,
-    val error: String? = null,
-)
-
 /**
  * Backs the "Show all media" gallery for a single conversation. Loads the full (unpaginated)
  * message list once, then derives the Media / Files / Links / Artifacts tabs for the current

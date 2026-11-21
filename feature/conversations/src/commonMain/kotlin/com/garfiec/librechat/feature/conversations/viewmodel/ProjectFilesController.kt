@@ -1,6 +1,5 @@
 package com.garfiec.librechat.feature.conversations.viewmodel
 
-import androidx.compose.runtime.Immutable
 import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.FileRepository
@@ -9,7 +8,6 @@ import com.garfiec.librechat.core.data.repository.ProjectRepository
 import com.garfiec.librechat.core.data.repository.toProjectContextFailure
 import com.garfiec.librechat.core.data.repository.toProjectFileAddFailure
 import com.garfiec.librechat.core.model.ChatProject
-import com.garfiec.librechat.core.model.response.AvailableProjectFile
 import com.garfiec.librechat.core.model.response.ChatProjectFile
 import com.garfiec.librechat.feature.conversations.platform.PickedProjectFile
 import com.garfiec.librechat.feature.conversations.resources.Res
@@ -31,55 +29,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.StringResource
 
-/** What a project file row shows as its status. */
-enum class ProjectFileStatus { READY, UNAVAILABLE, PROCESSING, FAILED }
-
-/** Why an upload row failed; the screen words each (the limit names the cap). */
-enum class ProjectUploadFailure { UNREADABLE, UPLOAD_FAILED, NOT_SEARCHABLE, FILE_LIMIT, ATTACH_FAILED }
-
-/**
- * One row of the Files card: an attached file, or an upload in flight or failed. [fileId] is the
- * server's id once there is one; [key] is stable across the row's life.
- */
-@Immutable
-data class ProjectFileRow(
-    val key: String,
-    val fileId: String?,
-    val name: String?,
-    val status: ProjectFileStatus,
-    val failure: ProjectUploadFailure? = null,
-    val isRemoving: Boolean = false,
-) {
-    val isUpload: Boolean get() = key.startsWith(UPLOAD_KEY_PREFIX)
-
-    /** A failed upload can try again unless the server said the file can't be searched. */
-    val canRetry: Boolean get() = status == ProjectFileStatus.FAILED && failure != ProjectUploadFailure.NOT_SEARCHABLE
-}
-
-@Immutable
-data class ProjectFilesUi(
-    val rows: List<ProjectFileRow> = emptyList(),
-    /** Files attached on the server. */
-    val attachedCount: Int = 0,
-    val unavailableCount: Int = 0,
-    /** Attached plus uploads still running: what the cap is counted against. */
-    val usedCount: Int = 0,
-    val isLoading: Boolean = false,
-    val loadFailed: Boolean = false,
-)
-
-/** The "Choose from your files" sheet. */
-@Immutable
-data class AvailableFilesUi(
-    val isOpen: Boolean = false,
-    val query: String = "",
-    val files: List<AvailableProjectFile> = emptyList(),
-    val isLoading: Boolean = false,
-    val loadFailed: Boolean = false,
-    val nextCursor: String? = null,
-    val addingFileId: String? = null,
-)
-
 /** One-shot notices from the Files card. */
 sealed interface ProjectFilesMessage {
     data class Error(val message: StringResource) : ProjectFilesMessage
@@ -93,8 +42,6 @@ sealed interface ProjectFilesMessage {
     /** Spoken to a screen reader only ("File added"). */
     data class Announce(val message: StringResource) : ProjectFilesMessage
 }
-
-internal const val UPLOAD_KEY_PREFIX = "upload:"
 
 /**
  * A project's reference files (v0.8.9-rc1): the list, uploads from the device, the picker of the

@@ -16,7 +16,3 @@ internal fun Result.Error.serverMessage(): String? {
     if (!api.serverAuthored) return null
     return message?.takeIf { it == api.message && it.isNotBlank() }
 }
-
-/** A failure as one text: the screen's [summary] (translated), then the server's [detail] when it sent one. */
-internal fun failureText(summary: String, detail: String?): String =
-    if (detail.isNullOrBlank()) summary else "$summary\n$detail"

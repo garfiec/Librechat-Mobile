@@ -4,13 +4,8 @@ import androidx.lifecycle.viewModelScope
 import com.garfiec.librechat.core.common.EndpointConstants
 import com.garfiec.librechat.core.common.ToolConstants
 import com.garfiec.librechat.core.common.result.Result
-import com.garfiec.librechat.core.data.datastore.ChatFontSize
-import com.garfiec.librechat.core.data.datastore.ChatHeaderAlignment
-import com.garfiec.librechat.core.data.datastore.ChatHeaderContent
-import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.core.data.datastore.LastUsedSelection
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
-import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
 import com.garfiec.librechat.core.model.ContentType
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.Message
@@ -24,6 +19,11 @@ import com.garfiec.librechat.core.model.content.MessageContentPart
 import com.garfiec.librechat.core.model.permissions.Permission
 import com.garfiec.librechat.core.model.permissions.PermissionType
 import com.garfiec.librechat.core.model.permissions.UserRolePermissions
+import com.garfiec.librechat.core.model.preferences.ChatFontSize
+import com.garfiec.librechat.core.model.preferences.ChatHeaderAlignment
+import com.garfiec.librechat.core.model.preferences.ChatHeaderContent
+import com.garfiec.librechat.core.model.preferences.ContextBarPlacement
+import com.garfiec.librechat.core.model.preferences.StarredModelsDisplay
 import com.garfiec.librechat.core.model.request.EphemeralAgent
 import com.garfiec.librechat.core.model.request.MAX_MANUAL_SKILLS
 import com.garfiec.librechat.core.model.response.ChatStatusResponse

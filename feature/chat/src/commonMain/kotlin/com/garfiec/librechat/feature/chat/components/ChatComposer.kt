@@ -2,7 +2,7 @@ package com.garfiec.librechat.feature.chat.components
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import com.garfiec.librechat.core.data.datastore.DuringRunAction
+import com.garfiec.librechat.core.model.preferences.DuringRunAction
 import com.garfiec.librechat.feature.chat.model.ComposerPickerItem
 import com.garfiec.librechat.feature.chat.model.PickerSkill
 import com.garfiec.librechat.feature.chat.model.PromptMentionDisplayData

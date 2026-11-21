@@ -7,7 +7,6 @@ import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.prefetch.PrefetchBackgroundRunner
 import com.garfiec.librechat.core.data.prefetch.PrefetchController
-import com.garfiec.librechat.core.data.prefetch.PrefetchRunOutcome
 import com.garfiec.librechat.core.data.prefetch.PrefetchScheduler
 import com.garfiec.librechat.core.data.repository.AuthRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
@@ -15,6 +14,7 @@ import com.garfiec.librechat.core.data.repository.FileRepository
 import com.garfiec.librechat.core.model.ModelRef
 import com.garfiec.librechat.core.model.SHORTCUT_CANDIDATE_FACTOR
 import com.garfiec.librechat.core.model.offeredSpecs
+import com.garfiec.librechat.core.model.prefetch.PrefetchRunOutcome
 import com.garfiec.librechat.core.model.reconciledWith
 import com.garfiec.librechat.shared.navigation.DeepLinkInbox
 import com.garfiec.librechat.shared.navigation.DeepLinkUri

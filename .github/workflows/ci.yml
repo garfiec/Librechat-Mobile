@@ -83,6 +83,9 @@ jobs:
       - name: Run tests
         run: ./gradlew test
 
+      - name: Compile UI modules for the browser
+        run: ./gradlew -Plibrechat.web=true compileUiWasm
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v7

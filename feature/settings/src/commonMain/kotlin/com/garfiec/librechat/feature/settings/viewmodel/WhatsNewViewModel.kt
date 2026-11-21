@@ -5,24 +5,14 @@ import androidx.lifecycle.viewModelScope
 import com.garfiec.librechat.core.common.AppInfo
 import com.garfiec.librechat.core.data.update.AppInstallSource
 import com.garfiec.librechat.core.data.update.AppUpdateRepository
-import com.garfiec.librechat.core.data.update.InstallChannel
-import com.garfiec.librechat.core.data.update.UpdateCheckState
-import com.garfiec.librechat.core.model.AppRelease
+import com.garfiec.librechat.core.model.update.InstallChannel
+import com.garfiec.librechat.core.model.update.UpdateCheckState
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-
-sealed interface WhatsNewUiState {
-    data object Loading : WhatsNewUiState
-    data object UpToDate : WhatsNewUiState
-    data object Error : WhatsNewUiState
-
-    /** [releases] newest first: every stable release between the installed build and the latest. */
-    data class Content(val releases: List<AppRelease>) : WhatsNewUiState
-}
 
 class WhatsNewViewModel(
     private val repository: AppUpdateRepository,

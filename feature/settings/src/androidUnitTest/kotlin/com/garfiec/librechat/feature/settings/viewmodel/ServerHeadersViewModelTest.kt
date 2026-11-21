@@ -1,10 +1,10 @@
 package com.garfiec.librechat.feature.settings.viewmodel
 
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
-import com.garfiec.librechat.core.data.repository.HeaderWriteFailure
 import com.garfiec.librechat.core.data.repository.HeaderWriteResult
 import com.garfiec.librechat.core.data.repository.ServerRepository
-import com.garfiec.librechat.core.network.client.HeaderRejection
+import com.garfiec.librechat.core.model.server.HeaderRejection
+import com.garfiec.librechat.core.model.server.HeaderWriteFailure
 import com.garfiec.librechat.core.ui.components.CustomHeaderRow
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery

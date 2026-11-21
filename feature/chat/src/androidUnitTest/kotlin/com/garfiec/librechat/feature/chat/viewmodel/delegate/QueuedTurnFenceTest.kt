@@ -3,8 +3,8 @@ package com.garfiec.librechat.feature.chat.viewmodel.delegate
 import com.garfiec.librechat.core.common.identity.AccountId
 import com.garfiec.librechat.core.common.identity.AccountState
 import com.garfiec.librechat.core.common.identity.InMemoryActiveAccountProvider
-import com.garfiec.librechat.core.data.endpoint.EndpointDispatch
 import com.garfiec.librechat.core.data.repository.QueuedTurnRepository
+import com.garfiec.librechat.core.model.endpoint.EndpointDispatch
 import com.garfiec.librechat.core.model.queuedturn.AgentQueuedTurnReceipt
 import com.garfiec.librechat.core.model.queuedturn.QueuedTurnOutcome
 import com.garfiec.librechat.core.model.queuedturn.QueuedTurnReceiptSource

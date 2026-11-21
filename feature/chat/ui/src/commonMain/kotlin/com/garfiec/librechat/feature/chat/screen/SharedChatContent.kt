@@ -1,0 +1,354 @@
+package com.garfiec.librechat.feature.chat.screen
+
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AddComment
+import androidx.compose.material.icons.outlined.Block
+import androidx.compose.material.icons.outlined.CloudOff
+import androidx.compose.material.icons.outlined.HourglassEmpty
+import androidx.compose.material.icons.outlined.LinkOff
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.common.ChatLayoutConstants
+import com.garfiec.librechat.core.common.datetime.listLabel
+import com.garfiec.librechat.core.common.datetime.parseIsoInstantOrNull
+import com.garfiec.librechat.core.model.Attachment
+import com.garfiec.librechat.core.model.FILE_SOURCE_TEXT
+import com.garfiec.librechat.core.model.FileReference
+import com.garfiec.librechat.core.model.preferences.InlineArtifactPrefs
+import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
+import com.garfiec.librechat.core.ui.components.AdaptiveExtendedFloatingActionButton
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
+import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
+import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
+import com.garfiec.librechat.core.ui.components.EmptyState
+import com.garfiec.librechat.core.ui.components.LoadingIndicator
+import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
+import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
+import com.garfiec.librechat.core.ui.components.topbar.BarAction
+import com.garfiec.librechat.core.ui.components.topbar.BarIcons
+import com.garfiec.librechat.core.ui.components.topbar.BarMenuItem
+import com.garfiec.librechat.core.ui.components.topbar.BarMenuSection
+import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
+import com.garfiec.librechat.core.ui.components.topbar.BarTitle
+import com.garfiec.librechat.core.ui.datetime.LocalDateTimeFormat
+import com.garfiec.librechat.core.ui.datetime.LocalRelativeTimeReference
+import com.garfiec.librechat.core.ui.datetime.resolve
+import com.garfiec.librechat.core.ui.platform.rememberClipboardWriter
+import com.garfiec.librechat.feature.chat.components.LocalOpenFileActions
+import com.garfiec.librechat.feature.chat.components.LocalOpenMessageFile
+import com.garfiec.librechat.feature.chat.components.LocalOpenPdf
+import com.garfiec.librechat.feature.chat.components.MessageList
+import com.garfiec.librechat.feature.chat.components.toAttachment
+import com.garfiec.librechat.feature.chat.resources.Res
+import com.garfiec.librechat.feature.chat.resources.cd_back
+import com.garfiec.librechat.feature.chat.resources.cd_more_options
+import com.garfiec.librechat.feature.chat.resources.retry
+import com.garfiec.librechat.feature.chat.resources.shared_chat_blocked
+import com.garfiec.librechat.feature.chat.resources.shared_chat_continue
+import com.garfiec.librechat.feature.chat.resources.shared_chat_langfuse
+import com.garfiec.librechat.feature.chat.resources.shared_chat_load_failed
+import com.garfiec.librechat.feature.chat.resources.shared_chat_no_access
+import com.garfiec.librechat.feature.chat.resources.shared_chat_no_access_description
+import com.garfiec.librechat.feature.chat.resources.shared_chat_not_found
+import com.garfiec.librechat.feature.chat.resources.shared_chat_not_found_description
+import com.garfiec.librechat.feature.chat.resources.shared_chat_open_in_browser
+import com.garfiec.librechat.feature.chat.resources.shared_chat_rate_limited
+import com.garfiec.librechat.feature.chat.resources.shared_chat_rate_limited_description
+import com.garfiec.librechat.feature.chat.resources.shared_chat_subtitle
+import com.garfiec.librechat.feature.chat.resources.shared_chat_title_fallback
+import com.garfiec.librechat.feature.chat.resources.shared_chat_user
+import com.garfiec.librechat.feature.chat.viewmodel.SharedChatError
+import com.garfiec.librechat.feature.chat.viewmodel.SharedChatUiState
+import com.garfiec.librechat.feature.chat.viewmodel.SiteIconsState
+import org.jetbrains.compose.resources.stringResource
+
+/** The reader's display settings, as the chat screen applies them. */
+data class SharedChatDisplay(
+    val fontSizeMultiplier: Float = 1.0f,
+    val chatLayoutStyle: String = ChatLayoutConstants.THREAD,
+    val showAvatars: Boolean = true,
+    val showBubbles: Boolean = false,
+    val showImageDescriptions: Boolean = false,
+    val useKatex: Boolean = true,
+    val inlineArtifactPrefs: InlineArtifactPrefs = InlineArtifactPrefs(),
+    val siteIcons: SiteIconsState = SiteIconsState.OFF,
+    val thinkingOpenByDefault: Boolean = false,
+    val collapseLongUserMessages: Boolean = true,
+)
+
+class SharedChatActions(
+    val onBack: () -> Unit,
+    val onRetry: () -> Unit,
+    val onContinue: () -> Unit,
+    val onOpenInBrowser: () -> Unit,
+    /** Null hides the item: the server only sends the session link to viewers allowed to see it. */
+    val onOpenLangfuse: (() -> Unit)?,
+)
+
+/**
+ * A `text`-source file opens as text (the server keeps no bytes for one). Other files' downloads
+ * must go through the share's route (`SharedChatViewModel.downloadAttachment`).
+ */
+@Composable
+fun ProvideSharedFileOpeners(
+    state: SharedChatUiState,
+    onOpenTextFile: (fileId: String, filename: String) -> Unit,
+    content: @Composable () -> Unit,
+) {
+    val openFileActions = LocalOpenFileActions.current
+    val openPdf = LocalOpenPdf.current
+    val textIds = state.textSourceFileIds
+    val fileActions: (Attachment) -> Unit = remember(openFileActions, textIds, onOpenTextFile) {
+        { attachment ->
+            val fileId = attachment.fileId
+            if (fileId != null && (attachment.source == FILE_SOURCE_TEXT || fileId in textIds)) {
+                onOpenTextFile(fileId, attachment.filename ?: fileId)
+            } else {
+                openFileActions(attachment)
+            }
+        }
+    }
+    val pdf: (String, String) -> Unit = remember(openPdf, textIds, onOpenTextFile) {
+        { fileId, filename ->
+            if (fileId in textIds) onOpenTextFile(fileId, filename) else openPdf(fileId, filename)
+        }
+    }
+    val messageFile: (FileReference) -> Unit = remember(fileActions) {
+        { file -> fileActions(file.toAttachment()) }
+    }
+    CompositionLocalProvider(
+        LocalOpenFileActions provides fileActions,
+        LocalOpenPdf provides pdf,
+        LocalOpenMessageFile provides messageFile,
+        content = content,
+    )
+}
+
+@Composable
+fun SharedChatScaffold(
+    state: SharedChatUiState,
+    display: SharedChatDisplay,
+    actions: SharedChatActions,
+    snackbarHostState: SnackbarHostState,
+    onSwitchBranch: (parentKey: String, siblingIndex: Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val snapshot = state.snapshot
+    val title = snapshot?.title?.takeIf { it.isNotBlank() } ?: stringResource(Res.string.shared_chat_title_fallback)
+    val format = LocalDateTimeFormat.current
+    val reference = LocalRelativeTimeReference.current
+    val shared = remember(snapshot?.updatedAt, snapshot?.createdAt, format, reference) {
+        (snapshot?.updatedAt ?: snapshot?.createdAt)?.let(::parseIsoInstantOrNull)?.listLabel(format, reference)
+    }
+    val density = LocalDensity.current
+    // Measured: the FAB grows with the font scale, and both the list's bottom inset and the
+    // scroll-to-bottom button have to clear it.
+    var fabHeight by remember { mutableStateOf(FAB_MIN_HEIGHT) }
+    val fabShown = snapshot != null && state.canContinue
+    AdaptiveScaffold(
+        modifier = modifier.fillMaxSize(),
+        topBar = {
+            AdaptiveTopBar(
+                spec = AdaptiveTopBarSpec(
+                    navigation = BarNavigation(BarIcons.Back, stringResource(Res.string.cd_back), actions.onBack),
+                    title = BarTitle(title, maxLines = 1),
+                    actions = if (snapshot != null) listOf(overflowMenu(actions)) else emptyList(),
+                ),
+                belowBar = shared?.let { label ->
+                    {
+                        Text(
+                            text = stringResource(Res.string.shared_chat_subtitle, label.resolve()),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
+                        )
+                    }
+                },
+            )
+        },
+        snackbarHost = { AdaptiveSnackbarHost(snackbarHostState) },
+        floatingActionButton = {
+            if (snapshot != null && state.canContinue) {
+                ContinueButton(
+                    busy = state.isContinuing,
+                    onClick = actions.onContinue,
+                    modifier = Modifier.onSizeChanged { fabHeight = with(density) { it.height.toDp() } },
+                )
+            }
+        },
+    ) { padding ->
+        Box(Modifier.fillMaxSize().padding(padding)) {
+            val error = state.error
+            when {
+                snapshot != null -> MessageList(
+                    displayMessages = state.displayMessages,
+                    isStreaming = false,
+                    streamingContent = { "" },
+                    onSiblingNavigation = onSwitchBranch,
+                    onEditMessage = {},
+                    onRegenerateMessage = {},
+                    onCopyMessage = rememberCopyMessage(state),
+                    readOnly = true,
+                    baseUrl = state.baseUrl,
+                    fontSizeMultiplier = display.fontSizeMultiplier,
+                    isRefreshing = state.isRefreshing,
+                    onRefresh = actions.onRetry,
+                    // Whoever opens a link didn't write its prompts: a neutral label, no avatar.
+                    userAvatarUrl = null,
+                    userName = stringResource(Res.string.shared_chat_user),
+                    showImageDescriptions = display.showImageDescriptions,
+                    chatLayoutStyle = display.chatLayoutStyle,
+                    showAvatars = display.showAvatars,
+                    showBubbles = display.showBubbles,
+                    useKatex = display.useKatex,
+                    bottomContentPadding = maxOf(fabHeight + FAB_MARGIN + FAB_CONTENT_GAP, FAB_CLEARANCE),
+                    // Above the FAB's top edge, not centred over it.
+                    scrollToBottomPadding = if (fabShown) fabHeight + FAB_MARGIN + FAB_BUTTON_GAP else null,
+                )
+                error != null -> SharedChatErrorState(error, state.blockedMessage, actions.onRetry)
+                else -> LoadingIndicator()
+            }
+        }
+    }
+}
+
+/** Room under the last message for the extended FAB: its height plus its margins. */
+private val FAB_CLEARANCE: Dp = 96.dp
+
+/** An extended FAB's height at 1x font, until the real one is measured. */
+private val FAB_MIN_HEIGHT: Dp = 56.dp
+
+/** The Scaffold's margin under a FAB. */
+private val FAB_MARGIN: Dp = 16.dp
+
+/** Between the FAB's top and the last message. */
+private val FAB_CONTENT_GAP: Dp = 24.dp
+
+/** Between the FAB's top and the scroll-to-bottom button. */
+private val FAB_BUTTON_GAP: Dp = 8.dp
+
+@Composable
+private fun overflowMenu(actions: SharedChatActions): BarAction.Menu {
+    val openInBrowser = stringResource(Res.string.shared_chat_open_in_browser)
+    val langfuse = stringResource(Res.string.shared_chat_langfuse)
+    return BarAction.Menu(
+        id = "more",
+        icon = BarIcons.More,
+        label = stringResource(Res.string.cd_more_options),
+        sections = listOf(
+            BarMenuSection(
+                buildList {
+                    add(
+                        BarMenuItem(
+                            id = "browser",
+                            label = openInBrowser,
+                            icon = BarIcons.OpenInBrowser,
+                            onClick = actions.onOpenInBrowser,
+                        ),
+                    )
+                    actions.onOpenLangfuse?.let { open ->
+                        add(BarMenuItem(id = "langfuse", label = langfuse, icon = BarIcons.Trace, onClick = open))
+                    }
+                },
+            ),
+        ),
+    )
+}
+
+@Composable
+private fun ContinueButton(busy: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    AdaptiveExtendedFloatingActionButton(
+        modifier = modifier,
+        text = stringResource(Res.string.shared_chat_continue),
+        icon = {
+            if (busy) {
+                AdaptiveCircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+            } else {
+                Icon(Icons.Outlined.AddComment, contentDescription = null)
+            }
+        },
+        onClick = { if (!busy) onClick() },
+    )
+}
+
+@Composable
+private fun SharedChatErrorState(error: SharedChatError, blockedMessage: String?, onRetry: () -> Unit) {
+    val (title, description, icon) = when (error) {
+        SharedChatError.NOT_FOUND -> Triple(
+            stringResource(Res.string.shared_chat_not_found),
+            stringResource(Res.string.shared_chat_not_found_description),
+            Icons.Outlined.LinkOff,
+        )
+        SharedChatError.NO_ACCESS -> Triple(
+            stringResource(Res.string.shared_chat_no_access),
+            stringResource(Res.string.shared_chat_no_access_description),
+            Icons.Outlined.Lock,
+        )
+        SharedChatError.RATE_LIMITED -> Triple(
+            stringResource(Res.string.shared_chat_rate_limited),
+            stringResource(Res.string.shared_chat_rate_limited_description),
+            Icons.Outlined.HourglassEmpty,
+        )
+        SharedChatError.BLOCKED -> Triple(stringResource(Res.string.shared_chat_blocked), blockedMessage, Icons.Outlined.Block)
+        SharedChatError.NETWORK, SharedChatError.GENERIC ->
+            Triple(stringResource(Res.string.shared_chat_load_failed), null, Icons.Outlined.CloudOff)
+    }
+    // A filter's own explanation can run to several sentences: a gutter keeps it off the screen
+    // edges, and the page scrolls once it outgrows a short screen, still centred until it does.
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val viewportHeight = maxHeight
+        EmptyState(
+            title = title,
+            description = description,
+            icon = icon,
+            // Access and the content filter are the server's answer; asking again won't change it.
+            action = if (error == SharedChatError.NO_ACCESS || error == SharedChatError.BLOCKED) {
+                null
+            } else {
+                { AdaptiveOutlinedButton(onClick = onRetry) { Text(stringResource(Res.string.retry)) } }
+            },
+            modifier = Modifier
+                .verticalScroll(rememberScrollState())
+                .heightIn(min = viewportHeight)
+                .padding(horizontal = 24.dp, vertical = 16.dp),
+        )
+    }
+}
+
+@Composable
+private fun rememberCopyMessage(state: SharedChatUiState): (String) -> Unit {
+    val clipboard = rememberClipboardWriter()
+    val current by rememberUpdatedState(state)
+    return remember(clipboard) {
+        { messageId ->
+            val text = current.clipboardText(messageId)
+            if (text.isNotBlank()) clipboard.copy(text, "Message")
+        }
+    }
+}

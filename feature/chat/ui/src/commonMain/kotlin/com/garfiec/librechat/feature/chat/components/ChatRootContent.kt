@@ -1,0 +1,252 @@
+package com.garfiec.librechat.feature.chat.components
+
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import com.garfiec.librechat.core.model.Attachment
+import com.garfiec.librechat.core.model.files.isCodeOutput
+import com.garfiec.librechat.core.model.preferences.InlineArtifactPrefs
+import com.garfiec.librechat.core.model.response.FilePreviewResponse
+import com.garfiec.librechat.core.ui.components.topbar.CoversNativeBars
+import com.garfiec.librechat.core.ui.glass.LocalGlassBackdrop
+import com.garfiec.librechat.core.ui.glass.rememberGlassBackdrop
+import com.garfiec.librechat.core.ui.media.FileAction
+import com.garfiec.librechat.core.ui.media.FileActionsSheet
+import com.garfiec.librechat.core.ui.media.MediaActionBar
+import com.garfiec.librechat.core.ui.media.MediaPreviewState
+import com.garfiec.librechat.core.ui.media.MediaViewerHost
+import com.garfiec.librechat.core.ui.media.rememberSaveImageToGallery
+import com.garfiec.librechat.core.ui.media.rememberShareImage
+import com.garfiec.librechat.core.ui.resources.open_in
+import com.garfiec.librechat.feature.chat.components.artifact.LocalInlineArtifactPrefs
+import com.garfiec.librechat.feature.chat.components.artifact.LocalMermaidRenderCache
+import com.garfiec.librechat.feature.chat.components.artifact.MermaidRenderCache
+import com.garfiec.librechat.feature.chat.resources.Res
+import com.garfiec.librechat.feature.chat.resources.attachment_fallback
+import com.garfiec.librechat.feature.chat.resources.cd_close
+import com.garfiec.librechat.feature.chat.resources.cd_image
+import com.garfiec.librechat.feature.chat.resources.cd_save_to_device
+import com.garfiec.librechat.feature.chat.resources.cd_share_image
+import com.garfiec.librechat.feature.chat.util.PtcTrace
+import com.garfiec.librechat.feature.chat.viewmodel.SiteIconsState
+import com.garfiec.librechat.feature.chat.viewmodel.SubagentTrace
+import org.jetbrains.compose.resources.stringResource
+import com.garfiec.librechat.core.ui.resources.Res as CoreUiRes
+
+/**
+ * The chat-scoped CompositionLocals `ChatRoot` provides that need no ViewModel, so each platform
+ * `Scaffold` doesn't repeat the provider list. Also hosts the full-screen
+ * zoomable media viewer overlay (driven by [mediaPreview]) so both platforms share one wiring.
+ */
+@Composable
+fun ChatRootContent(
+    inlineArtifactPrefs: InlineArtifactPrefs,
+    mermaidRenderCache: MermaidRenderCache,
+    parsedMarkdownCache: ParsedMarkdownCache,
+    subagentProgress: Map<String, SubagentTrace>,
+    /** Backs [LocalPtcTraces]. Required, so neither screen can drop the live code-card trace. */
+    ptcTraces: Map<String, PtcTrace>,
+    /** Deferred-preview results by `file_id`; see [LocalPreviewOverrides]. */
+    previewOverrides: Map<String, FilePreviewResponse>,
+    /** The conversation the child-thread viewer reads from. Null on the landing screen. */
+    conversationId: String?,
+    /**
+     * Whether this server can serve child threads at all. Required, not defaulted, so neither
+     * platform's `ChatScreen` can quietly drop it and offer a row that only ever says "unavailable"
+     * — `on_subagent_update` predates these routes by two releases, so a 0.8.6/0.8.7 server draws
+     * the trace cards the row would hang off.
+     */
+    subagentThreadsSupported: Boolean,
+    mediaPreview: MediaPreviewState?,
+    onOpenMedia: (url: String) -> Unit,
+    onCloseMedia: () -> Unit,
+    onDownloadAttachment: suspend (Attachment) -> ByteArray?,
+    /** Backs [LocalFileNotice]: shows a short message on the chat screen's snackbar host. */
+    onFileNotice: (message: String) -> Unit,
+    /** Required, not defaulted, so neither platform's `ChatScreen` can quietly drop the wiring. */
+    promptLibraryRevision: Long,
+    onRefreshPrompts: () -> Unit,
+    /** Required, not defaulted, so neither platform's `ChatScreen` can drop the icons prompt. */
+    siteIcons: SiteIconsState,
+    onSiteIconsChoice: (show: Boolean) -> Unit,
+    onSiteIconsPromptDismiss: () -> Unit,
+    /**
+     * Backs [LocalOpenMemories]; null hides the memory card's Manage action. Required, not
+     * defaulted, so neither platform's `ChatScreen` can quietly drop the wiring.
+     */
+    onOpenMemories: (() -> Unit)?,
+    /** Backs [LocalUserKeyErrors]; null where the keys aren't the reader's (the shared-chat viewer). */
+    userKeyErrors: UserKeyErrors?,
+    /** Backs [LocalAgentNames]; empty where the reader has no agents list (the shared-chat viewer). */
+    agentNames: Map<String, String>,
+    /** Backs [LocalMcpSignIn]; null where nothing can sign in (the shared-chat viewer). */
+    mcpSignIn: McpSignIn?,
+    /** Required, not defaulted, so a screen cannot quietly leave the setting unread again (#586). */
+    thinkingOpenByDefault: Boolean,
+    /** Backs [LocalCollapseLongUserMessages]. Required for the same reason as [thinkingOpenByDefault]. */
+    collapseLongUserMessages: Boolean,
+    /** The child-thread viewer, hosted here so the card that opens it can scroll away. */
+    subagentThreadsSheet: @Composable (
+        parentConversationId: String,
+        focusParentToolCallId: String?,
+        focusThreadId: String?,
+        onDismiss: () -> Unit,
+    ) -> Unit,
+    /** Backs [LocalToolContent]: fetches previewed tool calls in full. Null where nothing is previewed. */
+    toolContent: ToolContentHost? = null,
+    content: @Composable () -> Unit,
+) {
+    // Driven from the chat screen's composition rather than a ViewModel collector, which defers the
+    // refetch to a screen the user is looking at — the picker's route is the unpaginated one, and
+    // the editor can bump this several times before the user comes back. Keyed on the revision
+    // (not fired once on entry) so a chat that stays composed still refreshes.
+    val refreshPrompts by rememberUpdatedState(onRefreshPrompts)
+    LaunchedEffect(promptLibraryRevision) { refreshPrompts() }
+
+    // Hosted here, not in the card that opens it: the card can scroll away,
+    // and a sheet owned by a lazy item would be disposed with it. Two saveable primitives rather
+    // than one nullable holder, because "open on the list" and "closed" are different states and
+    // both carry a null tool call.
+    var subagentSheetOpen by rememberSaveable { mutableStateOf(false) }
+    var subagentFocusToolCallId by rememberSaveable { mutableStateOf<String?>(null) }
+    var subagentFocusThreadId by rememberSaveable { mutableStateOf<String?>(null) }
+    val openSubagentThreads = remember {
+        { parentToolCallId: String? ->
+            subagentFocusToolCallId = parentToolCallId
+            subagentFocusThreadId = null
+            subagentSheetOpen = true
+        }
+    }
+    val openSubagentThread = remember {
+        { threadId: String ->
+            subagentFocusToolCallId = null
+            subagentFocusThreadId = threadId
+            subagentSheetOpen = true
+        }
+    }
+
+    // A search-result card raises this; the dialog lives here so several cards raise one prompt.
+    // Only a visibility latch: once the user chooses or closes it, `siteIcons` leaves ASK.
+    // Hosted here for the same reason: the chip that opens it can scroll away. Not saveable: an
+    // Attachment has no saver, and a sheet of actions loses nothing by closing on rotation.
+    var fileActionsRequest by remember { mutableStateOf<Attachment?>(null) }
+    val openFileActions = remember { { attachment: Attachment -> fileActionsRequest = attachment } }
+
+    var siteIconsPromptRequested by remember { mutableStateOf(false) }
+    val requestSiteIconsChoice = remember { { siteIconsPromptRequested = true } }
+    val siteIconsLocal = remember(siteIcons) { SiteIcons(siteIcons, requestSiteIconsChoice) }
+
+    // Full-screen overlays hosted here are drawn in the Compose canvas, under a native glass bar.
+    CoversNativeBars(active = mediaPreview != null)
+
+    CompositionLocalProvider(
+        // What the chat's glass chrome samples: the message list records into it (MessageList).
+        LocalGlassBackdrop provides rememberGlassBackdrop(),
+        LocalInlineArtifactPrefs provides inlineArtifactPrefs,
+        LocalMermaidRenderCache provides mermaidRenderCache,
+        LocalParsedMarkdownCache provides parsedMarkdownCache,
+        LocalSubagentProgress provides subagentProgress,
+        LocalPtcTraces provides ptcTraces,
+        LocalToolContent provides toolContent,
+        LocalPreviewOverrides provides previewOverrides,
+        LocalExpansionStates provides rememberExpansionStates(),
+        LocalChatMediaViewer provides onOpenMedia,
+        LocalAttachmentDownloader provides onDownloadAttachment,
+        LocalFileNotice provides onFileNotice,
+        LocalOpenFileActions provides openFileActions,
+        LocalSubagentThreads provides openSubagentThreads,
+        LocalOpenSubagentThread provides openSubagentThread,
+        // Both halves: a conversation to read children from, and a server that can serve them.
+        // The repository asks the version question again before it issues a request — this one
+        // decides whether the affordance is drawn at all.
+        LocalSubagentThreadsAvailable provides (conversationId != null && subagentThreadsSupported),
+        LocalSiteIcons provides siteIconsLocal,
+        LocalOpenMemories provides onOpenMemories,
+        LocalUserKeyErrors provides userKeyErrors,
+        LocalAgentNames provides agentNames,
+        LocalMcpSignIn provides mcpSignIn,
+        LocalThinkingOpenByDefault provides thinkingOpenByDefault,
+        LocalCollapseLongUserMessages provides collapseLongUserMessages,
+    ) {
+        PdfOverlayHost(onDownload = onDownloadAttachment) {
+            // Remembered outside the viewer so the save/share coroutine scope (and the permission
+            // launcher) live as long as the chat screen, not just while the viewer is open — a
+            // save/share in flight survives the user dismissing the viewer mid-operation.
+            val saveImage = rememberSaveImageToGallery()
+            val fileActions = rememberAttachmentFileActions()
+            val shareImage = rememberShareImage()
+            // Resolved once here (not inside the per-item actions slot) so paging doesn't
+            // re-resolve string resources on every swipe.
+            val saveDescription = stringResource(Res.string.cd_save_to_device)
+            val shareDescription = stringResource(Res.string.cd_share_image)
+            val openInDescription = stringResource(CoreUiRes.string.open_in)
+            MediaViewerHost(
+                preview = mediaPreview,
+                onDismiss = onCloseMedia,
+                closeContentDescription = stringResource(Res.string.cd_close),
+                defaultContentDescription = stringResource(Res.string.cd_image),
+                actions = { item ->
+                    val source = item.attachment
+                    when {
+                        // A picked, unsent image: the user's own, still on the device.
+                        item.model != null -> Unit
+                        // A generated file: its original bytes, downloaded, never the decoded image.
+                        source != null -> MediaActionBar(
+                            item = item,
+                            onSave = { fileActions.run(source, FileAction.SAVE) },
+                            onShare = { fileActions.run(source, FileAction.SHARE) },
+                            saveContentDescription = saveDescription,
+                            shareContentDescription = shareDescription,
+                            onOpenIn = { fileActions.run(source, FileAction.OPEN_IN) },
+                            openInContentDescription = openInDescription,
+                            busy = fileActions.busyAction(source),
+                        )
+                        else -> MediaActionBar(
+                            item = item,
+                            onSave = saveImage,
+                            onShare = shareImage,
+                            saveContentDescription = saveDescription,
+                            shareContentDescription = shareDescription,
+                        )
+                    }
+                },
+                content = content,
+            )
+
+            if (siteIconsPromptRequested && siteIcons == SiteIconsState.ASK) {
+                SiteIconsPromptDialog(
+                    onChoice = onSiteIconsChoice,
+                    onDismiss = onSiteIconsPromptDismiss,
+                )
+            }
+
+            if (subagentSheetOpen && conversationId != null) {
+                subagentThreadsSheet(
+                    conversationId,
+                    subagentFocusToolCallId,
+                    subagentFocusThreadId,
+                ) { subagentSheetOpen = false }
+            }
+
+            fileActionsRequest?.let { attachment ->
+                // The screen-lifetime actions, not ones scoped to the sheet: the save picker's result
+                // and the open-in hand-off land after the sheet has closed.
+                FileActionsSheet(
+                    filename = fileDisplayName(attachment, stringResource(Res.string.attachment_fallback)),
+                    type = attachment.type,
+                    bytes = attachment.bytes,
+                    fromCodeSandbox = attachment.isCodeOutput,
+                    busy = fileActions.busyAction(attachment),
+                    onAction = { action -> fileActions.run(attachment, action) { fileActionsRequest = null } },
+                    onDismiss = { fileActionsRequest = null },
+                )
+            }
+        }
+    }
+}

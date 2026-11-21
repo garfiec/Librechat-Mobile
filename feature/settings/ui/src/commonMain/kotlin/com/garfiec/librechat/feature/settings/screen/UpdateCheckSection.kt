@@ -1,0 +1,175 @@
+package com.garfiec.librechat.feature.settings.screen
+
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.CloudOff
+import androidx.compose.material.icons.filled.NewReleases
+import androidx.compose.material.icons.filled.SystemUpdate
+import androidx.compose.material.icons.filled.Update
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.model.update.UpdateCheckState
+import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
+import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
+import com.garfiec.librechat.feature.settings.resources.*
+import com.garfiec.librechat.feature.settings.resources.Res
+import org.jetbrains.compose.resources.stringResource
+
+/** The Check for updates row, with its result shown directly beneath it. Always followed by the daily toggle, so no divider. */
+@Composable
+internal fun UpdateCheckRow(
+    state: UpdateCheckState,
+    onCheck: () -> Unit,
+    onOpenWhatsNew: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val checking = state == UpdateCheckState.Checking
+    Column(modifier = modifier) {
+        SettingsRow(
+            title = stringResource(Res.string.update_check),
+            summary = stringResource(if (checking) Res.string.update_checking else Res.string.update_check_desc),
+            icon = Icons.Default.SystemUpdate,
+            onClick = if (checking) null else onCheck,
+            showChevron = false,
+            showDivider = false,
+            trailingContent = if (checking) {
+                {
+                    Spacer(modifier = Modifier.width(16.dp))
+                    AdaptiveCircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                }
+            } else {
+                null
+            },
+        )
+        AnimatedVisibility(visible = state.hasResult()) {
+            UpdateResultBanner(
+                state = state,
+                onRetry = onCheck,
+                onOpenWhatsNew = onOpenWhatsNew,
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
+            )
+        }
+    }
+}
+
+private fun UpdateCheckState.hasResult(): Boolean =
+    this is UpdateCheckState.UpToDate || this is UpdateCheckState.Available || this is UpdateCheckState.Failed
+
+@Composable
+private fun UpdateResultBanner(
+    state: UpdateCheckState,
+    onRetry: () -> Unit,
+    onOpenWhatsNew: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = MaterialTheme.colorScheme
+    when (state) {
+        is UpdateCheckState.Available -> ResultBanner(
+            icon = Icons.Default.NewReleases,
+            text = stringResource(Res.string.update_available, state.latest.version),
+            container = colors.primaryContainer,
+            content = colors.onPrimaryContainer,
+            action = stringResource(Res.string.update_see_whats_new),
+            onAction = onOpenWhatsNew,
+            modifier = modifier,
+        )
+        UpdateCheckState.UpToDate -> ResultBanner(
+            icon = Icons.Default.CheckCircle,
+            text = stringResource(Res.string.update_up_to_date),
+            container = colors.surfaceContainerHigh,
+            content = colors.onSurface,
+            modifier = modifier,
+        )
+        is UpdateCheckState.Failed -> ResultBanner(
+            icon = Icons.Default.CloudOff,
+            text = stringResource(Res.string.update_check_failed),
+            container = colors.errorContainer,
+            content = colors.onErrorContainer,
+            action = stringResource(Res.string.action_retry),
+            onAction = onRetry,
+            modifier = modifier,
+        )
+        UpdateCheckState.Idle, UpdateCheckState.Checking -> Unit
+    }
+}
+
+@Composable
+private fun ResultBanner(
+    icon: ImageVector,
+    text: String,
+    container: Color,
+    content: Color,
+    modifier: Modifier = Modifier,
+    action: String? = null,
+    onAction: () -> Unit = {},
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        color = container,
+        contentColor = content,
+    ) {
+        // The action drops under the message rather than squeeze it narrower than MinMessageWidth.
+        FlowRow(
+            modifier = Modifier.padding(start = 12.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
+            horizontalArrangement = Arrangement.End,
+            itemVerticalAlignment = Alignment.CenterVertically,
+        ) {
+            Row(
+                modifier = Modifier.weight(1f).widthIn(min = MinMessageWidth),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(20.dp))
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(vertical = 8.dp),
+                )
+            }
+            if (action != null) {
+                AdaptiveTextButton(onClick = onAction) {
+                    Text(text = action, color = content)
+                }
+            }
+        }
+    }
+}
+
+private val MinMessageWidth = 144.dp
+
+@Composable
+internal fun UpdateAutoCheckToggle(
+    enabled: Boolean,
+    onEnabledChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    SettingsSwitchRow(
+        title = stringResource(Res.string.update_auto_check),
+        description = stringResource(Res.string.update_auto_check_desc),
+        checked = enabled,
+        onCheckedChange = onEnabledChange,
+        icon = Icons.Default.Update,
+        modifier = modifier,
+    )
+}

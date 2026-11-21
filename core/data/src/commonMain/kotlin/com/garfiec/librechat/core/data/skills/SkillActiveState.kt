@@ -1,5 +1,8 @@
 package com.garfiec.librechat.core.data.skills
 
+import com.garfiec.librechat.core.model.skills.SkillSource
+import com.garfiec.librechat.core.model.skills.isSkillOwner
+
 /**
  * Whether a skill the user never toggled is active for them: deployment and owned skills are on,
  * shared ones follow `interface.skills.defaultActiveOnShare`. Without a [userId] only deployment

@@ -13,25 +13,6 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
-/** What the Code section asks of the editor. */
-sealed interface AgentCodeEvent {
-    data class StatefulSessions(val enabled: Boolean) : AgentCodeEvent
-
-    /** Null = the deployment's default machine. */
-    data class Machine(val id: String?) : AgentCodeEvent
-    data class MachineChoice(val id: String, val checked: Boolean) : AgentCodeEvent
-
-    /** An unavailable saved machine unchecked: removed from the allowlist. */
-    data class RemoveUnavailableMachine(val id: String) : AgentCodeEvent
-    data class Scope(val scope: String) : AgentCodeEvent
-
-    /** `""` = the last workspace used. */
-    data class Workspace(val id: String) : AgentCodeEvent
-    data class RepositoryInstructions(val value: String) : AgentCodeEvent
-    data class GitName(val value: String) : AgentCodeEvent
-    data class GitEmail(val value: String) : AgentCodeEvent
-}
-
 /** What the Code section reads beyond the form: machine status, and the user's default scope. */
 class AgentCodeSources(
     val environments: CodeEnvironmentRepository,

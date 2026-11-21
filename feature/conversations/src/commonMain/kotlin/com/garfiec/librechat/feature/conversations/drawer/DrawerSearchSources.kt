@@ -5,12 +5,12 @@ import com.garfiec.librechat.core.common.identity.currentAccountId
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.SearchCapabilityRepository
 import com.garfiec.librechat.core.data.repository.SearchRepository
-import com.garfiec.librechat.core.data.search.FtsQuery
-import com.garfiec.librechat.core.data.search.FtsQueryPlan
 import com.garfiec.librechat.core.data.search.MessageSearchRepository
-import com.garfiec.librechat.core.data.search.MessageSearchResult
-import com.garfiec.librechat.core.data.search.RemoteSearchStatus
 import com.garfiec.librechat.core.model.Conversation
+import com.garfiec.librechat.core.model.search.FtsQuery
+import com.garfiec.librechat.core.model.search.FtsQueryPlan
+import com.garfiec.librechat.core.model.search.MessageSearchResult
+import com.garfiec.librechat.core.model.search.RemoteSearchStatus
 import com.garfiec.librechat.feature.conversations.search.searchNote
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview

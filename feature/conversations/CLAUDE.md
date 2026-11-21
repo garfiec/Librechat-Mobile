@@ -1,8 +1,8 @@
 # feature:conversations
 
 ## Screens
-The conversation list lives in the drawer (`drawer/DrawerContent.kt`, `DrawerViewModel`); there is no
-full-screen list route. `ConversationsRoute : NavKey` covers what the drawer opens: `ArchivedConversations`,
+The conversation list lives in the drawer (`drawer/DrawerContentHost.kt` collects `DrawerViewModel`; the
+stateless `DrawerContent(uiState…)` is in `:feature:conversations:ui`); there is no full-screen list route. `ConversationsRoute : NavKey` covers what the drawer opens: `ArchivedConversations`,
 `Projects`, `Bookmarks`, `BookmarkChats`, `Search`, `ProjectChats`, `ProjectInstructions`.
 
 ## List
@@ -33,7 +33,7 @@ full-screen list route. `ConversationsRoute : NavKey` covers what the drawer ope
 
 ## Project folder order (Switchboard-only)
 - The drawer's Projects tab lists **every** project in custom order (`listAllProjectsInCustomOrder`), never one
-  page. Long-press drags (`components/LazyReorder.kt`, shared with Bookmarks); TalkBack/VoiceOver get Move
+  page. Long-press drags (`components/LazyReorder.kt` in `ui`, shared with Bookmarks); TalkBack/VoiceOver get Move
   up/down actions.
 - The gesture lives on the LazyColumn, not the rows, and consumes in the Initial pass once held, so row click,
   list scroll and drawer swipe never see the drag. Only folder rows pick up; long-press on a chat in an open

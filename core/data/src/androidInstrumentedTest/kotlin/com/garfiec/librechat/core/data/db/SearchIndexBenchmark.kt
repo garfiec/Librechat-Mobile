@@ -6,9 +6,9 @@ import androidx.room.RoomDatabase
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.garfiec.librechat.core.data.db.entity.MessageEntity
-import com.garfiec.librechat.core.data.search.FtsQuery
-import com.garfiec.librechat.core.data.search.FtsQueryPlan
 import com.garfiec.librechat.core.data.search.SearchIndexMaintenance
+import com.garfiec.librechat.core.model.search.FtsQuery
+import com.garfiec.librechat.core.model.search.FtsQueryPlan
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope

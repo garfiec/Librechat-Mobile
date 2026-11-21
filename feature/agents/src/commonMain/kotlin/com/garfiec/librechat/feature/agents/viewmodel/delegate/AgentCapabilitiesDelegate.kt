@@ -12,8 +12,9 @@ import com.garfiec.librechat.core.model.SkillSummary
 import com.garfiec.librechat.core.model.permissions.Permission
 import com.garfiec.librechat.core.model.permissions.PermissionType
 import com.garfiec.librechat.core.model.permissions.hasAccessOrPermissive
+import com.garfiec.librechat.feature.agents.viewmodel.AGENT_CHAIN_MAX
+import com.garfiec.librechat.feature.agents.viewmodel.AGENT_MAX_SUBAGENTS
 import com.garfiec.librechat.feature.agents.viewmodel.AgentEditorStateHandle
-import com.garfiec.librechat.feature.agents.viewmodel.AgentEditorViewModel
 import com.garfiec.librechat.feature.agents.viewmodel.AgentInferenceEndpoint
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
@@ -359,7 +360,7 @@ class AgentCapabilitiesDelegate(
             configRepository.endpointConfigs.collect { configs ->
                 val agentsCapabilities = configs["agents"]?.capabilities ?: emptyList()
                 val available = agentsCapabilities.isEmpty() || "subagents" in agentsCapabilities
-                val cap = configs["agents"]?.maxSubagents ?: AgentEditorViewModel.MAX_SUBAGENTS
+                val cap = configs["agents"]?.maxSubagents ?: AGENT_MAX_SUBAGENTS
                 stateHandle.update { copy(isSubagentsAvailable = available, maxSubagents = cap) }
             }
         }
@@ -396,7 +397,7 @@ class AgentCapabilitiesDelegate(
     fun addChainAgent(agentId: String) {
         val current = stateHandle.state.chainAgentIds
         // Upstream caps the chain at 10 agents.
-        if (agentId !in current && current.size < AgentEditorViewModel.CHAIN_MAX) {
+        if (agentId !in current && current.size < AGENT_CHAIN_MAX) {
             stateHandle.update { copy(chainAgentIds = current + agentId) }
         }
     }

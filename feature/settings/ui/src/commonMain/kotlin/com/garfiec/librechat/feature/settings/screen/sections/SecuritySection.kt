@@ -1,0 +1,304 @@
+package com.garfiec.librechat.feature.settings.screen.sections
+
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
+import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
+import com.garfiec.librechat.core.ui.components.AdaptiveFilledTonalButton
+import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
+import com.garfiec.librechat.core.ui.components.OTP_LENGTH
+import com.garfiec.librechat.core.ui.components.OtpCodeInput
+import com.garfiec.librechat.core.ui.components.clearFocusOnTap
+import com.garfiec.librechat.core.ui.platform.rememberClipboardWriter
+import com.garfiec.librechat.core.ui.platform.rememberUriOpener
+import com.garfiec.librechat.feature.settings.resources.*
+import com.garfiec.librechat.feature.settings.resources.Res
+import io.github.alexzhirkevich.qrose.rememberQrCodePainter
+import org.jetbrains.compose.resources.stringResource
+
+/**
+ * The `secret` query parameter of an `otpauth://` URI -- what an authenticator's "enter a setup
+ * key" screen asks for. The full URI is not accepted there, so manual enrollment needs this alone.
+ */
+private fun otpauthSecret(uri: String): String? =
+    uri.substringAfter("secret=", "").substringBefore("&").takeIf { it.isNotEmpty() }
+
+@Composable
+internal fun TwoFactorSetupDialog(
+    otpauthUrl: String?,
+    isLoading: Boolean,
+    onConfirm: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val clipboard = rememberClipboardWriter()
+    val uriOpener = rememberUriOpener()
+    var code by remember { mutableStateOf("") }
+    var submitted by remember { mutableStateOf(false) }
+    var noAuthenticator by remember { mutableStateOf(false) }
+    var copied by remember { mutableStateOf(false) }
+    var showQr by remember { mutableStateOf(false) }
+    val secret = otpauthUrl?.let(::otpauthSecret)
+
+    // A rejected code leaves six digits in the boxes; re-arm so editing (or Verify) can submit again.
+    LaunchedEffect(isLoading) { if (!isLoading) submitted = false }
+
+    AdaptiveAlertDialog(
+        // On the dialog's root, not the text: the card then shrinks above the keyboard, the text
+        // scrolls, and the buttons stay in view even with the QR code expanded.
+        modifier = Modifier.clearFocusOnTap().twoFactorDialogInsets(),
+        properties = twoFactorDialogProperties(),
+        onDismissRequest = onDismiss,
+        scrollableText = false,
+        title = { Text(stringResource(Res.string.dialog_title_enable_2fa)) },
+        text = {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Text(
+                    text = stringResource(Res.string.twofa_enroll_instructions),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                if (otpauthUrl != null) {
+                    // The phone IS the second device, so it cannot scan its own screen -- handing
+                    // the otpauth:// URI to the authenticator is the enrollment path that works
+                    // here. QR and the setup key are the fallbacks, not the default.
+                    AdaptiveFilledTonalButton(
+                        onClick = { noAuthenticator = !uriOpener.open(otpauthUrl) },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(stringResource(Res.string.action_open_authenticator))
+                    }
+                    if (noAuthenticator) {
+                        Text(
+                            text = stringResource(Res.string.twofa_no_authenticator),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                    if (secret != null) {
+                        SetupKeyRow(
+                            secret = secret,
+                            onCopy = {
+                                clipboard.copy(secret, "2FA setup key")
+                                copied = true
+                            },
+                        )
+                    }
+                    AdaptiveTextButton(onClick = { showQr = !showQr }) {
+                        Text(
+                            stringResource(
+                                if (showQr) Res.string.action_hide_qr else Res.string.action_show_qr,
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                    if (showQr) {
+                        // Black-on-transparent by default, which is unscannable on a dark surface.
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            color = Color.White,
+                            shape = MaterialTheme.shapes.small,
+                        ) {
+                            Image(
+                                painter = rememberQrCodePainter(otpauthUrl),
+                                contentDescription = stringResource(Res.string.cd_twofa_qr),
+                                modifier = Modifier
+                                    .padding(16.dp)
+                                    .size(QR_SIZE),
+                            )
+                        }
+                    }
+                    if (copied) {
+                        Text(
+                            text = stringResource(Res.string.copied_to_clipboard),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                }
+                OtpCodeInput(
+                    value = code,
+                    onValueChange = {
+                        code = it
+                        if (it.length == OTP_LENGTH && !submitted) {
+                            submitted = true
+                            onConfirm(it)
+                        }
+                    },
+                    enabled = !isLoading,
+                )
+            }
+        },
+        confirmButton = {
+            // Auto-submit covers the happy path; the button is what lets a user retry the same
+            // code after a failure without having to delete a digit first.
+            AdaptiveTextButton(
+                onClick = {
+                    submitted = true
+                    onConfirm(code)
+                },
+                enabled = code.length == OTP_LENGTH && !isLoading,
+            ) {
+                Text(stringResource(if (isLoading) Res.string.action_verifying else Res.string.action_verify))
+            }
+        },
+        dismissButton = {
+            AdaptiveTextButton(onClick = onDismiss) {
+                Text(stringResource(Res.string.action_cancel))
+            }
+        },
+    )
+}
+
+@Composable
+private fun SetupKeyRow(secret: String, onCopy: () -> Unit) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        shape = MaterialTheme.shapes.small,
+    ) {
+        Row(
+            modifier = Modifier.padding(start = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(Res.string.twofa_setup_key),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                SelectionContainer {
+                    Text(
+                        text = secret,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontFamily = FontFamily.Monospace,
+                    )
+                }
+            }
+            IconButton(onClick = onCopy) {
+                Icon(
+                    imageVector = Icons.Default.ContentCopy,
+                    contentDescription = stringResource(Res.string.cd_copy_setup_key),
+                )
+            }
+        }
+    }
+}
+
+private val QR_SIZE = 200.dp
+
+@Composable
+internal fun BackupCodesDialog(
+    backupCodes: List<String>,
+    onDismiss: () -> Unit,
+    warning: String? = null,
+    note: String? = null,
+) {
+    val clipboard = rememberClipboardWriter()
+    // These are single-use recovery codes shown exactly once. Without a copy action the only way
+    // to keep them is a screenshot or transcribing ten hex strings by hand, so offer the same
+    // copy-then-confirm affordance ApiKeyCreateDialog uses for its equally one-shot secret.
+    var copied by remember { mutableStateOf(false) }
+
+    AdaptiveAlertDialog(
+        // Shown exactly once, and after a regenerate the old set is already dead: a stray tap
+        // outside must not be able to close this. Only the acknowledgement button does.
+        onDismissRequest = {},
+        properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false),
+        title = { Text(stringResource(Res.string.dialog_title_backup_codes)) },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                if (warning != null) {
+                    Text(
+                        text = warning,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+                if (note != null) {
+                    Text(text = note, style = MaterialTheme.typography.bodyMedium)
+                }
+                Text(
+                    text = stringResource(Res.string.backup_codes_instructions),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    shape = MaterialTheme.shapes.small,
+                ) {
+                    SelectionContainer {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            // 32 hex characters each from v0.8.9-rc1: the smaller face keeps one
+                            // per line on most phones, and a narrower one wraps rather than clips.
+                            backupCodes.forEach { code ->
+                                Text(
+                                    text = code,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontFamily = FontFamily.Monospace,
+                                )
+                            }
+                        }
+                    }
+                }
+                if (copied) {
+                    Text(
+                        text = stringResource(Res.string.copied_to_clipboard),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            AdaptiveTextButton(onClick = onDismiss) {
+                Text(stringResource(Res.string.backup_codes_saved_ack))
+            }
+        },
+        dismissButton = {
+            AdaptiveTextButton(
+                onClick = {
+                    clipboard.copy(backupCodes.joinToString("\n"), "Backup Codes")
+                    copied = true
+                },
+            ) {
+                Text(stringResource(Res.string.action_copy))
+            }
+        },
+    )
+}

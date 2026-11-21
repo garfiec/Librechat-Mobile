@@ -40,46 +40,46 @@
 # =====================================================================================
 # 'Basic' is the HTTP auth-scheme token, sent on the wire verbatim. Only es rendered it
 # as prose ('Básica'); leaving it in English is the defensible reading.
-key	feature/agents/auth_basic
-key	feature/settings/mcp_auth_basic
+key	feature/agents/ui/auth_basic
+key	feature/settings/ui/mcp_auth_basic
 
 # 'Streamable HTTP' is the MCP transport's proper name, not a description of it.
-key	feature/settings/mcp_type_streamable_http
+key	feature/settings/ui/mcp_type_streamable_http
 
 # 'URL' is used as the field label. ar translated it ('الرابط'); the remaining locales
 # conventionally keep the acronym.
-key	feature/settings/mcp_url_label
+key	feature/settings/ui/mcp_url_label
 
 # Version sigils: 'v%1$d' and 'v%1$d/%2$d'. The only translatable atom is the letter 'v',
 # which every locale but ar keeps.
-key	feature/chat/version_number
-key	feature/chat/artifact_version
+key	feature/chat/ui/version_number
+key	feature/chat/ui/artifact_version
 
 # '(Gemini API)' — a product name in parentheses; there is no prose to translate.
-key	feature/settings/provider_keys_field_google_gemini_api
+key	feature/settings/ui/provider_keys_field_google_gemini_api
 
 # 'Liquid Glass' is Apple's name for the design language the interface style option draws, and
 # Apple keeps it in English in every locale. 'Material' needs no entry: it is a single token.
-key	feature/settings/ui_style_liquid_glass
+key	feature/settings/ui/ui_style_liquid_glass
 
 # 'lowercase-kebab-case' is an input-format spec the user must literally type, not prose.
-key	feature/skills/skill_field_name_hint
+key	feature/skills/ui/skill_field_name_hint
 
 # 'https://your-server.com' is an example hostname in an input hint. The Latin locales swapped
 # in a native ASCII word ('dein-server.com'); non-Latin scripts cannot do that usefully,
 # because users type ASCII hostnames.
-key	feature/auth/server_url_placeholder
+key	feature/auth/ui/server_url_placeholder
 
 # 'read execute' is an example OAuth scope list inside a placeholder. Scopes are wire tokens
 # the user types verbatim, so a translated example would be wrong.
-key	feature/settings/mcp_oauth_scope_placeholder
+key	feature/settings/ui/mcp_oauth_scope_placeholder
 
 # '%1$s API URL': after the provider name, the value is only the Latin acronyms API and URL,
 # which ja/ko/zh technical copy keeps (ja already writes 'ベースURL'), in an order that
 # already suits all three.
-pair	feature/settings/values-ja	provider_keys_field_api_url_for_endpoint
-pair	feature/settings/values-ko	provider_keys_field_api_url_for_endpoint
-pair	feature/settings/values-zh	provider_keys_field_api_url_for_endpoint
+pair	feature/settings/ui/values-ja	provider_keys_field_api_url_for_endpoint
+pair	feature/settings/ui/values-ko	provider_keys_field_api_url_for_endpoint
+pair	feature/settings/ui/values-zh	provider_keys_field_api_url_for_endpoint
 
 # accent_color_hex ('Hex') is deliberately NOT suppressed: ar, ja and zh all translated it
 # ('16進数', '十六进制'), so ko and ru are genuine misses, not a convention.
@@ -89,20 +89,20 @@ pair	feature/settings/values-zh	provider_keys_field_api_url_for_endpoint
 # [S] STUBS — locale-specific conventions
 # =====================================================================================
 # Japanese UIs conventionally label the dismiss affordance 'OK' in Latin characters.
-pair	feature/skills/values-ja	skill_conflict_dismiss
+pair	feature/skills/ui/values-ja	skill_conflict_dismiss
 
 # zh treats 'artifact' as a loanword and keeps it Latin inside otherwise-Chinese copy —
 # see feature/settings/.../values-zh/strings.xml artifacts_section_desc, which reads
 # '直接在聊天中渲染 artifact…'. Translating only the label would be internally inconsistent.
-pair	feature/agents/values-zh	label_artifacts
-pair	feature/agents/values-zh	version_snapshot_artifacts
-pair	feature/settings/values-zh	section_artifacts
-pair	feature/chat/values-zh	media_tab_artifacts
+pair	feature/agents/ui/values-zh	label_artifacts
+pair	feature/agents/ui/values-zh	version_snapshot_artifacts
+pair	feature/settings/ui/values-zh	section_artifacts
+pair	feature/chat/ui/values-zh	media_tab_artifacts
 
 # 'OK' as a trace-step status (success) is conventionally kept in Latin in Japanese and
 # Russian developer UIs, as with the ja dismiss label above.
-pair	feature/chat/values-ja	trace_status_ok
-pair	feature/chat/values-ru	trace_status_ok
+pair	feature/chat/ui/values-ja	trace_status_ok
+pair	feature/chat/ui/values-ru	trace_status_ok
 
 
 # =====================================================================================
@@ -111,14 +111,14 @@ pair	feature/chat/values-ru	trace_status_ok
 # Endpoint display names in one when-block. These are LibreChat endpoint identifiers
 # surfaced verbatim, matching the web client. 'Custom', 'Agents' and 'Assistants' are the
 # debatable members of the block — revisit them if endpoint labels ever get localized.
-site	feature/conversations/src/commonMain/kotlin/com/garfiec/librechat/feature/conversations/components/ConversationItem.kt:140
-site	feature/conversations/src/commonMain/kotlin/com/garfiec/librechat/feature/conversations/components/ConversationItem.kt:141
-site	feature/conversations/src/commonMain/kotlin/com/garfiec/librechat/feature/conversations/components/ConversationItem.kt:142
-site	feature/conversations/src/commonMain/kotlin/com/garfiec/librechat/feature/conversations/components/ConversationItem.kt:143
-site	feature/conversations/src/commonMain/kotlin/com/garfiec/librechat/feature/conversations/components/ConversationItem.kt:144
-site	feature/conversations/src/commonMain/kotlin/com/garfiec/librechat/feature/conversations/components/ConversationItem.kt:145
-site	feature/conversations/src/commonMain/kotlin/com/garfiec/librechat/feature/conversations/components/ConversationItem.kt:146
-site	feature/conversations/src/commonMain/kotlin/com/garfiec/librechat/feature/conversations/components/ConversationItem.kt:147
+site	feature/conversations/ui/src/commonMain/kotlin/com/garfiec/librechat/feature/conversations/components/ConversationItem.kt:140
+site	feature/conversations/ui/src/commonMain/kotlin/com/garfiec/librechat/feature/conversations/components/ConversationItem.kt:141
+site	feature/conversations/ui/src/commonMain/kotlin/com/garfiec/librechat/feature/conversations/components/ConversationItem.kt:142
+site	feature/conversations/ui/src/commonMain/kotlin/com/garfiec/librechat/feature/conversations/components/ConversationItem.kt:143
+site	feature/conversations/ui/src/commonMain/kotlin/com/garfiec/librechat/feature/conversations/components/ConversationItem.kt:144
+site	feature/conversations/ui/src/commonMain/kotlin/com/garfiec/librechat/feature/conversations/components/ConversationItem.kt:145
+site	feature/conversations/ui/src/commonMain/kotlin/com/garfiec/librechat/feature/conversations/components/ConversationItem.kt:146
+site	feature/conversations/ui/src/commonMain/kotlin/com/garfiec/librechat/feature/conversations/components/ConversationItem.kt:147
 
 
 # =====================================================================================
@@ -128,18 +128,18 @@ site	feature/conversations/src/commonMain/kotlin/com/garfiec/librechat/feature/c
 site	core/network/src/commonMain/kotlin/com/garfiec/librechat/core/network/api/SpeechApi.kt:44
 
 # An interpolated image URL assembled from baseUrl + filepath, not a message.
-site	feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/ToolCallParsing.kt:345
+site	feature/chat/ui/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/ToolCallParsing.kt:345
 
 # Example values shown inside input placeholders so the user can see the expected shape:
 # a header name, an OAuth scope list, and a support-address example. Translating them
 # would make them wrong.
-site	feature/agents/src/commonMain/kotlin/com/garfiec/librechat/feature/agents/components/ActionAuthConfigDialog.kt:162
-site	feature/agents/src/commonMain/kotlin/com/garfiec/librechat/feature/agents/components/ActionAuthConfigDialog.kt:230
-site	feature/agents/src/commonMain/kotlin/com/garfiec/librechat/feature/agents/components/AgentSupportContactSection.kt:64
+site	feature/agents/ui/src/commonMain/kotlin/com/garfiec/librechat/feature/agents/components/ActionAuthConfigDialog.kt:162
+site	feature/agents/ui/src/commonMain/kotlin/com/garfiec/librechat/feature/agents/components/ActionAuthConfigDialog.kt:230
+site	feature/agents/ui/src/commonMain/kotlin/com/garfiec/librechat/feature/agents/components/AgentSupportContactSection.kt:64
 
 # An OpenAPI JSON skeleton rendered as a monospace placeholder. Line 228 is already
 # dropped by the prose gate ('{' prefix); 229 is its continuation line.
-site	feature/agents/src/commonMain/kotlin/com/garfiec/librechat/feature/agents/components/ActionEditorDialog.kt:229
+site	feature/agents/ui/src/commonMain/kotlin/com/garfiec/librechat/feature/agents/components/ActionEditorDialog.kt:229
 
 # The default value of an Exception subclass's `message` constructor parameter. Exception
 # text is out of scope by policy (the non-UI suppression drops every line containing

@@ -3,17 +3,12 @@ package com.garfiec.librechat.feature.settings.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.garfiec.librechat.core.data.update.AppUpdateRepository
-import com.garfiec.librechat.core.data.update.UpdateCheckState
+import com.garfiec.librechat.core.model.update.UpdateCheckState
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-
-data class UpdateCheckUiState(
-    val checkState: UpdateCheckState = UpdateCheckState.Idle,
-    val autoCheckEnabled: Boolean = false,
-)
 
 /** The rows of Settings' Updates section. */
 class UpdateCheckViewModel(

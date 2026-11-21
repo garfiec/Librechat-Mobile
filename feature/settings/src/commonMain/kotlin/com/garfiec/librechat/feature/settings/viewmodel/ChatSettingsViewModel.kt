@@ -1,21 +1,11 @@
 package com.garfiec.librechat.feature.settings.viewmodel
 
-import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.garfiec.librechat.core.common.result.Result
-import com.garfiec.librechat.core.data.datastore.ArtifactDisplayMode
 import com.garfiec.librechat.core.data.datastore.ArtifactLibraryConsentStore
-import com.garfiec.librechat.core.data.datastore.ArtifactLibraryConsentStore.Decision
-import com.garfiec.librechat.core.data.datastore.ArtifactLibraryConsentStore.Subject
-import com.garfiec.librechat.core.data.datastore.DuringRunAction
-import com.garfiec.librechat.core.data.datastore.FlaggedArtifactLibraries
-import com.garfiec.librechat.core.data.datastore.LatexRenderer
 import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
-import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
-import com.garfiec.librechat.core.data.datastore.UploadRoutingMode
-import com.garfiec.librechat.core.data.datastore.WebSearchPreference
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.FileRepository
 import com.garfiec.librechat.core.data.repository.RoleRepository
@@ -27,6 +17,16 @@ import com.garfiec.librechat.core.model.permissions.Permission
 import com.garfiec.librechat.core.model.permissions.PermissionType
 import com.garfiec.librechat.core.model.permissions.UserRolePermissions
 import com.garfiec.librechat.core.model.permissions.hasAccessOrPermissive
+import com.garfiec.librechat.core.model.preferences.ArtifactDisplayMode
+import com.garfiec.librechat.core.model.preferences.ArtifactLibraryDecision
+import com.garfiec.librechat.core.model.preferences.ArtifactLibrarySubject
+import com.garfiec.librechat.core.model.preferences.DuringRunAction
+import com.garfiec.librechat.core.model.preferences.FlaggedArtifactLibraries
+import com.garfiec.librechat.core.model.preferences.LatexRenderer
+import com.garfiec.librechat.core.model.preferences.StarredModelsDisplay
+import com.garfiec.librechat.core.model.preferences.TTS_SOURCE_SERVER
+import com.garfiec.librechat.core.model.preferences.UploadRoutingMode
+import com.garfiec.librechat.core.model.preferences.WebSearchPreference
 import com.garfiec.librechat.core.model.response.clientImageResize
 import com.garfiec.librechat.feature.settings.viewmodel.delegate.SpeechSettingsFactory
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,14 +37,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-
-/** Which server-gated rows the Chats and Advanced pages show; each follows the gate chat or web uses. */
-@Immutable
-data class ChatSettingsGates(
-    val contextUsage: Boolean = false,
-    val presets: Boolean = true,
-    val apiKeys: Boolean = true,
-)
 
 internal fun chatSettingsGates(
     config: StartupConfig?,
@@ -100,7 +92,7 @@ class ChatSettingsViewModel(
     ).stateIn(viewModelScope, SharingStarted.Eagerly, ChatSettingsGates())
 
     /**
-     * Each flagged artifact library with its device-wide answer ([Decision.ASK] when each artifact
+     * Each flagged artifact library with its device-wide answer ([ArtifactLibraryDecision.ASK] when each artifact
      * asks). Null until the stored answers are read.
      */
     val artifactLibraries: StateFlow<List<ArtifactLibraryChoice>?> = libraryConsent.snapshot
@@ -108,9 +100,9 @@ class ChatSettingsViewModel(
             snapshot?.let {
                 FlaggedArtifactLibraries.SUBJECTS.map { subject ->
                     val decision = when (it.remembered(subject)) {
-                        true -> Decision.ALLOW
-                        false -> Decision.DECLINE
-                        null -> Decision.ASK
+                        true -> ArtifactLibraryDecision.ALLOW
+                        false -> ArtifactLibraryDecision.DECLINE
+                        null -> ArtifactLibraryDecision.ASK
                     }
                     ArtifactLibraryChoice(subject, decision)
                 }
@@ -147,13 +139,13 @@ class ChatSettingsViewModel(
 
     // ── Chat preferences ───────────────────────────────────────────
 
-    /** [Decision.ASK] drops the remembered answer; an answer given once in an artifact holds until restart. */
-    fun setArtifactLibraryDecision(subject: Subject, decision: Decision) {
+    /** [ArtifactLibraryDecision.ASK] drops the remembered answer; an answer given once in an artifact holds until restart. */
+    fun setArtifactLibraryDecision(subject: ArtifactLibrarySubject, decision: ArtifactLibraryDecision) {
         viewModelScope.launch {
             when (decision) {
-                Decision.ALLOW -> libraryConsent.remember(subject, allow = true)
-                Decision.DECLINE -> libraryConsent.remember(subject, allow = false)
-                Decision.ASK -> libraryConsent.forget(subject)
+                ArtifactLibraryDecision.ALLOW -> libraryConsent.remember(subject, allow = true)
+                ArtifactLibraryDecision.DECLINE -> libraryConsent.remember(subject, allow = false)
+                ArtifactLibraryDecision.ASK -> libraryConsent.forget(subject)
             }
         }
     }
@@ -264,7 +256,7 @@ class ChatSettingsViewModel(
     /** Speaks [text] the way chat playback would, from the saved source, voice, speed and pitch. */
     fun previewVoice(text: String) {
         val state = uiState.value
-        if (state.ttsSource == SettingsDataStore.TTS_SOURCE_SERVER) {
+        if (state.ttsSource == TTS_SOURCE_SERVER) {
             speechDelegate.previewServerTts(text, state.selectedVoice?.id)
         } else {
             val voiceName = state.ttsDeviceVoiceName.ifBlank { null }
@@ -277,6 +269,3 @@ class ChatSettingsViewModel(
         speechDelegate.release()
     }
 }
-
-/** A flagged artifact library and what applies to it on this device. */
-data class ArtifactLibraryChoice(val subject: Subject, val decision: Decision)

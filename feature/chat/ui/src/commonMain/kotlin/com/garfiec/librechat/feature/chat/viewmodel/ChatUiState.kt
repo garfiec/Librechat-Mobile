@@ -1,0 +1,1232 @@
+package com.garfiec.librechat.feature.chat.viewmodel
+
+import androidx.compose.runtime.Immutable
+import com.garfiec.librechat.core.common.BackendVersion
+import com.garfiec.librechat.core.common.EndpointConstants
+import com.garfiec.librechat.core.common.ToolConstants
+import com.garfiec.librechat.core.model.Agent
+import com.garfiec.librechat.core.model.Attachment
+import com.garfiec.librechat.core.model.EndpointConfig
+import com.garfiec.librechat.core.model.Message
+import com.garfiec.librechat.core.model.PendingAction
+import com.garfiec.librechat.core.model.ReasoningOverride
+import com.garfiec.librechat.core.model.config.EndpointDropParams
+import com.garfiec.librechat.core.model.config.ModelSpec
+import com.garfiec.librechat.core.model.config.ModelSpecSkills
+import com.garfiec.librechat.core.model.config.ModelSpecs
+import com.garfiec.librechat.core.model.config.displayLabel
+import com.garfiec.librechat.core.model.config.paramSettingsKey
+import com.garfiec.librechat.core.model.config.supportsUrlContext
+import com.garfiec.librechat.core.model.content.Compaction
+import com.garfiec.librechat.core.model.endpoint.KeyState
+import com.garfiec.librechat.core.model.preferences.ChatFontSize
+import com.garfiec.librechat.core.model.preferences.ChatHeaderAlignment
+import com.garfiec.librechat.core.model.preferences.ChatHeaderContent
+import com.garfiec.librechat.core.model.preferences.ContextBarPlacement
+import com.garfiec.librechat.core.model.preferences.DuringRunAction
+import com.garfiec.librechat.core.model.preferences.StarredModelsDisplay
+import com.garfiec.librechat.core.model.request.manualSkillsSupportedOn
+import com.garfiec.librechat.core.model.response.FilePreviewResponse
+import com.garfiec.librechat.core.model.response.FileUploadConfig
+import com.garfiec.librechat.core.model.response.UploadRoute
+import com.garfiec.librechat.core.model.response.isProviderCapable
+import com.garfiec.librechat.core.model.response.isProviderUnknown
+import com.garfiec.librechat.core.model.response.isTextExtractable
+import com.garfiec.librechat.core.model.response.resolveEndpointFileConfig
+import com.garfiec.librechat.core.model.response.resolveUploadRoute
+import com.garfiec.librechat.core.model.usage.ContextUsage
+import com.garfiec.librechat.core.model.usage.ContextUsageTotals
+import com.garfiec.librechat.core.model.usage.compactNudgeBand
+import com.garfiec.librechat.core.model.usage.percentOf
+import com.garfiec.librechat.core.ui.components.ModelParameters
+import com.garfiec.librechat.core.ui.components.ReasoningSetting
+import com.garfiec.librechat.core.ui.components.ReasoningSettingResolver
+import com.garfiec.librechat.core.ui.contextusage.ContextBreakdownModel
+import com.garfiec.librechat.core.ui.media.MediaPreviewState
+import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
+import com.garfiec.librechat.feature.chat.model.PickerSkill
+import com.garfiec.librechat.feature.chat.model.PresetDisplayData
+import com.garfiec.librechat.feature.chat.model.PromptMentionDisplayData
+import com.garfiec.librechat.feature.chat.util.AskAnswerDraft
+import com.garfiec.librechat.feature.chat.util.BuiltInSearchProvider
+import com.garfiec.librechat.feature.chat.util.CatalogSkill
+import com.garfiec.librechat.feature.chat.util.MessageNode
+import com.garfiec.librechat.feature.chat.util.ParameterTarget
+import com.garfiec.librechat.feature.chat.util.PendingUsage
+import com.garfiec.librechat.feature.chat.util.PtcTrace
+import com.garfiec.librechat.feature.chat.util.SETTING_TOOL_ORDER
+import com.garfiec.librechat.feature.chat.util.SettingChipInputs
+import com.garfiec.librechat.feature.chat.util.SettingChips
+import com.garfiec.librechat.feature.chat.util.SkillPickRules
+import com.garfiec.librechat.feature.chat.util.THINKING_SWITCH_KEY
+import com.garfiec.librechat.feature.chat.util.ThinkingChip
+import com.garfiec.librechat.feature.chat.util.ToolDecisionDraft
+import com.garfiec.librechat.feature.chat.util.WebSearchKeysRow
+import com.garfiec.librechat.feature.chat.util.WebSearchKind
+import com.garfiec.librechat.feature.chat.util.WebSearchRoute
+import com.garfiec.librechat.feature.chat.util.branchReasoning
+import com.garfiec.librechat.feature.chat.util.builtInSearchProvider
+import com.garfiec.librechat.feature.chat.util.changedPartIndices
+import com.garfiec.librechat.feature.chat.util.composerReasoningSetting
+import com.garfiec.librechat.feature.chat.util.nearestBranchReasoning
+import com.garfiec.librechat.feature.chat.util.parameterTarget
+import com.garfiec.librechat.feature.chat.util.pickableSkills
+import com.garfiec.librechat.feature.chat.util.presetTools
+import com.garfiec.librechat.feature.chat.util.reasoningTarget
+import com.garfiec.librechat.feature.chat.util.requiresSpec
+import com.garfiec.librechat.feature.chat.util.resolveLandingStarters
+import com.garfiec.librechat.feature.chat.util.skillPickRules
+import com.garfiec.librechat.feature.chat.util.stoppedReplyId
+import com.garfiec.librechat.feature.chat.util.summary
+import com.garfiec.librechat.feature.chat.util.thinkingChip
+import com.garfiec.librechat.feature.chat.util.webSearchRoute
+
+/**
+ * The agents endpoint capability that enables server-side text extraction (`tool_resource=context`).
+ * Not in [ToolConstants]: it is a file-delivery capability, not a tool the composer can toggle.
+ */
+private const val FILE_CONTEXT_CAPABILITY = "context"
+
+/** Endpoint types the server sends a preset's `web_search` to (`getOpenAIConfig`, Anthropic, Google); bedrock takes none. */
+private val BUILT_IN_SEARCH_ENDPOINT_TYPES = setOf("openAI", "azureOpenAI", "anthropic", "google", "custom")
+
+@Immutable
+data class ChatUiState(
+    // ── Extracted sub-state slices. Flat compat accessors below delegate to these so the
+    //    ~250 UI read sites keep compiling; delegates write only their own slice. ──
+    val queue: QueueState = QueueState(),
+    val steer: SteerState = SteerState(),
+    val search: ChatSearchState = ChatSearchState(),
+    val favorites: FavoritesState = FavoritesState(),
+    val subagents: SubagentState = SubagentState(),
+    val actions: ConversationActionsState = ConversationActionsState(),
+    val bookmarks: ChatBookmarksState = ChatBookmarksState(),
+    val editing: MessageEditingState = MessageEditingState(),
+    val composer: ComposerState = ComposerState(),
+    val presetPrompts: PresetPromptState = PresetPromptState(),
+    val voice: VoiceState = VoiceState(),
+    val gates: FeatureGatesState = FeatureGatesState(),
+    val account: AccountConfigState = AccountConfigState(),
+    val prefs: ChatPrefsState = ChatPrefsState(),
+    val selection: ModelSelectionState = ModelSelectionState(),
+    val content: MessagesState = MessagesState(),
+    val avatars: ReplyAvatarsState = ReplyAvatarsState(),
+    /**
+     * Mapped by the ViewModel's `uiState` combine from [settingChipInputs]. Empty on the backing
+     * state, which delegates read.
+     */
+    val settingChips: SettingChips = SettingChips.EMPTY,
+    val conversation: ConversationMetaState = ConversationMetaState(),
+    val error: String? = null,
+    // Model comparison state
+    val comparisonState: ComparisonState = ComparisonState(),
+    /** The composer's attached-machine workspace row; written only by `CodeWorkspaceDelegate`. */
+    val codeWorkspace: CodeWorkspaceUiState = CodeWorkspaceUiState(),
+    /** The chat's pull request; written only by `PullRequestDelegate`. In memory, never Room. */
+    val pullRequest: PullRequestUiState = PullRequestUiState(),
+    /**
+     * Open-state for the full-screen zoomable media viewer (null = closed). Computed once on
+     * tap by [ChatViewModel.openMedia] from a state snapshot, so the branch-media walk never
+     * runs on the per-token streaming hot path.
+     */
+    val mediaPreview: MediaPreviewState? = null,
+) {
+    // ── Flat compat accessors: preserve the pre-slice read API (`uiState.field`) for UI + tests.
+    //    Each delegates to its owning slice; writes go through the slice, not these. ──
+    val messageQueue: List<QueuedMessage> get() = queue.messageQueue
+    val isQueuePaused: Boolean get() = queue.isQueuePaused
+    val settledQueuedTurns: List<SettledQueuedTurn> get() = queue.settledQueuedTurns
+    val pendingQueuedTurnEnqueueIds: List<String> get() = queue.pendingQueuedTurnEnqueueIds
+    val pendingSteers: List<PendingSteerChip> get() = steer.pendingSteers
+    val isSearchOpen: Boolean get() = search.isSearchOpen
+    val searchQuery: String get() = search.searchQuery
+    val searchMatchIndices: List<SearchMatch> get() = search.searchMatchIndices
+    val currentSearchMatchIndex: Int get() = search.currentSearchMatchIndex
+    val searchFocusRequest: SearchFocusRequest? get() = search.searchFocusRequest
+    val jumpFlash: JumpFlash? get() = search.jumpFlash
+    val jumpPending: Boolean get() = search.jumpPending
+    val favoriteAgentIds: Set<String> get() = favorites.favoriteAgentIds
+    val favoriteModelKeys: Set<String> get() = favorites.favoriteModelKeys
+    val favoriteSpecNames: Set<String> get() = favorites.favoriteSpecNames
+    val subagentProgress: Map<String, SubagentTrace> get() = subagents.subagentProgress
+    val showRenameDialog: Boolean get() = actions.showRenameDialog
+    val showDeleteConfirmation: Boolean get() = actions.showDeleteConfirmation
+    val duplicatedConversationId: String? get() = actions.duplicatedConversationId
+    val showForkOptionsForMessageId: String? get() = actions.showForkOptionsForMessageId
+    val isForkInProgress: Boolean get() = actions.isForkInProgress
+    val forkedConversationId: String? get() = actions.forkedConversationId
+    val forkNotice: ForkNotice? get() = actions.forkNotice
+    val shareLinkActive: Boolean get() = actions.shareLinkActive
+    val hasBookmark: Boolean get() = bookmarks.hasBookmark
+
+    /**
+     * The chat's first turn is still streaming (at most the opening message is in the tree): its
+     * reply isn't saved yet, so Share is hidden until the turn ends.
+     */
+    val isFirstTurnStreaming: Boolean get() = content.isStreaming && content.messages.size <= 1
+    val editingMessageId: String? get() = editing.editingMessageId
+    val editingText: String get() = editing.editingText
+    val editingPartDrafts: Map<Int, String> get() = editing.partDrafts
+    val isSavingEdit: Boolean get() = editing.isSavingEdit
+
+    /** Content-part indices the user has actually changed, in content order. */
+    val editChangedPartIndices: List<Int>
+        get() = changedPartIndices(editing.partDrafts, editing.partOriginals)
+
+    val selectedSpec: String? get() = selection.selectedSpec
+    val modelSpecs: ModelSpecs? get() = selection.modelSpecs
+
+    /** The latest reply cut short, which the chat offers to continue ([stoppedReplyId]). */
+    val continuableReplyId: String?
+        get() = stoppedReplyId(
+            displayMessages = displayMessages,
+            isStreaming = isStreaming,
+            hasPendingAction = pendingAction != null,
+            comparing = comparisonState.isEnabled,
+            runStatusSettled = runStatusSettled,
+        )
+
+    /** Compare's second lane's spec, including one a reopened comparison was sent with ([ComparisonState.laneBSpec]). */
+    val laneBSpec: String? get() = comparisonState.laneBSpec(modelSpecs, endpointConfigs)
+    val selectedModel: String? get() = selection.selectedModel
+    val selectedEndpoint: String get() = selection.selectedEndpoint
+    val endpointConfigs: Map<String, EndpointConfig> get() = selection.endpointConfigs
+    val endpointKeyStates: Map<String, KeyState> get() = selection.endpointKeyStates
+    val availableModels: Map<String, List<String>> get() = selection.availableModels
+    val agents: List<Agent> get() = selection.agents
+
+    /**
+     * The agent whose replies leave out their author row, or null: under
+     * [FeatureGatesState.hidesSelectedAuthor], the chat's agent when the agents list knows it (web
+     * needs the agent resolved). Read where the reply view data is mapped.
+     */
+    val selectedAuthorAgentId: String?
+        get() = selectedModel.takeIf { id ->
+            gates.hidesSelectedAuthor && selectedEndpoint == EndpointConstants.AGENTS && agents.any { it.id == id }
+        }
+    val agentsLoaded: Boolean get() = selection.agentsLoaded
+    val selectedAgentProvider: String? get() = selection.selectedAgentProvider
+    val selectedAgentStarters: List<String>? get() = selection.selectedAgentStarters
+
+    /** What the new-chat screen offers to send in one tap ([resolveLandingStarters]). */
+    val landingStarters: List<String>
+        get() = resolveLandingStarters(
+            isAgent = selectedEndpoint == EndpointConstants.AGENTS,
+            agentStarters = selectedAgentStarters,
+            spec = modelSpecs?.list?.find { it.name == selectedSpec },
+        )
+
+    /** Whether the new-chat screen has starters to offer; they keep their space while the user types. */
+    val hasLandingStarters: Boolean
+        get() = screenState == ChatScreenState.LANDING && landingStarters.isNotEmpty()
+
+    /** Whether the new-chat screen is showing its starters: there are some, and the composer is empty. */
+    val showsLandingStarters: Boolean
+        get() = hasLandingStarters && inputText.isBlank()
+    val modelParameters: ModelParameters get() = selection.modelParameters
+    val showModelSheet: Boolean get() = selection.showModelSheet
+    val enabledTools: Set<String> get() = selection.enabledTools
+    val mcpServers: List<McpServerDisplayData> get() = selection.mcpServers
+    val offeredMcpServers: List<McpServerDisplayData> get() = selection.offeredMcpServers
+    val selectedMcpServerNames: Set<String> get() = selection.selectedMcpServerNames
+    val effectiveMcpServerNames: Set<String> get() = selection.effectiveMcpServerNames
+    val lockedTools: Set<String> get() = selection.lockedTools
+    val lockedMcpServers: Set<String> get() = selection.lockedMcpServers
+    val extendedEffortSupported: Boolean get() = selection.extendedEffortSupported
+    val thinkingDisplayUpdatesSupported: Boolean get() = selection.thinkingDisplayUpdatesSupported
+    val thinkingLevelXhighSupported: Boolean get() = gates.thinkingLevelXhighSupported
+    val inputText: String get() = composer.inputText
+    val sendBlockReason: SendBlockReason? get() = composer.sendBlockReason
+    val editingQueuedItem: QueuedEditSession? get() = composer.editingQueuedItem
+    val isAwaitingUploadSend: Boolean get() = composer.isAwaitingUploadSend
+    val pendingQuotes: List<String> get() = composer.pendingQuotes
+    val pendingDraftUndo: DraftUndo? get() = composer.pendingDraftUndo
+    val pendingManualSkills: List<String> get() = composer.pendingManualSkills
+    val skillsToggle: Boolean get() = selection.skillsToggle
+    val skillCatalog: List<CatalogSkill>? get() = presetPrompts.skillCatalog
+    val isLoadingSkills: Boolean get() = presetPrompts.isLoadingSkills
+    val skillsLoadFailed: Boolean get() = presetPrompts.skillsLoadFailed
+    val skillsEnabled: Boolean get() = gates.skillsEnabled
+
+    /**
+     * The active model spec's `skills` setting, or null when no spec is selected or it configures
+     * none. [ModelSpecSkills.On] starts the chat's Skills toggle on; [ModelSpecSkills.Off] turns
+     * skills off for good (no toggle, no picks). Servers before v0.8.9 never send the key.
+     */
+    val activeSpecSkills: ModelSpecSkills?
+        get() = activeSpec?.skillsSetting
+
+    /**
+     * Whether the spec, not the chat's toggle, decides skills: it turns them off, or it configures
+     * them and hides the tool controls (`hideBadgeRow`), where the server ignores the request's
+     * toggle. The toggle is then neither read nor written.
+     */
+    val specGovernsSkills: Boolean
+        get() = activeSpecSkills == ModelSpecSkills.Off || (activeSpecSkills != null && selection.toolsHiddenBySpec)
+
+    /** The served spec the selection runs on, or null for a raw pick or a spec the config doesn't list. */
+    val activeSpec: ModelSpec? get() = selection.activeSpec
+
+    /**
+     * Whether the server, not the parameters sheet, sets this chat's parameters: under `enforce` it
+     * replaces the request body with the spec's preset (`mergeModelSpecPreset`, keeping only
+     * `chatProjectId`), so anything edited here would be shown and then discarded.
+     */
+    val parametersSetBySpec: Boolean
+        get() = selection.modelSpecs.requiresSpec && selectedSpec != null
+
+    /**
+     * Whether skills can be used in this chat at all: role SKILLS.USE (permissive until the role
+     * loads, as the drawer), the agents endpoint advertising the `skills` capability (fail-closed,
+     * as [isMemoryToolAvailable]), and not an assistants endpoint.
+     */
+    val skillsCapable: Boolean
+        get() = skillsEnabled &&
+            endpointConfigs[EndpointConstants.AGENTS]?.capabilities?.contains(ToolConstants.SKILLS) == true &&
+            manualSkillsSupportedOn(selectedEndpoint)
+
+    /**
+     * Whether skills may be picked or sent in this chat before any agent's scope is consulted:
+     * [skillsCapable] and no active model spec that turns skills off. The input to
+     * [skillPickRules]; the send recheck reads it too, because an agent not loaded yet must not
+     * hold chips back there.
+     */
+    val skillsAllowedHere: Boolean
+        get() = skillsCapable && activeSpecSkills != ModelSpecSkills.Off
+
+    /**
+     * Whether the picker could offer a skill here at all: [skillsAllowedHere], and in a
+     * persisted-agent chat an agent whose scope offers some (an agent not loaded yet reads as
+     * offering none, as the picker's rows do). Gates the leading `$`, the catalog load and the
+     * picker's loading and failed rows, so none of them appear where no skill can be picked.
+     */
+    val canPickSkills: Boolean
+        get() = skillPickRules(
+            canPick = skillsAllowedHere,
+            endpoint = selectedEndpoint,
+            selectedModel = selectedModel,
+            agents = agents,
+            specSkills = activeSpecSkills,
+            unloadedAgentRefuses = true,
+        ) != null
+
+    /**
+     * The skill rows the composer's `/` and `$` picker offers here: the loaded catalog narrowed by
+     * [skillsAllowedHere], the persisted agent's scope, the active spec and the staged chips. See
+     * [pickableSkills]. Empty until the catalog has loaded.
+     */
+    val pickerSkills: List<PickerSkill>
+        get() = pickableSkills(
+            catalog = skillCatalog,
+            canPick = skillsAllowedHere,
+            endpoint = selectedEndpoint,
+            selectedModel = selectedModel,
+            agents = agents,
+            specSkills = activeSpecSkills,
+            pending = pendingManualSkills,
+        )
+
+    /**
+     * The rules a skill picked here must pass to be staged as a chip: the ones a send applies
+     * ([skillPickRules], as `sendableManualSkills` uses them), so a chip is staged wherever a
+     * send could still carry it. Null when no skill can be picked.
+     */
+    val skillRules: SkillPickRules?
+        get() = skillPickRules(
+            canPick = skillsAllowedHere,
+            endpoint = selectedEndpoint,
+            selectedModel = selectedModel,
+            agents = agents,
+            specSkills = activeSpecSkills,
+            unloadedAgentRefuses = false,
+        )
+
+    /**
+     * Whether the composer offers the Skills toggle (tools-sheet row and active chip): skills are
+     * usable, the tool controls show — never in a persisted-agent chat, where the agent's own
+     * `skills_enabled` governs — and the active model spec doesn't decide skills ([specGovernsSkills]).
+     */
+    val isSkillsToolAvailable: Boolean
+        get() = skillsCapable && toolbarShown && !specGovernsSkills
+
+    /**
+     * Whether the "Add to chat" quote affordance is offered (v0.8.7, upstream #13868).
+     *
+     * Fail-CLOSED on an unknown backend version: a pre-0.8.7 server ignores the request's
+     * `quotes` field, so the excerpts would be silently dropped — offering the affordance there
+     * is worse than hiding it. Also off on assistants endpoints, which bypass the server-side
+     * blockquote merge (web's `quotesSupported` guard).
+     */
+    val quoteCaptureAvailable: Boolean
+        get() = quotesSupportedOnEndpoint &&
+            gates.backendVersion?.let { BackendVersion.isCompatibleOrNewer(it, "0.8.7") } == true
+
+    /**
+     * Whether a fork can leave files out (`excludeFiles`, v0.8.9-rc1): the fork sheet's "Leave out
+     * files" and "Branch without files". Fail-closed: an older server ignores the flag and returns
+     * an ordinary copy.
+     */
+    val forkExcludeFilesSupported: Boolean
+        get() = gates.backendVersion?.let { BackendVersion.isCompatibleOrNewer(it, "0.8.9-rc1") } == true
+
+    /** Web's `quotesSupported`: everything except the assistants endpoints. */
+    val quotesSupportedOnEndpoint: Boolean
+        get() = quotesSupportedOn(selectedEndpoint)
+
+    /**
+     * Whether manual compaction can run right now (v0.8.8-rc3). Mirrors upstream's `canCompact`
+     * ANDed with its `compactionAvailable`.
+     *
+     * The `isCompactedLeaf` term is the one that is not obvious: compacting a leaf that is already
+     * a finished compaction summarizes a summary, so the action is withheld there. An interrupted
+     * one — still streaming, or failed — is not finished, and stays retryable.
+     */
+    val canCompactNow: Boolean
+        get() = gates.compactionEnabled &&
+            Compaction.supportsCompaction(selectedEndpoint) &&
+            !conversationId.isNullOrBlank() &&
+            !isStreaming &&
+            canStartRun &&
+            compactionLeaf != null
+
+    /**
+     * The branch leaf a compaction would hang off: both the summary's parent and the server-side
+     * anchor it compacts up to. Null when the tail is unusable as one — no messages, a root with
+     * no parent, or a leaf that is already a finished compaction.
+     */
+    val compactionLeaf: Message?
+        get() {
+            val leaf = displayMessages.lastOrNull()?.message ?: return null
+            if (leaf.parentMessageId.isNullOrBlank()) return null
+            return leaf.takeIf { !Compaction.isCompactedLeaf(it) }
+        }
+
+    /**
+     * True while picked files exist but are not yet in the attachment tray — mid-intake, or staged
+     * awaiting a manual routing decision.
+     *
+     * Every send path refuses while it holds, because the files are in neither `attachedFiles` nor
+     * `hasPendingUploads()` and an ungated send would go out without them. The composer reads it
+     * too: a control that will refuse the tap must not render as though it will act on it.
+     */
+    val arePicksUnsettled: Boolean
+        get() = composer.pendingUploadRouting != null || composer.isResolvingPickedFiles
+    val presets: List<PresetDisplayData> get() = presetPrompts.presets
+    val presetsLoadFailed: Boolean get() = presetPrompts.presetsLoadFailed
+    val availablePrompts: List<PromptMentionDisplayData> get() = presetPrompts.availablePrompts
+    val pendingVariablePrompt: PendingVariablePrompt? get() = presetPrompts.pendingVariablePrompt
+    val isRecording: Boolean get() = voice.isRecording
+    val isTranscribing: Boolean get() = voice.isTranscribing
+    val serverSttEnabled: Boolean get() = voice.serverSttEnabled
+    val currentlyReadingMessageId: String? get() = voice.currentlyReadingMessageId
+    val userName: String? get() = account.userName
+    val userAvatarUrl: String? get() = account.userAvatarUrl
+    val fileUploadConfig: FileUploadConfig? get() = account.fileUploadConfig
+    val serverUrl: String get() = prefs.serverUrl
+    val chatFontSize: ChatFontSize get() = prefs.chatFontSize
+    val starredModelsDisplay: StarredModelsDisplay get() = prefs.starredModelsDisplay
+    val chatHeaderContent: ChatHeaderContent get() = prefs.chatHeaderContent
+    val chatHeaderAlignment: ChatHeaderAlignment get() = prefs.chatHeaderAlignment
+    val contextBarPlacement: ContextBarPlacement get() = prefs.contextBarPlacement
+    val duringRunAction: DuringRunAction get() = prefs.duringRunAction
+    val contextGaugeExpanded: Boolean get() = prefs.contextGaugeExpanded
+    val promptsEnabled: Boolean get() = gates.promptsEnabled
+    val promptsCreateEnabled: Boolean get() = gates.promptsCreateEnabled
+    val agentsEnabled: Boolean get() = gates.agentsEnabled
+    val agentsCreateEnabled: Boolean get() = gates.agentsCreateEnabled
+    val mcpServersEnabled: Boolean get() = gates.mcpServersEnabled
+    val multiConvoEnabled: Boolean get() = gates.multiConvoEnabled
+    val temporaryChatEnabled: Boolean get() = gates.temporaryChatEnabled
+
+    /** `retentionMode: "ephemeral"`: the server makes every new chat temporary; the toggle is locked on. */
+    val temporaryChatEnforced: Boolean get() = gates.temporaryChatEnforced
+    val webSearchEnabled: Boolean get() = gates.webSearchEnabled
+    val runCodeEnabled: Boolean get() = gates.runCodeEnabled
+    val fileSearchEnabled: Boolean get() = gates.fileSearchEnabled
+    val bookmarksEnabled: Boolean get() = gates.bookmarksEnabled
+    val presetsEnabled: Boolean get() = gates.presetsEnabled
+    val modelSelectEnabled: Boolean get() = gates.modelSelectEnabled
+
+    /**
+     * Whether any model picker is offered. Web hides its selector only with `interface.modelSelect`
+     * off and no specs (`ModelSelector.tsx`); with specs it lists just those ([modelSelectEnabled]).
+     */
+    val modelPickerShown: Boolean get() = modelSelectEnabled || !modelSpecs?.list.isNullOrEmpty()
+    val parametersEnabled: Boolean get() = gates.parametersEnabled
+    val pinnedTools: List<String> get() = gates.pinnedTools
+    val contextUsageEnabled: Boolean get() = gates.contextUsageEnabled
+    val screenState: ChatScreenState get() = content.screenState
+    val messages: List<Message> get() = content.messages
+    val displayMessages: List<MessageNode> get() = content.displayMessages
+    val pendingResumeUserMessage: Message? get() = content.pendingResumeUserMessage
+    val activeBranches: Map<String, Int> get() = content.activeBranches
+    val runStatusSettled: Boolean get() = content.runStatusSettled
+    val justSettledMessageId: String? get() = content.justSettledMessageId
+    val isStreaming: Boolean get() = content.isStreaming
+
+    /**
+     * Whether the Compare Models menu item may act. A live comparison can't be turned off mid-reply
+     * (see ComparisonModeDelegate.stopComparison); starting or cancelling a setup always can.
+     */
+    val canToggleComparison: Boolean get() = !(comparisonState.isEnabled && isStreaming)
+
+    /**
+     * Whether anything may start a run: a send, a queue drain, an edit's resubmit, regenerate,
+     * continue or compact. False through Compare setup, which has no second model yet. The send
+     * gate (`SendReadinessDelegate`) and the queue drain refuse on it, and every control that would
+     * start a run reads it to disable or hide itself, so no tap is refused with nothing shown.
+     */
+    val canStartRun: Boolean get() = !comparisonState.isSettingUp
+    val isCompacting: Boolean get() = content.isCompacting
+    val streamingContent: String get() = content.streamingContent
+    val streamingThinking: String get() = content.streamingThinking
+    val streamingSummary: String get() = content.streamingSummary
+    val activeToolCalls: List<ActiveToolCall> get() = content.activeToolCalls
+    val sandboxStartingToolCallIds: Set<String> get() = content.sandboxStartingToolCallIds
+    val ptcTraces: Map<String, PtcTrace> get() = content.ptcTraces
+    val streamingAttachments: List<Attachment> get() = content.streamingAttachments
+    val previewOverrides: Map<String, FilePreviewResponse> get() = content.previewOverrides
+    val retryInfo: RetryInfo? get() = content.retryInfo
+    val isRefreshingMessages: Boolean get() = content.isRefreshingMessages
+    val messagesLoadFailed: Boolean get() = content.messagesLoadFailed
+    val contextUsage: ContextUsage? get() = content.contextUsage
+    val contextUsageSource: ContextUsageSource? get() = content.contextUsageSource
+    val contextUsageIsEstimate: Boolean get() = content.contextUsageSource == ContextUsageSource.ESTIMATE
+    val pendingUsage: PendingUsage get() = content.pendingUsage
+    val contextUsageTotals: ContextUsageTotals get() = content.contextUsageTotals
+    val ownerTexts: Map<String, OwnerTextState> get() = content.ownerTexts
+
+    /** Everything a gauge surface renders, or null when there is no reading. */
+    val contextGaugeDetails: ContextGaugeDetails?
+        get() = content.contextUsage?.let { usage ->
+            ContextGaugeDetails(
+                model = ContextBreakdownModel(
+                    usage = usage,
+                    isEstimate = contextUsageIsEstimate,
+                    totals = content.contextUsageTotals,
+                    costEnabled = gates.costEnabled,
+                    currency = gates.currency,
+                    isCompacting = content.isCompacting,
+                    compactionAvailable = canCompactNow,
+                ),
+                sections = prefs.contextSections,
+                nudge = compactNudge,
+            )
+        }
+
+    /**
+     * The suggestion to compact, or null. Shown from the user's threshold in the active
+     * placement, re-armed band by band after a "Not now", and driven only by a real server
+     * reading: a device-side estimate is too rough to prompt an action on.
+     */
+    val compactNudge: CompactNudge?
+        get() {
+            if (!compactNudgeEligible) return null
+            val usage = content.contextUsage ?: return null
+            val percent = percentOf(usage.usedTokens, usage.windowTokens)
+            val band = compactNudgeBand(percent, prefs.compactNudgeThreshold) ?: return null
+            val snoozed = conversationId?.let { prefs.compactNudgeSnoozes[it] }
+            return CompactNudge(band, percent).takeIf { snoozed == null || band > snoozed }
+        }
+
+    /**
+     * The options-sheet placement keeps the gauge inside the + sheet, out of sight, so a due
+     * suggestion also marks the + button.
+     */
+    val compactNudgeOnToolsButton: Boolean
+        get() = prefs.contextBarPlacement == ContextBarPlacement.OPTIONS_SHEET && compactNudge != null
+
+    /** Compacting is possible right now and the user can see a gauge to suggest it from. */
+    private val compactNudgeEligible: Boolean
+        get() {
+            val realReading = content.contextUsage != null && content.contextUsageSource != ContextUsageSource.ESTIMATE
+            val visible = gates.contextUsageEnabled && prefs.contextBarPlacement != ContextBarPlacement.HIDDEN
+            return canCompactNow && !content.isCompacting && realReading && visible
+        }
+
+    /** A real reading sits below the compact threshold (or the suggestion is off). */
+    val isBelowCompactThreshold: Boolean
+        get() {
+            val usage = content.contextUsage ?: return false
+            if (content.contextUsageSource == ContextUsageSource.ESTIMATE) return false
+            return compactNudgeBand(percentOf(usage.usedTokens, usage.windowTokens), prefs.compactNudgeThreshold) == null
+        }
+    val pendingAction: PendingAction? get() = content.pendingAction
+    val isResolvingPendingAction: Boolean get() = content.isResolvingPendingAction
+    val pendingActionResumeFailed: Boolean get() = content.pendingActionResumeFailed
+    val askAnswerDrafts: Map<String, AskAnswerDraft> get() = content.askAnswerDrafts
+    val askActiveQuestionId: String? get() = content.askActiveQuestionId
+    val askPanelCollapsed: Boolean get() = content.askPanelCollapsed
+    val toolDecisionDrafts: Map<String, ToolDecisionDraft> get() = content.toolDecisionDrafts
+    val toolActiveCallId: String? get() = content.toolActiveCallId
+    val toolPanelCollapsed: Boolean get() = content.toolPanelCollapsed
+    val memoryEnabled: Boolean get() = gates.memoryEnabled
+    val conversationId: String? get() = conversation.conversationId
+
+    /** Whether the trace entry point should render — see [FeatureGatesState.traceViewerConversationId]. */
+    val traceViewerAvailable: Boolean
+        get() = conversationId != null && gates.traceViewerConversationId == conversationId
+    val conversationTitle: String? get() = conversation.conversationTitle
+
+    /**
+     * The chat is temporary: the conversation says so, or it has no id yet and the server forces
+     * every new chat temporary (`retentionMode: "ephemeral"`). The second half is derived rather
+     * than written so a send can't race the config; `StreamEvent.Created` latches it into the
+     * conversation slice before the id lands, so the handed-off chat stays temporary.
+     */
+    val isTemporaryChat: Boolean
+        get() = conversation.isTemporaryChat ||
+            (gates.temporaryChatEnforced && conversation.conversationId == null)
+    val sharedLinksEnabled: Boolean get() = conversation.sharedLinksEnabled
+    val pendingNavigationConversationId: String? get() = conversation.pendingNavigationConversationId
+
+    /**
+     * The endpoint whose file config governs an upload: a saved agent's provider, else the
+     * selected endpoint. Mirrors web's AttachFileChat `fileConfigEndpoint`; the server validates
+     * an agent upload under the same provider (`resolveUploadEndpoint`) — from v0.8.8-rc3 only,
+     * so below it ([FeatureGatesState.providerScopedUploadsSupported]) an agent resolves as `agents`.
+     */
+    val fileConfigEndpoint: String?
+        get() = routingAgentProvider?.takeIf { gates.providerScopedUploadsSupported } ?: selectedEndpoint
+
+    /**
+     * Whether the chat attach controls (Camera / Photos / Files) should be offered. Mirrors web's
+     * AttachFileChat gate: hidden when the config resolved for [fileConfigEndpoint] is disabled.
+     *
+     * Fails OPEN: a null/absent config (older backend, fetch not landed, or fetch failed)
+     * leaves attaching enabled to preserve current behavior.
+     */
+    val fileUploadEnabled: Boolean
+        get() {
+            val config = fileUploadConfig ?: return true
+            return !config.resolveEndpointFileConfig(fileConfigEndpoint).disabled
+        }
+
+    /**
+     * The tools in use, as the toolbar, tools sheet and pinned chips show them: the selection's
+     * [ModelSelectionState.effectiveTools] (web search and URL context from the parameters, or the
+     * spec's tools under one), plus the per-conversation Skills toggle where it would be sent. Web
+     * search only while a search can run ([webSearchAvailable]), so its chip never shows on what
+     * sends nothing.
+     */
+    val effectiveEnabledTools: Set<String>
+        get() {
+            var tools = selection.effectiveTools - ToolConstants.SKILLS
+            if (!webSearchAvailable) tools = tools - ToolConstants.WEB_SEARCH
+            return if (skillsToggle && isSkillsToolAvailable) tools + ToolConstants.SKILLS else tools
+        }
+
+    /**
+     * The provider whose built-in web search a send would run, or null when the selection has none
+     * (`builtInSearchProvider`). A saved agent sends no ephemeral tools, so it has none here either.
+     */
+    val builtInSearchProvider: BuiltInSearchProvider?
+        get() {
+            if (!showEphemeralTools) return null
+            return builtInSearchProvider(selectedEndpoint, webSearchDropParams, paramSettingsKey(selectedEndpoint, endpointConfigs))
+        }
+
+    private val webSearchDropParams: List<String>
+        get() = EndpointDropParams.resolve(gates.dropParamsMap, selectedEndpoint, null, selectedModel)
+
+    /**
+     * Whether the server runs the spec preset's built-in search whatever the request says: under
+     * `enforce` it sends the preset, and every endpoint on the OpenAI-compatible, Anthropic or Google
+     * path takes `web_search` (a custom one is moved to the Responses API). So the route must not add
+     * LibreChat search beside it, even where [builtInSearchProvider] can't name the provider.
+     */
+    private val builtInSearchEnforced: Boolean
+        get() {
+            val spec = selection.activeSpec ?: return false
+            if (!parametersSetBySpec || !showEphemeralTools || ToolConstants.WEB_SEARCH !in spec.presetTools) return false
+            val type = endpointConfigs[selectedEndpoint]?.type?.takeIf { it.isNotBlank() } ?: selectedEndpoint
+            return type in BUILT_IN_SEARCH_ENDPOINT_TYPES && ToolConstants.WEB_SEARCH !in webSearchDropParams
+        }
+
+    /** Whether the server loads LibreChat's search tool (`loadToolDefinitionsWrapper`'s capability check). */
+    private val librechatSearchCapable: Boolean
+        get() = agentCapabilityAllows(ToolConstants.WEB_SEARCH)
+
+    /**
+     * Whether the agents endpoint's `capabilities` allow [capability]. Fails OPEN on a missing list,
+     * as the server (`resolveAgentCapabilities`) and web fall back to the defaults; an empty list
+     * allows nothing, as the server keeps an admin's `[]` (zod's default fires only on `undefined`).
+     */
+    private fun agentCapabilityAllows(capability: String): Boolean {
+        val capabilities = endpointConfigs[EndpointConstants.AGENTS]?.capabilities ?: return true
+        return capability in capabilities
+    }
+
+    /**
+     * Which web search a send runs: [webSearchTarget] while the control is on. Read by every send
+     * path, so a request carries `ephemeralAgent.web_search` or the provider's `web_search`, never
+     * both, and neither while it is [WebSearchRoute.CHECKING].
+     */
+    val webSearchRoute: WebSearchRoute
+        get() = if (ToolConstants.WEB_SEARCH in selection.effectiveTools) webSearchTarget else WebSearchRoute.NONE
+
+    /**
+     * Whether the web-search control is offered: the control would run a search ([webSearchTarget],
+     * which applies the role, interface and capability gates, a spec's own search included).
+     */
+    val webSearchAvailable: Boolean
+        get() = webSearchTarget != WebSearchRoute.NONE
+
+    /**
+     * The search the control runs when on ([webSearchRoute]'s rules), which its caption names.
+     * NONE when neither search can run. LibreChat search needs `interface.webSearch` and the role,
+     * the built-in one only the role ([FeatureGatesState.webSearchPermitted]).
+     */
+    val webSearchTarget: WebSearchRoute
+        get() = webSearchRoute(
+            on = true,
+            sendsEphemeralTools = showEphemeralTools,
+            spec = selection.activeSpec,
+            comparing = comparisonState.isEnabled,
+            preference = prefs.webSearchFirst,
+            librechatUsable = webSearchEnabled && librechatSearchCapable && gates.librechatSearchReady,
+            builtInAvailable = gates.webSearchPermitted && (builtInSearchProvider != null || builtInSearchEnforced),
+            librechatChecking = webSearchEnabled && librechatSearchCapable && gates.librechatSearchChecking,
+            keepsBuiltIn = selection.keepsBuiltInSearch,
+            specSearchAllowed = gates.webSearchPermitted && librechatSearchCapable,
+        )
+
+    /** [webSearchTarget] with the provider it would run on, for the control's caption. */
+    val webSearchKind: WebSearchKind get() = WebSearchKind(webSearchTarget, builtInSearchProvider)
+
+    /** The parameter set the selection resolves to, for the sheet, the payload and a saved preset. */
+    val parameterTarget: ParameterTarget
+        get() = parameterTarget(selectedEndpoint, selectedModel, agents, endpointConfigs)
+
+    /**
+     * Whether the URL context toggle does anything here: a Google parameter set (upstream gates it
+     * to `googleConfig`), the google endpoint or a Google agent, on a model the server runs the tool
+     * on ([supportsUrlContext]; it skips it on others with only a debug log).
+     */
+    val urlContextProviderGate: Boolean
+        get() {
+            val target = parameterTarget
+            if (!target.settingsKey.equals("google", ignoreCase = true)) return false
+            return target.model?.let(::supportsUrlContext) == true
+        }
+
+    /**
+     * Whether [toolKey]'s own gate is open: the role, the server's capability and the model let it
+     * run here. The same gates the "+" sheet offers its rows on, and the only ones the settings line
+     * shows a chip by, so a stored toggle the server can't run never appears there.
+     */
+    fun toolGateOpen(toolKey: String): Boolean = when (toolKey) {
+        ToolConstants.WEB_SEARCH -> webSearchAvailable
+        ToolConstants.URL_CONTEXT -> urlContextProviderGate
+        ToolConstants.FILE_SEARCH -> fileSearchEnabled
+        ToolConstants.CODE_INTERPRETER -> isCodeInterpreterAvailable && runCodeEnabled
+        ToolConstants.MEMORY -> isMemoryToolAvailable
+        ToolConstants.SKILLS -> isSkillsToolAvailable
+        ToolConstants.ARTIFACTS -> agentCapabilityAllows(ToolConstants.ARTIFACTS)
+        else -> false
+    }
+
+    /** The tools whose gate is open ([toolGateOpen]): the "+" sheet's rows and the settings line's candidates. */
+    val openTools: Set<String> get() = SETTING_TOOL_ORDER.filterTo(mutableSetOf(), ::toolGateOpen)
+
+    /**
+     * The "+" sheet's tiles: [openTools], plus Web Search where only the user's own keys would make it
+     * run ([WebSearchKeysRow.opensOnTurnOn]); turning it on there opens the key sheet. The settings
+     * line keeps [openTools].
+     */
+    val sheetTools: Set<String>
+        get() = if (webSearchKeysRow?.opensOnTurnOn == true) openTools + ToolConstants.WEB_SEARCH else openTools
+
+    /**
+     * The "+" sheet's LibreChat search key row, or null where it doesn't show: the server leaves at
+     * least one key category to the user, and LibreChat search could run here (role, interface,
+     * capability, a send with ephemeral tools).
+     */
+    val webSearchKeysRow: WebSearchKeysRow?
+        get() {
+            val keys = gates.webSearchKeys?.takeIf { it.offered } ?: return null
+            if (!showEphemeralTools || !webSearchEnabled || !librechatSearchCapable) return null
+            if (keys.authenticated) return WebSearchKeysRow(authenticated = true, summary = keys.summary())
+            return WebSearchKeysRow(
+                authenticated = false,
+                fallbackProvider = builtInSearchProvider?.displayName?.takeIf { webSearchRoute == WebSearchRoute.BUILT_IN },
+                opensOnTurnOn = webSearchTarget == WebSearchRoute.NONE && ToolConstants.WEB_SEARCH !in lockedTools,
+            )
+        }
+
+    /**
+     * What the composer's settings line is built from ([settingChipsOf]). Read by the ViewModel's
+     * `uiState` combine, which puts the result on [settingChips], only when one of
+     * [settingChipSlices] changed: a new read here from another slice must be added there.
+     */
+    val settingChipSlices: List<Any?>
+        get() = listOf(
+            selection,
+            gates,
+            comparisonState,
+            prefs,
+            account,
+            composer.pendingReasoningOverride,
+            inheritedReasoning,
+        )
+
+    /** The level the branch would carry into the next turn, or null on a server that carries none. */
+    private val inheritedReasoning: ReasoningOverride?
+        get() = if (gates.reasoningLastsForConversation) nearestBranchReasoning(content.displayMessages) else null
+
+    /** See [settingChipSlices]. */
+    val settingChipInputs: SettingChipInputs
+        get() {
+            val shown = toolbarShown
+            return SettingChipInputs(
+                toolbarShown = shown,
+                toolsOn = if (shown) effectiveEnabledTools else emptySet(),
+                openTools = if (shown) openTools else emptySet(),
+                pinned = pinnedTools,
+                lockedTools = lockedTools,
+                mcpServers = offeredMcpServers,
+                mcpOn = effectiveMcpServerNames,
+                lockedMcpServers = lockedMcpServers,
+                mcpAllowed = mcpServersEnabled,
+                specLabel = activeSpec?.displayLabel,
+                thinking = thinkingChip,
+            )
+        }
+
+    /**
+     * Whether the per-request ephemeral tool controls (dynamic MCP servers, web search,
+     * code interpreter, file search) should be offered. Mirrors web's `showEphemeralBadges`
+     * (ChatForm.tsx): a saved agent uses its own configured tools, so the backend ignores
+     * client-supplied ephemeral tools on agent runs. Mobile's only agent-type endpoint is
+     * [EndpointConstants.AGENTS], so the gate is simply "not the agents endpoint".
+     */
+    val showEphemeralTools: Boolean
+        get() = selectedEndpoint != EndpointConstants.AGENTS
+
+    /**
+     * Whether the composer shows its tool controls (tools-sheet rows, MCP picker, pinned and active
+     * tool chips): [showEphemeralTools], unless the active spec sets `hideBadgeRow`, as web's
+     * `ChatForm` hides its badges. The request still carries the spec's own tools then.
+     */
+    val toolbarShown: Boolean
+        get() = showEphemeralTools && !selection.toolsHiddenBySpec
+
+    /** Why the tool controls are hidden, for the "+" sheet's note in their place; null while they show. */
+    val toolsHiddenReason: ToolsHiddenReason?
+        get() = when {
+            !showEphemeralTools -> ToolsHiddenReason.AGENT
+            selection.toolsHiddenBySpec -> ToolsHiddenReason.SPEC
+            else -> null
+        }
+
+    /**
+     * Whether a follow-up may be queued mid-stream: only on an existing single-stream
+     * conversation (the queue affordance is hidden on the landing screen and in comparison
+     * mode). Single source of truth for the Android/iOS composer wiring.
+     */
+    val canQueueFollowUp: Boolean
+        get() = conversationId != null && !comparisonState.isEnabled
+
+    /**
+     * Whether a message typed right now could be steered into the running turn (v0.8.8).
+     *
+     * Requires everything queueing requires, plus a server with the steer route
+     * ([FeatureGatesState.steeringSupported]) and a run that is actually reachable. A run parked
+     * on a human-review pause is not: the steer route answers `RUN_PAUSED` for it, so offering
+     * steer there would only spend a round-trip to land in the queue anyway.
+     *
+     * This is availability, not preference — [effectiveDuringRunAction] applies the user's
+     * choice on top, and the composer's during-run menu reads this to decide whether steering
+     * can be picked per send.
+     *
+     * A staged Thinking choice forces the message to queue, as on web: the steer route carries no
+     * reasoning, so steering it would drop the choice the user just made.
+     */
+    val canSteerNow: Boolean
+        get() = canQueueFollowUp && gates.steeringSupported && pendingAction == null &&
+            composer.pendingReasoningOverride == null
+
+    /**
+     * The reasoning control a one-turn override may carry for the current selection (v0.8.9-rc1),
+     * or null when there is none. See [composerReasoningSetting]. `hideBadgeRow` does not hide it:
+     * upstream gates it on `interface.parameters` alone, like the parameters panel.
+     */
+    val reasoningSetting: ReasoningSetting?
+        get() = reasoningSettingFor(parametersEnabled = parametersEnabled, comparing = comparisonState.isEnabled)
+
+    private fun reasoningSettingFor(parametersEnabled: Boolean, comparing: Boolean): ReasoningSetting? =
+        composerReasoningSetting(
+            backendVersion = gates.backendVersion,
+            parametersEnabled = parametersEnabled,
+            endpointSupportsIt = quotesSupportedOnEndpoint,
+            comparing = comparing,
+            target = reasoningTarget(
+                selectedEndpoint = selectedEndpoint,
+                selectedModel = selectedModel,
+                agentProvider = selection.selectedAgentProvider,
+                agentModel = selection.selectedAgentModel,
+            ),
+            endpointConfigs = endpointConfigs,
+            catalog = selection.reasoningCatalog,
+            enforcedPreset = activeSpec?.preset?.takeIf { selection.modelSpecs.requiresSpec },
+            enforcedSpecUnserved = parametersSetBySpec && activeSpec == null,
+            bareBedrockClaudeIsAnthropic = gates.bareBedrockClaudeReasoning,
+            thinkingLevelXhighSupported = gates.thinkingLevelXhighSupported,
+        )
+
+    /** The composer's Thinking chip, or null when it is hidden. */
+    val thinkingChip: ThinkingChip?
+        get() {
+            val setting = reasoningSetting ?: return null
+            val isAgent = selectedEndpoint == EndpointConstants.AGENTS
+            val configured = if (isAgent) {
+                selection.selectedAgentReasoning[setting.key].orEmpty()
+            } else {
+                modelParameters.getValueForKey(setting.key)
+            }
+            val thinking = if (isAgent) {
+                selection.selectedAgentReasoning[THINKING_SWITCH_KEY].orEmpty()
+            } else {
+                modelParameters.getValueForKey(THINKING_SWITCH_KEY)
+            }
+            return thinkingChip(
+                setting = setting,
+                configured = configured,
+                pending = composer.pendingReasoningOverride,
+                branch = branchReasoning(inheritedReasoning, thinkingOff = thinking == "false"),
+                lastsForConversation = gates.reasoningLastsForConversation,
+            )
+        }
+
+    /** Whether [override] can be sent for the current selection; the server 400s one it can't. */
+    fun acceptsReasoning(override: ReasoningOverride): Boolean =
+        ReasoningSettingResolver.isSupported(override, reasoningSetting)
+
+    /**
+     * Whether a past turn's [override] can be replayed (edit, regenerate, continue): what the model
+     * and an enforced spec allow, whether or not the composer shows the chip (web's `overrideReasoning`).
+     */
+    fun replaysReasoning(override: ReasoningOverride): Boolean =
+        ReasoningSettingResolver.isSupported(override, reasoningSettingFor(parametersEnabled = true, comparing = false))
+
+    /**
+     * What the composer's send control will actually do mid-run: the user's preference, degraded
+     * to [DuringRunAction.QUEUE] whenever steering is unavailable — for Interrupt as for Steer, since
+     * an interrupt is a steer. Interrupt never degrades to Stop + send.
+     *
+     * Degradation is silent by design. Queueing is the behaviour mobile has always had and it
+     * works against every server, so a preference that cannot be honoured costs the user
+     * nothing — whereas a control that announced "steer" and then failed would.
+     */
+    val effectiveDuringRunAction: DuringRunAction
+        get() = if (canSteerNow || !duringRunAction.isLive) duringRunAction else DuringRunAction.QUEUE
+
+    /**
+     * What the composer's send control does while a reply is generating.
+     *
+     * [DuringRunSendTarget.ANSWER_PAUSE] takes precedence over the user's steer/queue preference:
+     * a run parked on `ask_user_question` is waiting for exactly this text. The screens hide the
+     * composer while the question panel is up, so this is the fallback for a send that reaches the
+     * ViewModel anyway. Treating that send as an ordinary queued follow-up left the pause
+     * unresolved and delivered the answer as a non-sequitur after the run expired.
+     *
+     * Tool-approval pauses are excluded: they take decisions, not prose, so free text there is a
+     * genuine follow-up.
+     *
+     * A multi-question batch ([PendingAction.isComposerAnswerableAsk]) is included: the send fills
+     * the panel's active tab (else the first question still unanswered), into the same
+     * [askAnswerDrafts] the panel's own editors write, and the batch goes up whole once the last
+     * one is in. The resume route wants one answer per id and 400s a body missing any of them, so
+     * there is no per-question submit to route to — but there is progress to make, and steer/queue
+     * would leave the run paused while the send appeared to work.
+     */
+    val duringRunSendTarget: DuringRunSendTarget
+        get() {
+            val pause = renderablePendingAction
+            if (pause != null && pause.isComposerAnswerableAsk && !isResolvingPendingAction) {
+                return DuringRunSendTarget.ANSWER_PAUSE
+            }
+            return when (effectiveDuringRunAction) {
+                DuringRunAction.STEER -> DuringRunSendTarget.STEER
+                DuringRunAction.INTERRUPT -> DuringRunSendTarget.INTERRUPT
+                DuringRunAction.QUEUE -> DuringRunSendTarget.QUEUE
+            }
+        }
+
+    /**
+     * The pause to render resolve controls for, or null.
+     *
+     * Deliberately NOT version-gated. The pause is self-proving: it can only be here because the
+     * server pushed `on_pending_action` or reported it on `/chat/status`, which is proof that
+     * server has the HITL plumbing and the resume route. A version/date gate here would instead
+     * fail closed on the exact population that emits these — a server built from an upstream
+     * commit newer than the pinned one resolves to a null `DetectedBackend`, and hiding the card
+     * then leaves the user staring at a live cursor on a run that will never produce another
+     * token, with Stop as the only way out.
+     *
+     * Only two things are required: an [PendingAction.actionId] to resolve against (the delegate
+     * cannot post a resume without one) and a payload type the card can render — an unknown
+     * future type is dropped rather than shown as an empty card, leaving the run to expire
+     * server-side, the same outcome as before HITL existed.
+     */
+    val renderablePendingAction: PendingAction?
+        get() = pendingAction?.takeIf {
+            !it.actionId.isNullOrBlank() && (it.isToolApproval || it.isAskUserQuestion)
+        }
+
+    /** Number of queued messages a Stop/error pause is holding (0 = none / not paused). Drives
+     *  the "Send queued" banner above the composer. */
+    val pausedQueueCount: Int
+        get() = if (isQueuePaused) messageQueue.size else 0
+
+    /** The pause is holding a message the server refused, so the queue will not move on its own.
+     *  Drives the explanation above the "Send queued" banner, shown even while a run streams. */
+    val isQueueHeldForRefusal: Boolean
+        get() = isQueuePaused && messageQueue.any { it.localId in queue.refusedLocalIds }
+
+    /** True while the composer is editing a queued item rather than composing a new message. */
+    val isEditingQueued: Boolean
+        get() = editingQueuedItem != null
+
+    /** The queue as the chips show it: the row being edited stays queued but is in the composer,
+     *  so it is not shown twice. */
+    val displayedMessageQueue: List<QueuedMessage>
+        get() = editingQueuedItem?.let { session ->
+            messageQueue.filterNot { it.localId == session.original.localId }
+        } ?: messageQueue
+
+    /**
+     * Bundle of the feature gates that flow into the composer ([ChatInput] →
+     * [ChatToolsSheetContent]), so the four are threaded as one value across both
+     * platforms instead of four parallel params. Built from the existing fields;
+     * see each property for its gating rule. (`presetsEnabled` is not included —
+     * it flows to the top bar, a different path.)
+     */
+    val chatInputGates: ChatInputGates
+        get() = ChatInputGates(
+            modelPickerShown = modelPickerShown,
+            parametersEnabled = parametersEnabled,
+            showEphemeralTools = toolbarShown,
+            fileUploadEnabled = fileUploadEnabled,
+            lockedTools = lockedTools,
+            lockedMcpServers = lockedMcpServers,
+        )
+
+    /**
+     * Whether the composer's memory toggle should be offered: the role/opt-out half from
+     * [FeatureGatesState.memoryEnabled], AND the agents endpoint advertising the `memory`
+     * capability.
+     *
+     * Unlike [isCodeInterpreterAvailable] this fails CLOSED on a config that hasn't arrived. The
+     * capability is on by default server-side (`defaultAgentCapabilities`), but an admin's
+     * `capabilities` list can leave it out, and a toggle offered before the config says so would
+     * let a send carry `ephemeralAgent.memory` the server drops.
+     */
+    val isMemoryToolAvailable: Boolean
+        get() = memoryEnabled &&
+            !account.memoriesOptedOut &&
+            endpointConfigs[EndpointConstants.AGENTS]?.capabilities?.contains(ToolConstants.MEMORY) == true
+
+    /**
+     * Whether code interpreter (execute_code) is available on this server.
+     * Derived from the agents endpoint config's capabilities list.
+     * Mirrors the web frontend's `useAgentCapabilities` + `codeEnabled` check.
+     */
+    val isCodeInterpreterAvailable: Boolean
+        get() {
+            val agentsConfig = endpointConfigs[EndpointConstants.AGENTS]
+            // If no agents config is loaded yet, default to true to avoid
+            // hiding the toggle before config arrives. Once config loads,
+            // the actual capabilities list is authoritative.
+            return agentsConfig?.capabilities?.contains(ToolConstants.EXECUTE_CODE) ?: true
+        }
+
+    /**
+     * Whether the server can extract an attachment's text (the `context` capability), which is
+     * what [UploadRoute.TEXT] needs.
+     *
+     * Fails OPEN on a config that hasn't arrived, unlike [isMemoryToolAvailable]: upstream's own
+     * default is `capabilities ?? defaultAgentCapabilities`, which includes `context`.
+     *
+     * A missing list counts as the defaults; a list that omits `context`, empty included, is a
+     * denial the server honours too.
+     */
+    val isFileContextAvailable: Boolean
+        get() {
+            // `capabilities` is the AGENTS endpoint's own policy and binds only there. `POST
+            // /api/files` hands every non-assistants upload to the same handler, whose `context`
+            // branch runs NO capability check (only `execute_code` and `file_search` do) — so
+            // applying the agents list to an openAI/anthropic/custom selection would refuse an
+            // extraction the server performs happily, and one admin narrowing agent capabilities
+            // would switch the feature off app-wide.
+            if (selectedEndpoint != EndpointConstants.AGENTS) return true
+            return agentCapabilityAllows(FILE_CONTEXT_CAPABILITY)
+        }
+
+    /**
+     * Whether the attach sheet offers "Upload to Code Environment" (web `useAttachItems`, legacy
+     * upload UX only): the deployment kept the destination chooser (`legacyFileUploadUX`, resolved
+     * for [fileConfigEndpoint]; a config that hasn't loaded reads as unified, so nothing shows), the
+     * code interpreter capability, and a selection that can read the file: not a saved agent, or one
+     * whose tools include `execute_code`. Also RUN_CODE.USE, which web leaves to the server; the
+     * upload route refuses `execute_code` without it.
+     */
+    val codeUploadOffered: Boolean
+        get() {
+            val config = fileUploadConfig ?: return false
+            if (!fileUploadEnabled || !isCodeInterpreterAvailable || !runCodeEnabled) return false
+            if (!config.resolveEndpointFileConfig(fileConfigEndpoint).legacyFileUploadUX) return false
+            if (selectedEndpoint != EndpointConstants.AGENTS) return true
+            val agent = selection.agents.firstOrNull { it.id == selectedModel } ?: return false
+            return agent.tools?.contains(ToolConstants.EXECUTE_CODE) == true
+        }
+
+    /**
+     * Whether the routing sheet offers "Search it when needed" (web `useAttachItems`' file-search
+     * row): FILE_SEARCH.USE, the `file_search` capability, and a selection whose run can read the
+     * file: a saved agent whose `tools` include `file_search`, or ephemeral tools that can turn the
+     * tool on (shown, or already in use under a spec that hides them).
+     */
+    val fileSearchUploadOffered: Boolean
+        get() {
+            if (!toolGateOpen(ToolConstants.FILE_SEARCH) || !agentCapabilityAllows(ToolConstants.FILE_SEARCH)) return false
+            if (selectedEndpoint != EndpointConstants.AGENTS) {
+                return toolbarShown || ToolConstants.FILE_SEARCH in selection.effectiveTools
+            }
+            val agent = selection.agents.firstOrNull { it.id == selectedModel } ?: return false
+            return agent.tools?.contains(ToolConstants.FILE_SEARCH) == true
+        }
+
+    /**
+     * The routes the sheet offers [mimeType], in the sheet's order: both delivery modes while
+     * [uploadRouteIsAmbiguous], else the one [uploadRouteFor] picks, plus [UploadRoute.FILE_SEARCH]
+     * for a non-image document while [fileSearchUploadOffered].
+     */
+    fun uploadRoutesFor(mimeType: String?): List<UploadRoute> = buildList {
+        if (uploadRouteIsAmbiguous(mimeType)) {
+            add(UploadRoute.PROVIDER)
+            add(UploadRoute.TEXT)
+        } else {
+            add(uploadRouteFor(mimeType))
+        }
+        if (fileSearchUploadOffered && isTextExtractable(mimeType, serverVersion = gates.backendVersion)) {
+            add(UploadRoute.FILE_SEARCH)
+        }
+    }
+
+    /**
+     * The delivery mode [mimeType] would get on the current selection, resolved against the
+     * provider actually behind it — the agent's own provider on the agents endpoint, the
+     * endpoint's `type` for a custom endpoint whose name is just an admin's label.
+     */
+    fun uploadRouteFor(mimeType: String?): UploadRoute {
+        if (!isFileContextAvailable) return UploadRoute.PROVIDER
+        return resolveUploadRoute(
+            mimeType = mimeType,
+            endpoint = selectedEndpoint,
+            endpointType = endpointConfigs[selectedEndpoint]?.type,
+            agentProvider = routingAgentProvider,
+            serverVersion = gates.backendVersion,
+        )
+    }
+
+    /**
+     * The agent provider a routing decision may be made against.
+     *
+     * [ModelSelectionState.selectedAgentProvider] is documented as null on every non-agents
+     * endpoint, but the collector enforcing that resumes on a *later* Main dispatch than the write
+     * that moved the endpoint. A pick issued in that gap would otherwise route against the provider
+     * of an agent the selection has already left — sending a PDF to text on an endpoint that would
+     * have taken it natively.
+     */
+    private val routingAgentProvider: String?
+        get() = selectedAgentProvider.takeIf { selectedEndpoint == EndpointConstants.AGENTS }
+
+    /** Whether both delivery modes are genuinely open for [mimeType] — the manual prompt's gate. */
+    fun uploadRouteIsAmbiguous(mimeType: String?): Boolean {
+        if (!isFileContextAvailable) return false
+        // A type the server cannot extract has exactly one usable mode however capable the
+        // provider is: there is no second option to offer.
+        if (!isTextExtractable(mimeType, serverVersion = gates.backendVersion)) return false
+        val endpointType = endpointConfigs[selectedEndpoint]?.type
+        // An unresolved provider is not a *provider-only* file. Auto still routes it to PROVIDER —
+        // guessing is what this feature refuses to do — but a user who asked to be asked every time
+        // must still be asked, and the sheet must not claim "this model can only take it directly"
+        // about a model we could not identify. Without this the whole batch reads as unchoosable
+        // and the sheet never opens at all.
+        if (isProviderUnknown(selectedEndpoint, endpointType, routingAgentProvider)) return true
+        return isProviderCapable(
+            mimeType = mimeType,
+            endpoint = selectedEndpoint,
+            endpointType = endpointType,
+            agentProvider = routingAgentProvider,
+            serverVersion = gates.backendVersion,
+        )
+    }
+
+    /**
+     * The route a failed upload goes again with: [stored] while it still works for the live
+     * selection (a code upload, or one of [uploadRoutesFor]), else routed afresh, so a native PDF
+     * isn't replayed to a provider that ignores it.
+     */
+    fun retryUploadRoute(stored: UploadRoute?, mimeType: String?): UploadRoute = when {
+        stored == UploadRoute.CODE -> stored
+        stored != null && stored in uploadRoutesFor(mimeType) -> stored
+        else -> uploadRouteFor(mimeType)
+    }
+
+    /**
+     * True when firing `chatRepository.startChat(...)` is unlikely to race against
+     * cold-start initialization.
+     *
+     * Conditions:
+     * - Agents endpoint: [agentsEnabled], and the server config has arrived. An `agents` entry in
+     *   [endpointConfigs] counts as that signal because an agents-only server lists no models at
+     *   all (#541).
+     * - Any other endpoint: [availableModels] is non-empty (the server's model list has arrived).
+     *
+     * Not included: [selectedModel] != null. The agents endpoint auto-selects a
+     * default agent when none is set (see ModelSelectionDelegate.loadAgents) and
+     * the non-agents flows always set model+endpoint together, so a null here is
+     * orthogonal to the cold-start race we're guarding against.
+     */
+    val isSendReady: Boolean
+        get() = if (selectedEndpoint == EndpointConstants.AGENTS) {
+            agentsEnabled && (availableModels.isNotEmpty() || EndpointConstants.AGENTS in endpointConfigs)
+        } else {
+            availableModels.isNotEmpty()
+        }
+}
+
+/** Where the composer's send routes while a reply is generating. See [ChatUiState.duringRunSendTarget]. */
+enum class DuringRunSendTarget {
+    /** Resolve the live `ask_user_question` pause with the composer's text. */
+    ANSWER_PAUSE,
+
+    /** Inject into the running turn (v0.8.8 steering). */
+    STEER,
+
+    /** Inject with `preempt`: stop the current tool or thinking step and continue with the message. */
+    INTERRUPT,
+
+    /** Hold as a follow-up for after the run. */
+    QUEUE,
+}
+
+/** Steering is text-only on mobile, so staged files send to the queue. The button face and the route both read this. */
+fun DuringRunSendTarget.withStagedFiles(hasFiles: Boolean): DuringRunSendTarget =
+    if (hasFiles && (this == DuringRunSendTarget.STEER || this == DuringRunSendTarget.INTERRUPT)) {
+        DuringRunSendTarget.QUEUE
+    } else {
+        this
+    }
+
+/**
+ * Web's `quotesSupported`: the assistants endpoints bypass the server-side blockquote merge, so
+ * they take no quotes. Shared by the affordance gate ([ChatUiState.quotesSupportedOnEndpoint]) and
+ * the send-time take, which must agree — offering the chips and then dropping them at send is the
+ * failure this single spelling exists to prevent.
+ */
+fun quotesSupportedOn(endpoint: String?): Boolean =
+    !endpoint.equals("assistants", ignoreCase = true) &&
+        !endpoint.equals("azureAssistants", ignoreCase = true)

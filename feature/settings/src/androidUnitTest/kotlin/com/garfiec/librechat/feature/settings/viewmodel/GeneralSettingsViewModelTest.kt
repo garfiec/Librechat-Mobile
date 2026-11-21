@@ -7,7 +7,6 @@ import com.garfiec.librechat.core.common.datetime.DateFormatStyle
 import com.garfiec.librechat.core.common.datetime.DateTimeFormatPrefs
 import com.garfiec.librechat.core.common.datetime.TimestampStyle
 import com.garfiec.librechat.core.data.datastore.AppPreferences
-import com.garfiec.librechat.core.data.datastore.ArtifactDisplayMode
 import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
 import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
@@ -16,6 +15,8 @@ import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.logging.PlatformInfo
 import com.garfiec.librechat.core.model.config.BuildInfo
 import com.garfiec.librechat.core.model.config.StartupConfig
+import com.garfiec.librechat.core.model.preferences.ArtifactDisplayMode
+import com.garfiec.librechat.core.model.preferences.DEFAULT_LANGUAGE
 import com.garfiec.librechat.core.network.client.CertificateAuthority
 import com.garfiec.librechat.core.network.client.CertificateTrustRegistry
 import com.google.common.truth.Truth.assertThat
@@ -43,7 +44,7 @@ class GeneralSettingsViewModelTest {
     private val dateTimePrefsStore = mockk<DateTimePrefsStore>(relaxed = true)
     private val serverDataStore = mockk<ServerDataStore>(relaxed = true)
     private val configRepository = mockk<ConfigRepository>(relaxed = true)
-    private val selectedLanguageFlow = MutableStateFlow(SettingsDataStore.DEFAULT_LANGUAGE)
+    private val selectedLanguageFlow = MutableStateFlow(DEFAULT_LANGUAGE)
     private val dateTimePrefsFlow = MutableStateFlow(DateTimeFormatPrefs())
     private val version = MutableStateFlow<String?>(null)
     private val startupConfig = MutableStateFlow<StartupConfig?>(null)

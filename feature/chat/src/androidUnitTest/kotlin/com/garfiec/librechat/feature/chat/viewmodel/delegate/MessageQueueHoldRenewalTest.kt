@@ -3,7 +3,7 @@ package com.garfiec.librechat.feature.chat.viewmodel.delegate
 import com.garfiec.librechat.core.common.identity.AccountId
 import com.garfiec.librechat.core.common.identity.AccountState
 import com.garfiec.librechat.core.common.identity.InMemoryActiveAccountProvider
-import com.garfiec.librechat.core.data.endpoint.EndpointDispatch
+import com.garfiec.librechat.core.model.endpoint.EndpointDispatch
 import com.garfiec.librechat.feature.chat.components.AttachedFile
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState

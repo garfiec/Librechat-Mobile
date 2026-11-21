@@ -2,21 +2,23 @@ package com.garfiec.librechat.feature.settings.viewmodel
 
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.AppPreferences
-import com.garfiec.librechat.core.data.datastore.ArtifactDisplayMode
 import com.garfiec.librechat.core.data.datastore.ArtifactLibraryConsentStore
-import com.garfiec.librechat.core.data.datastore.ArtifactLibraryConsentStore.Decision
-import com.garfiec.librechat.core.data.datastore.FlaggedArtifactLibraries
-import com.garfiec.librechat.core.data.datastore.LatexRenderer
 import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
-import com.garfiec.librechat.core.data.datastore.UploadRoutingMode
-import com.garfiec.librechat.core.data.datastore.WebSearchPreference
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.SpeechRepository
 import com.garfiec.librechat.core.model.config.InterfaceConfig
 import com.garfiec.librechat.core.model.config.StartupConfig
 import com.garfiec.librechat.core.model.permissions.UserRolePermissions
+import com.garfiec.librechat.core.model.preferences.ArtifactDisplayMode
+import com.garfiec.librechat.core.model.preferences.ArtifactLibraryDecision
+import com.garfiec.librechat.core.model.preferences.FlaggedArtifactLibraries
+import com.garfiec.librechat.core.model.preferences.LatexRenderer
+import com.garfiec.librechat.core.model.preferences.TTS_SOURCE_DEVICE
+import com.garfiec.librechat.core.model.preferences.TTS_SOURCE_SERVER
+import com.garfiec.librechat.core.model.preferences.UploadRoutingMode
+import com.garfiec.librechat.core.model.preferences.WebSearchPreference
 import com.garfiec.librechat.core.model.speech.SpeechConfig
 import com.garfiec.librechat.core.model.speech.TtsVoice
 import com.garfiec.librechat.feature.settings.viewmodel.delegate.SpeechSettingsContract
@@ -52,7 +54,7 @@ class ChatSettingsViewModelTest {
     private val siteIconsChoiceFlow = MutableStateFlow<Boolean?>(null)
     private val preferLastUsedFlow = MutableStateFlow(false)
     private val webSearchFirstFlow = MutableStateFlow(WebSearchPreference.LIBRECHAT_FIRST)
-    private val ttsSourceFlow = MutableStateFlow(SettingsDataStore.TTS_SOURCE_DEVICE)
+    private val ttsSourceFlow = MutableStateFlow(TTS_SOURCE_DEVICE)
     private val selectedVoiceIdFlow = MutableStateFlow<String?>(null)
     private var speechStateHandle: SettingsStateHandle<ChatSettingsUiState>? = null
     private val speechRepository = mockk<SpeechRepository>(relaxed = true)
@@ -146,8 +148,8 @@ class ChatSettingsViewModelTest {
 
         val choices = viewModel.artifactLibraries.value!!
         assertThat(choices.map { it.subject }).containsExactlyElementsIn(FlaggedArtifactLibraries.SUBJECTS).inOrder()
-        assertThat(choices.first().decision).isEqualTo(Decision.DECLINE)
-        assertThat(choices.drop(1).map { it.decision }).containsNoneOf(Decision.ALLOW, Decision.DECLINE)
+        assertThat(choices.first().decision).isEqualTo(ArtifactLibraryDecision.DECLINE)
+        assertThat(choices.drop(1).map { it.decision }).containsNoneOf(ArtifactLibraryDecision.ALLOW, ArtifactLibraryDecision.DECLINE)
     }
 
     @Test
@@ -156,9 +158,9 @@ class ChatSettingsViewModelTest {
         viewModel = createViewModel()
         val subject = FlaggedArtifactLibraries.SUBJECTS.first()
 
-        viewModel.setArtifactLibraryDecision(subject, Decision.ALLOW)
-        viewModel.setArtifactLibraryDecision(subject, Decision.DECLINE)
-        viewModel.setArtifactLibraryDecision(subject, Decision.ASK)
+        viewModel.setArtifactLibraryDecision(subject, ArtifactLibraryDecision.ALLOW)
+        viewModel.setArtifactLibraryDecision(subject, ArtifactLibraryDecision.DECLINE)
+        viewModel.setArtifactLibraryDecision(subject, ArtifactLibraryDecision.ASK)
         advanceUntilIdle()
 
         coVerify { libraryConsent.remember(subject, true) }
@@ -280,7 +282,7 @@ class ChatSettingsViewModelTest {
 
     @Test
     fun `a server preview asks for the chosen server voice`() = runTest {
-        ttsSourceFlow.value = SettingsDataStore.TTS_SOURCE_SERVER
+        ttsSourceFlow.value = TTS_SOURCE_SERVER
         selectedVoiceIdFlow.value = "nova"
         viewModel = createViewModel()
         val voices = listOf(TtsVoice(id = "alloy", name = "alloy"), TtsVoice(id = "nova", name = "nova"))

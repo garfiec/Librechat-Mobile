@@ -290,7 +290,7 @@ class MessageQueueDelegate(
     fun resume() {
         handle.update {
             val released = queue.messageQueue.map { item ->
-                if (item.server?.status != QueuedTurnServerState.Status.Rejected || item.server.id != null) {
+                if (item.server?.status != QueuedTurnServerState.Status.Rejected || item.server?.id != null) {
                     item
                 } else {
                     item.copy(

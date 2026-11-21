@@ -29,6 +29,7 @@ import com.garfiec.librechat.feature.settings.state.providerkeys.SetProviderKeyU
 import com.garfiec.librechat.feature.settings.state.providerkeys.providerKeyDisplayLabel
 import com.garfiec.librechat.feature.settings.state.providerkeys.providerKeyIcon
 import com.garfiec.librechat.feature.settings.state.providerkeys.providerKeyNeeds
+import com.garfiec.librechat.feature.settings.state.providerkeys.resolveFormKind
 import com.garfiec.librechat.feature.settings.state.providerkeys.validateGoogleServiceKey
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -647,36 +648,5 @@ class SetProviderKeyViewModel(
 
         private fun decodeDraft(raw: String): SavedDraft? =
             runCatching { draftJson.decodeFromString(SavedDraft.serializer(), raw) }.getOrNull()
-
-        /**
-         * Maps an endpoint to its form variant.
-         *
-         * Takes [endpointName] explicitly (mirrors `resolveProviderKeyName`) because
-         * `EndpointConfig.name` is empirically null in real `/api/endpoints` responses
-         * (the map key is authoritative). Without this, built-in endpoints like
-         * `openAI` whose config has no `type` overlay fall through to OTHER.
-         *
-         * **`azureAssistants` parity note.** Upstream's `SetKeyDialog.tsx` defines
-         * `isAzure = configuredEndpoint === EModelEndpoint.azureOpenAI` (strict equality, no
-         * `azureAssistants`), and `OpenAIConfig.tsx:13` makes the same check at render
-         * time. The result is that web treats `azureAssistants` as plain OpenAI — one
-         * `apiKey` field, no Azure quad-form, no nested JSON envelope. This looks like
-         * an upstream oversight, but we mirror it exactly to keep mobile and web wire
-         * shapes identical (Option A). Anyone who actually wants Azure semantics on a
-         * custom endpoint sets `config.azure = true`, which still routes here via the
-         * short-circuit above regardless of `type`.
-         */
-        fun resolveFormKind(endpointName: String, endpoint: EndpointConfig): ProviderKeyFormKind {
-            if (endpoint.azure == true) return ProviderKeyFormKind.AZURE
-            val effective = endpoint.type ?: endpointName
-            return when (effective) {
-                "azureOpenAI" -> ProviderKeyFormKind.AZURE
-                "openAI", "assistants", "azureAssistants" -> ProviderKeyFormKind.OPENAI
-                "google" -> ProviderKeyFormKind.GOOGLE
-                "custom" -> ProviderKeyFormKind.CUSTOM
-                "bedrock" -> ProviderKeyFormKind.BEDROCK
-                else -> ProviderKeyFormKind.OTHER
-            }
-        }
     }
 }

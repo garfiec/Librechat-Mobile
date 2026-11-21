@@ -78,8 +78,9 @@ class AgentSaveDelegate(
         stateHandle.scope.launch {
             stateHandle.update { copy(isSaving = true, error = null) }
 
-            val result = if (state.isEditMode && state.agentId != null) {
-                agentRepository.updateAgent(id = state.agentId, request = state.toUpdateAgentRequest())
+            val editedId = state.agentId
+            val result = if (state.isEditMode && editedId != null) {
+                agentRepository.updateAgent(id = editedId, request = state.toUpdateAgentRequest())
             } else {
                 agentRepository.createAgent(request = state.toCreateAgentRequest())
             }

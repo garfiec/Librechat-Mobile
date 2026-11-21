@@ -1,5 +1,6 @@
 package com.garfiec.librechat.core.data.datastore
 
+import com.garfiec.librechat.core.model.preferences.DuringRunAction
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse

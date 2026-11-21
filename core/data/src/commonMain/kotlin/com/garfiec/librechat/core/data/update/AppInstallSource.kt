@@ -1,14 +1,6 @@
 package com.garfiec.librechat.core.data.update
 
-/** How the installed build arrived, which decides where What's new sends the user to update. */
-enum class InstallChannel {
-    /** Sideloaded APK, adb, or an installer we don't recognise. */
-    DIRECT,
-    OBTAINIUM,
-
-    /** F-Droid or one of its clients (Droid-ify, Neo Store, F-Droid Basic). */
-    FDROID,
-}
+import com.garfiec.librechat.core.model.update.InstallChannel
 
 interface AppInstallSource {
     val channel: InstallChannel

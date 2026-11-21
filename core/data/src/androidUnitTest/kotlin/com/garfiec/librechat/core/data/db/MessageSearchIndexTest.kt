@@ -1,8 +1,8 @@
 package com.garfiec.librechat.core.data.db
 
 import androidx.sqlite.db.SupportSQLiteDatabase
-import com.garfiec.librechat.core.data.search.FtsQuery
-import com.garfiec.librechat.core.data.search.FtsQueryPlan
+import com.garfiec.librechat.core.model.search.FtsQuery
+import com.garfiec.librechat.core.model.search.FtsQueryPlan
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.test.runTest
 import org.junit.Test

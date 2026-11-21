@@ -1,6 +1,7 @@
 plugins {
     id("librechat.kmp.library")
     id("librechat.kmp.compose")
+    id("librechat.kmp.web")
 }
 
 android {

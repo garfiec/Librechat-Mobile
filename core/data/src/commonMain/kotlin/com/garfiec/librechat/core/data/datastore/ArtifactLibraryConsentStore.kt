@@ -1,6 +1,8 @@
 package com.garfiec.librechat.core.data.datastore
 
 import co.touchlab.kermit.Logger
+import com.garfiec.librechat.core.model.preferences.ArtifactLibraryDecision
+import com.garfiec.librechat.core.model.preferences.ArtifactLibrarySubject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -15,7 +17,7 @@ import okio.IOException
  * for artifacts that is unmaintained, deprecated or vulnerable, which an artifact may load only
  * after the user agrees.
  *
- * An answer is about a [Subject], a library under one advisory kind, so a library whose advisory
+ * An answer is about a [ArtifactLibrarySubject], a library under one advisory kind, so a library whose advisory
  * escalates (unmaintained to vulnerable) is asked about again rather than inheriting the old yes.
  *
  * Two lifetimes:
@@ -34,28 +36,22 @@ class ArtifactLibraryConsentStore(
     private val preferences: PreferenceStore,
     appScope: CoroutineScope,
 ) {
-    /** What applies to one subject in one artifact. */
-    enum class Decision { ALLOW, DECLINE, ASK }
-
-    /** One question: may [library], flagged as [advisory], load? Neither may contain [SEPARATOR] or a comma. */
-    data class Subject(val library: String, val advisory: String)
-
     class Snapshot internal constructor(
-        private val remembered: Map<Subject, Boolean>,
-        private val once: Map<Pair<Subject, String>, Boolean>,
+        private val remembered: Map<ArtifactLibrarySubject, Boolean>,
+        private val once: Map<Pair<ArtifactLibrarySubject, String>, Boolean>,
     ) {
-        fun decisionFor(subject: Subject, artifactId: String): Decision =
+        fun decisionFor(subject: ArtifactLibrarySubject, artifactId: String): ArtifactLibraryDecision =
             when (remembered[subject] ?: once[subject to artifactId]) {
-                true -> Decision.ALLOW
-                false -> Decision.DECLINE
-                null -> Decision.ASK
+                true -> ArtifactLibraryDecision.ALLOW
+                false -> ArtifactLibraryDecision.DECLINE
+                null -> ArtifactLibraryDecision.ASK
             }
 
         /** The device-wide answer for [subject], or null when there is none and each artifact asks. */
-        fun remembered(subject: Subject): Boolean? = remembered[subject]
+        fun remembered(subject: ArtifactLibrarySubject): Boolean? = remembered[subject]
     }
 
-    private val once = MutableStateFlow<Map<Pair<Subject, String>, Boolean>>(emptyMap())
+    private val once = MutableStateFlow<Map<Pair<ArtifactLibrarySubject, String>, Boolean>>(emptyMap())
 
     /** Null until the stored answers are read, so a remembered answer never flashes a prompt. */
     val snapshot: StateFlow<Snapshot?> = combine(
@@ -64,11 +60,11 @@ class ArtifactLibraryConsentStore(
     ) { stored, onceAnswers -> Snapshot(decode(stored), onceAnswers) }
         .stateIn(appScope, SharingStarted.Eagerly, null)
 
-    fun decideOnce(subject: Subject, artifactId: String, allow: Boolean) {
+    fun decideOnce(subject: ArtifactLibrarySubject, artifactId: String, allow: Boolean) {
         once.update { it + ((subject to artifactId) to allow) }
     }
 
-    suspend fun remember(subject: Subject, allow: Boolean) = write { entries ->
+    suspend fun remember(subject: ArtifactLibrarySubject, allow: Boolean) = write { entries ->
         entries.filterNot { decodeEntry(it)?.first == subject } + encode(subject, allow)
     }
 
@@ -76,7 +72,7 @@ class ArtifactLibraryConsentStore(
      * Drops the remembered answer for [subject], so artifacts ask again. Once answers stand: they
      * aren't shown in Settings, so a Settings choice that silently undid one would surprise.
      */
-    suspend fun forget(subject: Subject) {
+    suspend fun forget(subject: ArtifactLibrarySubject) {
         write { entries -> entries.filterNot { decodeEntry(it)?.first == subject } }
     }
 
@@ -85,7 +81,7 @@ class ArtifactLibraryConsentStore(
      * remembered answer (which applied everywhere) and this artifact's once answer. Other
      * artifacts' once answers stand.
      */
-    suspend fun reconsider(subject: Subject, artifactId: String) {
+    suspend fun reconsider(subject: ArtifactLibrarySubject, artifactId: String) {
         once.update { it - (subject to artifactId) }
         write { entries -> entries.filterNot { decodeEntry(it)?.first == subject } }
     }
@@ -108,11 +104,11 @@ class ArtifactLibraryConsentStore(
         const val ALLOW = "allow"
         const val DECLINE = "decline"
 
-        fun encode(subject: Subject, allow: Boolean): String =
+        fun encode(subject: ArtifactLibrarySubject, allow: Boolean): String =
             listOf(if (allow) ALLOW else DECLINE, subject.library, subject.advisory).joinToString("$SEPARATOR")
 
         /** Entries this build can't read are skipped, and dropped by the next write to their subject only. */
-        fun decodeEntry(entry: String): Pair<Subject, Boolean>? {
+        fun decodeEntry(entry: String): Pair<ArtifactLibrarySubject, Boolean>? {
             val parts = entry.split(SEPARATOR)
             if (parts.size != 3) return null
             val allow = when (parts[0]) {
@@ -120,9 +116,9 @@ class ArtifactLibraryConsentStore(
                 DECLINE -> false
                 else -> return null
             }
-            return Subject(parts[1], parts[2]) to allow
+            return ArtifactLibrarySubject(parts[1], parts[2]) to allow
         }
 
-        fun decode(entries: List<String>): Map<Subject, Boolean> = entries.mapNotNull(::decodeEntry).toMap()
+        fun decode(entries: List<String>): Map<ArtifactLibrarySubject, Boolean> = entries.mapNotNull(::decodeEntry).toMap()
     }
 }

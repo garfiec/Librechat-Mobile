@@ -5,29 +5,12 @@ import androidx.lifecycle.viewModelScope
 import com.garfiec.librechat.core.common.AppInfo
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.update.AppUpdateRepository
-import com.garfiec.librechat.core.model.AppRelease
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-
-sealed interface InstalledNotes {
-    data object Loading : InstalledNotes
-    data object NotFound : InstalledNotes
-    data object Error : InstalledNotes
-    data class Content(val release: AppRelease) : InstalledNotes
-}
-
-enum class OlderStatus { LOADING, MORE, END, ERROR }
-
-data class ReleaseNotesUiState(
-    val installed: InstalledNotes = InstalledNotes.Loading,
-    /** Releases before the installed build, newest first. */
-    val older: List<AppRelease> = emptyList(),
-    val olderStatus: OlderStatus = OlderStatus.LOADING,
-)
 
 /**
  * Release notes for the installed build and the releases before it. Fetched only while the screen

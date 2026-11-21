@@ -110,7 +110,7 @@ scripts/vendor-web-assets.py --bump <id> <version>
 
 This repins the registry, wipes that asset's directory, re-downloads from the official
 tarball, rewrites the lock, and regenerates `VendoredWebAssets.kt` and the Settings catalog of
-flagged libraries (`core/data/…/FlaggedArtifactLibraries.kt`). The wipe is deliberate:
+flagged libraries (`core/model/…/FlaggedArtifactLibraries.kt`). The wipe is deliberate:
 a repin that drops a file must not leave the old one behind to be served.
 
 Adding a **new** asset instead: add a registry entry (with a real `why`, `pin_reason` and

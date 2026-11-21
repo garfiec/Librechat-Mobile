@@ -1,6 +1,5 @@
 package com.garfiec.librechat.feature.chat.prompts
 
-import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import co.touchlab.kermit.Logger
@@ -20,38 +19,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-@Immutable
-data class PromptsUiState(
-    val groups: List<PromptGroupDisplayData> = emptyList(),
-    val isLoading: Boolean = false,
-    val isRefreshing: Boolean = false,
-    val error: String? = null,
-    val selectedGroup: PromptGroupDetailDisplayData? = null,
-    // Filter and sort state
-    val selectedCategory: String? = null,
-    val sortOrder: PromptSortOrder = PromptSortOrder.RECENT,
-    val availableCategories: List<String> = emptyList(),
-    val showFilterSheet: Boolean = false,
-    val filteredGroups: List<PromptGroupDisplayData> = emptyList(),
-    // Share state
-    val showShareDialog: Boolean = false,
-    val shareGroupId: String? = null,
-    // Variable dialog state
-    val showVariableDialog: Boolean = false,
-    val variablePromptTemplate: String = "",
-    val variableNames: List<String> = emptyList(),
-    val pendingDeleteGroupId: String? = null,
-    val isDeleting: Boolean = false,
-    // Role-permission gates — default permissive.
-    val promptsCreateEnabled: Boolean = true,
-    val promptsShareEnabled: Boolean = true,
-)
-
 class PromptsViewModel(
     private val promptRepository: PromptRepository,
     private val roleRepository: RoleRepository,
     private val permissionGate: PermissionGate,
-) : ViewModel() {
+) : ViewModel(), PromptsLibraryActions {
 
     private val _uiState = MutableStateFlow(PromptsUiState())
     val uiState: StateFlow<PromptsUiState> = _uiState.asStateFlow()
@@ -116,12 +88,12 @@ class PromptsViewModel(
     }
 
     /** The initial load and the empty-state retry: a full-screen spinner, failures shown. */
-    fun loadGroups() {
+    override fun loadGroups() {
         launchReload(promptRepository.revision.value, surfaceErrors = true, fullSpinner = true)
     }
 
     /** The pull-to-refresh gesture. Its failures are the user's to see. */
-    fun refresh() {
+    override fun refresh() {
         launchReload(promptRepository.revision.value, surfaceErrors = true, fullSpinner = false)
     }
 
@@ -174,7 +146,7 @@ class PromptsViewModel(
         }
     }
 
-    fun selectGroup(groupId: String) {
+    override fun selectGroup(groupId: String) {
         selectJob?.cancel()
         selectJob = viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
@@ -222,14 +194,14 @@ class PromptsViewModel(
     }
 
     /** Reads an external group's live text again after a failed read, from the open detail. */
-    fun retryPromptText() {
+    override fun retryPromptText() {
         val group = _uiState.value.selectedGroup ?: return
         if (!group.textUnavailable || group.isRetryingText) return
         _uiState.value = _uiState.value.copy(selectedGroup = group.copy(isRetryingText = true))
         selectGroup(group.id)
     }
 
-    fun clearSelectedGroup() {
+    override fun clearSelectedGroup() {
         val loading = selectJob?.isActive == true
         selectJob?.cancel()
         selectJob = null
@@ -240,21 +212,21 @@ class PromptsViewModel(
         )
     }
 
-    fun onCategorySelected(category: String?) {
+    override fun onCategorySelected(category: String?) {
         _uiState.value = _uiState.value.copy(selectedCategory = category)
         applyFilters()
     }
 
-    fun onSortOrderChanged(sortOrder: PromptSortOrder) {
+    override fun onSortOrderChanged(sortOrder: PromptSortOrder) {
         _uiState.value = _uiState.value.copy(sortOrder = sortOrder)
         applyFilters()
     }
 
-    fun showFilterSheet() {
+    override fun showFilterSheet() {
         _uiState.value = _uiState.value.copy(showFilterSheet = true)
     }
 
-    fun dismissFilterSheet() {
+    override fun dismissFilterSheet() {
         _uiState.value = _uiState.value.copy(showFilterSheet = false)
     }
 
@@ -282,18 +254,18 @@ class PromptsViewModel(
      * Asks for confirmation before [confirmDeleteGroup] runs. The server's group delete is a hard
      * cascade over every version with no restore, so the trash icon must never delete on its own.
      */
-    fun requestDeleteGroup(groupId: String) {
+    override fun requestDeleteGroup(groupId: String) {
         if (_uiState.value.isDeleting) return
         // An externally managed group can't be deleted here; the server answers 403 read_only.
         if (_uiState.value.selectedGroup?.takeIf { it.id == groupId }?.external != null) return
         _uiState.value = _uiState.value.copy(pendingDeleteGroupId = groupId)
     }
 
-    fun dismissDeleteGroup() {
+    override fun dismissDeleteGroup() {
         _uiState.value = _uiState.value.copy(pendingDeleteGroupId = null)
     }
 
-    fun confirmDeleteGroup() {
+    override fun confirmDeleteGroup() {
         val groupId = _uiState.value.pendingDeleteGroupId ?: return
         _uiState.value = _uiState.value.copy(pendingDeleteGroupId = null, isDeleting = true)
         deleteGroup(groupId)
@@ -342,20 +314,20 @@ class PromptsViewModel(
         }
     }
 
-    fun dismissError() {
+    override fun dismissError() {
         _uiState.value = _uiState.value.copy(error = null)
     }
 
     // Share
 
-    fun showShareDialog(groupId: String) {
+    override fun showShareDialog(groupId: String) {
         _uiState.value = _uiState.value.copy(
             showShareDialog = true,
             shareGroupId = groupId,
         )
     }
 
-    fun dismissShareDialog() {
+    override fun dismissShareDialog() {
         _uiState.value = _uiState.value.copy(
             showShareDialog = false,
             shareGroupId = null,
@@ -364,7 +336,7 @@ class PromptsViewModel(
 
     // Variable dialog
 
-    fun showVariableDialog(promptTemplate: String) {
+    override fun showVariableDialog(promptTemplate: String) {
         val variables = extractPromptVariables(promptTemplate)
         if (variables.isEmpty()) return
         _uiState.value = _uiState.value.copy(
@@ -374,7 +346,7 @@ class PromptsViewModel(
         )
     }
 
-    fun dismissVariableDialog() {
+    override fun dismissVariableDialog() {
         _uiState.value = _uiState.value.copy(
             showVariableDialog = false,
             variablePromptTemplate = "",

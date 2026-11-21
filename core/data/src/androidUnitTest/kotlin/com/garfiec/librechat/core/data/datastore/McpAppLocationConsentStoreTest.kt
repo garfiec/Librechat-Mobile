@@ -3,6 +3,7 @@ package com.garfiec.librechat.core.data.datastore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import com.garfiec.librechat.core.common.identity.AccountId
 import com.garfiec.librechat.core.common.identity.InMemoryActiveAccountProvider
+import com.garfiec.librechat.core.model.preferences.McpAppLocationConsent
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestScope
