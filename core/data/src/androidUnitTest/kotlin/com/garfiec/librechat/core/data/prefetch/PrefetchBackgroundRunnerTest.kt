@@ -9,6 +9,7 @@ import com.garfiec.librechat.core.common.lifecycle.ForegroundSignal
 import com.garfiec.librechat.core.data.datastore.AppPreferences
 import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
+import com.garfiec.librechat.core.model.prefetch.PrefetchRunOutcome
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
 import io.mockk.every

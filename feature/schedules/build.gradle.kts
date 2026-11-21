@@ -9,6 +9,7 @@ android {
 kotlin {
     sourceSets {
         commonMain.dependencies {
+            api(project(":feature:schedules:ui"))
             implementation(project(":core:notifications"))
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.kermit)
@@ -21,3 +22,4 @@ kotlin {
         }
     }
 }
+

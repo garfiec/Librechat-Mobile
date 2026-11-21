@@ -408,8 +408,7 @@ class QueuedTurnDelegate(
             val server = item.server ?: return@any false
             server.status == QueuedTurnServerState.Status.Uncertain &&
                 !server.reconciliationExpired &&
-                server.uncertainSince != null &&
-                server.uncertainSince + window <= now
+                server.uncertainSince.let { since -> since != null && since + window <= now }
         }
         if (!expired) return
         handle.update {
@@ -418,8 +417,7 @@ class QueuedTurnDelegate(
                     val server = item.server ?: return@map item
                     if (server.status != QueuedTurnServerState.Status.Uncertain ||
                         server.reconciliationExpired ||
-                        server.uncertainSince == null ||
-                        server.uncertainSince + window > now
+                        server.uncertainSince.let { since -> since == null || since + window > now }
                     ) {
                         item
                     } else {

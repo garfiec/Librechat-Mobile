@@ -1,8 +1,8 @@
 package com.garfiec.librechat.feature.chat.viewmodel
 
 import com.garfiec.librechat.core.common.ToolConstants
-import com.garfiec.librechat.core.data.endpoint.EndpointDispatch
 import com.garfiec.librechat.core.model.config.ModelSpecSkills
+import com.garfiec.librechat.core.model.endpoint.EndpointDispatch
 import com.garfiec.librechat.core.model.request.EphemeralAgent
 import com.garfiec.librechat.feature.chat.util.WebSearchRoute
 import kotlinx.serialization.json.JsonObject

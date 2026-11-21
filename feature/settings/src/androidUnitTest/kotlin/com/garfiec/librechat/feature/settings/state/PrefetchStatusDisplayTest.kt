@@ -1,9 +1,9 @@
 package com.garfiec.librechat.feature.settings.state
 
 import com.garfiec.librechat.core.data.prefetch.PrefetchConditions
-import com.garfiec.librechat.core.data.prefetch.PrefetchConversationStatus
 import com.garfiec.librechat.core.data.prefetch.PrefetchRunState
 import com.garfiec.librechat.core.data.prefetch.PrefetchStatus
+import com.garfiec.librechat.core.model.prefetch.PrefetchConversationStatus
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 

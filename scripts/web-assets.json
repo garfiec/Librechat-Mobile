@@ -61,9 +61,9 @@
   ],
   "version": 1,
   "dest": "feature/chat/src/commonMain/composeResources/files/web",
-  "manifest_kt": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/web/VendoredWebAssets.kt",
+  "manifest_kt": "feature/chat/ui/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/web/VendoredWebAssets.kt",
   "manifest_package": "com.garfiec.librechat.feature.chat.components.web",
-  "consent_catalog_kt": "core/data/src/commonMain/kotlin/com/garfiec/librechat/core/data/datastore/FlaggedArtifactLibraries.kt",
+  "consent_catalog_kt": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/preferences/FlaggedArtifactLibraries.kt",
   "assets": [
     {
       "id": "katex",

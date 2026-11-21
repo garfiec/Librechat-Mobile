@@ -1,40 +1,15 @@
 package com.garfiec.librechat.feature.settings.viewmodel
 
-import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.ApiKeyRepository
-import com.garfiec.librechat.core.model.ApiKey
 import com.garfiec.librechat.core.model.request.CreateApiKeyRequest
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-
-@Immutable
-data class ApiKeysUiState(
-    val keys: List<ApiKey> = emptyList(),
-    val isLoading: Boolean = false,
-    val isRefreshing: Boolean = false,
-    val error: String? = null,
-    val showCreateDialog: Boolean = false,
-    val isCreating: Boolean = false,
-    val createdKey: ApiKey? = null,
-    val deletingKeyId: String? = null,
-    /** Why the last load of the list failed; the page shows it in place of an empty list. */
-    val loadFailure: ApiKeysLoadFailure? = null,
-)
-
-@Immutable
-sealed interface ApiKeysLoadFailure {
-    /** The server has no API keys route (404). */
-    data object NotSupported : ApiKeysLoadFailure
-
-    /** Any other failure, with the server's or client's message when there is one. Retry reloads. */
-    data class Failed(val message: String?) : ApiKeysLoadFailure
-}
 
 /**
  * Manages API key CRUD operations for the API Keys settings screen.

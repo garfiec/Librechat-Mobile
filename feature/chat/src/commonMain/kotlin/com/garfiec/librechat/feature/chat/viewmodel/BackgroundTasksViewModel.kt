@@ -1,13 +1,10 @@
 package com.garfiec.librechat.feature.chat.viewmodel
 
-import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.BackgroundTaskRepository
-import com.garfiec.librechat.core.model.background.BackgroundTaskDelivery
-import com.garfiec.librechat.core.model.background.BackgroundTaskSummary
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,37 +12,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-
-@Immutable
-data class BackgroundTasksUiState(
-    val conversationId: String? = null,
-    val tasks: List<BackgroundTaskSummary> = emptyList(),
-    /** The deployment lets users stop ordinary background tools; otherwise the cancel route 403s. */
-    val cancellable: Boolean = false,
-    /** The server's list may be missing finished results (durable store down or list truncated). */
-    val incomplete: Boolean = false,
-    val stoppingTaskIds: Set<String> = emptySet(),
-    val stoppingAll: Boolean = false,
-    val stopFailed: Boolean = false,
-) {
-    val runningCount: Int get() = tasks.count { it.isRunning }
-
-    /** Finished results that will still arrive as a new agent turn. */
-    val awaitingCount: Int
-        get() = tasks.count { !it.isRunning && it.delivery == BackgroundTaskDelivery.PENDING }
-
-    /** Automatic deliveries that failed; the result never arrives on its own. */
-    val failedDeliveryCount: Int get() = tasks.count { it.delivery == BackgroundTaskDelivery.FAILED }
-
-    /** Upstream renders nothing for a conversation with no tasks and a complete list. */
-    val isVisible: Boolean get() = tasks.isNotEmpty() || incomplete
-
-    fun canStop(task: BackgroundTaskSummary): Boolean =
-        cancellable && task.isRunning && !task.cancellationRequested &&
-            task.taskId !in stoppingTaskIds && !stoppingAll
-
-    val canStopAll: Boolean get() = cancellable && !stoppingAll && tasks.count { canStop(it) } > 1
-}
 
 /**
  * The chat header's Background Tasks chip and sheet (v0.8.8, upstream

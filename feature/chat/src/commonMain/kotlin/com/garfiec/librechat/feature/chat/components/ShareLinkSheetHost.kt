@@ -9,8 +9,8 @@ import com.garfiec.librechat.core.model.share.ShareSheetState
 import com.garfiec.librechat.core.ui.components.acl.AclSharingActions
 import com.garfiec.librechat.core.ui.components.share.LocalOpenSharedChat
 import com.garfiec.librechat.core.ui.components.share.ShareLinkSheet
+import com.garfiec.librechat.core.ui.platform.rememberClipboardWriter
 import com.garfiec.librechat.core.ui.resources.share_sheet_title
-import com.garfiec.librechat.feature.chat.util.rememberClipboardWriter
 import org.jetbrains.compose.resources.stringResource
 import com.garfiec.librechat.core.ui.resources.Res as CoreRes
 

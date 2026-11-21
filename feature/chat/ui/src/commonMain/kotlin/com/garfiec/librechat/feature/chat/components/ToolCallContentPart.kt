@@ -1,0 +1,548 @@
+package com.garfiec.librechat.feature.chat.components
+
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Block
+import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.StopCircle
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.common.ToolConstants
+import com.garfiec.librechat.core.model.Attachment
+import com.garfiec.librechat.core.model.RunStepStatus
+import com.garfiec.librechat.core.model.background.BackgroundTaskOutput
+import com.garfiec.librechat.core.model.background.CHECK_BACKGROUND_TASK_TOOL
+import com.garfiec.librechat.core.model.content.MessageContentPart
+import com.garfiec.librechat.feature.chat.resources.*
+import com.garfiec.librechat.feature.chat.resources.Res
+import com.garfiec.librechat.feature.chat.util.attachmentsOwnedByHints
+import com.garfiec.librechat.feature.chat.util.omittedTranscriptCalls
+import com.garfiec.librechat.feature.chat.util.outputToolCallIds
+import org.jetbrains.compose.resources.stringResource
+
+// ─── ToolCallDispatcher ─────────────────────────────────────────────
+
+/**
+ * Draws one tool call. Every card below reads the call's tool-call preview state
+ * ([LocalToolPreview]) from here, so a disclosure that reveals its content can fetch it in full.
+ */
+@Composable
+internal fun ToolCallDispatcher(
+    part: MessageContentPart,
+    baseUrl: String,
+    attachments: List<Attachment>,
+    showImageDescriptions: Boolean,
+    modifier: Modifier = Modifier,
+    // Scopes every expand state below this point. A tool call's own id when it has one — the card
+    // then keeps its state across a reorder — falling back to the caller's per-part key.
+    stateKey: String = "",
+    allowSubagentCard: Boolean = true,
+    // True while this call renders inside an activity group, which hoists its tool calls' files out.
+    hideAttachments: Boolean = false,
+) {
+    CompositionLocalProvider(LocalToolPreview provides rememberToolPreviewScope(part.toolCall, part.agentId)) {
+        ToolCallDispatcherContent(
+            part = part,
+            baseUrl = baseUrl,
+            attachments = attachments,
+            showImageDescriptions = showImageDescriptions,
+            modifier = modifier,
+            stateKey = stateKey,
+            allowSubagentCard = allowSubagentCard,
+            hideAttachments = hideAttachments,
+        )
+    }
+}
+
+// A dispatcher: each branch emits one card and returns. Wrapping it to satisfy the rule would
+// add a layout node to every tool call in every message.
+@Suppress("MultipleEmitters")
+@Composable
+private fun ToolCallDispatcherContent(
+    part: MessageContentPart,
+    baseUrl: String,
+    attachments: List<Attachment>,
+    showImageDescriptions: Boolean,
+    stateKey: String,
+    allowSubagentCard: Boolean,
+    hideAttachments: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val toolCall = part.toolCall
+    val cardKey = toolCall?.id?.takeIf { it.isNotEmpty() } ?: stateKey
+    val namedTool = toolCall?.name ?: toolCall?.function?.name
+    // Routing reads the tool's own name; the translated fallback is only ever displayed.
+    val toolNameLower = namedTool.orEmpty().lowercase()
+    val toolName = namedTool ?: stringResource(Res.string.tool_call_fallback)
+    val output = toolCall?.output ?: toolCall?.function?.output
+
+    // Subagent tool_call → collapsible trace card (v0.8.6). Live progress comes
+    // from LocalSubagentProgress (keyed by the parent tool_call id); persisted
+    // `subagentContent` (reload) takes precedence inside the card. Depth-1:
+    // nested parts pass allowSubagentCard=false so this never recurses.
+    //
+    // The card's nested parts are drawn with hideAttachments, so the whole subtree's files — the
+    // subagent's own and its nested calls' — hoist out to here instead. Both ends move together;
+    // see [outputToolCallIds].
+    if (allowSubagentCard && toolNameLower == ToolConstants.SUBAGENT) {
+        val toolCallId = toolCall?.id
+        val liveTrace = toolCallId?.let { LocalSubagentProgress.current[it] }
+        val tracedParts = subagentTraceParts(toolCall?.subagentContent, liveTrace)
+        Column(modifier = modifier) {
+            SubagentTraceCard(
+                persistedParts = toolCall?.subagentContent,
+                liveTrace = liveTrace,
+                modifier = Modifier.fillMaxWidth(),
+                baseUrl = baseUrl,
+                attachments = attachments,
+                showImageDescriptions = showImageDescriptions,
+                parentToolCallId = toolCallId,
+                stateKey = cardKey,
+            )
+            if (!hideAttachments) {
+                val owned = remember(attachments, toolCall, tracedParts) {
+                    // With the transcript left out of a preview, the walk finds no child calls: the
+                    // ones the files were saved under ride along in `subagentAttachmentCalls`.
+                    val ownIds = listOfNotNull(toolCallId?.takeIf { it.isNotEmpty() }) + outputToolCallIds(tracedParts)
+                    val hints = omittedTranscriptCalls(toolCall)
+                    SubagentOwnedAttachments(attachmentsOwnedByHints(attachments, hints, ownIds), ownIds + hints.map { it.id })
+                }
+                val hoisted = remember(owned) { collectGroupAttachments(owned.attachments, owned.toolCallIds) }
+                ToolAttachmentBuckets(
+                    buckets = hoisted,
+                    baseUrl = baseUrl,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+                // Apps the subagent's child calls made sit beside its card, as web puts them.
+                LocalChatContentRenderers.current.mcpAppRows?.invoke(owned.attachments, owned.toolCallIds, Modifier.padding(top = 8.dp))
+            }
+        }
+        return
+    }
+
+    // A settled `ask_user_question` call is a Q&A exchange, not a tool run — render the record
+    // rather than the call. Its arguments carry the question and options, its output the answer.
+    if (isAskUserQuestionToolCall(toolNameLower)) {
+        // A batch first: its args carry no top-level `question`, so the single-question parse
+        // returns null for one and the card would render the answers map as the answer text.
+        val batch = remember(toolCall) {
+            parseAskUserQuestionBatch(toolCall?.args)
+                .ifEmpty { parseAskUserQuestionBatch(toolCall?.function?.arguments) }
+        }
+        val failed = toolCall?.inputValidationError == true
+        if (batch.isNotEmpty()) {
+            val answers = remember(output, failed) { askUserAnswersOrEmpty(output, failed) }
+            AskUserQuestionBatchRecordCard(
+                questions = batch,
+                answers = answers,
+                modifier = modifier,
+                failed = failed,
+            )
+            return
+        }
+        val question = remember(toolCall) {
+            parseAskUserQuestion(toolCall?.args) ?: parseAskUserQuestion(toolCall?.function?.arguments)
+        }
+        AskUserQuestionRecordCard(
+            question = question,
+            answer = output.orEmpty(),
+            modifier = modifier,
+            failed = failed,
+        )
+        return
+    }
+
+    val intent = remember(toolCall) {
+        parseToolIntent(toolCall?.args) ?: parseToolIntent(toolCall?.function?.arguments)
+    }
+    val displayName = intent ?: toolName
+    // Once it is the card's title, leaving it in the expanded argument dump prints it twice.
+    val displayArgs = remember(toolCall, intent) {
+        if (intent == null) toolCall?.function?.arguments else argsWithoutIntent(toolCall?.function?.arguments)
+    }
+
+    val isImageGen = isImageGenToolCall(toolNameLower)
+    // Exact, case-sensitive name, as upstream routes these.
+    val fileToolKind = FileToolKind.of(namedTool)
+
+    // The card, then (for every non-image-gen tool) the files this tool call generated. Web passes
+    // each tool call's attachments to every tool component; ToolCallAttachments skips the non-file
+    // pseudo-types. Image-gen already consumes its attachment as the generated image.
+    Column(modifier = modifier) {
+        val cardModifier = Modifier.fillMaxWidth()
+        when {
+            // Exact name, as upstream routes it: `contains` would claim an MCP tool named
+            // "find_skill". Ahead of the `contains` branches below for the same reason.
+            isSkillToolCall(namedTool) -> {
+                val skillName = remember(toolCall) {
+                    parseSkillName(toolCall?.args) ?: parseSkillName(toolCall?.function?.arguments)
+                }
+                SkillCallCard(
+                    skillName = skillName,
+                    verdict = toolCallVerdict(toolCall?.effectiveRunStepStatus, isComplete = true),
+                    intent = intent,
+                    durationMs = toolCall?.runStepDurationMs,
+                    output = output,
+                    stateKey = cardKey,
+                    modifier = cardModifier,
+                )
+            }
+            toolNameLower.startsWith(ToolConstants.LC_TRANSFER_TO_PREFIX) -> {
+                // Never the id: an agent not in the list reads as "Agent", as on web.
+                val target = handoffTargetName(toolName, LocalAgentNames.current)
+                    ?: stringResource(Res.string.chat_agent_fallback_label)
+                AgentHandoffCard(
+                    handoff = AgentHandoff(fromAgent = null, toAgent = target, reason = null),
+                    modifier = cardModifier,
+                )
+            }
+            fileToolKind != null -> {
+                val view = remember(toolCall, fileToolKind, intent) {
+                    fileToolView(fileToolKind, toolCall?.argsText(), output, intent)
+                }
+                FileToolCallCard(
+                    view = view,
+                    verdict = toolCallVerdict(toolCall?.effectiveRunStepStatus, isComplete = true),
+                    outputFailed = isToolErrorOutput(output),
+                    durationMs = toolCall?.runStepDurationMs,
+                    stateKey = cardKey,
+                    modifier = cardModifier,
+                )
+            }
+            isWebSearchToolCall(toolNameLower) -> {
+                // The real sources arrive as `web_search` attachments (organic + topStories),
+                // not in the tool-call output — prefer them, falling back to output parsing.
+                val searchData = remember(attachments, toolCall?.id) { webSearchData(attachments, toolCall?.id) }
+                val results = remember(attachments, toolCall?.id, output) {
+                    collectWebSearchSources(attachments, toolCall?.id)
+                        .ifEmpty { parseWebSearchResults(output) }
+                }
+                val closedStatus = toolCall?.effectiveRunStepStatus
+                val outcome = searchOutcome(
+                    toolCallVerdict(closedStatus, isComplete = true),
+                    output,
+                    finished = closedStatus != null || !output.isNullOrBlank() || results.isNotEmpty(),
+                )
+                val searchCard = claimsWebSearchCard(toolNameLower, hasSources = results.isNotEmpty())
+                when {
+                    !searchCard || outcome == SearchOutcome.FAILED ->
+                        GenericToolCallCard(displayName, displayArgs, output, cardModifier, cardKey, toolCall?.effectiveRunStepStatus)
+                    outcome == SearchOutcome.HIDDEN -> Unit
+                    else -> {
+                        val query = remember(toolCall) {
+                            parseSearchQuery(toolCall?.args) ?: parseSearchQuery(toolCall?.function?.arguments)
+                        }
+                        WebSearchCard(
+                            sources = results,
+                            phase = WebSearchPhase.COMPLETE,
+                            modifier = cardModifier,
+                            turn = webSearchTurn(searchData),
+                            intent = intent,
+                            query = query,
+                            answerBox = remember(searchData) { webSearchAnswerBox(searchData) },
+                            // Inside a group the image, shopping and place results sit below the group.
+                            verticals = if (hideAttachments) {
+                                SearchVerticals.Empty
+                            } else {
+                                remember(searchData) { collectSearchVerticals(searchData) }
+                            },
+                            stateKey = cardKey,
+                            inGroup = hideAttachments,
+                        )
+                    }
+                }
+            }
+            isFileSearchToolCall(toolNameLower) -> {
+                // Same split as web search: the citations live in the `file_search` attachment,
+                // while the tool output is only a flat digest of them.
+                val citations = remember(attachments, toolCall?.id, output) {
+                    fileSearchResults(attachments, toolCall?.id, output)
+                }
+                val verdict = toolCallVerdict(toolCall?.effectiveRunStepStatus, isComplete = true)
+                // A settled search with nothing to list keeps the generic card, so its output stays readable.
+                val nothingToList = citations.isEmpty() && verdict == ToolCallVerdict.COMPLETED
+                if (nothingToList || searchOutcome(verdict, output) == SearchOutcome.FAILED) {
+                    GenericToolCallCard(displayName, displayArgs, output, cardModifier, cardKey, toolCall?.effectiveRunStepStatus)
+                } else {
+                    val fileActions = rememberToolFileActions(baseUrl)
+                    FileSearchSourcesCard(
+                        citations = citations,
+                        modifier = cardModifier,
+                        stateKey = cardKey,
+                        verdict = verdict,
+                        intent = intent,
+                        durationMs = toolCall?.runStepDurationMs,
+                        onOpen = { citation -> citation.asAttachment()?.let(fileActions::openToolFile) },
+                    )
+                }
+            }
+            isCodeExecutionToolCall(toolNameLower) -> {
+                val result = remember(toolCall) { parseCodeExecution(toolCall) }
+                if (result != null) {
+                    CodeExecutionCard(
+                        result = result,
+                        // A saved part is settled: there is no running phase to restore.
+                        phase = codeExecutionPhase(
+                            toolCallVerdict(toolCall?.effectiveRunStepStatus, isComplete = true),
+                            sandboxStarting = false,
+                            result = result,
+                        ),
+                        // A backgrounded call's step closed at dispatch, so its duration is not the task's.
+                        durationMs = toolCall?.runStepDurationMs?.takeIf { toolCall.backgrounded != true },
+                        stateKey = cardKey,
+                        modifier = cardModifier,
+                        toolCallId = toolCall?.id,
+                    )
+                } else {
+                    GenericToolCallCard(displayName, displayArgs, output, cardModifier, cardKey, toolCall?.effectiveRunStepStatus)
+                }
+            }
+            isMemoryToolCall(namedTool) -> {
+                // The `memory` attachment carries the key and the remembered value; the tool's own
+                // output is only a sentence about them, which is all a server without the payload
+                // gives us. A refusal in that sentence, or an error artifact, draws an error card.
+                val artifacts = remember(namedTool, attachments, toolCall?.id, output) {
+                    memoryToolArtifacts(namedTool, output, attachments, toolCall?.id)
+                }
+                if (artifacts.isNotEmpty()) {
+                    // Spaced as the live cards are, so nothing moves when the reply is saved.
+                    val onManage = LocalOpenMemories.current
+                    Column(modifier = cardModifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        artifacts.forEachIndexed { index, artifact ->
+                            MemoryArtifactCard(
+                                artifact = artifact,
+                                onManage = onManage,
+                                stateKey = memoryCardStateKey(toolCall?.id, index),
+                            )
+                        }
+                    }
+                } else {
+                    GenericToolCallCard(displayName, displayArgs, output, cardModifier, cardKey, toolCall?.effectiveRunStepStatus)
+                }
+            }
+            toolNameLower.contains("mcp") -> {
+                val resources = remember(output) { parseMcpResources(output) }
+                if (resources.isNotEmpty()) {
+                    McpResourceCarousel(resources = resources, modifier = cardModifier)
+                } else {
+                    GenericToolCallCard(displayName, displayArgs, output, cardModifier, cardKey, toolCall?.effectiveRunStepStatus)
+                }
+            }
+            isImageGen -> {
+                val imageResult = remember(toolCall, baseUrl, attachments) {
+                    parseImageGenResult(toolCall, baseUrl, attachments)
+                }
+                ImageGenCard(
+                    result = imageResult,
+                    showDescription = showImageDescriptions,
+                    hideImages = hideAttachments,
+                    modifier = cardModifier,
+                )
+            }
+            toolNameLower == CHECK_BACKGROUND_TASK_TOOL -> {
+                val display = remember(output) { BackgroundTaskOutput.parse(output) }
+                if (display != null) {
+                    BackgroundTaskCallCard(
+                        display = display,
+                        output = output.orEmpty(),
+                        intent = intent,
+                        closedStatus = toolCall?.effectiveRunStepStatus,
+                        modifier = cardModifier,
+                        stateKey = cardKey,
+                    )
+                } else {
+                    GenericToolCallCard(displayName, displayArgs, output, cardModifier, cardKey, toolCall?.effectiveRunStepStatus)
+                }
+            }
+            toolNameLower.contains("log") -> {
+                val logContent = remember(toolCall) { parseLogContent(toolCall) }
+                LogContentCard(log = logContent, modifier = cardModifier)
+            }
+            else -> {
+                GenericToolCallCard(displayName, displayArgs, output, cardModifier, cardKey, toolCall?.effectiveRunStepStatus)
+            }
+        }
+
+        if (!isImageGen && !hideAttachments) {
+            ToolCallAttachments(
+                attachments = attachments,
+                toolCallId = toolCall?.id,
+                baseUrl = baseUrl,
+                modifier = Modifier.padding(top = 8.dp),
+            )
+        }
+        // MCP Apps sit after the card; inside a group they hoist with its files (MessageContentAndActions).
+        if (!hideAttachments) {
+            LocalChatContentRenderers.current.mcpAppRows?.invoke(attachments, listOfNotNull(toolCall?.id), Modifier.padding(top = 8.dp))
+        }
+    }
+}
+
+// ─── GenericToolCallCard ────────────────────────────────────────────
+
+@Composable
+internal fun GenericToolCallCard(
+    toolName: String,
+    args: String?,
+    output: String?,
+    modifier: Modifier = Modifier,
+    stateKey: String = "",
+    /**
+     * The run's own terminal verdict, stamped onto the persisted part by `on_run_step_closed`
+     * (v0.8.8-rc2). Only the two failure states are drawn: a reloaded tool call has never carried
+     * a success badge, and inventing one here would relabel every call in every old conversation.
+     */
+    closedStatus: RunStepStatus? = null,
+) {
+    // Saveable: this card is inside a LazyColumn item, so plain `remember` state is disposed when
+    // the message scrolls out of the viewport and an expanded call silently re-collapses.
+    var isExpanded by rememberSaveable(key = "toolcall:$stateKey") { mutableStateOf(false) }
+    val interrupted = isInterruptedToolOutput(output)
+
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+        shape = RoundedCornerShape(8.dp),
+    ) {
+        Column {
+            val toolCallCd =
+                stringResource(if (isExpanded) Res.string.cd_collapse_tool_call else Res.string.cd_expand_tool_call, toolName)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { isExpanded = !isExpanded }
+                    .padding(12.dp)
+                    .semantics {
+                        role = Role.Button
+                        contentDescription = toolCallCd
+                    },
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    Icons.Default.Build,
+                    stringResource(Res.string.cd_tool_call),
+                    Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    toolName,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f),
+                )
+                when (if (interrupted) null else toolCallVerdict(closedStatus, isComplete = true)) {
+                    null -> InterruptedToolStatus()
+
+                    ToolCallVerdict.CANCELLED -> Icon(
+                        Icons.Default.Block,
+                        stringResource(Res.string.cd_tool_cancelled),
+                        Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+
+                    ToolCallVerdict.FAILED -> Icon(
+                        Icons.Default.ErrorOutline,
+                        stringResource(Res.string.cd_tool_failed),
+                        Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.error,
+                    )
+
+                    ToolCallVerdict.COMPLETED, ToolCallVerdict.RUNNING -> Unit
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Icon(
+                    if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    stringResource(if (isExpanded) Res.string.cd_collapse else Res.string.cd_expand),
+                    Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            AnimatedVisibility(visible = isExpanded, enter = expandVertically(), exit = shrinkVertically()) {
+                Column(modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp)) {
+                    // At the top of the body, so it shows even when the output runs past the screen.
+                    ToolContentDisclosure(open = isExpanded)
+                    if (!args.isNullOrBlank()) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            stringResource(Res.string.label_input),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        CodeBlock(code = args, language = "json", wrap = true)
+                    }
+                    if (!output.isNullOrBlank()) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            stringResource(Res.string.label_output),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        // The server's own sentence, without the model-facing error wrapper.
+                        CodeBlock(code = if (interrupted) INTERRUPTED_TOOL_RESULT else output, language = null, wrap = true)
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * "Interrupted by your message", with a neutral stop glyph: a tool the user's interrupt cancelled.
+ * Deliberately not the red failed style — the tool isn't broken, the user redirected the reply.
+ */
+@Composable
+internal fun InterruptedToolStatus(modifier: Modifier = Modifier) {
+    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            Icons.Default.StopCircle,
+            contentDescription = null,
+            modifier = Modifier.size(16.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(
+            stringResource(Res.string.tool_interrupted_by_you),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+/** What a subagent card owns: its files and Apps, and the tool calls (its own and its children's) they came from. */
+private class SubagentOwnedAttachments(val attachments: List<Attachment>, val toolCallIds: List<String>)

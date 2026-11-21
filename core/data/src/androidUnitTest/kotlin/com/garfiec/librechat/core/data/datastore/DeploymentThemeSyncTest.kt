@@ -7,6 +7,7 @@ import com.garfiec.librechat.core.model.config.InterfaceConfig
 import com.garfiec.librechat.core.model.config.StartupConfig
 import com.garfiec.librechat.core.model.config.theme.ServerThemeRead
 import com.garfiec.librechat.core.model.config.theme.readServerTheme
+import com.garfiec.librechat.core.model.preferences.ServerTheme
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
 import io.mockk.coVerify

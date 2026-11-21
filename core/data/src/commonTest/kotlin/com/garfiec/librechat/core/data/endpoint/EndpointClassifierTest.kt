@@ -1,6 +1,7 @@
 package com.garfiec.librechat.core.data.endpoint
 
 import com.garfiec.librechat.core.model.EndpointConfig
+import com.garfiec.librechat.core.model.endpoint.EndpointClassifier
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull

@@ -14,7 +14,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.datastore.ThemeDataStore
-import com.garfiec.librechat.core.data.datastore.ThemeMode
+import com.garfiec.librechat.core.model.preferences.DEFAULT_LANGUAGE
+import com.garfiec.librechat.core.model.preferences.ThemeMode
 import com.garfiec.librechat.core.ui.theme.LibreChatTheme
 import org.koin.compose.koinInject
 
@@ -54,7 +55,7 @@ internal fun SwitchboardTheme(window: Window, content: @Composable (appLocaleTag
     // And on the date/time warm-up, so a non-default format is in place for the first timestamp.
     val dateTimeReady by dateTimePrefsStore.isReady.collectAsStateWithLifecycle()
     // The DEFAULT_LANGUAGE sentinel ("system") maps to no override → keep the device locale.
-    val appLocale = selectedLanguage.takeIf { it != SettingsDataStore.DEFAULT_LANGUAGE }
+    val appLocale = selectedLanguage.takeIf { it != DEFAULT_LANGUAGE }
     val darkTheme = when (themeMode) {
         ThemeMode.LIGHT -> false
         ThemeMode.DARK -> true

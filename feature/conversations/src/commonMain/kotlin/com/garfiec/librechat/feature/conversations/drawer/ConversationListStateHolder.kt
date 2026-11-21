@@ -6,9 +6,9 @@ import com.garfiec.librechat.core.common.extensions.RelativeTimeReference
 import com.garfiec.librechat.core.common.extensions.dayBoundaryReferences
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.ConversationRepository
-import com.garfiec.librechat.core.data.search.TitleMatch
 import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.ConversationListFilters
+import com.garfiec.librechat.core.model.search.TitleMatch
 import com.garfiec.librechat.feature.conversations.viewmodel.groupedByDateBucket
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.FlowPreview
@@ -413,6 +413,3 @@ class ConversationListStateHolder(
      */
     private fun List<Conversation>.withoutPinned(): List<Conversation> = filterNot { it.pinned == true }
 }
-
-/** The unfiltered drawer list's first page: not answered yet, answered, or failed. */
-enum class ListLoad { PENDING, LOADED, FAILED }

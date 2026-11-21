@@ -100,18 +100,20 @@ internal fun ChatScreenEffects(
     }
 
     UserKeyErrorSnackbarEffect(
-        viewModel = viewModel,
+        userKeyErrors = viewModel.userKeyErrors,
+        endpointConfigs = { viewModel.uiState.value.selection.endpointConfigs },
         snackbarHostState = snackbarHostState,
         onNavigateToProviderKeys = onNavigateToProviderKeys,
     )
 
     QueuedMessageDroppedSnackbarEffect(
-        viewModel = viewModel,
+        queuedMessagesDropped = viewModel.queuedMessagesDropped,
         snackbarHostState = snackbarHostState,
     )
 
     SteerQueuedSnackbarEffect(
-        viewModel = viewModel,
+        steersQueuedAsFollowUp = viewModel.steersQueuedAsFollowUp,
+        steerNotices = viewModel.steerNotices,
         snackbarHostState = snackbarHostState,
     )
 

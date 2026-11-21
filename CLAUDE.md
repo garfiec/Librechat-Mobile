@@ -16,7 +16,7 @@ Native mobile client for LibreChat (Android & iOS). Connects to existing LibreCh
 ```
 app/                  → Single Activity, adaptive navigation (phone/tablet)
 shared/               → KMP shared framework (iOS entry point, shared navigation)
-build-logic/          → 13 convention plugins for consistent Gradle config
+build-logic/          → 15 convention plugins for consistent Gradle config
 core/common/          → Result type, dispatcher DI, coroutine scopes, extensions
 core/model/           → @Serializable data classes (pure Kotlin, no Android deps)
 core/network/         → Ktor client, 16 API services, SSE client, auth interceptor
@@ -25,10 +25,13 @@ core/ui/              → Material 3 theme, shared composables
 core/notifications/   → Reply and scheduled-chat notifications (system + in-app), permission, background watchers
 feature/auth/         → Server URL, Login, Register, 2FA, OAuth, Forgot Password
 feature/chat/         → Real-time chat with SSE streaming, message rendering
-feature/conversations/→ Paginated list, CRUD, tags, search, export/import
+feature/conversations/→ Paginated list, CRUD, tags, search, export/import, drawer, account switcher
 feature/settings/     → Account, appearance, about, danger zone
 feature/agents/       → Agent marketplace with search and categories
 feature/files/        → File upload, management, image viewer
+feature/schedules/    → Scheduled chats
+feature/skills/       → Skills list, detail, editor
+feature/<x>/ui/       → Each feature's stateless UI, strings and previews; also builds for the browser
 testing/speech-fixture/ → Stand-in speech provider APK for scripts/verify-speech-services.py (never ships)
 ```
 
@@ -50,7 +53,8 @@ Each module has its own `CLAUDE.md` with specific guidance.
 
 ## Architecture Rules
 
-- Feature modules depend on `:core:*` only, never on each other
+- Feature modules depend on `:core:*` only, never on each other; the exceptions are a feature's own
+  `:feature:<x>:ui` and a `ui` module's use of other `*:ui` modules (see "Feature UI modules")
 - Single Activity with Nav 3 (`NavDisplay` + `NavBackStack<NavKey>` + `entryProvider`)
 - Unidirectional data flow: UI → ViewModel → Repository → API/Room
 - Room is a read-through cache; server is source of truth
@@ -69,6 +73,35 @@ Each module has its own `CLAUDE.md` with specific guidance.
   at launch by design.
   See `docs/RELEASING.md` "Distribution channels".
 
+## Feature UI modules (`feature/<x>/ui`)
+
+Every feature with UI is two modules. `:feature:<x>:ui` (`librechat.kmp.feature.ui`) holds the stateless
+composables, the view state the ViewModels emit, pure UI helpers, previews (`androidMain`) and the
+feature's strings and other compose resources. `:feature:<x>` keeps ViewModels, DI, navigation,
+repository glue, platform code and each screen's stateful entry point, and depends on its `ui` with
+`api`.
+
+- A `ui` module depends only on `:core:ui`, `:core:model`, `:core:common`, other `*:ui` modules and
+  libraries with a wasmJs build. The convention plugin fails configuration on anything else
+  (`:core:data`, `:core:network`, Koin, ViewModel, Navigation 3, a Ktor client, Room, DataStore). CI
+  compiles every `ui` module for the browser (`./gradlew -Plibrechat.web=true compileUiWasm`); run it
+  before a PR that touches one.
+- A screen is a stateful `<Name>Screen` in the feature (collects ViewModel state, maps it to view data
+  at the top, owns snackbars, effects, pickers) and a stateless `<Name>Content` in `ui`
+  (`<Name>ScreenContent` where that name is taken) that takes state and callbacks or an `…Actions`
+  class. Anything that needs a ViewModel, Koin or a platform API reaches the Content as a composable
+  slot parameter or a CompositionLocal declared in `ui`, with a fallback that draws the simplest thing
+  (the source, nothing, a link). An `expect` in `ui`, `:core:ui`, `:core:common` or `:core:model` needs
+  a `wasmJsMain` actual (all four compile for the browser).
+- Both modules use the feature's packages. A file must not have the same name and package in both (they
+  compile to one JVM class and the dex merge fails); give the stateful half another file name.
+- A Content reads a state parameter that a `remember`/`derivedStateOf` or long-lived effect lambda
+  captures through `rememberUpdatedState`; the raw parameter would freeze on its first value.
+- `Res` is generated in `ui`, public, in the feature's `…feature.<x>.resources` package; the feature
+  generates none (the convention turns it off when it has no `composeResources`). A feature that must
+  keep resources of its own (`:feature:chat`'s vendored `files/web`) sets another `packageOfResClass`. A
+  pure type the UI needs from `:core:data` or `:core:network` moves to `:core:model`.
+
 ## Adding a New Feature Module
 
 1. Create the module directory under `feature/`
@@ -78,6 +111,8 @@ Each module has its own `CLAUDE.md` with specific guidance.
 3. Create `di/<Feature>Module.kt` with a Koin `module { }` containing `viewModelOf(::YourViewModel)` definitions
 4. Add the module to `sharedKoinModules` (`shared/src/commonMain/.../di/SharedKoinModules.kt`) — the single list both Android (`LibreChatApplication`) and iOS (`IosSharedModule`) start from, so a module registered once is wired on both platforms
 5. Use `koinViewModel()` in screen composables to inject ViewModels
+6. Put its stateless UI in `feature/<x>/ui` (see "Feature UI modules"), add it to `settings.gradle.kts`
+   and to `EXPECTED_MODULES` in `scripts/i18n-coverage.py`
 
 ## Backend Quirks
 

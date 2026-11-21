@@ -16,6 +16,7 @@ import com.garfiec.librechat.core.data.repository.AgentRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.data.repository.MessageRepository
+import com.garfiec.librechat.core.model.prefetch.PrefetchDepth
 import com.garfiec.librechat.core.network.client.ServerUrlProvider
 import io.mockk.coEvery
 import io.mockk.coVerify

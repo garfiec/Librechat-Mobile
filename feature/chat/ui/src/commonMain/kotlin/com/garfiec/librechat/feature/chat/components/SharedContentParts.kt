@@ -1,0 +1,162 @@
+package com.garfiec.librechat.feature.chat.components
+
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.text.selection.DisableSelection
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Videocam
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.model.Attachment
+import com.garfiec.librechat.core.model.ContentType
+import com.garfiec.librechat.core.model.content.Compaction
+import com.garfiec.librechat.core.model.content.MessageContentPart
+import com.garfiec.librechat.core.model.media.resolveImageFilePartUrl
+import com.garfiec.librechat.feature.chat.resources.*
+import com.garfiec.librechat.feature.chat.resources.Res
+import org.jetbrains.compose.resources.stringResource
+
+// ─── ContentPartDispatcher ──────────────────────────────────────────
+
+/**
+ * Shared content part dispatch logic used by both Android and iOS
+ * [ContentPartRenderer] implementations. Platform-specific renderers
+ * delegate here for all content types.
+ */
+@Composable
+fun ContentPartDispatcher(
+    part: MessageContentPart,
+    modifier: Modifier = Modifier,
+    baseUrl: String = "",
+    fontSizeMultiplier: Float = 1.0f,
+    useKatex: Boolean = false,
+    attachments: List<Attachment> = emptyList(),
+    showImageDescriptions: Boolean = true,
+    searchQuery: String? = null,
+    searchFocusedOccurrence: Int = -1,
+    onFocusedOccurrencePosition: ((LayoutCoordinates, Rect) -> Unit)? = null,
+    // Registry key for collapse state owned below this point; see [ContentPartRenderer].
+    stateKey: String = "",
+    // When false, a `subagent` tool_call renders flat instead of as a trace card.
+    // Set false while rendering a subagent's own nested parts (depth-1 guard).
+    allowSubagentCard: Boolean = true,
+    // True while rendering inside an activity group, which hoists its tool calls' files out.
+    hideAttachments: Boolean = false,
+) {
+    val mod = modifier.fillMaxWidth()
+    when (part.type) {
+        ContentType.TEXT, ContentType.TEXT_DELTA -> {
+            TextContentPart(
+                text = part.text.orEmpty(),
+                modifier = mod,
+                fontSizeMultiplier = fontSizeMultiplier,
+                useKatex = useKatex,
+                searchQuery = searchQuery,
+                searchFocusedOccurrence = searchFocusedOccurrence,
+                onFocusedOccurrencePosition = onFocusedOccurrencePosition,
+            )
+        }
+        ContentType.THINK -> {
+            ThinkingContentPart(
+                thinkingText = part.think.orEmpty(),
+                modifier = mod,
+                fontSizeMultiplier = fontSizeMultiplier,
+                useKatex = useKatex,
+                searchQuery = searchQuery,
+                searchFocusedOccurrence = searchFocusedOccurrence,
+                onFocusedOccurrencePosition = onFocusedOccurrencePosition,
+                stateKey = stateKey,
+            )
+        }
+        // Card and media parts are chrome: "Select all" copies the message's text, not
+        // card labels and JSON dumps.
+        ContentType.TOOL_CALL -> DisableSelection {
+            ToolCallDispatcher(
+                part = part,
+                modifier = mod,
+                baseUrl = baseUrl,
+                attachments = attachments,
+                showImageDescriptions = showImageDescriptions,
+                stateKey = stateKey,
+                allowSubagentCard = allowSubagentCard,
+                hideAttachments = hideAttachments,
+            )
+        }
+        ContentType.IMAGE_FILE -> DisableSelection {
+            val imageUrl = resolveImageFilePartUrl(part, baseUrl)
+            ImageContentPart(imageUrl = imageUrl, modifier = mod)
+        }
+        ContentType.IMAGE_URL -> DisableSelection {
+            ImageContentPart(imageUrl = part.imageUrl?.url, modifier = mod)
+        }
+        ContentType.VIDEO_URL -> DisableSelection {
+            val videoUrl = part.videoUrl?.url
+            if (videoUrl != null) {
+                ChatVideo(url = videoUrl, modifier = mod)
+            } else {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = mod) {
+                    Icon(
+                        Icons.Filled.Videocam,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        stringResource(Res.string.video_not_supported),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+        ContentType.INPUT_AUDIO -> DisableSelection {
+            LocalChatContentRenderers.current.audio?.invoke(part.inputAudio?.data, part.inputAudio?.format, mod)
+        }
+        // Error text stays selectable: copying an error verbatim is how it gets reported.
+        ContentType.ERROR -> {
+            // Classified through the same entry point the stream-end path uses. An in-band error
+            // part is often the ONLY record of the failure — an rc1 model-not-found persists the
+            // message with `error: false` and no text — so rendering it raw put provider JSON and
+            // a LangChain troubleshooting URL in the thread where the actionable sentence goes.
+            // Anything unrecognized still shows the server's own text, unchanged.
+            val raw = part.error ?: part.text.orEmpty()
+            StreamErrorPart(raw = raw, modifier = mod)
+        }
+        ContentType.AGENT_UPDATE -> DisableSelection {
+            val agentUpdate = part.agentUpdate
+            AgentHandoffCard(
+                handoff = AgentHandoff(
+                    fromAgent = agentUpdate?.agentId,
+                    toAgent = part.agentId?.let { stringResource(Res.string.agent_handoff_to, it) },
+                    reason = agentUpdate?.runId?.let { stringResource(Res.string.agent_handoff_run, it) },
+                ),
+                modifier = mod,
+            )
+        }
+        ContentType.SUMMARY -> {
+            SummaryContentPart(
+                summaryText = Compaction.summaryText(part),
+                modifier = mod,
+                fontSizeMultiplier = fontSizeMultiplier,
+                useKatex = useKatex,
+                stateKey = stateKey,
+            )
+        }
+        else -> {
+            if (!part.text.isNullOrEmpty()) {
+                MarkdownContent(part.text.orEmpty(), mod, fontSizeMultiplier, useKatex)
+            }
+        }
+    }
+}

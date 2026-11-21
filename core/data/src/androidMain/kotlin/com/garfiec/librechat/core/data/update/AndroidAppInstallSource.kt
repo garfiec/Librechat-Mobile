@@ -3,6 +3,7 @@ package com.garfiec.librechat.core.data.update
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import com.garfiec.librechat.core.model.update.InstallChannel
 
 /**
  * Reads the installer package Android recorded for this app.

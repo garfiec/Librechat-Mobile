@@ -4,7 +4,6 @@ import com.garfiec.librechat.core.common.EndpointConstants
 import com.garfiec.librechat.core.common.ToolConstants
 import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
-import com.garfiec.librechat.core.data.endpoint.EndpointDispatch
 import com.garfiec.librechat.core.data.repository.DraftRepository
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.Preset
@@ -14,6 +13,7 @@ import com.garfiec.librechat.core.model.code.CodeWorkspaceSelection
 import com.garfiec.librechat.core.model.code.CodeWorkspaceSubmission
 import com.garfiec.librechat.core.model.config.ModelSpec
 import com.garfiec.librechat.core.model.config.ModelSpecs
+import com.garfiec.librechat.core.model.endpoint.EndpointDispatch
 import com.garfiec.librechat.feature.chat.components.AttachedFile
 import com.garfiec.librechat.feature.chat.viewmodel.ChatRequestBuilder
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle

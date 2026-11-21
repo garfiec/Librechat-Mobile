@@ -1,6 +1,7 @@
 plugins {
     id("librechat.kmp.library")
     id("librechat.kotlin.serialization")
+    id("librechat.kmp.web")
 }
 
 android {

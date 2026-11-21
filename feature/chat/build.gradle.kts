@@ -11,12 +11,19 @@ android {
     }
 }
 
+// The vendored web assets (files/web) are the only resources here; strings live in :feature:chat:ui,
+// whose Res owns the feature's resources package.
+compose.resources {
+    packageOfResClass = "com.garfiec.librechat.feature.chat.web.resources"
+}
+
 // One JVM runs the whole suite and MockK's inline mocks stay reachable across classes: 512 MB OOMs.
 tasks.withType<Test>().configureEach { maxHeapSize = "2g" }
 
 kotlin {
     sourceSets {
         commonMain.dependencies {
+            api(project(":feature:chat:ui"))
             implementation(project(":core:network"))
             implementation(project(":core:logging"))
             implementation(project(":core:notifications"))

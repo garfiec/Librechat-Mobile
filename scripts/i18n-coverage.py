@@ -101,14 +101,14 @@ if EXIT_HARD_FAILURE & FINDING_MASK:  # pragma: no cover — structural invarian
 
 EXPECTED_MODULES = (
     "core/ui",
-    "feature/agents",
-    "feature/auth",
-    "feature/chat",
-    "feature/conversations",
-    "feature/files",
-    "feature/schedules",
-    "feature/settings",
-    "feature/skills",
+    "feature/agents/ui",
+    "feature/auth/ui",
+    "feature/chat/ui",
+    "feature/conversations/ui",
+    "feature/files/ui",
+    "feature/schedules/ui",
+    "feature/settings/ui",
+    "feature/skills/ui",
     "shared",
 )
 
@@ -353,11 +353,12 @@ class Module:
 
 
 def discover_modules(root: Path) -> list[Module]:
-    """Discover string-resource modules by globbing, at both 1- and 2-segment depths."""
+    """Discover string-resource modules by globbing, at 1- to 3-segment depths."""
     bases: list[Path] = []
     for pattern in (
         "*/src/commonMain/composeResources/values/strings.xml",
         "*/*/src/commonMain/composeResources/values/strings.xml",
+        "*/*/*/src/commonMain/composeResources/values/strings.xml",
     ):
         bases.extend(sorted(root.glob(pattern)))
 

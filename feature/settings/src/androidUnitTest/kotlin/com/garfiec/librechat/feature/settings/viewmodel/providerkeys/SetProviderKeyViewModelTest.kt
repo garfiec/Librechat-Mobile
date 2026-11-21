@@ -14,6 +14,7 @@ import com.garfiec.librechat.feature.settings.state.providerkeys.ProviderKeyForm
 import com.garfiec.librechat.feature.settings.state.providerkeys.ProviderKeyFormState
 import com.garfiec.librechat.feature.settings.state.providerkeys.ServiceKeyValidation
 import com.garfiec.librechat.feature.settings.state.providerkeys.SetProviderKeyEffect
+import com.garfiec.librechat.feature.settings.state.providerkeys.resolveFormKind
 import com.garfiec.librechat.feature.settings.state.providerkeys.validateGoogleServiceKey
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
@@ -372,34 +373,34 @@ class SetProviderKeyViewModelTest {
     @Test
     fun resolveFormKind_routes_each_variant() {
         assertThat(
-            SetProviderKeyViewModel.resolveFormKind("openAI", EndpointConfig(name = "openAI")),
+            resolveFormKind("openAI", EndpointConfig(name = "openAI")),
         ).isEqualTo(ProviderKeyFormKind.OPENAI)
         assertThat(
-            SetProviderKeyViewModel.resolveFormKind(
+            resolveFormKind(
                 "azureOpenAI",
                 EndpointConfig(name = "azureOpenAI"),
             ),
         ).isEqualTo(ProviderKeyFormKind.AZURE)
         assertThat(
-            SetProviderKeyViewModel.resolveFormKind("google", EndpointConfig(name = "google")),
+            resolveFormKind("google", EndpointConfig(name = "google")),
         ).isEqualTo(ProviderKeyFormKind.GOOGLE)
         assertThat(
-            SetProviderKeyViewModel.resolveFormKind("bedrock", EndpointConfig(name = "bedrock")),
+            resolveFormKind("bedrock", EndpointConfig(name = "bedrock")),
         ).isEqualTo(ProviderKeyFormKind.BEDROCK)
         assertThat(
-            SetProviderKeyViewModel.resolveFormKind(
+            resolveFormKind(
                 "x",
                 EndpointConfig(name = "x", type = "custom"),
             ),
         ).isEqualTo(ProviderKeyFormKind.CUSTOM)
         assertThat(
-            SetProviderKeyViewModel.resolveFormKind(
+            resolveFormKind(
                 "anthropic",
                 EndpointConfig(name = "anthropic"),
             ),
         ).isEqualTo(ProviderKeyFormKind.OTHER)
         assertThat(
-            SetProviderKeyViewModel.resolveFormKind(
+            resolveFormKind(
                 "x",
                 EndpointConfig(name = "x", azure = true),
             ),
@@ -412,13 +413,13 @@ class SetProviderKeyViewModelTest {
         // `isAzure = endpoint === EModelEndpoint.azureOpenAI`, no `azureAssistants`).
         // Result on web: azureAssistants gets the plain OpenAI single-input form.
         assertThat(
-            SetProviderKeyViewModel.resolveFormKind(
+            resolveFormKind(
                 "azureAssistants",
                 EndpointConfig(name = "azureAssistants"),
             ),
         ).isEqualTo(ProviderKeyFormKind.OPENAI)
         assertThat(
-            SetProviderKeyViewModel.resolveFormKind(
+            resolveFormKind(
                 "x",
                 EndpointConfig(name = "x", type = "azureAssistants"),
             ),
@@ -430,7 +431,7 @@ class SetProviderKeyViewModelTest {
         // The `config.azure == true` short-circuit wins regardless of name/type — this is
         // how Azure-backed custom endpoints reach the quad-field form.
         assertThat(
-            SetProviderKeyViewModel.resolveFormKind(
+            resolveFormKind(
                 "azureAssistants",
                 EndpointConfig(name = "azureAssistants", azure = true),
             ),
@@ -463,15 +464,15 @@ class SetProviderKeyViewModelTest {
         // `EndpointConfig.name` (empirically null). Without falling back to the map-key
         // endpointName, built-in endpoints would route to OTHER.
         val config = EndpointConfig(name = null, type = null)
-        assertThat(SetProviderKeyViewModel.resolveFormKind("openAI", config))
+        assertThat(resolveFormKind("openAI", config))
             .isEqualTo(ProviderKeyFormKind.OPENAI)
-        assertThat(SetProviderKeyViewModel.resolveFormKind("google", config))
+        assertThat(resolveFormKind("google", config))
             .isEqualTo(ProviderKeyFormKind.GOOGLE)
-        assertThat(SetProviderKeyViewModel.resolveFormKind("custom", config))
+        assertThat(resolveFormKind("custom", config))
             .isEqualTo(ProviderKeyFormKind.CUSTOM)
-        assertThat(SetProviderKeyViewModel.resolveFormKind("bedrock", config))
+        assertThat(resolveFormKind("bedrock", config))
             .isEqualTo(ProviderKeyFormKind.BEDROCK)
-        assertThat(SetProviderKeyViewModel.resolveFormKind("unknownProvider", config))
+        assertThat(resolveFormKind("unknownProvider", config))
             .isEqualTo(ProviderKeyFormKind.OTHER)
     }
 

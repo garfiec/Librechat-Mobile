@@ -9,13 +9,7 @@ import com.garfiec.librechat.core.common.identity.AccountState
 import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.common.identity.InMemoryActiveAccountProvider
 import com.garfiec.librechat.core.common.result.Result
-import com.garfiec.librechat.core.data.datastore.ChatFontSize
-import com.garfiec.librechat.core.data.datastore.ChatHeaderAlignment
-import com.garfiec.librechat.core.data.datastore.ChatHeaderContent
-import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
-import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.data.datastore.LastUsedSelection
-import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
 import com.garfiec.librechat.core.data.repository.CodeDecisionMove
 import com.garfiec.librechat.core.data.repository.CodeEnvironmentRepository
 import com.garfiec.librechat.core.data.repository.SavedCodeDecision
@@ -35,6 +29,12 @@ import com.garfiec.librechat.core.model.code.StatefulCodeSessionsConfig
 import com.garfiec.librechat.core.model.config.ModelSpec
 import com.garfiec.librechat.core.model.config.ModelSpecs
 import com.garfiec.librechat.core.model.config.StartupConfig
+import com.garfiec.librechat.core.model.preferences.ChatFontSize
+import com.garfiec.librechat.core.model.preferences.ChatHeaderAlignment
+import com.garfiec.librechat.core.model.preferences.ChatHeaderContent
+import com.garfiec.librechat.core.model.preferences.ContextBarPlacement
+import com.garfiec.librechat.core.model.preferences.DuringRunAction
+import com.garfiec.librechat.core.model.preferences.StarredModelsDisplay
 import com.garfiec.librechat.core.model.queuedturn.AgentQueuedTurnReceipt
 import com.garfiec.librechat.core.model.queuedturn.EnqueueQueuedTurnRequest
 import com.garfiec.librechat.core.model.queuedturn.QUEUED_TURN_RECONCILIATION_MS

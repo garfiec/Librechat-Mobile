@@ -1,6 +1,5 @@
 package com.garfiec.librechat.feature.auth.viewmodel
 
-import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.garfiec.librechat.core.common.result.Result
@@ -9,31 +8,12 @@ import com.garfiec.librechat.core.data.repository.AccountSwitcher
 import com.garfiec.librechat.core.data.repository.AuthRepository
 import com.garfiec.librechat.core.data.repository.BannerRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
-import com.garfiec.librechat.core.model.Banner
 import com.garfiec.librechat.feature.auth.diagnostics.offersDiagnosticLog
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-
-@Immutable
-data class ResetPasswordUiState(
-    val password: String = "",
-    val confirmPassword: String = "",
-    val isLoading: Boolean = false,
-    val error: String? = null,
-    /** [error] came from a failure the diagnostic log can help with; see `offersDiagnosticLog`. */
-    val offerDiagnosticLog: Boolean = false,
-    /** A coded refusal ([AuthRefusal]) the screen words itself, in place of [error], while [error] is set. */
-    val refusal: AuthRefusal? = null,
-    val isReset: Boolean = false,
-    /** The new password is active, but some earlier sessions may stay signed in until they expire. */
-    val sessionsNotRetired: Boolean = false,
-    /** The server's published policy links, as the sign-in footer shows them; null hides each. */
-    val policyLinks: PolicyLinks = PolicyLinks(),
-    val banner: Banner? = null,
-)
 
 class ResetPasswordViewModel(
     private val authRepository: AuthRepository,

@@ -65,7 +65,7 @@
   (the refresh token can't recreate it).
 
 ## Coded refusals (rc1)
-- `AuthRefusal` (`viewmodel/AuthRefusal.kt`) maps the pre-auth coded refusals. Key a 403 on the body's code,
+- `AuthRefusal` (enum and `authRefusalOfCode` in `:feature:auth:ui` `viewmodel/AuthRefusalCodes.kt`, the mappers in `viewmodel/AuthRefusal.kt`) maps the pre-auth coded refusals. Key a 403 on the body's code,
   never the status alone, so the UA soft-ban, `terms_not_accepted` and proxy 403s keep their own handling.
   Login's `loginRefusalOrNull` is the one mapping that also reads status.
 - Login, Register, ForgotPassword, ResetPassword, TwoFactor (via `VerifyTwoFactorOutcome.NotEvaluated.code`) set

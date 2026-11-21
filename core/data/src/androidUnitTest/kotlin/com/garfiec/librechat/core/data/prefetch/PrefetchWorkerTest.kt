@@ -3,6 +3,7 @@ package com.garfiec.librechat.core.data.prefetch
 import androidx.test.core.app.ApplicationProvider
 import androidx.work.ListenableWorker
 import androidx.work.testing.TestListenableWorkerBuilder
+import com.garfiec.librechat.core.model.prefetch.PrefetchRunOutcome
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
 import io.mockk.mockk

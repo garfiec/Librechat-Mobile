@@ -88,8 +88,6 @@ interface GateAccess {
     suspend fun warm(serverUrl: String)
 }
 
-const val DEFAULT_GATE_CLIENT_ID = "switchboard"
-
 /**
  * Signs in to an access gate's identity provider in the system browser and stores the bearer token
  * for the server: discovery → loopback listener → pushed authorization request (PKCE S256, `state`,

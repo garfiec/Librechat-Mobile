@@ -1,6 +1,8 @@
 # feature:settings
 
 ## Structure
+- Each screen here is its stateful entry point; its stateless `…Content`, the UI state types and all
+  strings are in `:feature:settings:ui` (see its `CLAUDE.md`).
 - Sealed `SettingsRoute : NavKey`. `SettingsTabbed` is the home (`SettingsHomeScreen`: profile card +
   category rows); keep its name, saved back stacks restore by it. Each category is a `XxxSettingsPage`
   with no Scaffold of its own, opened by `SettingsCategory(key)` (Appearance by `AppearanceSettings`,

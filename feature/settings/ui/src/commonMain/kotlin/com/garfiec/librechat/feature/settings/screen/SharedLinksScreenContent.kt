@@ -1,0 +1,408 @@
+package com.garfiec.librechat.feature.settings.screen
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.plus
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.grid.LazyGridItemScope
+import androidx.compose.foundation.lazy.grid.LazyGridScope
+import androidx.compose.foundation.lazy.grid.LazyGridState
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Sort
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.CloudOff
+import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.model.share.SharedLinksSort
+import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
+import com.garfiec.librechat.core.ui.components.AdaptiveButton
+import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
+import com.garfiec.librechat.core.ui.components.AdaptiveDropdownMenu
+import com.garfiec.librechat.core.ui.components.AdaptiveFilterChip
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
+import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
+import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
+import com.garfiec.librechat.core.ui.components.EmptyState
+import com.garfiec.librechat.core.ui.components.UnderBarsPullToRefreshBox
+import com.garfiec.librechat.core.ui.components.UpToTwoColumns
+import com.garfiec.librechat.core.ui.components.share.LocalOpenSharedChat
+import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
+import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
+import com.garfiec.librechat.core.ui.components.topbar.BarIcons
+import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
+import com.garfiec.librechat.core.ui.components.topbar.BarTitle
+import com.garfiec.librechat.core.ui.components.topbar.MaterialBarStyle
+import com.garfiec.librechat.core.ui.platform.rememberClipboardWriter
+import com.garfiec.librechat.core.ui.theme.chromeColors
+import com.garfiec.librechat.feature.settings.model.SharedLinkDisplayData
+import com.garfiec.librechat.feature.settings.resources.Res
+import com.garfiec.librechat.feature.settings.resources.action_cancel
+import com.garfiec.librechat.feature.settings.resources.action_delete
+import com.garfiec.librechat.feature.settings.resources.action_retry
+import com.garfiec.librechat.feature.settings.resources.cd_back
+import com.garfiec.librechat.feature.settings.resources.dialog_delete_shared_link_message
+import com.garfiec.librechat.feature.settings.resources.dialog_title_delete_shared_link
+import com.garfiec.librechat.feature.settings.resources.shared_chats_clear_search
+import com.garfiec.librechat.feature.settings.resources.shared_chats_empty
+import com.garfiec.librechat.feature.settings.resources.shared_chats_empty_description
+import com.garfiec.librechat.feature.settings.resources.shared_chats_link_copied
+import com.garfiec.librechat.feature.settings.resources.shared_chats_load_failed
+import com.garfiec.librechat.feature.settings.resources.shared_chats_load_failed_description
+import com.garfiec.librechat.feature.settings.resources.shared_chats_load_more_failed
+import com.garfiec.librechat.feature.settings.resources.shared_chats_no_match
+import com.garfiec.librechat.feature.settings.resources.shared_chats_search
+import com.garfiec.librechat.feature.settings.resources.shared_chats_sort_label
+import com.garfiec.librechat.feature.settings.resources.shared_chats_sort_newest
+import com.garfiec.librechat.feature.settings.resources.shared_chats_sort_oldest
+import com.garfiec.librechat.feature.settings.resources.shared_chats_sort_title
+import com.garfiec.librechat.feature.settings.resources.shared_chats_title
+import com.garfiec.librechat.feature.settings.resources.shared_chats_untitled
+import com.garfiec.librechat.feature.settings.viewmodel.SharedLinksUiState
+import com.garfiec.librechat.feature.settings.viewmodel.isReloading
+import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.stringResource
+
+@Immutable
+class SharedLinksActions(
+    val refresh: () -> Unit,
+    val retry: () -> Unit,
+    val loadMore: () -> Unit,
+    val setSort: (SharedLinksSort) -> Unit,
+    val onSearchQueryChange: (String) -> Unit,
+    val clearSearch: () -> Unit,
+    val openLink: (SharedLinkDisplayData) -> Unit,
+    val delete: (shareId: String) -> Unit,
+)
+
+/**
+ * The Shared chats page for [uiState]: the card grid in [gridState], the delete prompt, and
+ * [shareSheet], the share sheet a card opens.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SharedLinksContent(
+    uiState: SharedLinksUiState,
+    actions: SharedLinksActions,
+    snackbarHostState: SnackbarHostState,
+    gridState: LazyGridState,
+    onNavigateBack: () -> Unit,
+    onOpenConversation: (conversationId: String) -> Unit,
+    modifier: Modifier = Modifier,
+    shareSheet: @Composable () -> Unit = {},
+) {
+    val openSharedChat = LocalOpenSharedChat.current
+    val scope = rememberCoroutineScope()
+    val clipboard = rememberClipboardWriter()
+    val clipLabel = stringResource(Res.string.shared_chats_title)
+    var deleteTarget by remember { mutableStateOf<SharedLinkDisplayData?>(null) }
+
+    val linkCopied = stringResource(Res.string.shared_chats_link_copied)
+    val onCopyLink: (SharedLinkDisplayData) -> Unit = { link ->
+        clipboard.copy(link.url, clipLabel)
+        scope.launch { snackbarHostState.showSnackbar(linkCopied) }
+    }
+
+    AdaptiveScaffold(
+        modifier = modifier,
+        snackbarHost = { AdaptiveSnackbarHost(snackbarHostState) },
+        topBar = {
+            AdaptiveTopBar(
+                spec = AdaptiveTopBarSpec(
+                    navigation = BarNavigation(BarIcons.Back, stringResource(Res.string.cd_back), onNavigateBack),
+                    title = BarTitle(stringResource(Res.string.shared_chats_title)),
+                    actions = emptyList(),
+                ),
+                materialStyle = MaterialBarStyle(translucent = true),
+            )
+        },
+    ) { innerPadding ->
+        UnderBarsPullToRefreshBox(
+            isRefreshing = uiState.isRefreshing,
+            onRefresh = actions.refresh,
+            barPadding = innerPadding,
+            modifier = Modifier.fillMaxSize(),
+        ) {
+            val minCardWidth = SharedLinkCardMinWidth * LocalDensity.current.fontScale
+            LazyVerticalGrid(
+                state = gridState,
+                columns = remember(minCardWidth) { UpToTwoColumns(minCardWidth) },
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = innerPadding + PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 32.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                sharedLinksItems(
+                    uiState = uiState,
+                    onSearchQueryChange = actions.onSearchQueryChange,
+                    onClearSearch = actions.clearSearch,
+                    onSortChange = actions.setSort,
+                    onRetry = actions.retry,
+                    onLoadMore = actions.loadMore,
+                    card = { link ->
+                        SharedLinkCard(
+                            link = link,
+                            onClick = { actions.openLink(link) },
+                            onOpenChat = { onOpenConversation(link.conversationId) },
+                            onCopyLink = { onCopyLink(link) },
+                            onDelete = { deleteTarget = link },
+                            onViewSharedVersion = openSharedChat?.let { open -> { open(link.shareId) } },
+                        )
+                    },
+                )
+            }
+        }
+    }
+
+    shareSheet()
+
+    deleteTarget?.let { target ->
+        SharedLinkDeleteDialog(
+            title = target.title ?: stringResource(Res.string.shared_chats_untitled),
+            onConfirm = {
+                actions.delete(target.shareId)
+                deleteTarget = null
+            },
+            onDismiss = { deleteTarget = null },
+        )
+    }
+}
+
+// One column on phones; two once each would still be this wide (tablets, an unfolded Fold).
+private val SharedLinkCardMinWidth = 300.dp
+
+private const val PLACEHOLDER_COUNT = 4
+
+/**
+ * The page's grid content for [uiState]: search and sort, then placeholders, the error, empty or
+ * no-match state, or the cards, and the next-page row.
+ */
+@Suppress("LongParameterList")
+internal fun LazyGridScope.sharedLinksItems(
+    uiState: SharedLinksUiState,
+    onSearchQueryChange: (String) -> Unit,
+    onClearSearch: () -> Unit,
+    onSortChange: (SharedLinksSort) -> Unit,
+    onRetry: () -> Unit,
+    onLoadMore: () -> Unit,
+    card: @Composable LazyGridItemScope.(SharedLinkDisplayData) -> Unit,
+) {
+    val isFirstLoad = uiState.isLoading && uiState.links.isEmpty()
+    // Either query counts: the typed one runs ahead of the results, and the shown one trails a just-cleared box.
+    val isSearching = uiState.shownQuery.isNotEmpty() || uiState.searchQuery.isNotEmpty()
+    val hasNoLinks = uiState.links.isEmpty() && !uiState.isLoading && !uiState.loadFailed && !isSearching
+
+    if (!hasNoLinks) {
+        if (uiState.searchEnabled) {
+            fullWidthItem(key = "search") {
+                SharedLinksSearchField(
+                    query = uiState.searchQuery,
+                    onQueryChange = onSearchQueryChange,
+                    onClear = onClearSearch,
+                )
+            }
+        }
+        fullWidthItem(key = "sort") {
+            SharedLinksSortRow(sort = uiState.sort, loading = uiState.isReloading, onSortChange = onSortChange)
+        }
+    }
+
+    when {
+        isFirstLoad -> items(PLACEHOLDER_COUNT, key = { "placeholder_$it" }, contentType = { "placeholder" }) {
+            SharedLinkCardPlaceholder()
+        }
+
+        uiState.links.isEmpty() && uiState.loadFailed -> fullWidthItem(key = "error") {
+            SharedLinksErrorState(onRetry = onRetry)
+        }
+
+        hasNoLinks -> fullWidthItem(key = "empty") { SharedLinksEmptyState() }
+
+        uiState.links.isEmpty() && !uiState.isLoading -> fullWidthItem(key = "no_match") {
+            SharedLinksNoMatch(query = uiState.shownQuery.ifEmpty { uiState.searchQuery.trim() }, onClearSearch = onClearSearch)
+        }
+
+        else -> items(uiState.links, key = { it.shareId }, contentType = { "shared_link" }) { link -> card(link) }
+    }
+
+    when {
+        uiState.isLoadingMore -> fullWidthItem(key = "loading_more") {
+            Box(modifier = Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
+                AdaptiveCircularProgressIndicator(modifier = Modifier.size(24.dp))
+            }
+        }
+        uiState.loadMoreFailed -> fullWidthItem(key = "load_more_failed") { LoadMoreFailedRow(onRetry = onLoadMore) }
+    }
+}
+
+@Composable
+private fun SharedLinksSearchField(query: String, onQueryChange: (String) -> Unit, onClear: () -> Unit) {
+    AdaptiveOutlinedTextField(
+        value = query,
+        onValueChange = onQueryChange,
+        modifier = Modifier.fillMaxWidth(),
+        placeholder = { Text(stringResource(Res.string.shared_chats_search)) },
+        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+        trailingIcon = if (query.isNotEmpty()) {
+            {
+                IconButton(onClick = onClear) {
+                    Icon(Icons.Default.Clear, contentDescription = stringResource(Res.string.shared_chats_clear_search))
+                }
+            }
+        } else {
+            null
+        },
+        singleLine = true,
+    )
+}
+
+private val SharedLinksSort.label: StringResource
+    get() = when (this) {
+        SharedLinksSort.NEWEST -> Res.string.shared_chats_sort_newest
+        SharedLinksSort.OLDEST -> Res.string.shared_chats_sort_oldest
+        SharedLinksSort.TITLE -> Res.string.shared_chats_sort_title
+    }
+
+@Composable
+private fun SharedLinksSortRow(sort: SharedLinksSort, loading: Boolean, onSortChange: (SharedLinksSort) -> Unit) {
+    var menuOpen by remember { mutableStateOf(false) }
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Box(modifier = Modifier.weight(1f, fill = false)) {
+            AdaptiveFilterChip(
+                selected = true,
+                onClick = { menuOpen = true },
+                label = { Text(stringResource(sort.label), maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                leadingIcon = {
+                    Icon(
+                        Icons.AutoMirrored.Filled.Sort,
+                        contentDescription = stringResource(Res.string.shared_chats_sort_label),
+                        modifier = Modifier.size(18.dp),
+                    )
+                },
+                trailingIcon = { Icon(Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.size(18.dp)) },
+            )
+            AdaptiveDropdownMenu(
+                expanded = menuOpen,
+                onDismissRequest = { menuOpen = false },
+                containerColor = chromeColors().popover,
+            ) {
+                SharedLinksSort.entries.forEach { option ->
+                    DropdownMenuItem(
+                        text = { Text(stringResource(option.label)) },
+                        trailingIcon = { if (option == sort) Icon(Icons.Default.Check, contentDescription = null) },
+                        onClick = {
+                            menuOpen = false
+                            onSortChange(option)
+                        },
+                    )
+                }
+            }
+        }
+        // The rows below still answer the old sort or search until the new first page lands.
+        if (loading) AdaptiveCircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+    }
+}
+
+/** No links at all: says how to make one. */
+@Composable
+internal fun SharedLinksEmptyState(modifier: Modifier = Modifier) {
+    EmptyState(
+        title = stringResource(Res.string.shared_chats_empty),
+        description = stringResource(Res.string.shared_chats_empty_description),
+        icon = Icons.Default.Link,
+        modifier = modifier.padding(vertical = 48.dp),
+    )
+}
+
+/** The first page failed and there is nothing to show: not the empty state, which would be a lie. */
+@Composable
+internal fun SharedLinksErrorState(onRetry: () -> Unit, modifier: Modifier = Modifier) {
+    EmptyState(
+        title = stringResource(Res.string.shared_chats_load_failed),
+        description = stringResource(Res.string.shared_chats_load_failed_description),
+        icon = Icons.Default.CloudOff,
+        modifier = modifier.padding(vertical = 48.dp),
+        action = { AdaptiveButton(onClick = onRetry) { Text(stringResource(Res.string.action_retry)) } },
+    )
+}
+
+@Composable
+internal fun SharedLinksNoMatch(query: String, onClearSearch: () -> Unit, modifier: Modifier = Modifier) {
+    EmptyState(
+        title = stringResource(Res.string.shared_chats_no_match, query),
+        icon = Icons.Default.Search,
+        modifier = modifier.padding(vertical = 48.dp),
+        action = {
+            AdaptiveOutlinedButton(onClick = onClearSearch) { Text(stringResource(Res.string.shared_chats_clear_search)) }
+        },
+    )
+}
+
+/** A next page failed: the list ends here with a way to try again, instead of retrying on every scroll. */
+@Composable
+internal fun LoadMoreFailedRow(onRetry: () -> Unit, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            text = stringResource(Res.string.shared_chats_load_more_failed),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f),
+        )
+        TextButton(onClick = onRetry) { Text(stringResource(Res.string.action_retry)) }
+    }
+}
+
+@Composable
+private fun SharedLinkDeleteDialog(title: String, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    AdaptiveAlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(Res.string.dialog_title_delete_shared_link)) },
+        text = { Text(stringResource(Res.string.dialog_delete_shared_link_message, title)) },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(stringResource(Res.string.action_delete), color = MaterialTheme.colorScheme.error)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(Res.string.action_cancel)) }
+        },
+    )
+}

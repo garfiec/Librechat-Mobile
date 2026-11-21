@@ -2,6 +2,8 @@ package com.garfiec.librechat.core.data.datastore
 
 import com.garfiec.librechat.core.common.ChannelPolicy
 import com.garfiec.librechat.core.common.DistributionChannel
+import com.garfiec.librechat.core.model.preferences.ArtifactDisplayMode
+import com.garfiec.librechat.core.model.preferences.WebSearchPreference
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse

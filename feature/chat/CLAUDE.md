@@ -20,8 +20,9 @@ mapped `settingChips`, plus top-level `error` (shared transient banner) and `med
   exception: `subagentProgress` (chrome-visible, unthrottled; open follow-up).
 
 ## One screen, five platform seams
-`ChatScreen`/`NewChatScreen` are one commonMain composable. Platform differences go through an
-`expect`, never `if (platform)`: `ChatComposer` (`ChatInput`/`IosChatInput`),
+The screen is one commonMain composable, `ChatScreenContent` in `:feature:chat:ui`; `ChatScreen`
+here fills its `ChatScreenSlots`. Platform differences go through an `expect` behind a slot, never
+`if (platform)`: `ChatComposer` (`ChatInput`/`IosChatInput`),
 `rememberChatAttachmentActions`, `rememberChatStartRecording`, `Modifier.addToChatSelectionItem`,
 `McpAppWebView`/`rememberMcpAppViewPool`. A feature added to one composer reaches one platform; add it
 to the screen. Each composer actual takes pasted images itself and hands copies to `onPasteFiles`
@@ -858,7 +859,7 @@ never contain React** (hooks break).
   with react (it drops type-only imports, which bundles don't export).
 - **Flagged libraries ask first** (`ArtifactLibraryGate`; remembered in `ArtifactLibraryConsentStore`,
   keyed by library *and* advisory kind; an unremembered answer holds until restart). Settings lists
-  `FlaggedArtifactLibraries`, which `vendor-web-assets.py` generates into `:core:data`.
+  `FlaggedArtifactLibraries`, which `vendor-web-assets.py` generates into `:core:model`.
 - **Consent fails closed:** `buildHtml`'s `allowedLibraries` defaults to empty and every flagged
   (`advisory`) library not in it is stubbed. Keep each flagged library its own bundle. A package
   outside the vendored set fails by name ("not bundled").

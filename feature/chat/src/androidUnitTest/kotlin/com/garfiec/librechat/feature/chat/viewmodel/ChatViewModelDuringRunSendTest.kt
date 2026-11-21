@@ -5,13 +5,6 @@ import com.garfiec.librechat.core.common.BackendBuildClass
 import com.garfiec.librechat.core.common.DetectedBackend
 import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
-import com.garfiec.librechat.core.data.datastore.ChatFontSize
-import com.garfiec.librechat.core.data.datastore.ChatHeaderAlignment
-import com.garfiec.librechat.core.data.datastore.ChatHeaderContent
-import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
-import com.garfiec.librechat.core.data.datastore.DuringRunAction
-import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
-import com.garfiec.librechat.core.data.datastore.UploadRoutingMode
 import com.garfiec.librechat.core.model.AskUserQuestionItem
 import com.garfiec.librechat.core.model.AskUserQuestionRequest
 import com.garfiec.librechat.core.model.EndpointConfig
@@ -20,6 +13,13 @@ import com.garfiec.librechat.core.model.PendingActionPayload
 import com.garfiec.librechat.core.model.PendingActionTypes
 import com.garfiec.librechat.core.model.PendingSteer
 import com.garfiec.librechat.core.model.StreamEvent
+import com.garfiec.librechat.core.model.preferences.ChatFontSize
+import com.garfiec.librechat.core.model.preferences.ChatHeaderAlignment
+import com.garfiec.librechat.core.model.preferences.ChatHeaderContent
+import com.garfiec.librechat.core.model.preferences.ContextBarPlacement
+import com.garfiec.librechat.core.model.preferences.DuringRunAction
+import com.garfiec.librechat.core.model.preferences.StarredModelsDisplay
+import com.garfiec.librechat.core.model.preferences.UploadRoutingMode
 import com.garfiec.librechat.core.model.request.ChatResumeRequest
 import com.garfiec.librechat.core.model.request.SteerRequest
 import com.garfiec.librechat.core.model.response.ChatResumeResponse

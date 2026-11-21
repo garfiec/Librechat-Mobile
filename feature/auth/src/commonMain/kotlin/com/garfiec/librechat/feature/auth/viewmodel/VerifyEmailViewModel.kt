@@ -1,6 +1,5 @@
 package com.garfiec.librechat.feature.auth.viewmodel
 
-import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.garfiec.librechat.core.common.result.Result
@@ -12,15 +11,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-
-@Immutable
-data class VerifyEmailUiState(
-    val email: String = "",
-    val isLoading: Boolean = false,
-    val error: String? = null,
-    val resendCooldownSeconds: Int = 0,
-    val resendSuccess: Boolean = false,
-)
 
 class VerifyEmailViewModel(
     private val userRepository: UserRepository,

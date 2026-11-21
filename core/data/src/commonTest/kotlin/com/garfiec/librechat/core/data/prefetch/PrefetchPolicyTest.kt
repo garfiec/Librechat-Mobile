@@ -1,6 +1,7 @@
 package com.garfiec.librechat.core.data.prefetch
 
 import com.garfiec.librechat.core.data.db.dao.PrefetchCandidate
+import com.garfiec.librechat.core.model.prefetch.PrefetchDepth
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse

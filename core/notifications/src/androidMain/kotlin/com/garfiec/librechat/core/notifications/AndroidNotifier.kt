@@ -9,6 +9,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.net.toUri
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
+import com.garfiec.librechat.core.model.preferences.DEFAULT_LANGUAGE
 import com.garfiec.librechat.core.notifications.resources.Res
 import com.garfiec.librechat.core.notifications.resources.channel_replies
 import com.garfiec.librechat.core.notifications.resources.channel_replies_description
@@ -126,6 +127,6 @@ class AndroidNotifier(
      */
     private suspend fun applyAppLanguage() {
         val tag = settingsDataStore.selectedLanguage.first()
-        if (tag != SettingsDataStore.DEFAULT_LANGUAGE) Locale.setDefault(Locale.forLanguageTag(tag))
+        if (tag != DEFAULT_LANGUAGE) Locale.setDefault(Locale.forLanguageTag(tag))
     }
 }

@@ -7,9 +7,10 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.garfiec.librechat.core.model.DEFAULT_ACCENT_SEED_ARGB
-import com.garfiec.librechat.core.model.config.theme.ServerThemeDefinition
 import com.garfiec.librechat.core.model.config.theme.ServerThemeRead
 import com.garfiec.librechat.core.model.config.theme.readServerTheme
+import com.garfiec.librechat.core.model.preferences.ServerTheme
+import com.garfiec.librechat.core.model.preferences.ThemeMode
 import com.garfiec.librechat.core.model.ui.UiStyle
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
@@ -26,20 +27,6 @@ import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlin.concurrent.Volatile
-
-/**
- * The active server's theme (v0.8.9-rc1 `interface.theme`), as last read from its config.
- * [enabled] is the user's choice of the server's colours over Switchboard's for that server; on
- * unless they picked Switchboard's.
- */
-data class ServerTheme(
-    val serverId: String,
-    val definition: ServerThemeDefinition,
-    val enabled: Boolean,
-) {
-    /** The theme to paint with, or null when the user picked Switchboard's colours. */
-    val painted: ServerThemeDefinition? get() = definition.takeIf { enabled }
-}
 
 class ThemeDataStore(
     private val dataStore: DataStore<Preferences>,

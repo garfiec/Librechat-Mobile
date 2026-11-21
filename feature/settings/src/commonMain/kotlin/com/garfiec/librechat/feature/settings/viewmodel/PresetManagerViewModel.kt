@@ -1,6 +1,5 @@
 package com.garfiec.librechat.feature.settings.viewmodel
 
-import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.garfiec.librechat.core.common.result.Result
@@ -11,14 +10,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-
-@Immutable
-data class PresetManagerUiState(
-    val presets: List<PresetManagerDisplayData> = emptyList(),
-    val isLoading: Boolean = false,
-    val isRefreshing: Boolean = false,
-    val error: String? = null,
-)
 
 class PresetManagerViewModel(
     private val presetRepository: PresetRepository,

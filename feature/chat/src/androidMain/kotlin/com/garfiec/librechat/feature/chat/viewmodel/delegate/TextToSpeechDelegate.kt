@@ -9,6 +9,7 @@ import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.common.result.suspendRunCatching
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.repository.SpeechRepository
+import com.garfiec.librechat.core.model.preferences.TTS_SOURCE_SERVER
 import com.garfiec.librechat.core.model.speech.TtsVoice
 import com.garfiec.librechat.feature.chat.util.serverVoiceToUse
 import com.garfiec.librechat.feature.chat.util.splitForSpeech
@@ -114,7 +115,7 @@ class TextToSpeechDelegate(
 
         readJob = handle.scope.launch {
             val source = settingsDataStore.ttsSource.first()
-            if (source == SettingsDataStore.TTS_SOURCE_SERVER) {
+            if (source == TTS_SOURCE_SERVER) {
                 readAloudViaServer(text)
             } else {
                 val rate = settingsDataStore.ttsSpeechRate.first()

@@ -4,12 +4,12 @@ import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.garfiec.librechat.core.common.AppInfo
-import com.garfiec.librechat.core.data.datastore.McpAppLocationConsent
 import com.garfiec.librechat.core.data.datastore.McpAppLocationConsentStore
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.McpAppsRepository
 import com.garfiec.librechat.core.model.mcp.McpAppOccurrence
 import com.garfiec.librechat.core.model.mcp.McpAppsPolicy
+import com.garfiec.librechat.core.model.preferences.McpAppLocationConsent
 import com.garfiec.librechat.feature.chat.components.mcpapp.McpAppAction
 import com.garfiec.librechat.feature.chat.components.mcpapp.McpAppHost
 import com.garfiec.librechat.feature.chat.components.mcpapp.McpAppHostCallbacks
@@ -54,22 +54,6 @@ data class McpAppsState(
 ) {
     fun sessionFor(occurrenceKey: String): McpAppSession? = sessions.firstOrNull { it.occurrence.key == occurrenceKey }
     val panelSession: McpAppSession? get() = panelId?.let { id -> sessions.firstOrNull { it.id == id } }
-}
-
-/**
- * An App's request for the device location, while the user decides: first this app's own question
- * for [serverName] ([Stage.CONSENT], only when never answered), then the OS permission. [sessionId]
- * is the App that asked; only it can be answered or refused by it closing. [requestId] tells one
- * request from the next, so a repeated request from the same App is a new question.
- */
-@Immutable
-data class McpAppLocationRequest(
-    val sessionId: Long,
-    val serverName: String,
-    val stage: Stage,
-    val requestId: Long = 0,
-) {
-    enum class Stage { CONSENT, OS_PERMISSION }
 }
 
 /** A legacy MCP-UI resource's action, waiting for the user to send it as a message or not. */

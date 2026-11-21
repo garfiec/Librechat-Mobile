@@ -13,12 +13,12 @@ import com.garfiec.librechat.core.data.gate.GateSignInDetails
 import com.garfiec.librechat.core.data.gate.GateSignInResult
 import com.garfiec.librechat.core.data.repository.AccountSwitcher
 import com.garfiec.librechat.core.data.repository.ConfigRepository
-import com.garfiec.librechat.core.data.repository.HeaderWriteFailure
 import com.garfiec.librechat.core.data.repository.HeaderWriteResult
 import com.garfiec.librechat.core.data.repository.ServerRepository
 import com.garfiec.librechat.core.data.repository.ServerResolution
 import com.garfiec.librechat.core.model.config.StartupConfig
-import com.garfiec.librechat.core.network.client.HeaderRejection
+import com.garfiec.librechat.core.model.server.HeaderRejection
+import com.garfiec.librechat.core.model.server.HeaderWriteFailure
 import com.garfiec.librechat.core.ui.components.CustomHeaderRow
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage

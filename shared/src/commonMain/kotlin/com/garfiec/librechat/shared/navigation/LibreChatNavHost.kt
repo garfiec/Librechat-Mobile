@@ -99,6 +99,8 @@ import com.garfiec.librechat.feature.auth.navigation.authEntries
 import com.garfiec.librechat.feature.auth.navigation.isAddAccountFlowRoute
 import com.garfiec.librechat.feature.auth.navigation.signUpEntries
 import com.garfiec.librechat.feature.auth.screen.GatePageSignInOverlay
+import com.garfiec.librechat.feature.chat.components.LocalChatContentRenderers
+import com.garfiec.librechat.feature.chat.components.rememberPlatformChatContentRenderers
 import com.garfiec.librechat.feature.chat.navigation.Chat
 import com.garfiec.librechat.feature.chat.navigation.NewChat
 import com.garfiec.librechat.feature.chat.navigation.chatEntries
@@ -390,6 +392,7 @@ fun LibreChatNavHost(
             LocalUriHandler provides sharedLinkUriHandler,
             LocalExternalUriHandler provides platformUriHandler,
             LocalOpenSharedChat provides openSharedChat,
+            LocalChatContentRenderers provides rememberPlatformChatContentRenderers(),
         ) {
             // Date/time format + the app-wide relative-time ticker. Inside AppLocale, which is where
             // the language override reaches the configuration the format resolves its locale from.

@@ -4,6 +4,7 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import com.garfiec.librechat.core.common.lifecycle.ForegroundSignal
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.model.AppRelease
+import com.garfiec.librechat.core.model.update.UpdateCheckState
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

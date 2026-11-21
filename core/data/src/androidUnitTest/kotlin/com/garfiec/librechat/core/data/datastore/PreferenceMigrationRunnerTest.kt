@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.garfiec.librechat.core.common.ChannelPolicy
 import com.garfiec.librechat.core.common.DistributionChannel
+import com.garfiec.librechat.core.model.preferences.ArtifactDisplayMode
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi

@@ -14,8 +14,6 @@ import com.garfiec.librechat.core.data.bookmarks.BookmarkPickerController
 import com.garfiec.librechat.core.data.datastore.AppPreferences
 import com.garfiec.librechat.core.data.datastore.CodeWorkspacePreferenceStore
 import com.garfiec.librechat.core.data.datastore.ConversationWebSearchStore
-import com.garfiec.librechat.core.data.datastore.DuringRunAction
-import com.garfiec.librechat.core.data.datastore.LatexRenderer
 import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
@@ -64,6 +62,8 @@ import com.garfiec.librechat.core.model.error.UserKeyError
 import com.garfiec.librechat.core.model.media.resolveAvatarUrl
 import com.garfiec.librechat.core.model.permissions.Permission
 import com.garfiec.librechat.core.model.permissions.PermissionType
+import com.garfiec.librechat.core.model.preferences.DuringRunAction
+import com.garfiec.librechat.core.model.preferences.LatexRenderer
 import com.garfiec.librechat.core.model.pullrequest.pullRequestsAvailable
 import com.garfiec.librechat.core.model.queuedturn.QueuedTurnReceiptSource
 import com.garfiec.librechat.core.model.request.ToolApprovalResolution
@@ -248,7 +248,7 @@ class ChatViewModel(
     private val replyWatchScheduler: ReplyWatchScheduler? = null,
     /** The wall clock key expiries are held against; a test moves it to stand in for a sleep. */
     clock: Clock = Clock.System,
-) : ViewModel() {
+) : ViewModel(), ChatActions {
 
     private val _uiState = MutableStateFlow(ChatUiState())
 
@@ -509,7 +509,7 @@ class ChatViewModel(
         val autoSendAfterStt: Boolean,
         val sttEngine: String,
         val sttLanguage: String,
-        val inlineArtifactPrefs: com.garfiec.librechat.core.data.datastore.InlineArtifactPrefs,
+        val inlineArtifactPrefs: com.garfiec.librechat.core.model.preferences.InlineArtifactPrefs,
     )
 
     // Combined in stages because Kotlin's `combine` maxes out at 5 args. Each stage
@@ -1346,10 +1346,10 @@ class ChatViewModel(
 
     // ── Core chat flow ──────────────────────────────────────────────
 
-    fun switchBranch(parentMessageId: String, siblingIndex: Int) =
+    override fun switchBranch(parentMessageId: String, siblingIndex: Int) =
         treeDelegate.switchBranch(parentMessageId, siblingIndex)
 
-    fun onInputChanged(text: String) {
+    override fun onInputChanged(text: String) {
         val canPickSkills = _uiState.value.canPickSkills
         val wasListingSkills = pickerListsSkills(_uiState.value.inputText, canPickSkills)
         val wasListingModels = parsePickerQuery(_uiState.value.inputText, canPickSkills)?.scope == PickerScope.MODEL
@@ -1429,7 +1429,7 @@ class ChatViewModel(
 
     // --- Message sending ---
 
-    fun sendMessage() {
+    override fun sendMessage() {
         // In queued-edit mode the composer holds a queued item, not a new message — a send
         // (e.g. voice auto-send, which bypasses the UPDATE button) commits the edit instead of
         // live-sending, so the edit session is never orphaned.
@@ -1455,7 +1455,7 @@ class ChatViewModel(
      * composer as it is. Refused (false) while a reply runs, or before a run can start, as web's
      * `ask` refuses; once it returns true the turn is the chat's and a later App abort can't undo it.
      */
-    fun sendAppMessage(text: String): Boolean {
+    override fun sendAppMessage(text: String): Boolean {
         val state = _uiState.value
         if (state.isStreaming || !state.canStartRun || state.isEditingQueued) return false
         return sendDispatchDelegate.sendAppText(text.trim())
@@ -1467,7 +1467,7 @@ class ChatViewModel(
      * affordance is hidden on the landing/new-chat screen). Shares [sendMessage]'s upload-wait
      * gate so a queued message with a still-uploading attachment captures it.
      */
-    fun queueMessage() {
+    override fun queueMessage() {
         if (!_uiState.value.isStreaming) return
         if (_uiState.value.conversationId == null) return
         val text = _uiState.value.inputText.trim()
@@ -1479,7 +1479,7 @@ class ChatViewModel(
      * [ChatUiState.effectiveDuringRunAction], which has already degraded the user's preference
      * against what this server and this run actually support.
      */
-    fun sendDuringRun() {
+    override fun sendDuringRun() {
         val state = _uiState.value
         // Both branches below can reach `clearComposer()` without passing `withUploadGate`, and
         // that would drop an unsettled pick on the floor — nothing uploaded, no error, sheet gone.
@@ -1530,7 +1530,7 @@ class ChatViewModel(
      * its current tool or thinking step. It falls back exactly like a steer (to the queue when the
      * run can't take a steer, to a plain steer when it can't be interrupted), never to Stop + send.
      */
-    fun steerMessage(interrupt: Boolean = false) {
+    override fun steerMessage(interrupt: Boolean) {
         val state = _uiState.value
         if (!state.isStreaming || !state.canSteerNow) return
         val conversationId = state.conversationId ?: return
@@ -1559,16 +1559,16 @@ class ChatViewModel(
     }
 
     /** The during-run menu's explicit "Interrupt and steer" for this one message. */
-    fun interruptMessage() = steerMessage(interrupt = true)
+    override fun interruptMessage() = steerMessage(interrupt = true)
 
     /** Withdraws a steer that has not been injected into the running reply yet. */
-    fun cancelSteer(steerId: String) = steeringDelegate.cancel(steerId)
+    override fun cancelSteer(steerId: String) = steeringDelegate.cancel(steerId)
 
     /** "Interrupt now" on a waiting steer chip: upgrades it to an interrupt in place. */
-    fun armSteer(steerId: String) = steeringDelegate.arm(steerId)
+    override fun armSteer(steerId: String) = steeringDelegate.arm(steerId)
 
     /** The website-icons prompt's answer; also what stops it asking again. */
-    fun setShowSiteIcons(show: Boolean) {
+    override fun setShowSiteIcons(show: Boolean) {
         viewModelScope.launch { preferenceStore.set(AppPreferences.SiteIcons, show) }
     }
 
@@ -1576,34 +1576,34 @@ class ChatViewModel(
     val compareSyncScroll: StateFlow<Boolean> = preferenceStore.observe(AppPreferences.CompareSyncScroll)
         .stateIn(viewModelScope, SharingStarted.Eagerly, preferenceStore.initial(AppPreferences.CompareSyncScroll))
 
-    fun setCompareSyncScroll(enabled: Boolean) {
+    override fun setCompareSyncScroll(enabled: Boolean) {
         viewModelScope.launch { preferenceStore.set(AppPreferences.CompareSyncScroll, enabled) }
     }
 
     /** The website-icons prompt was closed without a choice: stay quiet until the next launch. */
-    fun dismissSiteIconPrompt() = siteIconPromptSession.dismiss()
+    override fun dismissSiteIconPrompt() = siteIconPromptSession.dismiss()
 
     /** Settings/composer-menu write for the default during-run action (steer, interrupt or queue). */
-    fun setDuringRunAction(action: DuringRunAction) {
+    override fun setDuringRunAction(action: DuringRunAction) {
         viewModelScope.launch { settingsDataStore.setDuringRunAction(action) }
     }
 
-    fun regenerateMessage(messageId: String) {
+    override fun regenerateMessage(messageId: String) {
         if (_uiState.value.isEditingQueued) return
         editingDelegate.regenerateMessage(messageId)
     }
 
     /** "Retry without files" under a failed reply: its user turn again, as a new version, with no files. */
-    fun retryWithoutFiles(failedReplyId: String) {
+    override fun retryWithoutFiles(failedReplyId: String) {
         if (_uiState.value.isEditingQueued) return
         editingDelegate.retryWithoutFiles(failedReplyId)
     }
 
     /** "Retry loading original" under a redacted user turn. */
-    fun retryOwnerTexts() = ownerTextDelegate.retry()
+    override fun retryOwnerTexts() = ownerTextDelegate.retry()
 
     /** "Branch without files" under a failed reply; see [ConversationActionsDelegate.branchWithoutFiles]. */
-    fun branchWithoutFiles(failedReplyId: String) = conversationActionsDelegate.branchWithoutFiles(failedReplyId)
+    override fun branchWithoutFiles(failedReplyId: String) = conversationActionsDelegate.branchWithoutFiles(failedReplyId)
 
     /**
      * What Read Aloud speaks for a message: its answer, never its reasoning (upstream
@@ -1619,7 +1619,7 @@ class ChatViewModel(
      * The clipboard serialization of a whole message — tool calls, reasoning and media parts as
      * labeled blocks, not just its text. Mirrors web `serializeMessageForClipboard`.
      */
-    fun copyMessage(messageId: String, write: (String) -> Unit) {
+    override fun copyMessage(messageId: String, write: (String) -> Unit) {
         viewModelScope.launch {
             val text = getMessageClipboardText(messageId)
             if (text.isNotBlank()) write(text)
@@ -1644,25 +1644,25 @@ class ChatViewModel(
     val toolPartStatuses: StateFlow<Map<ToolPartKey, ToolPartStatus>> get() = toolPartDelegate.statuses
 
     /** A card that shows a preview's content opened: fetch its full part (a retry from failed). */
-    fun requestToolPart(key: ToolPartKey) = toolPartDelegate.request(key)
+    override fun requestToolPart(key: ToolPartKey) = toolPartDelegate.request(key)
 
     /** An open card holds its fetched part against eviction until [releaseToolPart]. */
-    fun retainToolPart(identity: ToolPartIdentity) = toolPartDelegate.retain(identity)
+    override fun retainToolPart(identity: ToolPartIdentity) = toolPartDelegate.retain(identity)
 
-    fun releaseToolPart(identity: ToolPartIdentity) = toolPartDelegate.release(identity)
+    override fun releaseToolPart(identity: ToolPartIdentity) = toolPartDelegate.release(identity)
 
-    fun stopGeneration() = streamingManager.stopGeneration()
+    override fun stopGeneration() = streamingManager.stopGeneration()
 
     /**
      * Resolves the paused run's tool batch. One [ToolApprovalResolution] per paused
      * `tool_call_id` — the server rejects a partial batch — and each decision must be one the
      * call's policy allows.
      */
-    fun resolveToolApproval(decisions: List<ToolApprovalResolution>) =
+    override fun resolveToolApproval(decisions: List<ToolApprovalResolution>) =
         pendingActionDelegate.submitToolDecisions(decisions)
 
     /** Answers a single-question `ask_user_question` pause and lets the run continue. */
-    fun answerPendingQuestion(answer: String) = pendingActionDelegate.submitAnswer(answer)
+    override fun answerPendingQuestion(answer: String) = pendingActionDelegate.submitAnswer(answer)
 
     /**
      * Answers a batched `ask_user_question` pause — one answer per question id.
@@ -1671,43 +1671,43 @@ class ChatViewModel(
      * from the pause's payload, so a batch cannot be resolved with a joined string and a single
      * question cannot be resolved with a map.
      */
-    fun answerPendingQuestions(answers: Map<String, String>) =
+    override fun answerPendingQuestions(answers: Map<String, String>) =
         pendingActionDelegate.submitAnswers(answers)
 
     /** One question's editor state, hoisted out of `AskUserQuestionPanel`. */
-    fun updateAskAnswerDraft(questionId: String, draft: AskAnswerDraft) =
+    override fun updateAskAnswerDraft(questionId: String, draft: AskAnswerDraft) =
         pendingActionDelegate.updateAskAnswerDraft(questionId, draft)
 
-    fun selectAskQuestion(questionId: String) = pendingActionDelegate.selectAskQuestion(questionId)
+    override fun selectAskQuestion(questionId: String) = pendingActionDelegate.selectAskQuestion(questionId)
 
-    fun setAskPanelCollapsed(collapsed: Boolean) = pendingActionDelegate.setAskPanelCollapsed(collapsed)
+    override fun setAskPanelCollapsed(collapsed: Boolean) = pendingActionDelegate.setAskPanelCollapsed(collapsed)
 
-    fun updateToolDecisionDraft(toolCallId: String, draft: ToolDecisionDraft) =
+    override fun updateToolDecisionDraft(toolCallId: String, draft: ToolDecisionDraft) =
         pendingActionDelegate.updateToolDecisionDraft(toolCallId, draft)
 
-    fun selectToolCall(toolCallId: String) = pendingActionDelegate.selectToolCall(toolCallId)
+    override fun selectToolCall(toolCallId: String) = pendingActionDelegate.selectToolCall(toolCallId)
 
-    fun setToolPanelCollapsed(collapsed: Boolean) = pendingActionDelegate.setToolPanelCollapsed(collapsed)
+    override fun setToolPanelCollapsed(collapsed: Boolean) = pendingActionDelegate.setToolPanelCollapsed(collapsed)
 
-    fun pickAskOption(questionId: String, draft: AskAnswerDraft, advance: PausePanelAutoAdvance) =
+    override fun pickAskOption(questionId: String, draft: AskAnswerDraft, advance: PausePanelAutoAdvance) =
         pendingActionDelegate.pickAskOption(questionId, draft, advance)
 
-    fun pickToolDecision(toolCallId: String, draft: ToolDecisionDraft, advance: PausePanelAutoAdvance) =
+    override fun pickToolDecision(toolCallId: String, draft: ToolDecisionDraft, advance: PausePanelAutoAdvance) =
         pendingActionDelegate.pickToolDecision(toolCallId, draft, advance)
 
-    fun cancelPausePanelAutoAdvance() = pendingActionDelegate.cancelAutoAdvance()
+    override fun cancelPausePanelAutoAdvance() = pendingActionDelegate.cancelAutoAdvance()
 
     /** Continues the latest reply. Not in a comparison, whose panes use [keepAndContinue]. */
-    fun continueGeneration() {
+    override fun continueGeneration() {
         if (_uiState.value.isEditingQueued || _uiState.value.comparisonState.isEnabled) return
         editingDelegate.continueGeneration()
     }
 
     /** Manual context compaction (v0.8.8-rc3). See [ChatUiState.canCompactNow]. */
-    fun compactConversation() = editingDelegate.compactConversation()
+    override fun compactConversation() = editingDelegate.compactConversation()
 
     /** "Not now" on the compact suggestion: hide it in this conversation until usage reaches the next band. */
-    fun snoozeCompactNudge() {
+    override fun snoozeCompactNudge() {
         val state = uiState.value
         val conversationId = state.conversationId ?: return
         val nudge = state.compactNudge ?: return
@@ -1740,7 +1740,7 @@ class ChatViewModel(
     val promptLibraryRevision: StateFlow<Long> = promptRepository.revision
 
     /** Paired with [promptLibraryRevision]; a no-op unless a prompt changed since the last load. */
-    fun refreshPromptsIfStale() {
+    override fun refreshPromptsIfStale() {
         if (!promptsUseAllowed) return
         presetPromptDelegate.refreshAvailablePromptsIfStale()
     }
@@ -1774,7 +1774,7 @@ class ChatViewModel(
     }
 
     /** The picker's retry after the skill catalog failed to load. */
-    fun retrySkillCatalog() = skillPickerDelegate.retry()
+    override fun retrySkillCatalog() = skillPickerDelegate.retry()
 
     /**
      * Submits [feedback] for a message, or clears it when null.
@@ -1791,7 +1791,7 @@ class ChatViewModel(
      * comment only to have all of it dropped here. Keep both — this guard is what makes the Room
      * write safe regardless of which affordance grows a path to it.
      */
-    fun submitFeedback(messageId: String, feedback: MinimalFeedback?) {
+    override fun submitFeedback(messageId: String, feedback: MinimalFeedback?) {
         val conversationId = _uiState.value.conversationId ?: return
         if (_uiState.value.isStreaming) return
         viewModelScope.launch {
@@ -1804,23 +1804,23 @@ class ChatViewModel(
         }
     }
 
-    fun startEditing(messageId: String) {
+    override fun startEditing(messageId: String) {
         // Don't start a tree-message edit while a queued item occupies the composer (it would
         // build its resubmit from the queued item's loaded model/tools).
         if (_uiState.value.isEditingQueued) return
         editingDelegate.startEditing(messageId)
     }
 
-    fun onEditTextChanged(text: String) = editingDelegate.onEditTextChanged(text)
+    override fun onEditTextChanged(text: String) = editingDelegate.onEditTextChanged(text)
 
-    fun onEditPartTextChanged(index: Int, text: String) =
+    override fun onEditPartTextChanged(index: Int, text: String) =
         editingDelegate.onEditPartTextChanged(index, text)
 
-    fun cancelEditing() = editingDelegate.cancelEditing()
+    override fun cancelEditing() = editingDelegate.cancelEditing()
 
-    fun rerunEdit() = editingDelegate.rerunEdit()
+    override fun rerunEdit() = editingDelegate.rerunEdit()
 
-    fun saveEdit() = editingDelegate.saveEdit()
+    override fun saveEdit() = editingDelegate.saveEdit()
 
     fun onPendingNavigationHandled() {
         streamingManager.reset()
@@ -1864,13 +1864,13 @@ class ChatViewModel(
         }
     }
 
-    fun toggleTemporaryChat() = treeDelegate.toggleTemporaryChat()
+    override fun toggleTemporaryChat() = treeDelegate.toggleTemporaryChat()
 
     /**
      * A run started on another device reaches this screen only through a status check, so a refresh
      * asks for one: the server saves the reply when the run ends, and the reload alone shows nothing.
      */
-    fun refreshMessages() = conversationLoadDelegate.refreshMessages { conversationId ->
+    override fun refreshMessages() = conversationLoadDelegate.refreshMessages { conversationId ->
         val state = _uiState.value
         if (!state.isStreaming && state.conversationId == conversationId) {
             streamingManager.resumeOnOpen(conversationId, onAttached = localQueueContinuity::onRunAttached)
@@ -1936,14 +1936,14 @@ class ChatViewModel(
     }
 
     /** Opens the model-selector sheet. Called when the user taps the model chip. */
-    fun openModelSheet() = surfaceModelSheet()
+    override fun openModelSheet() = surfaceModelSheet()
 
     /**
      * Side effects of surfacing the selector (retry a failed agent load, refetch favorites), split
      * out for the paged sheet, which shows the selector without setting `showModelSheet`. Every
      * selector path must route through here or these self-heals are lost.
      */
-    fun prepareModelSelector() {
+    override fun prepareModelSelector() {
         modelDelegate.retryAgentsIfFailed(isNewConversation)
         favoritesDelegate.refresh()
         // So the selector never offers an endpoint whose key ran out on a timer that slept.
@@ -1966,14 +1966,14 @@ class ChatViewModel(
     }
 
     /** Dismisses the model-selector sheet. Called on sheet dismiss and model selection. */
-    fun dismissModelSheet() {
+    override fun dismissModelSheet() {
         _uiState.update { it.copy(selection = it.selection.copy(showModelSheet = false)) }
     }
 
     /** Backs [com.garfiec.librechat.feature.chat.components.LocalAttachmentDownloader]; see [ChatConfigDelegate.downloadFileBytes]. */
-    suspend fun downloadFileBytes(attachment: Attachment): ByteArray? = chatConfigDelegate.downloadFileBytes(attachment)
+    override suspend fun downloadFileBytes(attachment: Attachment): ByteArray? = chatConfigDelegate.downloadFileBytes(attachment)
 
-    fun dismissError() {
+    override fun dismissError() {
         Diag.d(tag = NOTICE_TAG, attrs = mapOf("notice" to noticeLabel(_uiState.value.error))) {
             "dismissError on ${_uiState.value.conversationId ?: "landing"}"
         }
@@ -1983,45 +1983,45 @@ class ChatViewModel(
     // ── Code workspace row (attached machines) ──────────────────────────────
 
     /** Opens the workspace sheet; [machineId] is a machine picked from the machine chip. */
-    fun openCodeWorkspaceSheet(machineId: String? = null) = codeWorkspaceDelegate.openSheet(machineId)
+    override fun openCodeWorkspaceSheet(machineId: String?) = codeWorkspaceDelegate.openSheet(machineId)
 
-    fun dismissCodeWorkspaceSheet() = codeWorkspaceDelegate.dismissSheet()
+    override fun dismissCodeWorkspaceSheet() = codeWorkspaceDelegate.dismissSheet()
 
-    fun selectCodeWorkspace(environmentId: String, workspaceId: String) =
+    override fun selectCodeWorkspace(environmentId: String, workspaceId: String) =
         codeWorkspaceDelegate.selectWorkspace(environmentId, workspaceId)
 
-    fun setCodeCheckout(environmentId: String, mode: CodeCheckoutMode) =
+    override fun setCodeCheckout(environmentId: String, mode: CodeCheckoutMode) =
         codeWorkspaceDelegate.setCheckout(environmentId, mode)
 
-    fun selectNoCodeWorkspace() = codeWorkspaceDelegate.selectNoWorkspace()
+    override fun selectNoCodeWorkspace() = codeWorkspaceDelegate.selectNoWorkspace()
 
-    fun refreshCodeWorkspaces() = codeWorkspaceDelegate.refresh()
+    override fun refreshCodeWorkspaces() = codeWorkspaceDelegate.refresh()
 
-    fun selectTransitionCodeWorkspace(environmentId: String, workspaceId: String) =
+    override fun selectTransitionCodeWorkspace(environmentId: String, workspaceId: String) =
         codeWorkspaceDelegate.selectTransitionWorkspace(environmentId, workspaceId)
 
-    fun setTransitionCodeCheckout(environmentId: String, mode: CodeCheckoutMode) =
+    override fun setTransitionCodeCheckout(environmentId: String, mode: CodeCheckoutMode) =
         codeWorkspaceDelegate.setTransitionCheckout(environmentId, mode)
 
-    fun confirmCodeWorkspaceTransition() = codeWorkspaceDelegate.confirmTransition()
+    override fun confirmCodeWorkspaceTransition() = codeWorkspaceDelegate.confirmTransition()
 
-    fun detachCodeWorkspace() = codeWorkspaceDelegate.detach()
+    override fun detachCodeWorkspace() = codeWorkspaceDelegate.detach()
 
-    fun retryCodeWorkspaceCheck() = codeWorkspaceDelegate.refresh()
+    override fun retryCodeWorkspaceCheck() = codeWorkspaceDelegate.refresh()
 
-    fun selectCodeApprovalMode(option: CodeApprovalOption) = codeWorkspaceDelegate.selectApprovalMode(option)
+    override fun selectCodeApprovalMode(option: CodeApprovalOption) = codeWorkspaceDelegate.selectApprovalMode(option)
 
     /** The pull request sheet's Retry, after a refresh failed. */
-    fun retryPullRequest() = pullRequestDelegate.retry()
+    override fun retryPullRequest() = pullRequestDelegate.retry()
 
-    fun openPullRequestSheet() = pullRequestDelegate.openSheet()
+    override fun openPullRequestSheet() = pullRequestDelegate.openSheet()
 
-    fun dismissPullRequestSheet() = pullRequestDelegate.dismissSheet()
+    override fun dismissPullRequestSheet() = pullRequestDelegate.dismissSheet()
 
     /** The composer chip has been on screen long enough to count as read. */
-    fun markPullRequestSeen() = pullRequestDelegate.markSeen()
+    override fun markPullRequestSeen() = pullRequestDelegate.markSeen()
 
-    fun dismissSendBlockReason() {
+    override fun dismissSendBlockReason() {
         _uiState.update { it.copy(composer = it.composer.copy(sendBlockReason = null)) }
     }
 
@@ -2032,7 +2032,7 @@ class ChatViewModel(
      * silently jumping to index 0. Reads only state — no Room write, no `activeBranches` mutation —
      * so it never trips the streaming invariant.
      */
-    fun openMedia(url: String) {
+    override fun openMedia(url: String) {
         if (url.isBlank()) return
         val state = uiState.value
         val items = extractBranchMedia(
@@ -2056,11 +2056,11 @@ class ChatViewModel(
      * Opens the media viewer on the composer's own images ([preview], built by the attachment strip
      * from what the draft holds), which are on the device and not in the thread.
      */
-    fun openDraftMedia(preview: MediaPreviewState) {
+    override fun openDraftMedia(preview: MediaPreviewState) {
         _uiState.update { it.copy(mediaPreview = preview) }
     }
 
-    fun closeMedia() {
+    override fun closeMedia() {
         _uiState.update { it.copy(mediaPreview = null) }
     }
 
@@ -2083,35 +2083,35 @@ class ChatViewModel(
     // ── Delegated public API ────────────────────────────────────────
 
     // Search
-    fun openSearch() = searchDelegate.openSearch()
-    fun closeSearch() = searchDelegate.closeSearch()
-    fun onSearchQueryChanged(query: String) = searchDelegate.onSearchQueryChanged(query)
-    fun nextSearchMatch() = searchDelegate.nextSearchMatch()
-    fun previousSearchMatch() = searchDelegate.previousSearchMatch()
-    fun onSearchScrollHandled() = searchDelegate.onSearchScrollHandled()
+    override fun openSearch() = searchDelegate.openSearch()
+    override fun closeSearch() = searchDelegate.closeSearch()
+    override fun onSearchQueryChanged(query: String) = searchDelegate.onSearchQueryChanged(query)
+    override fun nextSearchMatch() = searchDelegate.nextSearchMatch()
+    override fun previousSearchMatch() = searchDelegate.previousSearchMatch()
+    override fun onSearchScrollHandled() = searchDelegate.onSearchScrollHandled()
 
     // Conversation actions
-    fun showRenameDialog() = conversationActionsDelegate.showRenameDialog()
-    fun dismissRenameDialog() = conversationActionsDelegate.dismissRenameDialog()
-    fun renameConversation(newTitle: String) = conversationActionsDelegate.renameConversation(newTitle)
-    fun showDeleteConfirmation() = conversationActionsDelegate.showDeleteConfirmation()
-    fun dismissDeleteConfirmation() = conversationActionsDelegate.dismissDeleteConfirmation()
-    fun deleteConversation() = conversationActionsDelegate.deleteConversation()
-    fun archiveConversation() = conversationActionsDelegate.archiveConversation()
-    fun duplicateConversation() = conversationActionsDelegate.duplicateConversation()
+    override fun showRenameDialog() = conversationActionsDelegate.showRenameDialog()
+    override fun dismissRenameDialog() = conversationActionsDelegate.dismissRenameDialog()
+    override fun renameConversation(newTitle: String) = conversationActionsDelegate.renameConversation(newTitle)
+    override fun showDeleteConfirmation() = conversationActionsDelegate.showDeleteConfirmation()
+    override fun dismissDeleteConfirmation() = conversationActionsDelegate.dismissDeleteConfirmation()
+    override fun deleteConversation() = conversationActionsDelegate.deleteConversation()
+    override fun archiveConversation() = conversationActionsDelegate.archiveConversation()
+    override fun duplicateConversation() = conversationActionsDelegate.duplicateConversation()
     fun onDuplicatedConversationHandled() = conversationActionsDelegate.onDuplicatedConversationHandled()
-    fun shareConversation() = conversationActionsDelegate.shareConversation()
+    override fun shareConversation() = conversationActionsDelegate.shareConversation()
 
-    fun openBookmarks() = bookmarksDelegate.open()
+    override fun openBookmarks() = bookmarksDelegate.open()
     fun closeShareSheet() = conversationActionsDelegate.closeShareSheet()
-    fun showForkOptions(messageId: String) = conversationActionsDelegate.showForkOptions(messageId)
+    override fun showForkOptions(messageId: String) = conversationActionsDelegate.showForkOptions(messageId)
     fun dismissForkOptions() = conversationActionsDelegate.dismissForkOptions()
     fun forkFromMessage(messageId: String, option: String, splitAtTarget: Boolean = false, excludeFiles: Boolean = false) =
         conversationActionsDelegate.forkFromMessage(messageId, option, splitAtTarget, excludeFiles)
     fun onForkedConversationHandled() = conversationActionsDelegate.onForkedConversationHandled()
 
     // TTS
-    fun readAloud(messageId: String) = ttsDelegate.readAloud(messageId)
+    override fun readAloud(messageId: String) = ttsDelegate.readAloud(messageId)
     fun stopReading() = ttsDelegate.stopReading()
 
     // Voice input
@@ -2120,15 +2120,15 @@ class ChatViewModel(
         ttsDelegate.stopReading()
         voiceDelegate.startRecording()
     }
-    fun stopRecording() = voiceDelegate.stopRecording()
+    override fun stopRecording() = voiceDelegate.stopRecording()
     fun cancelRecording() = voiceDelegate.cancelRecording()
     fun onDeviceSpeechResult(transcribedText: String) = voiceDelegate.onDeviceSpeechResult(transcribedText)
 
     // File attachments
-    fun onFilesSelected(platformRefs: List<Any>) = uploadIntakeDelegate.intakePickedFiles(platformRefs, prompt = true)
+    override fun onFilesSelected(platformRefs: List<Any>) = uploadIntakeDelegate.intakePickedFiles(platformRefs, prompt = true)
 
     /** "Upload to Code Environment" picks ([ChatUiState.codeUploadOffered]); see [turnOnToolForUpload]. */
-    fun onCodeFilesSelected(platformRefs: List<Any>) {
+    override fun onCodeFilesSelected(platformRefs: List<Any>) {
         if (!_uiState.value.codeUploadOffered) return
         turnOnToolForUpload(ToolConstants.CODE_INTERPRETER)
         uploadIntakeDelegate.intakeCodeFiles(platformRefs)
@@ -2144,49 +2144,49 @@ class ChatViewModel(
         if (state.toolbarShown && tool !in state.selection.effectiveTools) modelDelegate.toggleTool(tool)
     }
 
-    fun setPendingUploadRoute(index: Int, route: UploadRoute) = uploadIntakeDelegate.setPendingUploadRoute(index, route)
-    fun setAllPendingUploadRoutes(route: UploadRoute) = uploadIntakeDelegate.setAllPendingUploadRoutes(route)
-    fun confirmPendingUploadRouting() = uploadIntakeDelegate.confirmPendingUploadRouting()
-    fun cancelPendingUploadRouting() = uploadIntakeDelegate.cancelPendingUploadRouting()
-    fun cancelPendingUploadSend() = uploadIntakeDelegate.cancelPendingUploadSend()
-    fun retryUpload(file: AttachedFile) = uploadIntakeDelegate.retryUpload(file)
-    fun submitPdfPassword(password: String) = uploadIntakeDelegate.submitPdfPassword(password)
-    fun dismissPdfPassword() = uploadIntakeDelegate.dismissPdfPassword()
+    override fun setPendingUploadRoute(index: Int, route: UploadRoute) = uploadIntakeDelegate.setPendingUploadRoute(index, route)
+    override fun setAllPendingUploadRoutes(route: UploadRoute) = uploadIntakeDelegate.setAllPendingUploadRoutes(route)
+    override fun confirmPendingUploadRouting() = uploadIntakeDelegate.confirmPendingUploadRouting()
+    override fun cancelPendingUploadRouting() = uploadIntakeDelegate.cancelPendingUploadRouting()
+    override fun cancelPendingUploadSend() = uploadIntakeDelegate.cancelPendingUploadSend()
+    override fun retryUpload(file: AttachedFile) = uploadIntakeDelegate.retryUpload(file)
+    override fun submitPdfPassword(password: String) = uploadIntakeDelegate.submitPdfPassword(password)
+    override fun dismissPdfPassword() = uploadIntakeDelegate.dismissPdfPassword()
 
     // Quote chips (selection toolbar "Add to chat")
-    fun addPendingQuote(text: String) = sendDispatchDelegate.addPendingQuote(text)
+    override fun addPendingQuote(text: String) = sendDispatchDelegate.addPendingQuote(text)
 
     // Pending skill chips (picked from the `/` and `$` list). A pick also turns Skills on here.
     fun addPendingManualSkill(name: String) {
         if (sendDispatchDelegate.addPendingManualSkill(name)) skillsToggleDelegate.turnOn()
     }
 
-    fun removeDraftItem(item: DraftItem) = draftItemsDelegate.remove(item)
-    fun undoDraftRemoval(id: Long) = draftItemsDelegate.undo(id)
-    fun dropDraftUndo(id: Long) = draftItemsDelegate.dropUndo(id)
+    override fun removeDraftItem(item: DraftItem) = draftItemsDelegate.remove(item)
+    override fun undoDraftRemoval(id: Long) = draftItemsDelegate.undo(id)
+    override fun dropDraftUndo(id: Long) = draftItemsDelegate.dropUndo(id)
 
     /**
      * Stages [value] from the Thinking sheet for the next message (v0.8.9-rc1); on a server that
      * inherits it, for the rest of the conversation. Picking the level already in effect clears it.
      */
-    fun selectThinkingLevel(value: String) {
+    override fun selectThinkingLevel(value: String) {
         val chip = _uiState.value.thinkingChip ?: return
         _uiState.update { it.copy(composer = it.composer.copy(pendingReasoningOverride = chip.overrideFor(value))) }
     }
 
     // Queue
-    fun editQueued(localId: String) = queueOrchestrationDelegate.editQueued(localId)
-    fun commitQueuedEdit() = queueOrchestrationDelegate.commitQueuedEdit()
-    fun cancelQueuedEdit() = queueOrchestrationDelegate.cancelQueuedEdit()
-    fun cancelQueued(localId: String) = queueOrchestrationDelegate.cancelQueued(localId)
-    fun reorderQueue(fromIndex: Int, toIndex: Int) = queueOrchestrationDelegate.reorderQueue(fromIndex, toIndex)
-    fun sendQueuedNow() = queueOrchestrationDelegate.sendQueuedNow()
+    override fun editQueued(localId: String) = queueOrchestrationDelegate.editQueued(localId)
+    override fun commitQueuedEdit() = queueOrchestrationDelegate.commitQueuedEdit()
+    override fun cancelQueuedEdit() = queueOrchestrationDelegate.cancelQueuedEdit()
+    override fun cancelQueued(localId: String) = queueOrchestrationDelegate.cancelQueued(localId)
+    override fun reorderQueue(fromIndex: Int, toIndex: Int) = queueOrchestrationDelegate.reorderQueue(fromIndex, toIndex)
+    override fun sendQueuedNow() = queueOrchestrationDelegate.sendQueuedNow()
 
     // Presets and prompts
-    fun savePreset(name: String) = presetPromptDelegate.savePreset(name)
-    fun loadPreset(displayData: PresetDisplayData) = presetPromptDelegate.loadPreset(displayData)
-    fun reloadPresetsIfFailed() = presetPromptDelegate.reloadPresetsIfFailed()
-    fun deletePreset(presetId: String) = presetPromptDelegate.deletePreset(presetId)
+    override fun savePreset(name: String) = presetPromptDelegate.savePreset(name)
+    override fun loadPreset(displayData: PresetDisplayData) = presetPromptDelegate.loadPreset(displayData)
+    override fun reloadPresetsIfFailed() = presetPromptDelegate.reloadPresetsIfFailed()
+    override fun deletePreset(presetId: String) = presetPromptDelegate.deletePreset(presetId)
     fun editPreset(preset: Preset) = presetPromptDelegate.editPreset(preset)
     fun handleSlashCommand(displayData: PromptMentionDisplayData) = presetPromptDelegate.handleSlashCommand(displayData)
 
@@ -2198,7 +2198,7 @@ class ChatViewModel(
      * query the composer holds: the list only opens when its trigger leads the input, so the whole
      * text is the command.
      */
-    fun selectPickerItem(item: ComposerPickerItem) {
+    override fun selectPickerItem(item: ComposerPickerItem) {
         when (item) {
             is ComposerPickerItem.Prompt -> handleSlashCommand(item.prompt)
             is ComposerPickerItem.Skill -> {
@@ -2227,7 +2227,7 @@ class ChatViewModel(
      * producer's text can be waiting. It replaces the composer text outright, so a new-chat draft
      * restored first yields to it, and one restored later yields because the composer isn't blank.
      */
-    fun consumePendingPromptInsertion() {
+    override fun consumePendingPromptInsertion() {
         promptInsertionHandoff.take()?.let(presetPromptDelegate::insertPromptText)
     }
 
@@ -2238,34 +2238,34 @@ class ChatViewModel(
      * [persistComposerDraft]: that would race the send's draft delete and could bring the
      * starter back as the next new chat's draft.
      */
-    fun sendStarter(text: String) {
+    override fun sendStarter(text: String) {
         if (_uiState.value.inputText.isNotBlank()) return
         sendDispatchDelegate.stageForSend(text)
         sendMessage()
     }
 
     /** Puts a new-chat starter in the composer unsent, as an agent page's starter arrives. */
-    fun editStarter(text: String) = presetPromptDelegate.insertPromptText(text)
+    override fun editStarter(text: String) = presetPromptDelegate.insertPromptText(text)
 
-    fun confirmVariablePrompt(interpolated: String) = presetPromptDelegate.confirmVariablePrompt(interpolated)
-    fun dismissVariablePrompt() = presetPromptDelegate.dismissVariablePrompt()
+    override fun confirmVariablePrompt(interpolated: String) = presetPromptDelegate.confirmVariablePrompt(interpolated)
+    override fun dismissVariablePrompt() = presetPromptDelegate.dismissVariablePrompt()
 
     // Favorites (v0.8.5)
-    fun toggleAgentFavorite(agentId: String) = favoritesDelegate.toggleAgent(agentId)
-    fun toggleModelFavorite(endpoint: String, model: String) = favoritesDelegate.toggleModel(endpoint, model)
-    fun toggleSpecFavorite(name: String) = favoritesDelegate.toggleSpec(name)
+    override fun toggleAgentFavorite(agentId: String) = favoritesDelegate.toggleAgent(agentId)
+    override fun toggleModelFavorite(endpoint: String, model: String) = favoritesDelegate.toggleModel(endpoint, model)
+    override fun toggleSpecFavorite(name: String) = favoritesDelegate.toggleSpec(name)
 
     // Model selection and comparison
-    fun onSpecSelected(spec: ModelSpec) = modelDelegate.onSpecSelected(spec)
+    override fun onSpecSelected(spec: ModelSpec) = modelDelegate.onSpecSelected(spec)
 
-    fun onModelSelected(endpoint: String, model: String) = modelDelegate.onChoiceSelected(ModelChoice.Raw(endpoint, model))
-    fun beginComparisonSetup() {
+    override fun onModelSelected(endpoint: String, model: String) = modelDelegate.onChoiceSelected(ModelChoice.Raw(endpoint, model))
+    override fun beginComparisonSetup() {
         comparisonDelegate.beginComparisonSetup()
         // Setup opens a model list (sheet or pane), so it takes the selector's self-heals.
         prepareModelSelector()
     }
 
-    fun cancelComparisonSetup() {
+    override fun cancelComparisonSetup() {
         comparisonDelegate.cancelComparisonSetup()
         // Cancel means a held follow-up goes to the chat's model alone. Its send builds the request
         // only once the gate is ready, which can be later, so restoring a held comparison now could
@@ -2280,7 +2280,7 @@ class ChatViewModel(
      * [primary] (a changed A) as the chat's own model. Refused as a whole mid-reply (see
      * ComparisonModeDelegate.startComparison), so a refused Start never applies A alone.
      */
-    fun startComparison(endpoint: String, model: String, spec: String? = null, primary: ComparisonPick? = null) {
+    override fun startComparison(endpoint: String, model: String, spec: String?, primary: ComparisonPick?) {
         if (_uiState.value.isStreaming) return
         primary?.let { modelDelegate.onChoiceSelected(ModelChoice.restore(it.endpoint, it.model, it.spec)) }
         comparisonDelegate.startComparison(endpoint, model, spec)
@@ -2289,47 +2289,47 @@ class ChatViewModel(
         queueOrchestrationDelegate.releaseCompareSetupHold()
     }
 
-    fun stopComparison() = comparisonDelegate.stopComparison()
-    fun setSecondarySpec(spec: ModelSpec) = comparisonDelegate.setSecondarySpec(spec)
+    override fun stopComparison() = comparisonDelegate.stopComparison()
+    override fun setSecondarySpec(spec: ModelSpec) = comparisonDelegate.setSecondarySpec(spec)
 
-    fun setSecondaryModel(endpoint: String, model: String) = comparisonDelegate.setSecondaryModel(endpoint, model)
-    fun toggleMcpServer(serverName: String) = modelDelegate.toggleMcpServer(serverName)
+    override fun setSecondaryModel(endpoint: String, model: String) = comparisonDelegate.setSecondaryModel(endpoint, model)
+    override fun toggleMcpServer(serverName: String) = modelDelegate.toggleMcpServer(serverName)
 
     /** A settings chip's "sign in" or "Start over", or the "+" sheet's "Sign in": see [McpServersDelegate.signIn]. */
-    fun signInMcpServer(
+    override fun signInMcpServer(
         serverName: String,
         openSignIn: (serverName: String, authorizationUrl: String) -> Boolean,
         onFailed: () -> Unit,
-        selectWhenConnected: Boolean = false,
+        selectWhenConnected: Boolean,
     ) = mcpServersDelegate.signIn(serverName, openSignIn, onFailed, selectWhenConnected)
 
     /** A connecting chip's or "+" sheet row's "Cancel sign-in": see [McpServersDelegate.cancelSignIn]. */
-    fun cancelMcpSignIn(serverName: String, onFailed: () -> Unit) =
+    override fun cancelMcpSignIn(serverName: String, onFailed: () -> Unit) =
         mcpServersDelegate.cancelSignIn(serverName, onFailed)
 
     /** An MCP sign-in ended: see [McpServersDelegate.onSignInEnded]. */
-    fun onMcpSignInEnded() = mcpServersDelegate.onSignInEnded()
+    override fun onMcpSignInEnded() = mcpServersDelegate.onSignInEnded()
 
     /** The variables sheet's Set / Not set: see [McpServersDelegate.userVarFlags]. */
-    suspend fun mcpVariableFlags(serverName: String): Map<String, Boolean>? =
+    override suspend fun mcpVariableFlags(serverName: String): Map<String, Boolean>? =
         mcpServersDelegate.userVarFlags(serverName)
 
     /** Runs in the ViewModel's scope, so closing the sheet doesn't cancel it: see [McpServersDelegate.saveUserVars]. */
-    suspend fun saveMcpVariables(serverName: String, values: Map<String, String>): Boolean =
+    override suspend fun saveMcpVariables(serverName: String, values: Map<String, String>): Boolean =
         viewModelScope.async { mcpServersDelegate.saveUserVars(serverName, values) }.await()
 
     /** See [McpServersDelegate.removeUserVars]; in the ViewModel's scope like [saveMcpVariables]. */
-    suspend fun removeMcpVariables(serverName: String): Boolean =
+    override suspend fun removeMcpVariables(serverName: String): Boolean =
         viewModelScope.async { mcpServersDelegate.removeUserVars(serverName) }.await()
 
     /** Saves the Artifacts mode app-wide and turns Artifacts on, since picking a mode means using it. */
-    fun setArtifactsMode(mode: ArtifactsMode) {
+    override fun setArtifactsMode(mode: ArtifactsMode) {
         _uiState.update { it.copy(selection = it.selection.copy(artifactsMode = mode)) }
         viewModelScope.launch { settingsDataStore.setArtifactsMode(mode) }
         if (ToolConstants.ARTIFACTS !in _uiState.value.selection.effectiveTools) toggleTool(ToolConstants.ARTIFACTS)
     }
 
-    fun toggleTool(toolName: String) {
+    override fun toggleTool(toolName: String) {
         // Per conversation, so it never goes through the global enabled-tools store.
         if (toolName == ToolConstants.SKILLS) skillsToggleDelegate.toggle() else modelDelegate.toggleTool(toolName)
     }
@@ -2339,7 +2339,7 @@ class ChatViewModel(
      * on through [toggleTool] if it is off. Runs in the ViewModel's scope, so closing the key sheet
      * doesn't cancel it; false when the server refused.
      */
-    suspend fun saveWebSearchKeys(auth: Map<String, String>): Boolean = viewModelScope.async {
+    override suspend fun saveWebSearchKeys(auth: Map<String, String>): Boolean = viewModelScope.async {
         chatConfigDelegate.saveWebSearchKeys(auth).also { saved ->
             if (saved && ToolConstants.WEB_SEARCH !in _uiState.value.selection.effectiveTools) {
                 toggleTool(ToolConstants.WEB_SEARCH)
@@ -2348,11 +2348,11 @@ class ChatViewModel(
     }.await()
 
     /** Removes the user's LibreChat search keys; false when the server refused. */
-    suspend fun removeWebSearchKeys(): Boolean =
+    override suspend fun removeWebSearchKeys(): Boolean =
         viewModelScope.async { chatConfigDelegate.removeWebSearchKeys() }.await()
 
     /** A settings-line chip's switch: the same toggle the "+" sheet's row flips. */
-    fun toggleSettingChip(chip: SettingChip) {
+    override fun toggleSettingChip(chip: SettingChip) {
         when (chip) {
             is SettingChip.Tool -> toggleTool(chip.key)
             is SettingChip.Mcp -> toggleMcpServer(chip.name)
@@ -2400,9 +2400,9 @@ class ChatViewModel(
         }
     }
 
-    fun updateModelParameters(parameters: ModelParameters) = modelDelegate.updateModelParameters(parameters)
+    override fun updateModelParameters(parameters: ModelParameters) = modelDelegate.updateModelParameters(parameters)
 
-    fun branchFromComparison(agentId: String) = comparisonDelegate.branchFromComparison(agentId)
+    override fun branchFromComparison(agentId: String) = comparisonDelegate.branchFromComparison(agentId)
 
     /**
      * Keeps [agentId]'s answer and continues it with the model that wrote it. A Continue sends with
@@ -2411,7 +2411,7 @@ class ChatViewModel(
      * the lane clears the comparison. Its spec is held against the config as every writer holds it
      * ([stored]). A pick like any other, so it writes last-used, except in a temporary chat.
      */
-    fun keepAndContinue(agentId: String) {
+    override fun keepAndContinue(agentId: String) {
         val state = _uiState.value
         val comparison = state.comparisonState
         val laneB = comparison.secondaryEndpoint?.takeIf { isAddedAgentId(agentId) }?.let { endpoint ->
@@ -2428,7 +2428,7 @@ class ChatViewModel(
         }
     }
 
-    fun setContextGaugeExpanded(expanded: Boolean) {
+    override fun setContextGaugeExpanded(expanded: Boolean) {
         contextGaugeExpandedOverride.value = expanded
         viewModelScope.launch {
             // Survive ViewModel teardown (tap, then navigate away) and never crash on a storage

@@ -7,6 +7,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.garfiec.librechat.core.common.lifecycle.ForegroundSignal
 import com.garfiec.librechat.core.data.datastore.AppPreferences
 import com.garfiec.librechat.core.data.datastore.PreferenceStore
+import com.garfiec.librechat.core.model.notifications.NotificationPermissionStatus
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.flowOf

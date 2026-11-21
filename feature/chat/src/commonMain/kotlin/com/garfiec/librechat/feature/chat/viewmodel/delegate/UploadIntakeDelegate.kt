@@ -3,10 +3,10 @@ package com.garfiec.librechat.feature.chat.viewmodel.delegate
 import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.ToolConstants
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
-import com.garfiec.librechat.core.data.datastore.UploadRoutingMode
 import com.garfiec.librechat.core.model.FileObject
 import com.garfiec.librechat.core.model.FileReference
 import com.garfiec.librechat.core.model.media.resolveFileReferenceUrl
+import com.garfiec.librechat.core.model.preferences.UploadRoutingMode
 import com.garfiec.librechat.core.model.response.UploadRoute
 import com.garfiec.librechat.feature.chat.components.AttachedFile
 import com.garfiec.librechat.feature.chat.util.isImageType

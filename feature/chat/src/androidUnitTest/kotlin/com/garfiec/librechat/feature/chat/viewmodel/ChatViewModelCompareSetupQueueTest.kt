@@ -2,15 +2,15 @@ package com.garfiec.librechat.feature.chat.viewmodel
 
 import androidx.lifecycle.viewModelScope
 import com.garfiec.librechat.core.common.result.Result
-import com.garfiec.librechat.core.data.datastore.ChatFontSize
-import com.garfiec.librechat.core.data.datastore.ChatHeaderAlignment
-import com.garfiec.librechat.core.data.datastore.ChatHeaderContent
-import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
-import com.garfiec.librechat.core.data.datastore.DuringRunAction
-import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.StreamEvent
+import com.garfiec.librechat.core.model.preferences.ChatFontSize
+import com.garfiec.librechat.core.model.preferences.ChatHeaderAlignment
+import com.garfiec.librechat.core.model.preferences.ChatHeaderContent
+import com.garfiec.librechat.core.model.preferences.ContextBarPlacement
+import com.garfiec.librechat.core.model.preferences.DuringRunAction
+import com.garfiec.librechat.core.model.preferences.StarredModelsDisplay
 import com.garfiec.librechat.core.model.request.AddedConversation
 import com.garfiec.librechat.core.model.response.ChatResumeResponse
 import com.garfiec.librechat.core.model.response.ChatStatusResponse

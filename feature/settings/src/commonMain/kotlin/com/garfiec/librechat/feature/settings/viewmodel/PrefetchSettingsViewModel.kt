@@ -1,27 +1,16 @@
 package com.garfiec.librechat.feature.settings.viewmodel
 
-import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.garfiec.librechat.core.data.datastore.AppPreferences
 import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import com.garfiec.librechat.core.data.prefetch.AttachmentWarmer
-import com.garfiec.librechat.core.data.prefetch.PrefetchDepth
+import com.garfiec.librechat.core.model.prefetch.PrefetchDepth
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-
-@Immutable
-data class PrefetchSettingsUiState(
-    val enabled: Boolean,
-    val attachmentsEnabled: Boolean,
-    val onMeteredEnabled: Boolean,
-    val depth: Int,
-    /** Whether this platform has an image cache worth warming; false hides the toggle. */
-    val attachmentsSupported: Boolean = false,
-)
 
 /** Backs the Background prefetch page: whether, what and how much to prefetch. Reads and writes [PreferenceStore] only. */
 class PrefetchSettingsViewModel(

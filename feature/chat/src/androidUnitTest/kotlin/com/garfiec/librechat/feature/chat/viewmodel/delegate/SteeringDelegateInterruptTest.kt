@@ -2,9 +2,9 @@ package com.garfiec.librechat.feature.chat.viewmodel.delegate
 
 import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
-import com.garfiec.librechat.core.data.endpoint.EndpointDispatch
 import com.garfiec.librechat.core.data.repository.ChatRepository
 import com.garfiec.librechat.core.model.PendingSteer
+import com.garfiec.librechat.core.model.endpoint.EndpointDispatch
 import com.garfiec.librechat.core.model.request.SteerArmRequest
 import com.garfiec.librechat.core.model.request.SteerRequest
 import com.garfiec.librechat.core.model.response.SteerArmResponse
