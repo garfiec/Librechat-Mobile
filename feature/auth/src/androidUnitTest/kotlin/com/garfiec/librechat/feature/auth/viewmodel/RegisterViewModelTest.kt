@@ -378,6 +378,40 @@ class RegisterViewModelTest {
     }
 
     @Test
+    fun `with email on, an email with surrounding spaces registers and verifies the trimmed address`() = runTest {
+        configFlow.value = StartupConfig(emailEnabled = true)
+        coEvery { authRepository.register(any(), any(), any(), any()) } returns Result.Success(Unit)
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        fillValidFields()
+        viewModel.onEmailChanged(" test@example.com ")
+        viewModel.register()
+        advanceUntilIdle()
+
+        coVerify { authRepository.register("Test User", "test@example.com", "testuser", "password123") }
+        assertThat(viewModel.uiState.value.outcome).isEqualTo(RegisterOutcome.VerifyEmail("test@example.com"))
+    }
+
+    @Test
+    fun `with email off, an email with a trailing space signs in with the trimmed address`() = runTest {
+        configFlow.value = StartupConfig(emailEnabled = false)
+        coEvery { authRepository.register(any(), any(), any(), any()) } returns Result.Success(Unit)
+        coEvery { authRepository.login(any(), any()) } returns
+            Result.Success(LoginOutcome.Success(mockk<User>(relaxed = true)))
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        fillValidFields()
+        viewModel.onEmailChanged("test@example.com ")
+        viewModel.register()
+        advanceUntilIdle()
+
+        coVerify { authRepository.login("test@example.com", "password123") }
+        assertThat(viewModel.uiState.value.outcome).isEqualTo(RegisterOutcome.SignedIn)
+    }
+
+    @Test
     fun `with email off, a sign-in that needs 2FA setup hands over its setup token`() = runTest {
         configFlow.value = StartupConfig(emailEnabled = false)
         coEvery { authRepository.register(any(), any(), any(), any()) } returns Result.Success(Unit)

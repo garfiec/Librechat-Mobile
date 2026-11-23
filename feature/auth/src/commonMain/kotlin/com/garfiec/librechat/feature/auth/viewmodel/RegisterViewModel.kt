@@ -68,10 +68,12 @@ class RegisterViewModel(
 
     fun register() {
         val state = _uiState.value.copy(offerDiagnosticLog = false, refusal = null, error = null)
+        // The server validates the raw email, so a trailing space from a keyboard suggestion would fail it.
+        val email = state.email.trim()
 
         // The server accepts a blank username.
         val formError = when {
-            state.name.isBlank() || state.email.isBlank() || state.password.isBlank() -> RegisterError.MissingFields
+            state.name.isBlank() || email.isEmpty() || state.password.isBlank() -> RegisterError.MissingFields
             state.password.length < state.minPasswordLength -> RegisterError.PasswordTooShort
             state.password != state.confirmPassword -> RegisterError.PasswordMismatch
             else -> null
@@ -89,8 +91,8 @@ class RegisterViewModel(
                 offerDiagnosticLog = false,
             )
 
-            when (val result = authRepository.register(state.name, state.email, state.username, state.password)) {
-                is Result.Success -> onRegistered(state)
+            when (val result = authRepository.register(state.name, email, state.username, state.password)) {
+                is Result.Success -> onRegistered(state.copy(email = email))
                 is Result.Error -> showError(result)
                 is Result.Loading -> { /* no-op */ }
             }
