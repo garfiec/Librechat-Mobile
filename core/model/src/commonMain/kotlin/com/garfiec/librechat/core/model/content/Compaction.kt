@@ -36,6 +36,18 @@ object Compaction {
     }
 
     /**
+     * MIRRORED from upstream `isUserInitiatedCompaction` (`packages/data-provider/src/messages.ts`).
+     *
+     * True when [message] holds a summary or error part the server marked as started by the user
+     * (a manual compaction, finished or failed). Compactions stored before the marker existed
+     * carry none, so callers keep their own ancestry test as the fallback.
+     */
+    fun isUserInitiatedCompaction(message: Message?): Boolean =
+        message?.content.orEmpty().any { part ->
+            (part.type == ContentType.SUMMARY || part.type == ContentType.ERROR) && part.initiatedBy == "user"
+        }
+
+    /**
      * MIRRORED from upstream `supportsCompaction`. An Assistants thread lives on the provider, so a
      * summary inserted into the local history would compact nothing.
      */

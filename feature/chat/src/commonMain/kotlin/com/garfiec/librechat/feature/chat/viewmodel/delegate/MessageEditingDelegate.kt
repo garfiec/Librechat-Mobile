@@ -14,6 +14,7 @@ import com.garfiec.librechat.core.model.request.AddedConversation
 import com.garfiec.librechat.core.model.request.EditedContent
 import com.garfiec.librechat.feature.chat.util.MessageEditShape
 import com.garfiec.librechat.feature.chat.util.buildActiveMessagePath
+import com.garfiec.librechat.feature.chat.util.canRegenerate
 import com.garfiec.librechat.feature.chat.util.changedPartIndices
 import com.garfiec.librechat.feature.chat.util.editShapeOf
 import com.garfiec.librechat.feature.chat.util.findRerunParent
@@ -194,11 +195,8 @@ class MessageEditingDelegate(
         if (handle.state.isStreaming || handle.state.codeWorkspace.holdsSend) return
 
         val aiMessage = handle.state.messages.find { it.messageId == messageId } ?: return
-        if (aiMessage.isCreatedByUser) return
-
-        val parentUserMessage = handle.state.messages.find {
-            it.messageId == aiMessage.parentMessageId
-        } ?: return
+        val parentUserMessage = handle.state.messages.find { it.messageId == aiMessage.parentMessageId } ?: return
+        if (!canRegenerate(aiMessage, parentUserMessage)) return
 
         runWhenSendReady({}) { regenerateMessageNow(parentUserMessage) }
     }

@@ -78,6 +78,24 @@ class CompactionTest {
     }
 
     @Test
+    fun aSummaryOrErrorPartMarkedByTheUserIsAUserInitiatedCompaction() {
+        assertTrue(Compaction.isUserInitiatedCompaction(message(summary().copy(initiatedBy = "user"))))
+        assertTrue(
+            Compaction.isUserInitiatedCompaction(
+                message(MessageContentPart(type = ContentType.ERROR, initiatedBy = "user")),
+            ),
+        )
+        // Automatic summaries and compactions stored before the marker existed carry none.
+        assertFalse(Compaction.isUserInitiatedCompaction(message(summary())))
+        assertFalse(
+            Compaction.isUserInitiatedCompaction(
+                message(MessageContentPart(type = ContentType.TEXT, text = "hi", initiatedBy = "user")),
+            ),
+        )
+        assertFalse(Compaction.isUserInitiatedCompaction(null))
+    }
+
+    @Test
     fun assistantsEndpointsDoNotSupportCompaction() {
         // Their thread lives on the provider, so a summary in the local history compacts nothing.
         assertFalse(Compaction.supportsCompaction("assistants"))

@@ -21,6 +21,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.MessagesState
 import com.garfiec.librechat.feature.chat.viewmodel.ModelChoice
 import com.garfiec.librechat.feature.chat.viewmodel.ModelSelectionState
 import com.google.common.truth.Truth.assertThat
+import com.google.common.truth.Truth.assertWithMessage
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -269,6 +270,31 @@ class MessageEditingDelegateTest {
 
         val sent = f.chatRepository.sent.single()
         assertThat(sent.codeWorkspace).isNull()
+    }
+
+    @Test
+    fun `regenerate sends nothing for a reply with no user turn to replay`() = runTest {
+        val manual = MessageContentPart(type = ContentType.SUMMARY, text = "summary", initiatedBy = "user")
+        val chained = Message(messageId = "a2", conversationId = "c1", parentMessageId = "a1", text = "chained")
+        val atRoot = Message(messageId = "a0", conversationId = "c1", text = "root reply")
+        val summaryOnUser = reply(manual)
+        val summaryOnReply = chained.copy(content = listOf(manual))
+        val cases = mapOf(
+            "chained onto a reply" to (listOf(userTurn, reply(), chained) to "a2"),
+            "at the root" to (listOf(atRoot) to "a0"),
+            "manual compaction on a user turn" to (listOf(userTurn, summaryOnUser) to "a1"),
+            "manual compaction on a reply" to (listOf(userTurn, reply(), summaryOnReply) to "a2"),
+        )
+        for ((name, case) in cases) {
+            val f = Fixture(case.first)
+            f.delegate.regenerateMessage(case.second)
+            assertWithMessage(name).that(f.chatRepository.sent.map { it.text }).isEmpty()
+            assertWithMessage(name).that(f.readinessWaits).isEqualTo(0)
+        }
+
+        val f = Fixture(listOf(userTurn, reply()))
+        f.delegate.regenerateMessage("a1")
+        assertThat(f.chatRepository.sent.single().text).isEqualTo(userTurn.text)
     }
 
     // ── Seeding ──────────────────────────────────────────────────────
