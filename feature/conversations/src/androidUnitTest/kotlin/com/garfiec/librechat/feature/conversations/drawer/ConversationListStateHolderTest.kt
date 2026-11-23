@@ -511,6 +511,89 @@ class ConversationListStateHolderTest {
     }
 
     @Test
+    fun `a failed next page stops paging until a refresh`() = runTest {
+        coEvery { conversationRepository.loadNextPage(cursor = null) } returns Result.Success("p2")
+        coEvery { conversationRepository.loadNextPage(cursor = "p2") } returns Result.Error(IllegalStateException("offline"))
+        val holder = ConversationListStateHolder(conversationRepository, scope, dayBoundaries = emptyFlow())
+        advanceUntilIdle()
+
+        holder.loadMoreConversations()
+        advanceUntilIdle()
+        assertThat(holder.hasMore.value).isFalse()
+        holder.loadMoreConversations()
+        advanceUntilIdle()
+        coVerify(exactly = 1) { conversationRepository.loadNextPage(cursor = "p2") }
+
+        holder.refreshConversations()
+        advanceUntilIdle()
+        assertThat(holder.hasMore.value).isTrue()
+        holder.loadMoreConversations()
+        advanceUntilIdle()
+        coVerify(exactly = 2) { conversationRepository.loadNextPage(cursor = "p2") }
+    }
+
+    @Test
+    fun `the stale reload resumes paging after a failed next page`() = runTest {
+        coEvery { conversationRepository.loadNextPage(cursor = null) } returns Result.Success("p2")
+        coEvery { conversationRepository.loadNextPage(cursor = "p2") } returns Result.Error(IllegalStateException("offline"))
+        val holder = staleHolder()
+        advanceUntilIdle()
+        holder.loadMoreConversations()
+        advanceUntilIdle()
+        assertThat(holder.hasMore.value).isFalse()
+        coEvery { conversationRepository.loadNextPage(cursor = "p2") } returns Result.Success(null)
+
+        nowMs += 6.minutes.inWholeMilliseconds
+        holder.refreshIfStale()
+        advanceUntilIdle()
+
+        assertThat(holder.hasMore.value).isTrue()
+        holder.loadMoreConversations()
+        advanceUntilIdle()
+        coVerify(exactly = 2) { conversationRepository.loadNextPage(cursor = "p2") }
+        assertThat(holder.hasMore.value).isFalse()
+
+        nowMs += 6.minutes.inWholeMilliseconds
+        holder.refreshIfStale()
+        advanceUntilIdle()
+        assertThat(holder.hasMore.value).isFalse()
+    }
+
+    @Test
+    fun `a failed first page stops paging until it reloads`() = runTest {
+        coEvery { conversationRepository.loadNextPage(cursor = null) } returns Result.Error(IllegalStateException("offline"))
+        val holder = ConversationListStateHolder(conversationRepository, scope, dayBoundaries = emptyFlow())
+        advanceUntilIdle()
+
+        assertThat(holder.listLoad.value).isEqualTo(ListLoad.FAILED)
+        assertThat(holder.hasMore.value).isFalse()
+        holder.loadMoreConversations()
+        advanceUntilIdle()
+        coVerify(exactly = 1) { conversationRepository.loadNextPage(cursor = null) }
+    }
+
+    @Test
+    fun `a failed filtered next page stops paging`() = runTest {
+        every { conversationRepository.observeConversations(any()) } returns MutableStateFlow(Result.Success(convos))
+        val filters = ConversationListFilters(hasFiles = true)
+        coEvery { conversationRepository.getConversationsFiltered(filters, null, null, any()) } returns
+            Result.Success(ConversationPage(listOf(convos[0]), nextCursor = "f2"))
+        coEvery { conversationRepository.getConversationsFiltered(filters, "f2", null, any()) } returns
+            Result.Error(IllegalStateException("offline"))
+        val holder = ConversationListStateHolder(conversationRepository, scope, dayBoundaries = emptyFlow())
+        advanceUntilIdle()
+        holder.setFilters(filters)
+        advanceUntilIdle()
+        assertThat(holder.hasMore.value).isTrue()
+
+        holder.loadMoreConversations()
+        advanceUntilIdle()
+
+        assertThat(holder.hasMore.value).isFalse()
+        assertThat(visibleIds(holder)).containsExactly("c1")
+    }
+
+    @Test
     fun `a query over a filtered list stays on-device while server search is off`() = runTest {
         every { conversationRepository.observeConversations(any()) } returns MutableStateFlow(Result.Success(convos))
         val filters = ConversationListFilters(endpoints = listOf("openAI"))

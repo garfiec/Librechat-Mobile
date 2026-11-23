@@ -213,6 +213,22 @@ data class DrawerFilterOptions(
     val isOnline: Boolean = true,
 )
 
+/**
+ * Whether the drawer should fetch its next page. The loading flags make this drop to false during a
+ * load, so it fires again after a page that only re-delivered cached chats and left the list as long.
+ * Not while searching: the results are short, and paging would fetch the whole history behind them.
+ */
+fun DrawerUiState.shouldLoadMore(lastVisibleIndex: Int, totalItems: Int): Boolean =
+    totalItems > 0 &&
+        lastVisibleIndex >= totalItems - LOAD_MORE_THRESHOLD &&
+        hasMore &&
+        !isLoadingMore &&
+        !isRefreshing &&
+        listLoad != ListLoad.PENDING &&
+        searchQuery.isBlank()
+
+private const val LOAD_MORE_THRESHOLD = 8
+
 /** The unfiltered drawer list's first page: not answered yet, answered, or failed. */
 enum class ListLoad { PENDING, LOADED, FAILED }
 
