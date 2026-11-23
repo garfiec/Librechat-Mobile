@@ -24,6 +24,7 @@ import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -66,6 +67,7 @@ class MessageEditingDelegateTest {
         holdsSend: Boolean = false,
         codeWorkspace: () -> CodeWorkspaceSubmission? = { CodeWorkspaceSubmission.NONE },
         val messageRepository: MessageRepository = mockk(relaxed = true),
+        val treeDelegate: MessageTreeDelegate = mockk(relaxed = true),
     ) {
         val flow = MutableStateFlow(
             ChatUiState(
@@ -86,7 +88,7 @@ class MessageEditingDelegateTest {
             handle = MessageEditingHandle(ChatStateHandle(flow, CoroutineScope(Dispatchers.Unconfined))),
             chatRepository = chatRepository,
             messageRepository = messageRepository,
-            treeDelegate = mockk(relaxed = true),
+            treeDelegate = treeDelegate,
             streamingManager = mockk(relaxed = true),
             requestBuilder = mockk<ChatRequestBuilder>(relaxed = true),
             // The readiness gate normally lets the send through; `refuseSend` exercises the path
@@ -404,6 +406,20 @@ class MessageEditingDelegateTest {
         assertThat(sent.responseMessageId).isNull()
         assertThat(sent.isEdited).isFalse()
         assertThat(sent.isRegenerate).isTrue()
+    }
+
+    @Test
+    fun `continue asks for a new reply id and keeps the stopped one`() = runTest {
+        val f = Fixture(listOf(userTurn, reply()))
+
+        f.delegate.continueGeneration()
+
+        val sent = f.chatRepository.sent.single()
+        // The stopped reply's own id would be overwritten by the server's upsert; `<id>_` is swapped
+        // for a fresh id, so the stopped reply stays as a sibling version.
+        assertThat(sent.responseMessageId).isEqualTo("a1_")
+        assertThat(sent.isContinued).isTrue()
+        verify { f.treeDelegate.anchorStreamTo("u1") }
     }
 
     @Test

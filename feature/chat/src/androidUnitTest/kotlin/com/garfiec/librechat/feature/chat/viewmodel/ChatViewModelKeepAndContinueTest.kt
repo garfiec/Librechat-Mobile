@@ -154,7 +154,7 @@ class ChatViewModelKeepAndContinueTest {
             val continued = sends.last()
             assertThat(sends).hasSize(2)
             assertThat(continued.isContinued).isTrue()
-            assertThat(continued.responseMessageId).isEqualTo(KEPT_ID)
+            assertThat(continued.responseMessageId).isEqualTo("${KEPT_ID}_")
             assertThat(continued.addedConvo).isNull()
             // Lane B's answer is continued by lane B's model, not by the chat's (lane A's).
             assertThat(continued.endpoint).isEqualTo(SECOND_ENDPOINT)
@@ -300,7 +300,7 @@ class ChatViewModelKeepAndContinueTest {
             runCurrent()
 
             assertThat(sends.single().isContinued).isTrue()
-            assertThat(sends.single().responseMessageId).isEqualTo(KEPT_ID)
+            assertThat(sends.single().responseMessageId).isEqualTo("${KEPT_ID}_")
             assertThat(vm.uiState.value.isStreaming).isTrue()
             assertThat(vm.uiState.value.error).isNotEqualTo(ChatNotice.CONTINUE_RESPONSE_FAILED.marker())
             // Keeping lane B in a saved chat is a pick like any other.

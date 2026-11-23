@@ -179,7 +179,7 @@ class MessageTreeDelegate(
     /**
      * The `activeBranches` keys under which this Final put a new sibling: the request's when it took
      * this turn's optimistic slot or had no reply in [before] (a re-attached edit or retry has no
-     * optimistic id), and the response's when its id wasn't in [before] (a Continue reuses it).
+     * optimistic id), and the response's when its id wasn't in [before].
      * A compaction's request is the existing branch leaf, so it never counts as new.
      */
     private fun appendedSiblingKeys(
