@@ -415,8 +415,6 @@ class MessageEditingDelegateTest {
         f.delegate.continueGeneration()
 
         val sent = f.chatRepository.sent.single()
-        // The stopped reply's own id would be overwritten by the server's upsert; `<id>_` is swapped
-        // for a fresh id, so the stopped reply stays as a sibling version.
         assertThat(sent.responseMessageId).isEqualTo("a1_")
         assertThat(sent.isContinued).isTrue()
         verify { f.treeDelegate.anchorStreamTo("u1") }
