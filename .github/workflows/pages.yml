@@ -1,7 +1,8 @@
 name: Website
 
 # Builds site/ with the live demo (:web:demo:assembleSite) and publishes it to GitHub Pages.
-# The repo's Pages source must be "GitHub Actions".
+# The repo's Pages source must be "GitHub Actions", and the github-pages environment must allow
+# tags `v*` as well as develop: a release run's ref is its tag, and the deploy is refused otherwise.
 on:
   push:
     branches: [ develop ]
@@ -16,6 +17,10 @@ on:
       - 'feature/*/ui/**'
       - 'build-logic/**'
       - 'gradle/libs.versions.toml'
+      - 'gradle/wrapper/**'
+      - 'build.gradle.kts'
+      - 'gradle.properties'
+      - 'version.properties'
       - 'settings.gradle.kts'
       - 'kotlin-js-store/**'
       - '.github/workflows/pages.yml'
@@ -28,10 +33,9 @@ concurrency:
   group: pages
   cancel-in-progress: false
 
+# Only deploy gets pages/id-token: the build runs Gradle and its plugins with GITHUB_TOKEN in the env.
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 jobs:
   build:
@@ -73,6 +77,9 @@ jobs:
     name: Deploy
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

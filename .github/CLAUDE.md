@@ -54,7 +54,8 @@ Setup runbooks for every release workflow: `docs/RELEASING.md`.
 - Always builds `develop` (a release run would otherwise check out its tag's older site), with
   `-Plibrechat.web=true -Psite.strict :web:demo:assembleSite` and full history (tags feed
   Compatibility and the home page's tested range) and deploys `web/demo/build/site` to GitHub Pages
-  (repo setting: Pages source = GitHub Actions). Strict fails the deploy when a generated page can't be filled.
+  (repo settings: Pages source = GitHub Actions; the `github-pages` environment allows `develop` and tags
+  `v*`, since a release run's ref is its tag). Strict fails the deploy when a generated page can't be filled.
 
 ## CI — `.github/workflows/ci.yml`
 Triggers: push to `develop`, PRs targeting `develop`. Concurrency cancels in-progress runs on the same branch.
