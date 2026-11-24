@@ -47,6 +47,16 @@ Setup runbooks for every release workflow: `docs/RELEASING.md`.
   watch: whoever last changed its `cron:` line); nothing posts to issues or releases. GitHub disables
   scheduled workflows after 60 days without repository activity.
 
+## Website — `.github/workflows/pages.yml`
+- Triggers: push to `develop` touching the site, the demo or the UI modules it renders (the `paths:` list),
+  a release published or edited (What's new reads the Highlights, often added after publishing;
+  drafts skip), and `workflow_dispatch`. A module the demo newly depends on goes in `paths:`.
+- Always builds `develop` (a release run would otherwise check out its tag's older site), with
+  `-Plibrechat.web=true -Psite.strict :web:demo:assembleSite` and full history (tags feed
+  Compatibility and the home page's tested range) and deploys `web/demo/build/site` to GitHub Pages
+  (repo settings: Pages source = GitHub Actions; the `github-pages` environment allows `develop` and tags
+  `v*`, since a release run's ref is its tag). Strict fails the deploy when a generated page can't be filled.
+
 ## CI — `.github/workflows/ci.yml`
 Triggers: push to `develop`, PRs targeting `develop`. Concurrency cancels in-progress runs on the same branch.
 
