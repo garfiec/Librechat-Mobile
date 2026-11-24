@@ -1,0 +1,83 @@
+name: Website
+
+# Builds site/ with the live demo (:web:demo:assembleSite) and publishes it to GitHub Pages.
+# The repo's Pages source must be "GitHub Actions".
+on:
+  push:
+    branches: [ develop ]
+    paths:
+      - 'site/**'
+      - 'web/demo/**'
+      - 'scripts/site-pages.py'
+      - 'docs/PRIVACY.md'
+      - 'core/ui/**'
+      - 'core/model/**'
+      - 'core/common/**'
+      - 'feature/*/ui/**'
+      - 'build-logic/**'
+      - 'gradle/libs.versions.toml'
+      - 'settings.gradle.kts'
+      - 'kotlin-js-store/**'
+      - '.github/workflows/pages.yml'
+  # What's new lists published releases and their Highlights, which are often added after publishing.
+  release:
+    types: [ published, edited ]
+  workflow_dispatch:
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    name: Build
+    if: github.event_name != 'release' || !github.event.release.draft
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          # A release run would check out its tag, which would deploy that tag's older site.
+          ref: develop
+          # Compatibility and the home page's tested range come from every release tag.
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6.4.1
+
+      # -Psite.strict fails the build when a generated page can't be filled, rather than
+      # deploying it with only its link to GitHub.
+      - name: Build the site
+        run: ./gradlew -Plibrechat.web=true -Psite.strict :web:demo:assembleSite
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload the site
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: web/demo/build/site
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
