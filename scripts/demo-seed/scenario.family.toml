@@ -1,0 +1,59 @@
+# A third demo account for the website's account switcher: a shared family login. Its chats
+# are kids, dinner and a road trip, so switching accounts visibly changes the whole drawer.
+# Mayor Whiskers, the cat from the main scenario, stars in the bedtime story.
+
+[account]
+name = "Family"
+starred_roles = ["smart", "fast"]
+
+[[chats]]
+key = "bedtime"
+title = "Mayor Whiskers and the dark lighthouse"
+role = "smart"
+pinned = true
+[[chats.turns]]
+text = "Bedtime story: Mayor Whiskers and the lighthouse that went dark. Five minutes to read, gentle ending."
+
+[[chats]]
+key = "sky"
+title = "Why is the sky blue?"
+role = "fast"
+[[chats.turns]]
+text = "Why is the sky blue? Explain it to a 7-year-old."
+
+[[chats]]
+key = "dinner"
+title = "Dinner from what's in the fridge"
+role = "smart"
+[[chats.turns]]
+text = "What can I make for dinner with eggs, spinach, half an onion, feta and some leftover rice? Kids are hungry."
+
+[[chats]]
+key = "chores"
+title = "Chore chart for the kids"
+role = "smart"
+[[chats.turns]]
+text = "Chore chart for two kids, 8 and 11. The robot vacuum wants a row too."
+
+[[chats]]
+key = "party"
+title = "Birthday party run sheet"
+role = "smart"
+[[chats.turns]]
+text = "Plan a 9-year-old's birthday party at home: 10 kids, two hours, and I'd like to survive it."
+
+[[chats]]
+key = "snacks"
+title = "Road trip snacks that won't melt"
+role = "fast"
+project = "Summer road trip"
+[[chats.turns]]
+text = "Road trip snacks for a 6-hour drive with kids that won't melt in the car."
+
+[[chats]]
+key = "car-games"
+title = "Car games, no screens"
+role = "fast"
+project = "Summer road trip"
+[[chats.turns]]
+text = "Car games for a long drive. No screens."

@@ -32,6 +32,7 @@ feature/files/        → File upload, management, image viewer
 feature/schedules/    → Scheduled chats
 feature/skills/       → Skills list, detail, editor
 feature/<x>/ui/       → Each feature's stateless UI, strings and previews; also builds for the browser
+web/demo/             → Browser (wasmJs) demo rendering the real UI with sample data; only with -Plibrechat.web=true
 testing/speech-fixture/ → Stand-in speech provider APK for scripts/verify-speech-services.py (never ships)
 ```
 

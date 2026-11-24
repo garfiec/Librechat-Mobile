@@ -35,7 +35,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-from PIL import Image, ImageChops
+from PIL import Image, ImageChops, ImageDraw
 
 ANDROID_SKINS = Path.home() / "Library/Android/sdk/skins"
 DEVICE_TYPES = Path("/Library/Developer/CoreSimulator/Profiles/DeviceTypes")
@@ -55,15 +55,45 @@ def android_layout(skin_dir: Path) -> tuple[tuple[int, int], tuple[int, int]]:
     return (int(display[1]), int(display[2])), (int(device[1]), int(device[2]))
 
 
+def android_skin_dir(skin: str, posture: str) -> Path:
+    """A foldable's skin keeps one folder per posture; a phone's skin is a single posture with
+    its files at the skin's root, which this calls "portrait"."""
+    return ANDROID_SKINS / skin if posture == "portrait" else ANDROID_SKINS / skin / posture
+
+
+def android_postures(skin: str) -> list[str]:
+    root = ANDROID_SKINS / skin
+    return ["portrait"] if (root / "layout").exists() else ["closed", "default"]
+
+
+def android_screen_mask(skin_dir: Path) -> Image.Image | None:
+    """The display's rounded corners as an L mask, for a skin that gives a `corner_radius` instead of
+    painting the corners in its mask.webp (the Pixel 9 Pro's mask is empty). None when it gives none."""
+    text = (skin_dir / "layout").read_text()
+    radius = re.search(r"display\s*\{[^}]*?corner_radius\s+(\d+)", text, re.S)
+    if not radius:
+        return None
+    size, _ = android_layout(skin_dir)
+    scale = 4  # drawn large and scaled down, for a smooth edge
+    big = Image.new("L", (size[0] * scale, size[1] * scale), 0)
+    ImageDraw.Draw(big).rounded_rectangle((0, 0, big.width - 1, big.height - 1),
+                                          radius=int(radius[1]) * scale, fill=255)
+    return big.resize(size, Image.LANCZOS)
+
+
 def frame_android(raw: Image.Image, posture: str, skin: str = "pixel_10_pro_fold") -> Image.Image:
-    skin_dir = ANDROID_SKINS / skin / posture
+    skin_dir = android_skin_dir(skin, posture)
     size, offset = android_layout(skin_dir)
     if raw.size != size:
         raise SystemExit(f"screenshot is {raw.size[0]}x{raw.size[1]}, but the {posture} "
                          f"display is {size[0]}x{size[1]}. Capture the right display "
                          "(screencap -d <id>) in the right posture.")
     frame = Image.open(skin_dir / "back.webp").convert("RGBA")
-    frame.alpha_composite(raw.convert("RGBA"), offset)
+    raw = raw.convert("RGBA")
+    corners = android_screen_mask(skin_dir)
+    if corners is not None:
+        raw.putalpha(ImageChops.multiply(raw.getchannel("A"), corners))
+    frame.alpha_composite(raw, offset)
     frame.alpha_composite(Image.open(skin_dir / "mask.webp").convert("RGBA"), offset)
     return frame
 
@@ -203,6 +233,14 @@ def self_test() -> int:
         centre = framed.getpixel((offset[0] + size[0] // 2, offset[1] + size[1] // 2))
         check(f"android {posture}: outside the device stays transparent", corner[3] == 0)
         check(f"android {posture}: the screen shows through", centre[:3] == (255, 0, 0))
+
+    phone = ANDROID_SKINS / "pixel_9_pro"
+    if (phone / "layout").exists():
+        size, offset = android_layout(phone)
+        framed = frame_android(Image.new("RGBA", size, (255, 0, 0, 255)), "portrait", "pixel_9_pro")
+        screen_corner = framed.getpixel((offset[0] + 2, offset[1] + 2))
+        check("android pixel_9_pro: the screen's corner is cut to the display's radius",
+              screen_corner[:3] != (255, 0, 0) or screen_corner[3] == 0)
 
     if (DEVICE_TYPES / "iPhone 17 Pro.simdevicetype").exists() and shutil.which("pdftocairo"):
         raw = Image.new("RGBA", (1206, 2622), (0, 128, 255, 255))

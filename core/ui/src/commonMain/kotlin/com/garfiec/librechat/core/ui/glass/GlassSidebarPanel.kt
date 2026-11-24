@@ -1,4 +1,4 @@
-package com.garfiec.librechat.shared.navigation
+package com.garfiec.librechat.core.ui.glass
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
@@ -13,13 +13,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.unit.dp
-import com.garfiec.librechat.core.ui.glass.GlassBackdrop
-import com.garfiec.librechat.core.ui.glass.GlassStyle
-import com.garfiec.librechat.core.ui.glass.glassSurface
 
-/** Without a [backdrop] it draws an explicit shadow: only the backdrop path draws its own. */
+/**
+ * The Liquid Glass sidebar panel: a rounded glass card inset from the window edge. Without a
+ * [backdrop] it draws an explicit shadow: only the backdrop path draws its own.
+ */
 @Composable
-internal fun GlassSidebarPanel(
+fun GlassSidebarPanel(
     style: GlassStyle,
     backdrop: GlassBackdrop?,
     modifier: Modifier = Modifier,

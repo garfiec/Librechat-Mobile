@@ -46,6 +46,7 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -67,6 +68,7 @@ import com.garfiec.librechat.feature.conversations.resources.projects
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
 /**
@@ -95,24 +97,34 @@ internal class LibrarySwitch(private val scope: CoroutineScope, tab: DrawerTab) 
     // Where the drag has carried the thumb. Kept apart from [progress], whose snaps land a frame later.
     private var dragAt = 0f
 
-    fun startDrag() {
+    // The cell the drag began on, and how far (in panels) the pointer has moved since.
+    private var pressed = tab
+    private var travel = 0f
+
+    fun startDrag(pressed: DrawerTab) {
         dragging = true
         dragAt = progress.value
+        this.pressed = pressed
+        travel = 0f
         leaveRest()
     }
 
     /** Moves the thumb by [panels] (a whole cell is one). */
     fun dragBy(panels: Float) {
+        travel += abs(panels)
         dragAt = (dragAt + panels).coerceIn(0f, 1f)
         scope.launch { progress.snapTo(dragAt) }
     }
 
     /**
      * Settles a drag on the side it was flung toward, or else the nearer one, and returns that tab.
-     * Both velocities are in panels per second.
+     * Both velocities are in panels per second. A drag shorter than [tapSlop] panels settles on the
+     * cell it was pressed on: a mouse starts a drag at a fraction of the touch slop, so a click that
+     * moves a pixel would otherwise do nothing.
      */
-    fun release(velocity: Float, flingVelocity: Float): DrawerTab {
+    fun release(velocity: Float, flingVelocity: Float, tapSlop: Float): DrawerTab {
         val tab = when {
+            travel < tapSlop -> pressed
             velocity > flingVelocity -> DrawerTab.Projects
             velocity < -flingVelocity -> DrawerTab.Chats
             dragAt >= 0.5f -> DrawerTab.Projects
@@ -122,12 +134,16 @@ internal class LibrarySwitch(private val scope: CoroutineScope, tab: DrawerTab) 
         return tab
     }
 
-    /** Springs to [tab]; [velocity] is in panels per second. */
+    /**
+     * Springs to [tab]; [velocity] is in panels per second. Velocity heading away from [tab] is
+     * dropped: the bounds would stop the spring at the far end, with the thumb never moving.
+     */
     fun settle(tab: DrawerTab, velocity: Float = 0f) {
         leaveRest()
         dragging = false
         target = tab
-        scope.launch { progress.animateTo(tab.position, SettleSpring, velocity) }
+        val toward = if ((tab.position - progress.value) * velocity > 0f) velocity else 0f
+        scope.launch { progress.animateTo(tab.position, SettleSpring, toward) }
     }
 
     /** Jumps straight to [tab], for a change that didn't come from the toggle. */
@@ -256,6 +272,8 @@ internal fun DrawerTabToggle(
     val cellWidth = min(rememberCellWidth(listOf(chatsLabel, projectsLabel)), (maxWidth - TrackInset * 2) / 2)
     val cellPx = with(density) { cellWidth.toPx() }
     val flingPx = with(density) { FlingVelocity.toPx() }
+    val insetPx = with(density) { TrackInset.toPx() }
+    val touchSlop = LocalViewConfiguration.current.touchSlop
     val select = { tab: DrawerTab ->
         switch.settle(tab)
         if (tab != selectedTab) onSelect(tab)
@@ -269,9 +287,13 @@ internal fun DrawerTabToggle(
                 state = rememberDraggableState { delta -> switch.dragBy(delta / cellPx) },
                 orientation = Orientation.Horizontal,
                 reverseDirection = rtl,
-                onDragStarted = { switch.startDrag() },
+                onDragStarted = { start ->
+                    // Pointer x is physical, so Chats is the right-hand cell in RTL.
+                    val left = start.x < insetPx + cellPx
+                    switch.startDrag(pressed = if (left != rtl) DrawerTab.Chats else DrawerTab.Projects)
+                },
                 onDragStopped = { velocity ->
-                    val tab = switch.release(velocity / cellPx, flingPx / cellPx)
+                    val tab = switch.release(velocity / cellPx, flingPx / cellPx, touchSlop / cellPx)
                     if (tab != selectedTab) onSelect(tab)
                 },
             )

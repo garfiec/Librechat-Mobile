@@ -33,7 +33,10 @@ internal expect fun keyboardRising(): Boolean
 /** How open the composer is, 0 folded to 1 open. Read it in layout or drawing, not in composition. */
 @Composable
 internal fun rememberComposerOpenness(canFold: Boolean, holdsOpen: Boolean, focused: Boolean): () -> Float {
-    val open = !canFold || holdsOpen || (focused && keyboardRising())
+    // Read on every composition, not behind the conditions: the browser's watcher starts on its first read
+    // and must see the page before a keyboard opens.
+    val keyboardUp = keyboardRising()
+    val open = !canFold || holdsOpen || (focused && keyboardUp)
     val openness = animateFloatAsState(if (open) 1f else 0f, FoldSpec, label = "composerFold")
     return remember(openness) { { openness.value } }
 }

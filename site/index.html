@@ -1,0 +1,498 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Switchboard</title>
+  <meta name="description" content="Switchboard is LibreChat as a real app for Android and iOS. One app to chat with all your AI models.">
+  <link rel="icon" href="favicon.ico" sizes="48x48">
+  <link rel="icon" href="icons/icon-192.png" type="image/png" sizes="192x192">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="./"><img class="brand-mark" src="icons/icon-64.png" width="28" height="28" alt="">Switchboard</a>
+    <nav class="site-nav" aria-label="Main">
+      <a class="hide-sm" href="#features">Features</a>
+      <a class="hide-sm" href="#faq">FAQ</a>
+      <a class="hide-sm" href="demo.html">Live demo</a>
+      <a class="hide-sm" href="admins.html">For admins</a>
+      <a class="btn" href="#get">Get the app</a>
+      <button class="menu-btn" type="button" popovertarget="site-menu" aria-label="Menu"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+    </nav>
+    <nav id="site-menu" class="site-menu" popover aria-label="Menu" onclick="if (event.target.closest('a')) this.hidePopover()">
+      <a href="#features">Features</a>
+      <a href="#faq">FAQ</a>
+      <a href="demo.html">Live demo</a>
+      <a href="admins.html">For admins</a>
+      <a href="changelog.html">What's new</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+  <!-- The copy block appears twice: inside the Material half (wide screens) and above the split
+       (narrow screens). The Glass half gets a script-made clone. Edit both static copies together. -->
+  <section class="hero" id="get">
+    <div class="hero-copy hero-copy-narrow wrap">
+      <h1>One app to chat with all your AI models</h1>
+      <p class="lede">All of LibreChat, built for Android and iOS. The chats you're used to, faster and more natural on a phone.</p>
+      <div class="badges">
+        <a class="badge" href="https://play.google.com/store/apps/details?id=com.garfiec.librechat.play">Google Play</a>
+        <a class="badge" href="https://f-droid.org/packages/com.garfiec.librechat/">F-Droid</a>
+        <a class="badge" href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/garfiec/Librechat-Mobile">Obtainium</a>
+        <a class="badge" href="https://testflight.apple.com/join/pVhFr3a5">TestFlight (iOS beta)</a>
+      </div>
+      <p class="compat-note">Works with LibreChat <!-- generated:range -->v0.8.4 – v0.8.9-rc1<!-- /generated -->. <a href="compatibility.html">Which version do I need?</a></p>
+            <a class="try-link" href="demo.html">Try it in your browser →</a>
+    </div>
+
+    <div class="split" id="split">
+      <div class="half material">
+        <div class="wrap half-inner">
+          <div class="hero-copy hero-copy-wide">
+            <h1>One app to chat with all your AI models</h1>
+            <p class="lede">All of LibreChat, built for Android and iOS. The chats you're used to, faster and more natural on a phone.</p>
+            <div class="badges">
+              <a class="badge" href="https://play.google.com/store/apps/details?id=com.garfiec.librechat.play">Google Play</a>
+              <a class="badge" href="https://f-droid.org/packages/com.garfiec.librechat/">F-Droid</a>
+              <a class="badge" href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/garfiec/Librechat-Mobile">Obtainium</a>
+              <a class="badge" href="https://testflight.apple.com/join/pVhFr3a5">TestFlight (iOS beta)</a>
+            </div>
+            <p class="compat-note">Works with LibreChat <!-- generated:range -->v0.8.4 – v0.8.9-rc1<!-- /generated -->. <a href="compatibility.html">Which version do I need?</a></p>
+            <a class="try-link" href="demo.html">Try it in your browser →</a>
+          </div>
+          <picture class="hero-pic">
+            <source media="(prefers-color-scheme: dark)" srcset="img/looks/material-dark-blue.webp">
+            <img class="hero-phone" data-style="material" src="img/looks/material-light-blue.webp" width="600" height="1267" fetchpriority="high"
+                 alt="The car wash chat in the Material look">
+          </picture>
+        </div>
+      </div>
+
+      <div class="half glass" aria-hidden="true">
+        <div class="wrap half-inner">
+          <div class="hero-copy-slot"></div>
+          <picture class="hero-pic">
+            <source media="(prefers-color-scheme: dark)" srcset="img/looks/glass-dark-blue.webp">
+            <img class="hero-phone" data-style="glass" src="img/looks/glass-light-blue.webp" width="600" height="1267" fetchpriority="high" alt="">
+          </picture>
+        </div>
+      </div>
+
+      <span class="look-tag look-tag-l">Material</span>
+      <span class="look-tag look-tag-r">Liquid Glass</span>
+      <div class="divider" id="divider" role="slider" tabindex="0" aria-label="Compare Material and Liquid Glass" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50"><span aria-hidden="true">‹ ›</span></div>
+      <div class="hero-swatches" role="group" aria-label="Accent color">
+        <button type="button" data-c="#3B82F6" data-accent="blue" style="background:#3B82F6" aria-label="Blue" aria-pressed="true"></button>
+        <button type="button" data-c="#22C55E" data-accent="green" style="background:#22C55E" aria-label="Green" aria-pressed="false"></button>
+        <button type="button" data-c="#EC4899" data-accent="pink" style="background:#EC4899" aria-label="Pink" aria-pressed="false"></button>
+        <button type="button" data-c="#F97316" data-accent="orange" style="background:#F97316" aria-label="Orange" aria-pressed="false"></button>
+      </div>
+    </div>
+  </section>
+
+  <section id="looks">
+    <div class="wrap">
+      <p class="eyebrow">Make it yours</p>
+      <h2>Two looks, one app</h2>
+      <p class="lede">Material or Liquid Glass on Android or iPhone, any accent color with the whole app recoloring around it, or, on Android 12 and later, colors from your wallpaper.</p>
+      <div class="picker" id="picker">
+        <div class="segmented" role="group" aria-label="Style">
+          <button type="button" data-style="Material" aria-pressed="true">Material</button>
+          <button type="button" data-style="Liquid Glass" aria-pressed="false">Liquid Glass</button>
+        </div>
+        <div class="segmented" role="group" aria-label="Theme">
+          <button type="button" data-mode="light" aria-pressed="true">Light</button>
+          <button type="button" data-mode="dark" aria-pressed="false">Dark</button>
+        </div>
+        <div class="swatches" role="group" aria-label="Accent color">
+          <button type="button" class="swatch" data-accent="blue" style="background:#3B82F6" aria-label="Blue" aria-pressed="true"></button>
+          <button type="button" class="swatch" data-accent="green" style="background:#22C55E" aria-label="Green" aria-pressed="false"></button>
+          <button type="button" class="swatch" data-accent="pink" style="background:#EC4899" aria-label="Pink" aria-pressed="false"></button>
+          <button type="button" class="swatch" data-accent="orange" style="background:#F97316" aria-label="Orange" aria-pressed="false"></button>
+        </div>
+      </div>
+      <div class="looks-stage" id="looks-preview">
+        <img class="on" src="img/looks/material-light-blue.webp" width="600" height="1267" loading="lazy"
+             alt="The car wash chat in Material, light, with the blue accent">
+        <img src="img/looks/material-light-blue.webp" width="600" height="1267" loading="lazy" alt="" aria-hidden="true">
+      </div>
+    </div>
+  </section>
+
+  <section id="native">
+    <div class="wrap">
+      <p class="eyebrow">It's a real app</p>
+      <h2>Not a website in a wrapper</h2>
+
+      <div class="feature">
+        <div class="feature-copy">
+          <h3>Smoother and faster</h3>
+          <p class="muted">Scrolling, typing and watching answers stream in all feel snappier than in a browser.</p>
+        </div>
+        <div class="feature-media"><video muted loop playsinline preload="none" poster="img/streaming-phone.webp" width="600" height="1268" aria-label="An answer streaming in"><source src="img/streaming-phone-dark.mp4" type="video/mp4" media="(prefers-color-scheme: dark)"><source src="img/streaming-phone.mp4" type="video/mp4"></video></div>
+      </div>
+
+      <div class="feature">
+        <div class="feature-copy">
+          <h3>You already know how to use it</h3>
+          <p class="muted">Switchboard works like the rest of your phone, so there's nothing to figure out. Swipe back from anywhere. Swipe right for your chats. Swipe between two models' answers. Your model, tools and attachments sit right where you type, not behind a menu. And on iPhone and on Android 14 or later, going back shows you where you're headed before you let go.</p>
+        </div>
+        <div class="feature-media"><video muted loop playsinline preload="none" poster="img/predictive-back-phone.webp" width="600" height="1268" aria-label="The back gesture showing the chat list behind the chat before letting go"><source src="img/predictive-back-phone-dark.mp4" type="video/mp4" media="(prefers-color-scheme: dark)"><source src="img/predictive-back-phone.mp4" type="video/mp4"></video></div>
+      </div>
+
+      <div class="feature">
+        <div class="feature-copy">
+          <h3>It tells you when it's done</h3>
+          <p class="muted">Leave while a long answer is still writing and get a notification when it finishes, or when one of your scheduled chats runs. On iPhone, reply notifications work for about 30 seconds after you leave, and scheduled-chat notifications arrive when iOS lets the app check in the background.</p>
+        </div>
+        <div class="feature-media"><img src="img/notification-phone.webp" width="600" height="1267" loading="lazy" alt="A notification that a reply has finished"></div>
+      </div>
+
+      <div class="feature">
+        <div class="feature-copy">
+          <h3>Keep reading without a connection</h3>
+          <p class="muted">Your chat list and the conversations you've opened stay on your phone, so spotty signal doesn't stop you.</p>
+        </div>
+        <div class="feature-media"><img src="img/offline-phone.webp" width="600" height="1267" loading="lazy" alt="A chat open in airplane mode"></div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- The device switch shows one set of [data-show] children. -->
+  <section id="features" data-device="phone">
+    <div class="wrap">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow" data-show="phone">Built for a phone</p>
+          <p class="eyebrow" data-show="tablet">Built for tablets and foldables</p>
+          <h2>Same LibreChat, laid out for how you use it</h2>
+        </div>
+        <div class="segmented" role="group" aria-label="Device" id="device-switch">
+          <button type="button" data-device="phone" aria-pressed="true">Phone</button>
+          <button type="button" data-device="tablet" aria-pressed="false">Tablet &amp; foldable</button>
+        </div>
+      </div>
+      <div class="grid">
+        <article class="tile">
+          <div class="shot" data-show="phone"><img src="img/compare-phone.webp" width="600" height="1267" loading="lazy" alt="Two models answering the same question"></div>
+          <div class="shot" data-show="tablet"><img src="img/compare-tablet.webp" width="800" height="825" loading="lazy" alt="Two models side by side on a foldable"></div>
+          <h3>Compare models</h3>
+          <p data-show="phone">Ask two models the same question and swipe between their answers.</p>
+          <p data-show="tablet">Two answers side by side, scrolling together as you read.</p>
+        </article>
+        <article class="tile">
+          <div class="shot" data-show="phone"><video muted loop playsinline preload="none" poster="img/search-phone.webp" width="600" height="1268" aria-label="Searching every message for chocolate"><source src="img/search-phone-dark.mp4" type="video/mp4" media="(prefers-color-scheme: dark)"><source src="img/search-phone.mp4" type="video/mp4"></video></div>
+          <div class="shot" data-show="tablet"><img src="img/search-tablet.webp" width="800" height="825" loading="lazy" alt="Message search results on a foldable"></div>
+          <h3>Find anything</h3>
+          <p>Search every message in your chats, offline too for the ones saved on your phone, and land on the one you meant.</p>
+        </article>
+        <article class="tile">
+          <div class="shot" data-show="phone"><img src="img/media-phone.webp" width="600" height="1267" loading="lazy" alt="A chat's images, files and links in one place"></div>
+          <div class="shot" data-show="tablet"><img src="img/media-tablet.webp" width="800" height="825" loading="lazy" alt="A chat's media on a foldable"></div>
+          <h3>All your media</h3>
+          <p>Every image, file and link from a chat in one place.</p>
+        </article>
+        <article class="tile">
+          <div class="shot" data-show="phone"><video muted loop playsinline preload="none" poster="img/artifact-pin-phone.webp" width="600" height="1268" aria-label="Adding an app the AI built to the home screen, then opening it as its own app"><source src="img/artifact-pin-phone-dark.mp4" type="video/mp4" media="(prefers-color-scheme: dark)"><source src="img/artifact-pin-phone.mp4" type="video/mp4"></video></div>
+          <div class="shot" data-show="tablet"><img src="img/side-by-side-tablet.webp" width="800" height="825" loading="lazy" alt="An app the AI built, open beside the chat"></div>
+          <h3 data-show="phone">From chat to home screen</h3>
+          <h3 data-show="tablet">Apps beside the chat</h3>
+          <p data-show="phone">Apps and charts your AI builds run right in the chat. On Android, pin one to your home screen and it opens as its own app.</p>
+          <p data-show="tablet">The app your AI built stays open next to the conversation while you keep asking for changes.</p>
+        </article>
+        <article class="tile">
+          <div class="shot" data-show="phone"><video muted loop playsinline preload="none" poster="img/options-phone.webp" width="600" height="1268" aria-label="The sheet above the message box with the model, settings and tools"><source src="img/options-phone-dark.mp4" type="video/mp4" media="(prefers-color-scheme: dark)"><source src="img/options-phone.mp4" type="video/mp4"></video></div>
+          <div class="shot" data-show="tablet"><img src="img/options-tablet.webp" width="800" height="825" loading="lazy" alt="The model, settings and tools sheet on a foldable"></div>
+          <h3>Everything where you type</h3>
+          <p>Your model, its settings, tools and attachments in one sheet above the message box.</p>
+        </article>
+        <article class="tile">
+          <div class="shot" data-show="phone"><img src="img/agent-phone.webp" width="600" height="1267" loading="lazy" alt="An agent's questions, answered in the chat"></div>
+          <div class="shot" data-show="tablet"><img src="img/agent-tablet.webp" width="800" height="825" loading="lazy" alt="An agent's questions on a foldable"></div>
+          <h3>Answer your agents</h3>
+          <p>When an agent needs something from you, answer right in the chat.</p>
+        </article>
+        <article class="tile">
+          <div class="shot"><img src="img/share-in-phone.webp" width="600" height="1267" loading="lazy" alt="A photo shared into Switchboard from another app"></div>
+          <h3>Plays nicely with your phone</h3>
+          <p>Share text, images and files in from any app on Android, and save or share what comes back out on both.</p>
+        </article>
+        <article class="tile">
+          <div class="shot"><video muted loop playsinline preload="none" poster="img/accounts-phone.webp" width="600" height="1268" aria-label="Switching between a personal, a work and a family account"><source src="img/accounts-phone-dark.mp4" type="video/mp4" media="(prefers-color-scheme: dark)"><source src="img/accounts-phone.mp4" type="video/mp4"></video></div>
+          <h3>Multiple accounts</h3>
+          <p>Sign in to different LibreChat servers and switch between them instantly.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section id="big-screens">
+    <div class="wrap">
+      <p class="eyebrow">Tablets and foldables</p>
+      <h2>More screen, more at once</h2>
+      <p class="lede">On a tablet or an unfolded phone the layout spreads out instead of stretching.</p>
+      <div class="two-up">
+        <figure>
+          <div class="feature-media"><video muted loop playsinline preload="none" poster="img/sidebar-tablet.webp" width="380" height="392" aria-label="The sidebar sliding away and back beside a chat"><source src="img/sidebar-tablet-dark.mp4" type="video/mp4" media="(prefers-color-scheme: dark)"><source src="img/sidebar-tablet.mp4" type="video/mp4"></video></div>
+          <figcaption class="caption">Your chats, projects and tools stay in a sidebar you can swipe away.</figcaption>
+        </figure>
+        <figure>
+          <div class="feature-media"><img src="img/artifact-ipad.webp" width="1100" height="1433" loading="lazy" alt="An app the AI built, open beside the chat on an iPad"></div>
+          <figcaption class="caption">The app your AI built stays open beside the chat.</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <section id="faq">
+    <div class="wrap narrow">
+      <p class="eyebrow">Before you install</p>
+      <h2>Questions</h2>
+      <details>
+        <summary>Do I need my own LibreChat server?</summary>
+        <p>You need an account on one. Switchboard doesn't come with a server: you connect it to a LibreChat server that you, your employer, your school or someone else runs.</p>
+      </details>
+      <details>
+        <summary>Is Switchboard made by the LibreChat team?</summary>
+        <p>No. Switchboard is an independent open-source app, not made by or affiliated with LibreChat. It connects to any standard LibreChat server, the same way the website does.</p>
+      </details>
+      <details>
+        <summary>How do I sign in?</summary>
+        <p>The same way you do on the web: with your email and password, or with the single sign-on your server offers, such as Google, GitHub or your organization's login. Two-factor authentication works too.</p>
+      </details>
+      <details>
+        <summary>What do I need to run it?</summary>
+        <p>An Android phone or tablet on Android 8 or later, or an iPhone or iPad on iOS 16 or later.</p>
+      </details>
+      <details>
+        <summary>Which LibreChat versions work?</summary>
+        <p><!-- generated:range -->v0.8.4 – v0.8.9-rc1<!-- /generated --> are tested. Newer releases work on a best-effort basis until the next update. See <a href="compatibility.html">compatibility</a>.</p>
+      </details>
+      <details>
+        <summary>Why not just add the web app to my home screen?</summary>
+        <p>You'd get an icon and a full-screen window, and that's about it. Switchboard reads your chats without a connection, switches between servers instantly, and dictates with your phone's own speech recognition. On Android it also takes files shared from other apps and pins the apps your AI builds to your home screen.</p>
+      </details>
+      <details>
+        <summary>Where is my data stored?</summary>
+        <p>On your LibreChat server, with a copy on your phone so you can read without a connection. Switchboard has no analytics, ads or tracking, and sends nothing to us. See the <a href="privacy.html">privacy policy</a>.</p>
+      </details>
+      <details>
+        <summary>Is it free and open source?</summary>
+        <p>Yes. It's free on every store, and the source is on <a href="https://github.com/garfiec/Librechat-Mobile">GitHub</a> under the Apache 2.0 license.</p>
+      </details>
+      <details>
+        <summary>Does it work behind Authelia or Cloudflare Access?</summary>
+        <p>Yes. Behind Authelia, the app offers to sign you in to it when you connect, once your admin has set it up. For Cloudflare Access service tokens and other gateways that check headers, you add the headers under <strong>Advanced</strong> when you connect. Your admin can find the details in <a href="admins.html#authelia">the admin guide</a>.</p>
+      </details>
+      <details>
+        <summary>Can I use a server with a self-signed certificate?</summary>
+        <p>Yes. Install the certificate authority that signed it on your phone, and the app trusts it. Phones check certificates more strictly than browsers, so it has to meet <a href="admins.html#tls">a few requirements</a>.</p>
+      </details>
+      <details>
+        <summary>Why is the iPhone version on TestFlight?</summary>
+        <p>The iPhone and iPad app is still in beta while it gets more stable. An App Store release is planned once it's ready. Until then, TestFlight installs it from Apple and keeps it updated. Each beta build lasts 90 days, and a newer one replaces it before then.</p>
+      </details>
+    </div>
+  </section>
+
+  <section class="cta">
+    <div class="wrap">
+      <h2>Your LibreChat, in your pocket</h2>
+      <p class="lede">Get it on Android or join the iPhone beta. Found a bug or want something? Open an issue.</p>
+      <a class="btn" href="#get">Get the app</a>
+      <a class="btn btn-ghost" href="https://github.com/garfiec/Librechat-Mobile/issues">Open an issue</a>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <nav aria-label="Footer">
+      <a href="https://github.com/garfiec/Librechat-Mobile">GitHub</a>
+      <a href="https://github.com/garfiec/Librechat-Mobile/releases">Releases</a>
+      <a href="changelog.html">What's new</a>
+      <a href="compatibility.html">Compatibility</a>
+      <a href="admins.html">For admins</a>
+      <a href="demo.html">Live demo</a>
+      <a href="verify.html">Verify your download</a>
+      <a href="privacy.html">Privacy</a>
+    </nav>
+    <p class="disclaimer">What you can do depends on your LibreChat server: its version, the models and features it enables, and how sign-in is set up. Switchboard is an independent project, not affiliated with LibreChat.</p>
+  </div>
+</footer>
+
+<script>
+  // Hero split: drag (or arrow-key) the divider between the two looks; swatches recolor both.
+  (function () {
+    var split = document.getElementById('split');
+    var divider = document.getElementById('divider');
+    var slot = split.querySelector('.hero-copy-slot');
+    var copy = split.querySelector('.hero-copy-wide').cloneNode(true);
+    copy.querySelectorAll('a').forEach(function (a) { a.tabIndex = -1; });
+    slot.replaceWith(copy);
+
+    var cut = 50;
+    function setCut(v) {
+      cut = Math.min(96, Math.max(4, v));
+      split.style.setProperty('--cut', cut + '%');
+      divider.setAttribute('aria-valuenow', String(Math.round(cut)));
+    }
+    function fromX(x) {
+      var r = split.getBoundingClientRect();
+      setCut((x - r.left) / r.width * 100);
+    }
+    var dragging = false;
+    split.addEventListener('pointerdown', function (e) {
+      if (e.target.closest('a, button')) return;
+      dragging = true;
+      split.setPointerCapture(e.pointerId);
+      fromX(e.clientX);
+    });
+    split.addEventListener('pointermove', function (e) { if (dragging) fromX(e.clientX); });
+    split.addEventListener('pointerup', function () { dragging = false; });
+    split.addEventListener('pointercancel', function () { dragging = false; });
+    divider.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowLeft') { setCut(cut - 5); e.preventDefault(); }
+      if (e.key === 'ArrowRight') { setCut(cut + 5); e.preventDefault(); }
+    });
+
+    // Until someone moves it, the divider runs down the middle of the phone, so both looks show.
+    var moved = false;
+    split.addEventListener('pointerdown', function () { moved = true; });
+    divider.addEventListener('keydown', function () { moved = true; });
+    function centreOnPhone() {
+      if (moved) return;
+      var phone = split.querySelector('.glass .hero-phone').getBoundingClientRect();
+      var r = split.getBoundingClientRect();
+      if (phone.width) setCut((phone.left + phone.width / 2 - r.left) / r.width * 100);
+    }
+    split.querySelector('.glass .hero-phone').addEventListener('load', centreOnPhone);
+    addEventListener('resize', centreOnPhone);
+    centreOnPhone();
+
+    // Both halves show the same screen in the chosen accent, in the page's light or dark theme.
+    var heroAccent = 'blue';
+    var dark = matchMedia('(prefers-color-scheme: dark)');
+    function heroPhones() {
+      var mode = dark.matches ? 'dark' : 'light';
+      split.querySelectorAll('.hero-phone').forEach(function (img) {
+        var file = 'img/looks/' + img.dataset.style + '-' + mode + '-' + heroAccent + '.webp';
+        img.src = file;
+        var source = img.parentElement.querySelector('source');
+        if (source) source.srcset = file;
+      });
+    }
+    if (dark.addEventListener) dark.addEventListener('change', heroPhones);
+
+    split.querySelectorAll('.hero-swatches button').forEach(function (b) {
+      b.addEventListener('click', function () {
+        heroAccent = b.dataset.accent;
+        heroPhones();
+        split.style.setProperty('--acc', b.dataset.c);
+        split.querySelectorAll('.hero-swatches button').forEach(function (x) {
+          x.setAttribute('aria-pressed', String(x === b));
+        });
+      });
+    });
+  })();
+
+  // Features: switch the tiles between phone and tablet/foldable captures and copy.
+  (function () {
+    var section = document.getElementById('features');
+    var buttons = section.querySelectorAll('#device-switch button');
+    buttons.forEach(function (b) {
+      b.addEventListener('click', function () {
+        section.dataset.device = b.dataset.device;
+        buttons.forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+      });
+    });
+  })();
+
+  // Looks preview: every style, mode and accent is a capture of the same screen. Mode and accent
+  // keep the layout, so they swap in place; the two styles differ slightly, so a style change
+  // cross-fades between two stacked images.
+  (function () {
+    var section = document.getElementById('looks');
+    var picker = document.getElementById('picker');
+    var layers = document.getElementById('looks-preview').querySelectorAll('img');
+    var front = layers[0], back = layers[1];
+    var state = { style: 'Material', mode: 'light', accent: 'blue' };
+    var STYLES = ['Material', 'Liquid Glass'], MODES = ['light', 'dark'], ACCENTS = ['blue', 'green', 'pink', 'orange'];
+    function src(st) {
+      return 'img/looks/' + (st.style === 'Material' ? 'material' : 'glass') + '-' + st.mode + '-' + st.accent + '.webp';
+    }
+    function alt(st) {
+      return 'The car wash chat in ' + st.style + ', ' + st.mode + ', with the ' + st.accent + ' accent';
+    }
+    function press(key, value) {
+      picker.querySelectorAll('[data-' + key + ']').forEach(function (x) {
+        x.setAttribute('aria-pressed', String(x.dataset[key] === value));
+      });
+    }
+    function show(fade) {
+      if (!fade) {
+        front.src = src(state);
+        front.alt = alt(state);
+        return;
+      }
+      var incoming = back;
+      incoming.src = src(state);
+      incoming.alt = alt(state);
+      (incoming.decode ? incoming.decode() : Promise.resolve()).catch(function () {}).then(function () {
+        incoming.classList.add('on');
+        incoming.removeAttribute('aria-hidden');
+        front.classList.remove('on');
+        front.setAttribute('aria-hidden', 'true');
+        front.alt = '';
+        back = front;
+        front = incoming;
+      });
+    }
+    picker.addEventListener('click', function (e) {
+      var b = e.target.closest('button');
+      if (!b) return;
+      var key = b.dataset.style ? 'style' : b.dataset.mode ? 'mode' : 'accent';
+      if (state[key] === b.dataset[key]) return;
+      state[key] = b.dataset[key];
+      press(key, state[key]);
+      show(key === 'style');
+    });
+    if (matchMedia('(prefers-color-scheme: dark)').matches) {
+      state.mode = 'dark';
+      press('mode', 'dark');
+      show(false);
+    }
+    // Fetch the other 15 once the section is near, so a tap swaps without a wait.
+    var io = new IntersectionObserver(function (entries) {
+      if (!entries[0].isIntersecting) return;
+      io.disconnect();
+      STYLES.forEach(function (s) { MODES.forEach(function (m) { ACCENTS.forEach(function (a) {
+        new Image().src = src({ style: s, mode: m, accent: a });
+      }); }); });
+    }, { rootMargin: '400px' });
+    io.observe(section);
+  })();
+
+  // Loops play only while on screen, and not at all with reduced motion (the poster stays).
+  (function () {
+    var reduce = matchMedia('(prefers-reduced-motion: reduce)');
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting && !reduce.matches) e.target.play().catch(function () {});
+        else e.target.pause();
+      });
+    }, { threshold: 0.4 });
+    document.querySelectorAll('video').forEach(function (v) { io.observe(v); });
+  })();
+</script>
+<script src="prefetch.js" defer></script>
+</body>
+</html>

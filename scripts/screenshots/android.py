@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Capture framed screenshots and recordings from the Pixel 10 Pro Fold emulator.
+"""Capture framed screenshots and recordings from the Pixel 10 Pro Fold or Pixel 9 Pro emulator.
 
     scripts/screenshots/android.py demo on|off            # SystemUI demo mode (status bar)
     scripts/screenshots/android.py fold|unfold
@@ -16,7 +16,8 @@ one: without `-d`, screencap prefixes its PNG with a warning and the file is unr
 `record` runs screenrecord for --seconds while you, or a script, drive the app, then frames
 every video frame and writes a looping GIF with transparent corners.
 
-Set ANDROID_SERIAL to pick the emulator (default emulator-5554).
+Set ANDROID_SERIAL to pick the emulator (default emulator-5554) and ANDROID_SKIN to the frame
+that matches it (default pixel_10_pro_fold; pixel_9_pro for the phone).
 """
 
 from __future__ import annotations
@@ -36,7 +37,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import frame  # noqa: E402
 
 SERIAL = os.environ.get("ANDROID_SERIAL", "emulator-5554")
-SKIN = frame.ANDROID_SKINS / "pixel_10_pro_fold"
+SKIN = os.environ.get("ANDROID_SKIN", "pixel_10_pro_fold")
+# The cutout emulation that puts the status bar clear of the skin's corners and camera hole.
+CUTOUT = {"pixel_9_pro": "hole"}.get(SKIN, "corner")
 DEMO_CLOCK = "1200"
 
 
@@ -53,14 +56,15 @@ def demo(on: bool):
     """SystemUI demo mode: a fixed clock, full battery and Wi-Fi, no mobile or notification
     icons.
 
-    It also turns on the emulator's corner display-cutout emulation. The emulator doesn't know
-    the skin's rounded corners or camera hole, so it puts the clock and status icons right
-    against the screen edge, where the frame clips the clock's first digit and the camera hole
-    covers an icon. The corner cutout makes the status bar taller, which drops its content
-    below the curve and beside the camera hole."""
+    It also turns on a display-cutout emulation (CUTOUT). The emulator doesn't know the skin's
+    rounded corners or camera hole, so it puts the clock and status icons right against the
+    screen edge, where the frame clips the clock's first digit and the camera hole covers an
+    icon. The cutout makes the status bar taller and insets it, which drops its content below
+    the curve and beside the camera hole."""
     broadcast = ["shell", "am", "broadcast", "-a", "com.android.systemui.demo", "-e", "command"]
-    overlay = ["shell", "cmd", "overlay", "enable" if on else "disable",
-               "com.android.internal.display.cutout.emulation.corner"]
+    cutout = f"com.android.internal.display.cutout.emulation.{CUTOUT}"
+    overlay = (["shell", "cmd", "overlay", "enable-exclusive", "--category", cutout] if on
+               else ["shell", "cmd", "overlay", "disable", cutout])
     if not on:
         adb(*broadcast, "exit")
         adb(*overlay)
@@ -85,8 +89,8 @@ def displays() -> list[str]:
 def active_display() -> tuple[str, str, tuple[int, int]]:
     """(display id, skin posture, size) for the display that's on now."""
     want = {}
-    for posture in ("closed", "default"):
-        size, _ = frame.android_layout(SKIN / posture)
+    for posture in frame.android_postures(SKIN):
+        size, _ = frame.android_layout(frame.android_skin_dir(SKIN, posture))
         want[size] = posture
     for display in displays():
         png = adb("exec-out", "screencap", "-p", "-d", display, capture=True, binary=True)
@@ -97,7 +101,7 @@ def active_display() -> tuple[str, str, tuple[int, int]]:
             # A display that's off reads as solid black.
             if im.size in want and im.convert("L").getextrema()[1] > 0:
                 return display, want[im.size], im.size
-    raise SystemExit("no lit display matches a Pixel 10 Pro Fold skin posture")
+    raise SystemExit(f"no lit display matches a {SKIN} skin posture")
 
 
 def shot(out: Path, raw_out: Path | None, scale: float):
@@ -110,7 +114,7 @@ def shot(out: Path, raw_out: Path | None, scale: float):
         raw.load()
     if raw_out:
         raw.save(raw_out)
-    framed = frame.frame_android(raw, posture)
+    framed = frame.frame_android(raw, posture, SKIN)
     if scale != 1:
         framed = framed.resize((round(framed.width * scale), round(framed.height * scale)),
                                Image.LANCZOS)
@@ -122,11 +126,14 @@ def record(out: Path, seconds: int, width: int, fps: int):
     """Record the lit display, keep the raw video beside the GIF (out.mp4), and encode."""
     if not shutil.which("ffmpeg"):
         raise SystemExit("ffmpeg is needed for recordings")
-    display, posture, _ = active_display()
+    display, posture, (w, h) = active_display()
     remote = "/sdcard/capture.mp4"
     print(f"recording {posture} for {seconds}s …", flush=True)
+    # The encoder refuses a screen as tall as the Pixel 9 Pro's, and screenrecord's own fallback
+    # (720x1280) has another aspect ratio, which the framing would stretch. Half size keeps it.
+    size = ["--size", f"{w // 2}x{h // 2}"] if h > 2400 else []
     adb("shell", "screenrecord", "--display-id", display, "--time-limit", str(seconds),
-        "--bit-rate", "20000000", remote)
+        "--bit-rate", "20000000", *size, remote)
     video = out.with_suffix(".mp4")
     adb("pull", remote, str(video))
     adb("shell", "rm", remote)
@@ -136,7 +143,7 @@ def record(out: Path, seconds: int, width: int, fps: int):
 def encode(video: Path, out: Path, posture: str, width: int, fps: int,
            start: float = 0, duration: float | None = None):
     """Frame a raw screen recording and write a looping GIF with transparent corners."""
-    skin = SKIN / posture
+    skin = frame.android_skin_dir(SKIN, posture)
     size, (x, y) = frame.android_layout(skin)
     back = Image.open(skin / "back.webp")
     height = round(back.height * width / back.width)
@@ -146,23 +153,27 @@ def encode(video: Path, out: Path, posture: str, width: int, fps: int,
     # that single frame and the whole stretch with it.
     end = f":end={start + duration}" if duration else ""
     trim = f"trim=start={start}{end},setpts=PTS-STARTPTS,"
-    # Device image, then the video at the screen offset, then the corner/camera mask; scale,
-    # then a palette that keeps the transparent outside of the frame.
+    # Device image, then the video cut to the display's rounded corners at the screen offset, then
+    # the corner/camera mask; scale, then a palette that keeps the transparent outside of the frame.
     graph = (
-        f"[1:v]fps={fps},{trim}scale={size[0]}:{size[1]}[screen];"
+        f"[1:v]fps={fps},{trim}scale={size[0]}:{size[1]},format=rgba[raw];"
+        "[3:v]format=gray[corners];[raw][corners]alphamerge=shortest=1[screen];"
         f"[0:v][screen]overlay={x}:{y}:shortest=1[framed];"
         f"[framed][2:v]overlay={x}:{y}:shortest=1,"
         f"scale={width}:{height}:flags=lanczos,split[a][b];"
         "[a]palettegen=reserve_transparent=1:stats_mode=diff[p];"
         "[b][p]paletteuse=dither=sierra2_4a:diff_mode=rectangle:alpha_threshold=128"
     )
-    subprocess.run([
-        "ffmpeg", "-y", "-loglevel", "error",
-        "-loop", "1", "-framerate", str(fps), "-i", str(skin / "back.webp"),
-        "-i", str(video),
-        "-loop", "1", "-framerate", str(fps), "-i", str(skin / "mask.webp"),
-        "-filter_complex", graph, "-loop", "0", str(out),
-    ], check=True)
+    with tempfile.NamedTemporaryFile(suffix=".png") as corners:
+        (frame.android_screen_mask(skin) or Image.new("L", size, 255)).save(corners.name)
+        subprocess.run([
+            "ffmpeg", "-y", "-loglevel", "error",
+            "-loop", "1", "-framerate", str(fps), "-i", str(skin / "back.webp"),
+            "-i", str(video),
+            "-loop", "1", "-framerate", str(fps), "-i", str(skin / "mask.webp"),
+            "-loop", "1", "-framerate", str(fps), "-i", corners.name,
+            "-filter_complex", graph, "-loop", "0", str(out),
+        ], check=True)
     print(f"{out}: {width}x{height}, {out.stat().st_size / 1e6:.1f} MB ({posture})")
 
 
@@ -185,7 +196,7 @@ def main() -> int:
     e = sub.add_parser("encode", help="re-encode a kept recording (out.mp4) without re-recording")
     e.add_argument("video", type=Path)
     e.add_argument("out", type=Path)
-    e.add_argument("--posture", choices=["closed", "default"], required=True)
+    e.add_argument("--posture", choices=["closed", "default", "portrait"], required=True)
     e.add_argument("--width", type=int, default=560)
     e.add_argument("--fps", type=int, default=15)
     e.add_argument("--start", type=float, default=0, help="seconds to skip")

@@ -85,6 +85,7 @@ import com.garfiec.librechat.core.ui.components.windowUsesSidebarLayout
 import com.garfiec.librechat.core.ui.datetime.ProvideDateTimeFormat
 import com.garfiec.librechat.core.ui.glass.GlassBackdrop
 import com.garfiec.librechat.core.ui.glass.GlassSheetHost
+import com.garfiec.librechat.core.ui.glass.GlassSidebarPanel
 import com.garfiec.librechat.core.ui.glass.GlassStyle
 import com.garfiec.librechat.core.ui.glass.glassBackdropSource
 import com.garfiec.librechat.core.ui.glass.rememberGlassBackdrop

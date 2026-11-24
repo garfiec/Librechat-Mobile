@@ -58,6 +58,7 @@ internal fun HitMeta(hit: MessageSearchHit, modifier: Modifier = Modifier, title
                     Text(
                         text = title,
                         style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.SemiBold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
