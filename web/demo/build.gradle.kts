@@ -84,6 +84,10 @@ tasks.register<Sync>("assembleSite") {
         into("demo")
         exclude("**/*.map", "**/*.gz")
     }
+    // The app's vendored libraries, which an artifact's page loads (ArtifactFrame).
+    from(rootProject.layout.projectDirectory.dir("feature/chat/src/commonMain/composeResources/files/web")) {
+        into("demo/web")
+    }
     into(layout.buildDirectory.dir("site"))
     finalizedBy("siteContent")
 }

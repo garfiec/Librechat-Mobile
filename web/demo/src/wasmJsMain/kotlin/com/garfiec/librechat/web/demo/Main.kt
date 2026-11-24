@@ -118,6 +118,7 @@ fun main() {
             withFrameNanos {}
             withFrameNanos {}
             notifyReady()
+            prefetchSampleLibraries()
         }
     }
 }

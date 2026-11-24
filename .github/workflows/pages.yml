@@ -15,6 +15,7 @@ on:
       - 'core/model/**'
       - 'core/common/**'
       - 'feature/*/ui/**'
+      - 'feature/chat/src/commonMain/composeResources/files/web/**'
       - 'build-logic/**'
       - 'gradle/libs.versions.toml'
       - 'gradle/wrapper/**'
