@@ -18,17 +18,37 @@ import kotlin.test.assertNull
 
 class FavoritesDelegateTest {
 
-    /** Writes land at once, as the real repository's optimistic publish does. */
-    private class FakeFavoritesRepository(initial: List<UserFavorite> = emptyList()) : FavoritesRepository {
+    /**
+     * Writes land at once, as the real repository's optimistic publish does. Each [refresh] takes
+     * the next scripted outcome from [refreshSucceeds] (succeeding once it runs out) and, on
+     * success, publishes [server].
+     */
+    private class FakeFavoritesRepository(
+        initial: List<UserFavorite> = emptyList(),
+        private var server: List<UserFavorite> = initial,
+        private val refreshSucceeds: ArrayDeque<Boolean> = ArrayDeque(),
+    ) : FavoritesRepository {
         override val favorites = MutableStateFlow(initial)
         val writes = mutableListOf<List<UserFavorite>>()
-        override suspend fun refresh(): Result<List<UserFavorite>> = Result.Success(favorites.value)
+        override var isLoaded = false
+        override suspend fun refresh(): Result<List<UserFavorite>> {
+            if (refreshSucceeds.removeFirstOrNull() == false) return Result.Error(message = "offline")
+            isLoaded = true
+            favorites.value = server
+            return Result.Success(server)
+        }
         override suspend fun setFavorites(list: List<UserFavorite>): Result<List<UserFavorite>> {
             writes += list
+            server = list
             favorites.value = list
             return Result.Success(list)
         }
     }
+
+    private val pinnedOnServer = listOf(
+        UserFavorite(agentId = "a1"),
+        UserFavorite(endpoint = "anthropic", model = "claude-sonnet-5-5"),
+    )
 
     // Unconfined runs each launch eagerly, so a toggle has published by the time it returns.
     private val stateFlow = MutableStateFlow(ChatUiState())
@@ -133,5 +153,30 @@ class FavoritesDelegateTest {
         delegate(repository).toggleSpec("second")
 
         assertEquals(listOf("first", "second"), state.value.favoriteSpecNames.toList())
+    }
+
+    @Test
+    fun aStarTappedBeforeFavouritesLoadKeepsTheOtherPins() {
+        val repository = FakeFavoritesRepository(server = pinnedOnServer, refreshSucceeds = ArrayDeque(listOf(false)))
+
+        delegate(repository).toggleModel("openAI", "gpt-5.2")
+
+        assertEquals(
+            listOf(pinnedOnServer + UserFavorite(endpoint = "openAI", model = "gpt-5.2")),
+            repository.writes,
+        )
+    }
+
+    @Test
+    fun aStarTappedWhileFavouritesCannotLoadWritesNothing() {
+        val repository = FakeFavoritesRepository(
+            server = pinnedOnServer,
+            refreshSucceeds = ArrayDeque(List(2) { false }),
+        )
+
+        delegate(repository).toggleModel("openAI", "gpt-5.2")
+
+        assertEquals(emptyList(), repository.writes)
+        assertEquals(ChatNotice.FAVORITES_UPDATE_FAILED.marker(), state.value.error)
     }
 }

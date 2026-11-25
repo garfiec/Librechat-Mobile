@@ -102,4 +102,44 @@ class FavoritesRepositoryAccountSwitchTest {
 
         assertThat(repo.favorites.value).isEmpty()
     }
+
+    /** Writes replace the server's whole list, so only a list read for this account counts as loaded. */
+    @Test
+    fun `the list counts as loaded only after a successful refresh for the active account`() = runTest {
+        val repo = FavoritesRepositoryImpl(api, accounts, CoroutineScope(StandardTestDispatcher(testScheduler)))
+        advanceUntilIdle()
+        assertThat(repo.isLoaded).isFalse()
+
+        coEvery { api.getFavorites() } returns pinnedOnA
+        repo.refresh()
+        assertThat(repo.isLoaded).isTrue()
+
+        accounts.set(AccountId("srv:user-b"))
+        advanceUntilIdle()
+        assertThat(repo.isLoaded).isFalse()
+
+        coEvery { api.getFavorites() } throws IllegalStateException("offline")
+        repo.refresh()
+        assertThat(repo.isLoaded).isFalse()
+    }
+
+    @Test
+    fun `a refresh that lands after a switch does not mark the list loaded`() = runTest {
+        val repo = FavoritesRepositoryImpl(api, accounts, CoroutineScope(StandardTestDispatcher(testScheduler)))
+        advanceUntilIdle()
+        val gate = CompletableDeferred<Unit>()
+        coEvery { api.getFavorites() } coAnswers {
+            gate.await()
+            pinnedOnA
+        }
+
+        val refresh = async { repo.refresh() }
+        runCurrent()
+        accounts.set(AccountId("srv:user-b"))
+        advanceUntilIdle()
+        gate.complete(Unit)
+        refresh.await()
+
+        assertThat(repo.isLoaded).isFalse()
+    }
 }

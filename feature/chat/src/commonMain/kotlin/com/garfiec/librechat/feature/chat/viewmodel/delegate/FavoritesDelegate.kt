@@ -29,20 +29,16 @@ class FavoritesDelegate(
 
     /**
      * Re-fetches favorites from the server. Called at VM init and again whenever the
-     * model sheet opens: the init fetch is single-shot and its failure is swallowed,
-     * so a cold-start fetch that races auth/network warm-up would otherwise leave the
-     * picker starless (no top Starred section, unfilled stars) until a pin is toggled.
-     * The sheet-open refetch self-heals that and also picks up pins made elsewhere.
+     * model sheet opens: the init fetch is single-shot, so a cold-start fetch that races
+     * auth/network warm-up would otherwise leave the picker starless (no top Starred
+     * section, unfilled stars). The sheet-open refetch self-heals that and also picks up
+     * pins made elsewhere. A failure is only logged here; [toggle] refetches before it writes.
      */
     fun refresh() {
         handle.scope.launch {
-            when (val result = favoritesRepository.refresh()) {
-                is Result.Success -> Unit
-                is Result.Error -> {
-                    // Non-critical; leave favorites empty in UI.
-                    Logger.d(result.exception) { "Failed to load favorites: ${result.message}" }
-                }
-                is Result.Loading -> Unit
+            val result = favoritesRepository.refresh()
+            if (result is Result.Error) {
+                Logger.d(result.exception) { "Failed to load favorites: ${result.message}" }
             }
         }
     }
@@ -63,18 +59,28 @@ class FavoritesDelegate(
     /** Toggle a model spec pin, by spec name. A spec entry carries only the name, never its endpoint or model. */
     fun toggleSpec(name: String) = toggle(UserFavorite(spec = name)) { it.spec == name }
 
+    /**
+     * The server replaces the whole list on every write, so the list is read from the server
+     * first when it hasn't loaded: a write built from the empty placeholder would drop every pin.
+     */
     private fun toggle(entry: UserFavorite, matches: (UserFavorite) -> Boolean) {
-        val current = favoritesRepository.favorites.value
-        val nextList = if (current.any(matches)) {
-            current.filterNot(matches)
-        } else {
-            if (atLimit(current)) {
-                reportLimit()
-                return
+        handle.scope.launch {
+            if (!favoritesRepository.isLoaded && favoritesRepository.refresh() !is Result.Success) {
+                handle.setError(ChatNotice.FAVORITES_UPDATE_FAILED.marker())
+                return@launch
             }
-            current + entry
+            val current = favoritesRepository.favorites.value
+            val nextList = if (current.any(matches)) {
+                current.filterNot(matches)
+            } else {
+                if (atLimit(current)) {
+                    reportLimit()
+                    return@launch
+                }
+                current + entry
+            }
+            persist(nextList)
         }
-        persist(nextList)
     }
 
     private fun atLimit(current: List<UserFavorite>): Boolean = current.size >= FavoritesLimits.MAX_FAVORITES
@@ -83,16 +89,11 @@ class FavoritesDelegate(
         handle.setError(ChatNotice.FAVORITES_LIMIT.marker(FavoritesLimits.MAX_FAVORITES))
     }
 
-    private fun persist(nextList: List<UserFavorite>) {
-        handle.scope.launch {
-            when (val result = favoritesRepository.setFavorites(nextList)) {
-                is Result.Success -> Unit
-                is Result.Error -> {
-                    Logger.w(result.exception) { "Failed to save favorites: ${result.message}" }
-                    handle.setError(result.message ?: ChatNotice.FAVORITES_UPDATE_FAILED.marker())
-                }
-                is Result.Loading -> Unit
-            }
+    private suspend fun persist(nextList: List<UserFavorite>) {
+        val result = favoritesRepository.setFavorites(nextList)
+        if (result is Result.Error) {
+            Logger.w(result.exception) { "Failed to save favorites: ${result.message}" }
+            handle.setError(result.message ?: ChatNotice.FAVORITES_UPDATE_FAILED.marker())
         }
     }
 
