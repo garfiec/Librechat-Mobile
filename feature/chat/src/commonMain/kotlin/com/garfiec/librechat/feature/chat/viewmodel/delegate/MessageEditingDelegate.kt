@@ -267,11 +267,14 @@ class MessageEditingDelegate(
     }
 
     private fun continueGenerationNow(lastAiMessage: Message, parentUserMessage: Message) {
+        treeDelegate.anchorStreamTo(parentUserMessage.messageId)
         launchSend(
             text = parentUserMessage.text,
             parentMessageId = parentUserMessage.parentMessageId,
             overrideParentMessageId = parentUserMessage.messageId,
-            responseMessageId = lastAiMessage.messageId,
+            // Never the reply's own id: the server saves the new answer under it and overwrites the
+            // stopped reply. A trailing `_` makes it mint a fresh id, keeping the stopped one as a version.
+            responseMessageId = lastAiMessage.messageId.trimEnd('_') + "_",
             files = parentUserMessage.files,
             reasoningOverride = parentUserMessage.reasoningOverride,
             isEdited = true,
