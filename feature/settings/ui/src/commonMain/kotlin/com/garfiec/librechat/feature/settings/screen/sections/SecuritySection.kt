@@ -28,6 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
@@ -57,11 +58,14 @@ internal fun TwoFactorSetupDialog(
     isLoading: Boolean,
     onConfirm: (String) -> Unit,
     onDismiss: () -> Unit,
+    errorText: String? = null,
 ) {
     val clipboard = rememberClipboardWriter()
     val uriOpener = rememberUriOpener()
     var code by remember { mutableStateOf("") }
     var submitted by remember { mutableStateOf(false) }
+    // Every submit clears it, so a repeated rejection with the same text shows again.
+    var edited by remember { mutableStateOf(false) }
     var noAuthenticator by remember { mutableStateOf(false) }
     var copied by remember { mutableStateOf(false) }
     var showQr by remember { mutableStateOf(false) }
@@ -149,13 +153,24 @@ internal fun TwoFactorSetupDialog(
                     value = code,
                     onValueChange = {
                         code = it
+                        edited = true
                         if (it.length == OTP_LENGTH && !submitted) {
                             submitted = true
+                            edited = false
                             onConfirm(it)
                         }
                     },
                     enabled = !isLoading,
                 )
+                val shownError = errorText.takeUnless { edited || isLoading }
+                if (shownError != null) {
+                    Text(
+                        text = shownError,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.testTag("twofa_setup_error"),
+                    )
+                }
             }
         },
         confirmButton = {
@@ -164,6 +179,7 @@ internal fun TwoFactorSetupDialog(
             AdaptiveTextButton(
                 onClick = {
                     submitted = true
+                    edited = false
                     onConfirm(code)
                 },
                 enabled = code.length == OTP_LENGTH && !isLoading,

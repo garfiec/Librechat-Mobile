@@ -373,6 +373,8 @@
     <string name="twofa_sessions_incomplete">二要素認証はオンになりましたが、他のセッションの一部は有効期限が切れるまでサインインしたままになる場合があります。バックアップコードを保存してから、もう一度サインインしてください。</string>
     <string name="twofa_other_sessions_signed_out">二要素認証がオンになりました。このアカウントにサインインしていた他のすべてのデバイスはサインアウトされました。</string>
     <string name="twofa_sign_in_again_to_enable">二要素認証を有効にするには、もう一度サインインしてください。</string>
+    <string name="twofa_code_rejected">コードが一致しません。認証アプリに表示されている現在のコードを入力してください。</string>
+    <string name="twofa_backup_code_rejected">コードが一致しません。</string>
     <string name="dialog_title_regenerate_backup_codes">バックアップコードを再生成しますか？</string>
     <string name="regenerate_backup_codes_warning">現在のバックアップコードは使えなくなります。新しいコードを保存してください。</string>
     <string name="action_regenerate">再生成</string>

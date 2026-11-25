@@ -18,6 +18,7 @@ import com.garfiec.librechat.feature.settings.viewmodel.BalanceUiState
 import com.garfiec.librechat.feature.settings.viewmodel.SettingsStateHandle
 import com.garfiec.librechat.feature.settings.viewmodel.isTwoFactorCodeRequired
 import com.garfiec.librechat.feature.settings.viewmodel.toDisplayData
+import com.garfiec.librechat.feature.settings.viewmodel.toTwoFactorCodeError
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -227,7 +228,7 @@ class AccountDelegate(
             return
         }
         stateHandle.scope.launch {
-            stateHandle.update { copy(isDeletingAccount = true) }
+            stateHandle.update { copy(isDeletingAccount = true, twoFactorCodeError = null) }
             when (val result = userRepository.deleteUser(token = token, backupCode = backupCode)) {
                 is Result.Success -> {
                     stateHandle.update {
@@ -240,7 +241,12 @@ class AccountDelegate(
                         copy(
                             isDeletingAccount = false,
                             showDeleteAccountOtpDialog = if (needsOtp) true else showDeleteAccountOtpDialog,
-                            error = if (needsOtp) null else (result.message ?: "Failed to delete account"),
+                            error = if (needsOtp || hasCode) null else (result.message ?: "Failed to delete account"),
+                            twoFactorCodeError = if (hasCode) {
+                                result.toTwoFactorCodeError(401, backupCode != null, "Failed to delete account")
+                            } else {
+                                null
+                            },
                         )
                     }
                 }
@@ -250,7 +256,7 @@ class AccountDelegate(
     }
 
     fun dismissDeleteAccountOtpDialog() {
-        stateHandle.update { copy(showDeleteAccountOtpDialog = false) }
+        stateHandle.update { copy(showDeleteAccountOtpDialog = false, twoFactorCodeError = null) }
     }
 
     fun dismissError() {

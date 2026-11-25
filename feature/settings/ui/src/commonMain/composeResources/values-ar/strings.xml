@@ -403,6 +403,8 @@
     <string name="twofa_sessions_incomplete">تم تفعيل المصادقة الثنائية، لكن قد تظل بعض الجلسات الأخرى مسجّلة الدخول حتى تنتهي صلاحيتها. احفظ رموز النسخ الاحتياطي، ثم سجّل الدخول مرة أخرى.</string>
     <string name="twofa_other_sessions_signed_out">تم تفعيل المصادقة الثنائية. تم تسجيل الخروج من كل الأجهزة الأخرى المسجّلة الدخول إلى هذا الحساب.</string>
     <string name="twofa_sign_in_again_to_enable">سجّل الدخول مرة أخرى لتفعيل المصادقة الثنائية.</string>
+    <string name="twofa_code_rejected">هذا الرمز غير مطابق. أدخل الرمز الحالي من تطبيق المصادقة.</string>
+    <string name="twofa_backup_code_rejected">هذا الرمز غير مطابق.</string>
     <string name="dialog_title_regenerate_backup_codes">إعادة إنشاء رموز النسخ الاحتياطي؟</string>
     <string name="regenerate_backup_codes_warning">ستتوقف رموز النسخ الاحتياطي الحالية عن العمل. ستحصل على مجموعة جديدة لحفظها.</string>
     <string name="action_regenerate">إعادة الإنشاء</string>

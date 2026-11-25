@@ -379,6 +379,8 @@
     <string name="twofa_sessions_incomplete">La autenticación de dos factores está activada, pero algunas otras sesiones pueden seguir iniciadas hasta que caduquen. Guarda tus códigos de respaldo y vuelve a iniciar sesión.</string>
     <string name="twofa_other_sessions_signed_out">La autenticación de dos factores está activada. Se cerró la sesión en todos los demás dispositivos conectados a esta cuenta.</string>
     <string name="twofa_sign_in_again_to_enable">Vuelve a iniciar sesión para activar la autenticación de dos factores.</string>
+    <string name="twofa_code_rejected">Ese código no coincide. Introduce el código actual de tu app de autenticación.</string>
+    <string name="twofa_backup_code_rejected">Ese código no coincide.</string>
     <string name="dialog_title_regenerate_backup_codes">¿Regenerar los códigos de respaldo?</string>
     <string name="regenerate_backup_codes_warning">Tus códigos de respaldo actuales dejarán de funcionar. Recibirás un conjunto nuevo para guardar.</string>
     <string name="action_regenerate">Regenerar</string>

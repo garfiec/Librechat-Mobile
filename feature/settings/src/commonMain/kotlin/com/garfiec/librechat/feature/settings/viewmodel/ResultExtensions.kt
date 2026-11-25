@@ -28,3 +28,14 @@ internal fun Result.Error.isTwoFactorCodeRequired(): Boolean {
 /** The change was made, but the server could not sign out every earlier session and handed back none. */
 internal fun Result.Error.isCredentialRetirementIncomplete(): Boolean =
     ServerErrorCode.from((exception as? ApiException)?.body) == ServerErrorCode.CREDENTIAL_RETIREMENT_INCOMPLETE
+
+/** A failure of a request that sent a 2FA code: [Rejected][TwoFactorCodeError.Rejected] when the server answered [rejectedStatus]. */
+internal fun Result.Error.toTwoFactorCodeError(
+    rejectedStatus: Int,
+    byBackupCode: Boolean,
+    fallback: String,
+): TwoFactorCodeError = if (isHttpStatus(rejectedStatus)) {
+    TwoFactorCodeError.Rejected(byBackupCode)
+} else {
+    TwoFactorCodeError.Failed(message ?: fallback)
+}

@@ -379,6 +379,8 @@
     <string name="twofa_sessions_incomplete">L’authentification à deux facteurs est activée, mais certaines autres sessions peuvent rester connectées jusqu’à leur expiration. Enregistrez vos codes de secours, puis reconnectez-vous.</string>
     <string name="twofa_other_sessions_signed_out">L’authentification à deux facteurs est activée. Tous les autres appareils connectés à ce compte ont été déconnectés.</string>
     <string name="twofa_sign_in_again_to_enable">Reconnectez-vous pour activer l’authentification à deux facteurs.</string>
+    <string name="twofa_code_rejected">Ce code ne correspond pas. Saisissez le code actuel de votre application d'authentification.</string>
+    <string name="twofa_backup_code_rejected">Ce code ne correspond pas.</string>
     <string name="dialog_title_regenerate_backup_codes">Régénérer les codes de secours ?</string>
     <string name="regenerate_backup_codes_warning">Vos codes de secours actuels cesseront de fonctionner. Vous recevrez un nouveau jeu à conserver.</string>
     <string name="action_regenerate">Régénérer</string>
