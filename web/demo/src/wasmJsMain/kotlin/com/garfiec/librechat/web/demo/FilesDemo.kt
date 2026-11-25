@@ -7,6 +7,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import com.garfiec.librechat.core.ui.media.MediaItem
+import com.garfiec.librechat.core.ui.media.MediaPreviewState
 import com.garfiec.librechat.core.ui.platform.formatFileSize
 import com.garfiec.librechat.feature.files.FileDisplayData
 import com.garfiec.librechat.feature.files.FilePreviewDisplayData
@@ -17,6 +19,7 @@ import com.garfiec.librechat.feature.files.viewmodel.FileSortOrder
 import com.garfiec.librechat.feature.files.viewmodel.FileTypeFilter
 import com.garfiec.librechat.feature.files.viewmodel.FileViewMode
 import com.garfiec.librechat.feature.files.viewmodel.FilesUiState
+import kotlinx.browser.window
 import kotlinx.coroutines.launch
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
@@ -25,7 +28,7 @@ import kotlin.time.Duration.Companion.minutes
 
 /**
  * The app's Files screen over sample files. Filters, sorting, the grid, selection and delete work on
- * the sample list; text files open in the preview with their contents. Nothing uploads or downloads.
+ * the sample list; text files open in the preview with their contents and photos in the photo viewer. Nothing uploads or downloads.
  */
 @Composable
 internal fun FilesDemo(onBack: (() -> Unit)?) {
@@ -33,10 +36,11 @@ internal fun FilesDemo(onBack: (() -> Unit)?) {
     var filter by remember { mutableStateOf(FileTypeFilter.ALL) }
     var sortField by remember { mutableStateOf(FileSortField.DATE) }
     var sortOrder by remember { mutableStateOf(FileSortOrder.DESCENDING) }
-    var viewMode by remember { mutableStateOf(FileViewMode.LIST) }
+    var viewMode by remember { mutableStateOf(FilesUiState().viewMode) }
     var selecting by remember { mutableStateOf(false) }
     var selected by remember { mutableStateOf(emptySet<String>()) }
     var previewing by remember { mutableStateOf<String?>(null) }
+    var viewing by remember { mutableStateOf<MediaPreviewState?>(null) }
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
@@ -65,6 +69,7 @@ internal fun FilesDemo(onBack: (() -> Unit)?) {
             previewFile = files.find { it.id == previewing }?.preview,
             hasFiles = files.isNotEmpty(),
             viewMode = viewMode,
+            mediaPreview = viewing,
         ),
         actions = FilesActions(
             onUploadClick = { scope.launch { snackbar.showReplacing(notInTheDemo("Uploading files")) } },
@@ -88,7 +93,8 @@ internal fun FilesDemo(onBack: (() -> Unit)?) {
                 selected = emptySet()
             },
             onToggleFileSelection = toggle,
-            onOpenImagePreview = { previewing = it },
+            onOpenImagePreview = { id -> viewing = photoViewer(byFilter.getValue(FileTypeFilter.IMAGES), id) },
+            onCloseMediaPreview = { viewing = null },
             onOpenFilePreview = { previewing = it },
             onCloseFilePreview = { previewing = null },
             onDeleteSelected = { delete(selected) },
@@ -100,7 +106,18 @@ internal fun FilesDemo(onBack: (() -> Unit)?) {
     )
 }
 
-/** A file in the sample library; [text] is what a text file's preview shows. */
+// The photo viewer pages through the Images tab in its order, opening on the tapped photo, as the app does.
+private fun photoViewer(images: List<FileDisplayData>, tapped: String): MediaPreviewState? {
+    val items = images.mapNotNull { file -> file.previewUrl?.let { MediaItem(it, file.filename, file.filename) } }
+    if (items.isEmpty()) return null
+    val tappedUrl = images.firstOrNull { it.fileId == tapped }?.previewUrl
+    return MediaPreviewState(items, items.indexOfFirst { it.url == tappedUrl }.coerceAtLeast(0))
+}
+
+/** A photo in the site's `demo/photos/`, by absolute URL: the image loader takes no relative one. */
+private fun photoUrl(name: String) = window.location.href.substringBefore('#').substringBeforeLast('/') + "/photos/" + name
+
+/** A file in the sample library; [text] is what a text file's preview shows. A photo's [name] is its file in `photos/`. */
 private class SampleFile(
     val id: String,
     val name: String,
@@ -110,7 +127,8 @@ private class SampleFile(
     val text: String? = null,
 ) {
     private val createdAt = (PageLoadedAt - ago).toString()
-    val display = FileDisplayData(id, name, type, formatFileSize(bytes), createdAt, previewUrl = null)
+    private val previewUrl = if (type.startsWith("image/")) photoUrl(name) else null
+    val display = FileDisplayData(id, name, type, formatFileSize(bytes), createdAt, previewUrl)
     val preview = FilePreviewDisplayData(id, name, type, formatFileSize(bytes), createdAt, source = "local", userId = null)
 }
 
@@ -157,8 +175,13 @@ private val SampleFiles = listOf(
         """.trimIndent(),
     ),
     SampleFile("receipt", "grocery-receipt.pdf", "application/pdf", 184_320, 2.days),
-    SampleFile("melted", "melted-bar.jpg", "image/jpeg", 2_457_600, 6.days),
-    SampleFile("vacuum", "robot-vacuum-stuck.png", "image/png", 1_310_720, 26.hours),
+    SampleFile("chocolate", "dark-chocolate.jpg", "image/jpeg", 58_053, 35.minutes),
+    SampleFile("lighthouse", "lighthouse-at-night.jpg", "image/jpeg", 148_345, 50.minutes),
+    SampleFile("dessert", "dessert-idea.jpg", "image/jpeg", 190_792, 2.hours),
+    SampleFile("brownie", "last-brownie.jpg", "image/jpeg", 139_272, 5.hours),
+    SampleFile("vacuum", "robot-vacuum-stuck.jpg", "image/jpeg", 152_464, 26.hours),
+    SampleFile("whiskers", "whiskers-on-keyboard.jpg", "image/jpeg", 136_797, 2.days),
+    SampleFile("pistachio", "pistachio-haul.jpg", "image/jpeg", 399_375, 4.days),
     SampleFile("memo", "voice-memo-snack-ideas.m4a", "audio/mp4", 845_000, 4.days),
     SampleFile("dog", "dog-vs-vacuum.mp4", "video/mp4", 14_680_064, 9.days),
 )
