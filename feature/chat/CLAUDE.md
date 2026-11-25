@@ -494,8 +494,10 @@ Models write both the private-use character and its literal escape: convert the 
   `parseTextParts` and the save gate are mirrored server logic: re-verify on upstream bumps.**
 - **earlyAbort = un-send** (`StreamingHost.unsendTurn`): remove the optimistic message (one emission)
   and restore its text to the composer. The id is null for regenerate/continue/edit-AI, whose
-  persisted user message must never be removed.
-- **A failed send restores its text unless the server kept it.** Before `created`: un-send. After:
+  persisted user message must never be removed. A queue drain's turn (`ChatViewModel.drainedTurn`)
+  instead goes back to the queue head, held (`requeueRefusedDrain`, then the stream end's `pause`).
+- **A failed send restores its text unless the server kept it.** Before `created`: un-send (a
+  drained queue item goes back to the queue head, held, not to the composer). After:
   a non-network error reloads with `loadConversation(unsavedTurn = …)` and restores the text when no
   row matches. Network errors are excluded (the run may be live). A `ChatRefusal` on an existing
   non-temporary conversation reloads too (upstream `denyRequest` saves the message).

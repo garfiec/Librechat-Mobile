@@ -457,7 +457,7 @@ class ChatViewModel(
                 sendReadinessDelegate.runWhenSendReady(
                     onRefused = { queueOrchestrationDelegate.requeueRefusedDrain(spec) },
                 ) {
-                    sendDispatchDelegate.doSendWithSpec(spec)
+                    sendDispatchDelegate.doSendWithSpec(spec, drained = true)
                 }
             }
         },
@@ -795,6 +795,13 @@ class ChatViewModel(
         },
     )
 
+    /**
+     * The optimistic user-message id of the last queue drain's turn, with the item it drained. An
+     * un-send of that id puts the item back at the queue head instead of into the composer, which
+     * may hold other text; the stream end then pauses the queue.
+     */
+    private var drainedTurn: Pair<String, QueuedMessage>? = null
+
     private val streamingManager = StreamingManagerDelegate(
         handle = StreamingHandle(stateHandle),
         chatRepository = chatRepository,
@@ -824,6 +831,10 @@ class ChatViewModel(
             override fun unsendTurn(optimisticId: String?) {
                 val unsent = optimisticId?.let { id -> _uiState.value.messages.firstOrNull { it.messageId == id } }
                 treeDelegate.unsendOptimisticTurn(optimisticId)
+                drainedTurn?.takeIf { it.first == optimisticId }?.let { (_, drained) ->
+                    queueDelegate.requeueRefusedDrain(drained)
+                    return
+                }
                 // A file-only turn has no text but may carry quotes and picked skills to put back.
                 unsent?.let {
                     conversationLoadDelegate.restoreUnsentInput(
@@ -850,7 +861,8 @@ class ChatViewModel(
         fileHandler = fileDelegate,
         requestBuilder = requestBuilder,
         activeAccountProvider = activeAccountProvider,
-        beginStreaming = { optimisticUserMessageId, turnSpec ->
+        beginStreaming = { optimisticUserMessageId, turnSpec, drainedSpec ->
+            drainedTurn = drainedSpec?.let { optimisticUserMessageId to it }
             streamingManager.beginStreaming(
                 isEdit = false,
                 optimisticUserMessageId = optimisticUserMessageId,

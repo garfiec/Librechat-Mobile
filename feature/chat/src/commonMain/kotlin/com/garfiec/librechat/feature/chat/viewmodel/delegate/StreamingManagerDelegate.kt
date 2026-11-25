@@ -580,7 +580,8 @@ class StreamingManagerDelegate(
         liveReply.onStreamEnded(rawEvent.resolvedResponseMessage()?.attachments.orEmpty())
         // Early abort: the Stop landed before the server's `created` milestone, so NOTHING was
         // persisted — not even the user message. Un-send the turn (remove the optimistic bubble,
-        // hand its text back to the composer) instead of finalizing: any bubble kept here would
+        // hand its text back to the composer, or a drained queue item back to the queue head)
+        // instead of finalizing: any bubble kept here would
         // be silently dropped by the next sync. Mirrors the web client's early-abort handling.
         // No completionDelegate.onFinal — there is no conversation save, cache, title, or TTS
         // for a turn that never existed.
@@ -821,8 +822,9 @@ class StreamingManagerDelegate(
                 val unsavedTurn = currentTurnOptimisticUserMessageId
                     ?.takeIf { probablySaved && !reason.isNetwork }
                     ?.let { id -> handle.state.messages.firstOrNull { it.messageId == id } }
-                // Any other turn is un-sent and its text handed back to the composer, exactly as an
-                // early abort does, rather than stranded: the optimistic bubble is invisible on a
+                // Any other turn is un-sent and its text handed back to the composer (a drained queue
+                // item goes back to the queue head instead), exactly as an early abort does, rather
+                // than stranded: the optimistic bubble is invisible on a
                 // new chat anyway (screenState stays LANDING until `created`) and on an existing
                 // conversation the reload below rebuilds the path without it. Either way the user's
                 // typed text simply disappeared, with nothing to retry from. Null id means the turn

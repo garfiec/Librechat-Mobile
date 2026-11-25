@@ -86,7 +86,10 @@ class SendDispatchDelegateTest {
             fileHandler = fileHandler,
             requestBuilder = ChatRequestBuilder { flow.value },
             activeAccountProvider = mockk<ActiveAccountProvider>(relaxed = true),
-            beginStreaming = { _, spec -> recorder.begun += spec },
+            beginStreaming = { _, spec, drainedSpec ->
+                recorder.begun += spec
+                recorder.drained += drainedSpec
+            },
             launchStream = {},
             onComparisonSendStart = {},
             buildAddedConvo = { _, _, _ -> null },
@@ -105,6 +108,7 @@ class SendDispatchDelegateTest {
 
     private class Recorder {
         val begun = mutableListOf<QueuedMessage>()
+        val drained = mutableListOf<QueuedMessage?>()
         var skillsTurnedOn = 0
         val chatRepository = RecordingChatRepository()
         var liveWorkspace: CodeWorkspaceSubmission? = CodeWorkspaceSubmission.NONE
@@ -206,6 +210,32 @@ class SendDispatchDelegateTest {
             assertThat(sent).isTrue()
             testScheduler.runCurrent()
             coVerify(exactly = 0) { settingsDataStore.incrementModelUsage(any(), any(), any(), any()) }
+        }
+
+    @Test
+    fun `only a drain is tagged for requeue, with the spec it was given`() =
+        dispatchTest(streaming = false) { flow, delegate, recorder ->
+            val spec = QueuedMessage(
+                localId = "q1",
+                text = "hi",
+                choice = ModelChoice.Raw("anthropic", "claude-haiku-4-5"),
+                dispatch = dispatch("anthropic"),
+            )
+            fun idle() {
+                flow.value = flow.value.copy(content = flow.value.content.copy(isStreaming = false))
+            }
+
+            assertThat(delegate.doSendWithSpec(spec, drained = true)).isTrue()
+            idle()
+            assertThat(delegate.doSendWithSpec(spec)).isTrue()
+            idle()
+            assertThat(delegate.sendAppText("x")).isTrue()
+
+            assertThat(recorder.drained).hasSize(3)
+            assertThat(recorder.drained[0]).isSameInstanceAs(spec)
+            assertThat(recorder.begun[0]).isNotSameInstanceAs(spec)
+            assertThat(recorder.drained[1]).isNull()
+            assertThat(recorder.drained[2]).isNull()
         }
 
     private fun heldDrain(flow: MutableStateFlow<ChatUiState>) = QueuedMessage(
