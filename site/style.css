@@ -298,6 +298,11 @@ h3 { font-size: 20px; }
 }
 .hero-swatches button[aria-pressed="true"] { outline: 2px solid #ffffff; outline-offset: 2px; }
 
+/* material-only shows just the Material half: no divider, tags, accent swatches or dragging. */
+.split.material-only { cursor: auto; }
+.split.material-only .glass, .split.material-only .divider, .split.material-only .look-tag,
+.split.material-only .hero-swatches { display: none; }
+
 /* Wide screens show the copy inside the split; narrow screens show it above, with only the phone split. */
 .hero-copy-narrow { display: none; padding-block: 48px 32px; }
 @media (max-width: 760px) {
@@ -308,6 +313,9 @@ h3 { font-size: 20px; }
   .split { height: 600px; }
   /* The bottom padding keeps the phone clear of the swatch bar. */
   .half-inner { justify-content: center; padding-block: 24px 76px; }
+  .split.material-only { height: auto; }
+  .split.material-only .half { position: static; }
+  .split.material-only .half-inner { padding-block: 24px; }
   .hero-phone { width: 230px; }
 }
 
