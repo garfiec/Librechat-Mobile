@@ -51,7 +51,7 @@
             <a class="try-link" href="demo.html">Try it in your browser →</a>
     </div>
 
-    <div class="split" id="split">
+    <div class="split material-only" id="split">
       <div class="half material">
         <div class="wrap half-inner">
           <div class="hero-copy hero-copy-wide">
@@ -351,7 +351,7 @@
     }
     var dragging = false;
     split.addEventListener('pointerdown', function (e) {
-      if (e.target.closest('a, button')) return;
+      if (split.classList.contains('material-only') || e.target.closest('a, button')) return;
       dragging = true;
       split.setPointerCapture(e.pointerId);
       fromX(e.clientX);
