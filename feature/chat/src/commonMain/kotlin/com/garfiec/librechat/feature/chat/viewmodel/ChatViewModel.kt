@@ -924,6 +924,7 @@ class ChatViewModel(
         onComparisonSendStart = comparisonDelegate::onSendStart,
         buildAddedConvo = comparisonDelegate::buildAddedConvo,
         codeWorkspace = codeWorkspaceDelegate::submissionForSend,
+        reloadTemporaryChat = conversationLoadDelegate::reloadIfTemporary,
     )
 
     /** True when this ViewModel was opened for a brand-new chat (no conversationId from navigation). */
@@ -946,16 +947,15 @@ class ChatViewModel(
                 it.copy(
                     // SECURITY: do not remove — temp-chat data-at-rest guard. Seeded from the Chat
                     // route (durable across process death), so a restored temp Chat(id) stays
-                    // temp-aware from the first frame: this short-circuits loadConversation and
-                    // loadConversationModel below, both of which would otherwise upsert the
-                    // server-hidden conversation to Room, and makes follow-up sends temporary.
+                    // temp-aware from the first frame: this keeps loadConversation and
+                    // loadConversationModel below off Room, which would otherwise upsert the
+                    // server-hidden conversation, and makes follow-up sends temporary.
                     conversation = it.conversation.copy(
                         conversationId = conversationId,
                         isTemporaryChat = initialIsTemporary,
                     ),
-                    // A temp chat restored across process death has no in-memory handoff to seed its
-                    // messages (they're gone with the session), and its Room read is guarded off — so
-                    // land on an empty ACTIVE chat rather than a LOADING spinner that never resolves.
+                    // A temp chat has no cache to paint while its server copy loads into memory, so it
+                    // opens ACTIVE rather than on a LOADING spinner.
                     content = it.content.copy(
                         screenState = if (initialIsTemporary) ChatScreenState.ACTIVE else ChatScreenState.LOADING,
                         // Settled by resumeActiveStreamIfNeeded below, which learns of a paused run.
@@ -1800,6 +1800,8 @@ class ChatViewModel(
             // optimistic state, so a dropped submission leaves an empty thumb and no explanation.
             if (result is Result.Error) {
                 _uiState.update { it.copy(error = result.message ?: "Could not save your feedback") }
+            } else {
+                conversationLoadDelegate.reloadIfTemporary(conversationId)
             }
         }
     }

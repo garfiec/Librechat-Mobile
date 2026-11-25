@@ -78,6 +78,11 @@ class MessageEditingDelegate(
      * and NONE sends no fields.
      */
     private val codeWorkspace: () -> CodeWorkspaceSubmission? = { CodeWorkspaceSubmission.NONE },
+    /**
+     * `ConversationLoadDelegate.reloadIfTemporary`: a saved write reaches a saved chat's screen
+     * through its Room row, a temporary chat's only through a reload.
+     */
+    private val reloadTemporaryChat: (String) -> Unit = {},
 ) {
 
     /**
@@ -593,6 +598,7 @@ class MessageEditingDelegate(
             } finally {
                 savesInFlight -= messageId
             }
+            if (result !is Result.Error) reloadTemporaryChat(conversationId)
             handle.update {
                 // The editor may have moved on — Edit tapped on another row while this was in
                 // flight. Closing it then would discard THAT message's draft, and splicing
@@ -658,6 +664,7 @@ class MessageEditingDelegate(
             } finally {
                 savesInFlight -= messageId
             }
+            if (saved.isNotEmpty()) reloadTemporaryChat(conversationId)
             handle.update {
                 // See saveEditOnly: the editor may belong to another message by now.
                 if (editing.editingMessageId != messageId) {

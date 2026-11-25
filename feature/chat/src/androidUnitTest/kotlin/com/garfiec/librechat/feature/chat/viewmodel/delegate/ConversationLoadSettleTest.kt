@@ -8,6 +8,7 @@ import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.StreamEvent
 import com.garfiec.librechat.core.model.request.NO_PARENT
 import com.garfiec.librechat.feature.chat.util.branchSelectionFor
+import com.garfiec.librechat.feature.chat.util.buildActiveMessagePath
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ConversationLoadHandle
@@ -16,8 +17,10 @@ import com.garfiec.librechat.feature.chat.viewmodel.MessageTreeHandle
 import com.garfiec.librechat.feature.chat.viewmodel.MessagesState
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -125,6 +128,80 @@ class ConversationLoadSettleTest {
         scope.cancel()
     }
 
+    @Test
+    fun `a temporary chat's load shows the server's thread and writes nothing to Room`() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val scope = CoroutineScope(dispatcher + Job())
+        val sent = message("u1", parentId = null, isUser = true)
+        // The server re-mints the user message's id.
+        val onServer = listOf(
+            message("u1-server", parentId = null, isUser = true),
+            message("a1", parentId = "u1-server"),
+        )
+        val messageRepository = mockk<MessageRepository>(relaxed = true)
+        coEvery { messageRepository.fetchMessagesFull(CONVERSATION_ID) } returns Result.Success(onServer)
+        val flow = MutableStateFlow(temporaryState(listOf(sent)))
+        val delegate = conversationLoadDelegate(ChatStateHandle(flow, scope), messageRepository, dispatcher)
+        var settled = 0
+
+        delegate.loadConversation(CONVERSATION_ID) { settled++ }
+        runCurrent()
+
+        assertThat(flow.value.displayMessages.map { it.message.messageId }).containsExactly("u1-server", "a1").inOrder()
+        assertThat(settled).isEqualTo(1)
+        coVerify(exactly = 0) { messageRepository.getMessages(any(), any()) }
+        coVerify(exactly = 0) { messageRepository.refreshMessages(any(), any(), any()) }
+        coVerify(exactly = 0) { messageRepository.cacheMessages(any(), any()) }
+        verify(exactly = 0) { messageRepository.observeMessages(any()) }
+        scope.cancel()
+    }
+
+    @Test
+    fun `a temporary chat's failed regenerate puts the previous reply back`() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val scope = CoroutineScope(dispatcher + Job())
+        val rows = listOf(message("u1", parentId = null, isUser = true), message("a1", parentId = "u1"))
+        val messageRepository = mockk<MessageRepository>(relaxed = true)
+        coEvery { messageRepository.fetchMessagesFull(CONVERSATION_ID) } returns Result.Error(message = "offline")
+        // The regenerate anchored the path at its parent, and the stream then failed.
+        val flow = MutableStateFlow(temporaryState(rows, displayed = rows.take(1)))
+        val delegate = conversationLoadDelegate(ChatStateHandle(flow, scope), messageRepository, dispatcher)
+
+        delegate.loadConversation(CONVERSATION_ID)
+        runCurrent()
+
+        assertThat(flow.value.displayMessages.map { it.message.messageId }).containsExactly("u1", "a1").inOrder()
+        scope.cancel()
+    }
+
+    @Test
+    fun `a temporary chat's read that a Final overtook is dropped`() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val scope = CoroutineScope(dispatcher + Job())
+        val sent = message("u1", parentId = null, isUser = true)
+        val answer = CompletableDeferred<Unit>()
+        val messageRepository = mockk<MessageRepository>(relaxed = true)
+        coEvery { messageRepository.fetchMessagesFull(CONVERSATION_ID) } coAnswers {
+            answer.await()
+            Result.Success(listOf(sent))
+        }
+        val flow = MutableStateFlow(temporaryState(listOf(sent)))
+        val root = ChatStateHandle(flow, scope)
+        val delegate = conversationLoadDelegate(root, messageRepository, dispatcher)
+        var settled = 0
+        delegate.loadConversation(CONVERSATION_ID) { settled++ }
+        runCurrent()
+
+        MessageTreeDelegate(MessageTreeHandle(root))
+            .finalizeChatDisplay(StreamEvent.Final(requestMessage = sent, responseMessage = message("a1", parentId = "u1")))
+        answer.complete(Unit)
+        runCurrent()
+
+        assertThat(flow.value.displayMessages.map { it.message.messageId }).containsExactly("u1", "a1").inOrder()
+        assertThat(settled).isEqualTo(1)
+        scope.cancel()
+    }
+
     private fun conversationLoadDelegate(
         root: ChatStateHandle,
         messageRepository: MessageRepository,
@@ -141,6 +218,11 @@ class ConversationLoadSettleTest {
         onMessagesSettled = {},
         currentModelSpecs = { null },
         currentAccountId = { "srv:user-1" },
+    )
+
+    private fun temporaryState(messages: List<Message>, displayed: List<Message> = messages) = ChatUiState(
+        conversation = ConversationMetaState(conversationId = CONVERSATION_ID, isTemporaryChat = true),
+        content = MessagesState(messages = messages, displayMessages = buildActiveMessagePath(displayed)),
     )
 
     private fun message(id: String, parentId: String?, isUser: Boolean = false) = Message(

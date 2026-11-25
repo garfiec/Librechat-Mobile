@@ -35,16 +35,23 @@ class MessageTreeDelegate(
         // streaming reply back to the end. rerunEdit/regenerateMessage are likewise
         // gated on isStreaming; this closes the same gap for sibling navigation.
         if (handle.state.isStreaming) return
-        // Only mutate the branch selection; the observeMessages/activeBranches combine in
-        // loadConversation recomputes displayMessages off the Main thread in response, so the
-        // tree walk no longer runs synchronously on this UI click path.
+        // In a saved chat only the branch selection changes; the observeMessages/activeBranches
+        // combine in loadConversation recomputes displayMessages off the Main thread in response.
+        // A temporary chat has no such observer, so its path is rebuilt here.
         handle.update {
             val newBranches = content.activeBranches.toMutableMap()
             newBranches[parentMessageId] = siblingIndex
             // The context gauge is left alone: ContextProjectionDelegate re-resolves it from the
             // rebuilt displayMessages one dispatch later. Clearing it here would flash the gauge
             // hidden in between.
-            content = content.copy(activeBranches = newBranches)
+            content = if (conversation.isTemporaryChat) {
+                content.copy(
+                    activeBranches = newBranches,
+                    displayMessages = buildActiveMessagePath(content.messages, newBranches),
+                )
+            } else {
+                content.copy(activeBranches = newBranches)
+            }
         }
     }
 

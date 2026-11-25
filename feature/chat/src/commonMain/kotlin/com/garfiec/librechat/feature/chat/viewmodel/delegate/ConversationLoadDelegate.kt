@@ -37,6 +37,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * Brings a conversation onto the screen: subscribes the Room read-through, revalidates it from
@@ -190,7 +191,9 @@ class ConversationLoadDelegate(
      * the fetch settles, its text goes back into the composer if the server kept no copy of it.
      *
      * [onSettled] runs once, after the settled read is on screen. A later load that replaces this
-     * one first takes it over and runs it when it settles. Never in a temporary chat (nothing loads).
+     * one first takes it over and runs it when it settles.
+     *
+     * A temporary chat reads the server's copy into memory instead ([loadTemporaryChat]).
      */
     fun loadConversation(
         conversationId: String,
@@ -198,13 +201,14 @@ class ConversationLoadDelegate(
         unsavedTurn: Message? = null,
         onSettled: (() -> Unit)? = null,
     ) {
-        // SECURITY: do not remove — temp-chat data-at-rest guard.
-        // Defense-in-depth for temporary chats: never route a temp conversation
-        // through the Room read-through, which would upsert its message rows to disk (the
-        // convo is hidden from history but the text would persist). The temp chat's
-        // display is finalized in memory by finalizeChatDisplay; any stray
-        // loadConversation call (safety-net, error/abort paths) must not touch the DB.
-        if (handle.state.isTemporaryChat) return
+        // SECURITY: do not remove — temp-chat data-at-rest guard. Never route a temp conversation
+        // through the Room read-through, which would upsert its message rows to disk (the convo is
+        // hidden from history but the text would persist): temp chats read the server copy into
+        // memory only.
+        if (handle.state.isTemporaryChat) {
+            loadTemporaryChat(conversationId, unsavedTurn, onSettled)
+            return
+        }
         // Cancel any previous Room observer to avoid duplicate collectors
         roomObserverJob?.cancel()
         // Latch so comparison auto-rehydration runs at most once per load — on the first
@@ -253,29 +257,7 @@ class ConversationLoadDelegate(
                 .collect { emission ->
                     val displayMessages = emission.displayMessages
                     val settled = emission.revalidated
-                    handle.update {
-                        content = content.copy(
-                            messages = emission.messages,
-                            displayMessages = displayMessages,
-                            // Cached rows go straight to ACTIVE; an empty cache keeps
-                            // spinning, so an uncached online open never flashes a blank
-                            // thread first. Settling releases it either way.
-                            screenState = if (displayMessages.isNotEmpty() || settled) {
-                                ChatScreenState.ACTIVE
-                            } else {
-                                content.screenState
-                            },
-                            // Null once the server's copy arrives (or there was never a seed) →
-                            // a later server-side delete can then still remove the row.
-                            pendingResumeUserMessage = emission.retainedPending,
-                        )
-                        emission.appliedUnpin?.takeIf { it == content.unpinWhenCached }?.let { applied ->
-                            content = content.copy(
-                                activeBranches = content.activeBranches - applied.keys,
-                                unpinWhenCached = null,
-                            )
-                        }
-                    }
+                    showEmission(emission)
                     // Judged on the settled read only: a cached emission predates the failed turn
                     // and would always look like the server dropped it. A fetch that failed also
                     // settles, and then restores — duplicating text the server did keep is the
@@ -283,11 +265,7 @@ class ConversationLoadDelegate(
                     // A reply that finished while nobody was watching may have left its generated
                     // files pending; the settled read is the one that names them.
                     if (settled) onMessagesSettled(displayMessages)
-                    if (settled && settleWaiters.isNotEmpty()) {
-                        val waiters = settleWaiters.toList()
-                        settleWaiters.clear()
-                        waiters.forEach { it() }
-                    }
+                    if (settled) runSettleWaiters()
                     pendingUnsavedTurn?.takeIf { settled }?.let { unsent ->
                         pendingUnsavedTurn = null
                         val kept = emission.messages.any {
@@ -320,6 +298,81 @@ class ConversationLoadDelegate(
                         }
                     }
                 }
+        }
+    }
+
+    /**
+     * A temporary chat's load: one network read of its messages, held in memory and never cached.
+     * Runs in the observer's slot, so a newer load or [stopObserving] cancels it.
+     */
+    private fun loadTemporaryChat(conversationId: String, unsavedTurn: Message?, onSettled: (() -> Unit)?) {
+        roomObserverJob?.cancel()
+        rehydrateHeldForSetup = null
+        onSettled?.let(settleWaiters::add)
+        roomObserverJob = handle.scope.launch {
+            val before = handle.state.messages
+            val result = messageRepository.fetchMessagesFull(conversationId)
+            val read = (result as? Result.Success)?.data?.takeIf { it.isNotEmpty() }
+            val emission = read?.let { messages ->
+                withContext(defaultDispatcher) { messagePathEmission(messages, handle.state.activeBranches, settled = true) }
+            }
+            // A stream started, or a Final or send wrote the thread while the read was out: that
+            // state is newer than the read.
+            val current = handle.state.let { !it.isStreaming && it.messages === before }
+            if (current && emission != null) {
+                showEmission(emission)
+                onMessagesSettled(emission.displayMessages)
+            } else if (current) {
+                // No read: drop a failed resubmit's stream anchor so the thread ends on its reply.
+                handle.update {
+                    content = content.copy(displayMessages = buildActiveMessagePath(content.messages, content.activeBranches))
+                }
+            }
+            runSettleWaiters()
+            unsavedTurn?.let { unsent ->
+                val kept = current && emission != null &&
+                    emission.messages.any { it.messageId == unsent.messageId || it.isServerCopyOf(unsent) }
+                if (!kept) restoreUnsentInput(unsent.text, unsent.quotes.orEmpty(), unsent.manualSkills.orEmpty())
+            }
+        }
+    }
+
+    /** Reloads a temporary chat after a write to one of its messages; a saved chat's Room row re-emits. */
+    fun reloadIfTemporary(conversationId: String) {
+        if (handle.state.isTemporaryChat) loadConversation(conversationId)
+    }
+
+    private fun runSettleWaiters() {
+        if (settleWaiters.isEmpty()) return
+        val waiters = settleWaiters.toList()
+        settleWaiters.clear()
+        waiters.forEach { it() }
+    }
+
+    private fun showEmission(emission: MessagePathEmission) {
+        val displayMessages = emission.displayMessages
+        handle.update {
+            content = content.copy(
+                messages = emission.messages,
+                displayMessages = displayMessages,
+                // Cached rows go straight to ACTIVE; an empty cache keeps
+                // spinning, so an uncached online open never flashes a blank
+                // thread first. Settling releases it either way.
+                screenState = if (displayMessages.isNotEmpty() || emission.revalidated) {
+                    ChatScreenState.ACTIVE
+                } else {
+                    content.screenState
+                },
+                // Null once the server's copy arrives (or there was never a seed) →
+                // a later server-side delete can then still remove the row.
+                pendingResumeUserMessage = emission.retainedPending,
+            )
+            emission.appliedUnpin?.takeIf { it == content.unpinWhenCached }?.let { applied ->
+                content = content.copy(
+                    activeBranches = content.activeBranches - applied.keys,
+                    unpinWhenCached = null,
+                )
+            }
         }
     }
 
@@ -541,13 +594,17 @@ class ConversationLoadDelegate(
 
     fun refreshMessages(onRefreshed: (conversationId: String) -> Unit = {}) {
         val conversationId = handle.state.conversationId ?: return
-        // SECURITY: do not remove — temp-chat data-at-rest guard.
-        // Temp chats aren't persisted server- or client-side; a pull-to-refresh would
-        // call refreshMessages → replaceAllForConversation, writing the temp message rows
-        // to Room. Skip — there's nothing to refresh for a temporary chat.
-        if (handle.state.isTemporaryChat) return
         if (handle.state.isRefreshingMessages) return
         handle.update { content = content.copy(isRefreshingMessages = true) }
+        // SECURITY: do not remove — temp-chat data-at-rest guard. messageRepository.refreshMessages
+        // replaces the conversation's Room rows; a temp chat reloads from the server into memory.
+        if (handle.state.isTemporaryChat) {
+            loadConversation(conversationId) {
+                handle.update { content = content.copy(isRefreshingMessages = false) }
+                onRefreshed(conversationId)
+            }
+            return
+        }
         handle.scope.launch {
             // Foreground pull-to-refresh: the user is looking at this conversation now, so entry is
             // land time and the live account is the right one to attribute to.

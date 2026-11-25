@@ -498,7 +498,7 @@ Models write both the private-use character and its literal escape: convert the 
 - **A failed send restores its text unless the server kept it.** Before `created`: un-send. After:
   a non-network error reloads with `loadConversation(unsavedTurn = …)` and restores the text when no
   row matches. Network errors are excluded (the run may be live). A `ChatRefusal` on an existing
-  non-temporary conversation reloads too (upstream `denyRequest` saves the message).
+  conversation reloads too (upstream `denyRequest` saves the message).
 - **The final-frame merge is monotonic** (`Message.mergedOver`): incoming wins where it carries
   information, and `error`/`unfinished` always come from the frame. Use it only at the final-frame
   chokepoint; full-record syncs (`getMessages`, `refreshMessages`) must never use it.
