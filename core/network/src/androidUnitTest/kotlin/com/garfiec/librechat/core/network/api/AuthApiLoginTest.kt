@@ -1,5 +1,7 @@
 package com.garfiec.librechat.core.network.api
 
+import com.garfiec.librechat.core.model.auth.AuthCookies
+import com.garfiec.librechat.core.model.auth.SessionCredentials
 import com.garfiec.librechat.core.network.di.librechatJson
 import com.google.common.truth.Truth.assertThat
 import io.ktor.client.HttpClient
@@ -161,13 +163,31 @@ class AuthApiLoginTest {
     }
 
     @Test
-    fun `confirmTwoFactor tolerates the empty 200 body`() = runTest {
-        // confirm2FA: `res.status(200).json()` — an empty body. Must NOT be decoded into an object.
+    fun `confirmTwoFactor tolerates the empty 200 body of an older server`() = runTest {
         val engine = MockEngine {
             respond(content = "", status = HttpStatusCode.OK, headers = jsonHeaders())
         }
 
-        api(engine).confirmTwoFactor("123456") // returns Unit; the assertion is that it does not throw
+        assertThat(api(engine).confirmTwoFactor("123456", AuthCookies("rt"))).isNull()
+    }
+
+    @Test
+    fun `confirmTwoFactor sends the refresh cookie and reads the rotated session`() = runTest {
+        val engine = MockEngine {
+            respond(
+                content = """{"token":"access-2","user":{"_id":"u1"}}""",
+                status = HttpStatusCode.OK,
+                headers = headersOf(
+                    HttpHeaders.ContentType to listOf("application/json"),
+                    HttpHeaders.SetCookie to listOf("refreshToken=rt-2; Path=/; HttpOnly"),
+                ),
+            )
+        }
+
+        val session = api(engine).confirmTwoFactor("123456", AuthCookies("rt-1"))
+
+        assertThat(engine.requestHistory.single().headers[HttpHeaders.Cookie]).isEqualTo("refreshToken=rt-1")
+        assertThat(session).isEqualTo(SessionCredentials("access-2", AuthCookies("rt-2")))
     }
 
     @Test

@@ -2,7 +2,6 @@ package com.garfiec.librechat.feature.chat.viewmodel.delegate
 
 import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
-import com.garfiec.librechat.core.data.endpoint.EndpointDispatch
 import com.garfiec.librechat.core.data.repository.ChatRepository
 import com.garfiec.librechat.core.data.repository.ResumePinStore
 import com.garfiec.librechat.core.model.AskUserQuestionItem
@@ -12,6 +11,7 @@ import com.garfiec.librechat.core.model.PendingAction
 import com.garfiec.librechat.core.model.PendingActionPayload
 import com.garfiec.librechat.core.model.PendingActionTypes
 import com.garfiec.librechat.core.model.ToolApprovalDecisions
+import com.garfiec.librechat.core.model.endpoint.EndpointDispatch
 import com.garfiec.librechat.core.model.request.ChatResumeRequest
 import com.garfiec.librechat.core.model.request.ToolApprovalResolution
 import com.garfiec.librechat.core.model.response.ChatResumeResponse
@@ -82,6 +82,7 @@ class PendingActionDelegateTest {
             restoreAnswer = { restored += it },
             resumePinStore = store,
             pauseExpiredMessage = { EXPIRED_COPY },
+            pauseGoneMessage = { GONE_COPY },
             nowMillis = nowMillis,
         )
         return delegate to flow
@@ -484,6 +485,55 @@ class PendingActionDelegateTest {
         }
 
     @Test
+    fun `a 404 means no pause is left to answer, so the card goes`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val (delegate, flow) = delegateWith(this)
+            coEvery { chatRepository.resumeChat(any()) } returns
+                Result.Error(ApiException(404, "No paused generation for this conversation"), "gone")
+
+            delegate.onPendingAction(askQuestion())
+            delegate.submitAnswerFromComposer("my answer")
+
+            assertThat(flow.value.pendingAction).isNull()
+            assertThat(flow.value.isResolvingPendingAction).isFalse()
+            assertThat(flow.value.error).isEqualTo(GONE_COPY)
+            assertThat(restored).containsExactly("my answer")
+        }
+
+    @Test
+    fun `an answer typed in the panel goes back to the composer when a 404 takes the card`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val (delegate, flow) = delegateWith(this)
+            coEvery { chatRepository.resumeChat(any()) } returns
+                Result.Error(ApiException(404, "No paused generation for this conversation"), "gone")
+
+            delegate.onPendingAction(askQuestion())
+            delegate.updateAskAnswerDraft("act-1", AskAnswerDraft(freeText = "Purple"))
+            delegate.submitAnswer("Purple")
+
+            assertThat(flow.value.pendingAction).isNull()
+            assertThat(restored).containsExactly("Purple")
+        }
+
+    @Test
+    fun `a 503 keeps the pause so the user can retry, and says so in its own words`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val (delegate, flow) = delegateWith(this)
+            coEvery { chatRepository.resumeChat(any()) } returns Result.Error(
+                ApiException(503, "resume_context_unavailable", body = """{"error":"resume_context_unavailable"}"""),
+                "resume_context_unavailable",
+            )
+
+            delegate.onPendingAction(toolApproval())
+            delegate.submitAnswer("yes")
+
+            assertThat(flow.value.pendingAction).isNotNull()
+            assertThat(flow.value.pendingActionResumeFailed).isTrue()
+            assertThat(flow.value.error).isEqualTo(ChatNotice.RESUME_CONTEXT_UNAVAILABLE.marker())
+            assertThat(restored).isEmpty()
+        }
+
+    @Test
     fun `a 409 before the expiry keeps the generic retryable handling`() =
         runTest(UnconfinedTestDispatcher()) {
             val (delegate, flow) = delegateWith(this, nowMillis = { 1_000L })
@@ -495,6 +545,25 @@ class PendingActionDelegateTest {
 
             assertThat(flow.value.pendingAction).isNotNull()
             assertThat(flow.value.error).isEqualTo("conflict")
+        }
+
+    @Test
+    fun `a 409 for a changed project context takes the card and says to send again`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val (delegate, flow) = delegateWith(this, nowMillis = { 1_000L })
+            val body = """{"code":"PROJECT_CONTEXT_CHANGED","error":"Project context changed; start a new turn.",""" +
+                """"generationProtocolVersion":1}"""
+            coEvery { chatRepository.resumeChat(any()) } returns Result.Error(
+                ApiException(409, "Project context changed; start a new turn.", body = body),
+                "Project context changed; start a new turn.",
+            )
+
+            delegate.onPendingAction(toolApproval().copy(expiresAt = 60_000L))
+            delegate.submitAnswer("yes")
+
+            assertThat(flow.value.pendingAction).isNull()
+            assertThat(flow.value.pendingActionResumeFailed).isFalse()
+            assertThat(flow.value.error).isEqualTo("stream_error:PROJECT_CONTEXT_CHANGED")
         }
 
     @Test
@@ -1009,5 +1078,6 @@ class PendingActionDelegateTest {
         const val FINGERPRINT_REJECTED = "started with a different setup"
 
         private const val EXPIRED_COPY = "expired copy"
+        private const val GONE_COPY = "gone copy"
     }
 }

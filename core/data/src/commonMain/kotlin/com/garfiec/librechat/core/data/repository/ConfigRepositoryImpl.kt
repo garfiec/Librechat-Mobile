@@ -23,6 +23,7 @@ import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.config.StartupConfig
 import com.garfiec.librechat.core.model.response.Category
 import com.garfiec.librechat.core.network.api.ConfigApi
+import com.garfiec.librechat.core.network.client.ClientLimitsHolder
 import com.garfiec.librechat.core.network.client.PendingRequestIdentity
 import com.garfiec.librechat.core.network.client.ServerRedirectException
 import io.ktor.client.plugins.HttpRequestTimeoutException
@@ -46,6 +47,7 @@ class ConfigRepositoryImpl(
     private val configCache: ConfigCacheDataStore,
     private val dispatcher: CoroutineDispatcher,
     private val serverDataStore: ServerDataStore,
+    private val clientLimits: ClientLimitsHolder = ClientLimitsHolder(),
 ) : ConfigRepository {
 
     override val serverUrl: Flow<String> = serverDataStore.currentUrlFlow
@@ -61,13 +63,14 @@ class ConfigRepositoryImpl(
     override val startupConfigRefreshes: Flow<StartupConfig> = _startupConfigRefreshes.asSharedFlow()
 
     /**
-     * The one writer of both config flows. [serverId] is the server the config was read from or
-     * fetched for, captured before the read or request so a switch landing mid-way tags it with the
-     * server it came from.
+     * The one writer of both config flows. [serverId] is captured before the cache read or request:
+     * a cached config is tagged with the server whose cache it came from, and a fetched one must be
+     * dropped, not passed here, when the active server changed while it was in flight.
      */
     private fun setStartupConfig(config: StartupConfig?, serverId: String?) {
         _startupConfigForServer.value = if (config != null && serverId != null) ServerStartupConfig(serverId, config) else null
         _startupConfig.value = config
+        clientLimits.publish(config?.clientLimits)
     }
 
     private suspend fun activeServerId(): String? =
@@ -347,6 +350,8 @@ class ConfigRepositoryImpl(
 
         val result = safeApiCall {
             val config = configApi.getStartupConfig()
+            // Answered after a server switch: it describes the old server, so neither publish nor cache it.
+            if (activeServerId() != serverId) return@safeApiCall config
             setStartupConfig(config, serverId)
             _startupConfigRefreshes.tryEmit(config)
             configCache.saveStartupConfig(config)
@@ -366,6 +371,7 @@ class ConfigRepositoryImpl(
     }
 
     override suspend fun fetchEndpoints(): Result<Map<String, EndpointConfig>> {
+        val serverId = activeServerId()
         if (_endpointConfigs.value.isEmpty()) {
             configCache.loadEndpointConfigs()?.let { cached ->
                 _endpointConfigs.value = cached
@@ -374,6 +380,7 @@ class ConfigRepositoryImpl(
 
         val result = safeApiCall {
             val endpoints = configApi.getEndpoints()
+            if (activeServerId() != serverId) return@safeApiCall endpoints
             _endpointConfigs.value = endpoints
             configCache.saveEndpointConfigs(endpoints)
             endpoints
@@ -390,6 +397,7 @@ class ConfigRepositoryImpl(
     }
 
     override suspend fun fetchModels(): Result<Map<String, List<String>>> {
+        val serverId = activeServerId()
         if (_availableModels.value.isEmpty()) {
             configCache.loadAvailableModels()?.let { cached ->
                 _availableModels.value = cached.normalizedModels()
@@ -398,6 +406,7 @@ class ConfigRepositoryImpl(
 
         val result = safeApiCall {
             val models = configApi.getModels().normalizedModels()
+            if (activeServerId() != serverId) return@safeApiCall models
             _availableModels.value = models
             configCache.saveAvailableModels(models)
             models
@@ -428,6 +437,7 @@ class ConfigRepositoryImpl(
      * [VersionCheckResult.backendVersion] = null and [VersionCheckResult.isCompatible] = true.
      */
     override suspend fun checkBackendVersion(): Result<VersionCheckResult> {
+        val serverId = activeServerId()
         return safeApiCall {
             // Early UI seed: resolve the version from the persisted config up front so version-gated
             // UI (the drawer's Projects section, pin) is already in place before the user opens the
@@ -457,7 +467,7 @@ class ConfigRepositoryImpl(
             // drops it and reads as the plain release line the app targets.
             val supportedDisplay = BackendVersion.parse(supported)?.toString() ?: supported
 
-            publishDetectedBackend(detected)
+            if (activeServerId() == serverId) publishDetectedBackend(detected)
 
             // Re-emit the config snapshot now that the backend version is resolved, so the export's
             // version-mismatch signal is accurate (the first snapshot ran before detection).

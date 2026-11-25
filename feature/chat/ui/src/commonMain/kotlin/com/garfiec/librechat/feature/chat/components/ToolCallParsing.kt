@@ -1,0 +1,1014 @@
+// debt — TooManyFunctions: 27 functions
+@file:Suppress("TooManyFunctions")
+
+package com.garfiec.librechat.feature.chat.components
+
+import co.touchlab.kermit.Logger
+import com.garfiec.librechat.core.common.ToolConstants
+import com.garfiec.librechat.core.common.identity.cleanServerUrl
+import com.garfiec.librechat.core.model.AskUserQuestionOption
+import com.garfiec.librechat.core.model.AskUserQuestionRequest
+import com.garfiec.librechat.core.model.Attachment
+import com.garfiec.librechat.core.model.WebSearchAnswerBox
+import com.garfiec.librechat.core.model.WebSearchData
+import com.garfiec.librechat.core.model.content.AgentToolCall
+import com.garfiec.librechat.core.model.media.resolveAttachmentUrl
+import com.garfiec.librechat.feature.chat.viewmodel.ActiveToolCall
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+
+private val log = Logger.withTag("ToolCallParsing")
+
+val toolCallJson = Json { ignoreUnknownKeys = true; isLenient = true }
+
+// --- Tool name classification ---
+
+private val IMAGE_GEN_EXACT_NAMES = setOf(
+    "image_gen_oai",
+    "image_edit_oai",
+    "gemini_image_gen",
+)
+
+private val IMAGE_GEN_CONTAINS = listOf(
+    "dall",
+    "image_gen",
+    "stable-diffusion",
+    "flux",
+)
+
+internal fun isImageGenToolCall(toolNameLower: String): Boolean {
+    if (toolNameLower in IMAGE_GEN_EXACT_NAMES) return true
+    return IMAGE_GEN_CONTAINS.any { toolNameLower.contains(it) }
+}
+
+/** Bash-flavored code tool calls, whose `code` arg is a shell command (web `BashCall`). */
+private val BASH_TOOL_NAMES = setOf(
+    ToolConstants.BASH_TOOL,
+    ToolConstants.BASH_PROGRAMMATIC_TOOL_CALLING,
+)
+
+internal fun isBashToolCall(toolNameLower: String): Boolean = toolNameLower in BASH_TOOL_NAMES
+
+/**
+ * True for tool calls that render as the code-execution card: the code interpreter, `execute_code`,
+ * the bash tool, and programmatic tool-calling (Python/bash). Matches upstream ExecuteCode/BashCall
+ * routing. `run_tools_with_code`/`run_tools_with_bash` don't contain "execute", so they're matched
+ * by exact name.
+ */
+internal fun isCodeExecutionToolCall(toolNameLower: String): Boolean {
+    if (toolNameLower.contains(ToolConstants.CODE_INTERPRETER) || toolNameLower.contains("execute")) {
+        return true
+    }
+    return toolNameLower == ToolConstants.PROGRAMMATIC_TOOL_CALLING || toolNameLower in BASH_TOOL_NAMES
+}
+
+/**
+ * Web-search-style tool calls that render as the "Searched the web" sources card. `file_search`
+ * and `retrieval` also contain "search" but cite local documents, not the web, so they're routed
+ * to [isFileSearchToolCall]'s card instead.
+ */
+internal fun isWebSearchToolCall(toolNameLower: String): Boolean =
+    toolNameLower != ToolConstants.FILE_SEARCH &&
+        toolNameLower != ToolConstants.RETRIEVAL &&
+        toolNameLower.contains("search")
+
+/** Retrieval tool calls whose citations render as the "Searched your files" card. */
+internal fun isFileSearchToolCall(toolNameLower: String): Boolean =
+    toolNameLower == ToolConstants.FILE_SEARCH || toolNameLower == ToolConstants.RETRIEVAL
+
+/**
+ * The inline memory tools, by EXACT, case-sensitive name on the tool's own (not lowercased) name —
+ * upstream `Part.tsx` routes on `toolCall.name === 'set_memory' || … 'delete_memory'`. A substring
+ * match would draw any MCP tool with "memory" in its name as a memory write.
+ */
+internal fun isMemoryToolCall(toolName: String?): Boolean =
+    toolName == ToolConstants.SET_MEMORY || toolName == ToolConstants.DELETE_MEMORY
+
+// --- Parsing helpers ---
+
+/**
+ * Collects web-search sources from a message's `web_search` attachments (the shape the server
+ * actually sends — `organic` + `topStories`, not a `results` array in the tool-call output).
+ *
+ * Takes attachments whose `toolCallId` matches this tool call, plus any that carry no id at all
+ * (older payloads didn't always set one — those attach to any search call as a best effort).
+ * Attachments belonging to a *different* tool call are excluded so a second search turn can't
+ * duplicate its sources here. When this tool call itself has no id we can't disambiguate, so we
+ * fall back to every web-search attachment (there is normally only one). During streaming the
+ * server re-emits the attachment once per source processed, each a superset of the last, so we
+ * dedup by link. Mirrors upstream `collectSources` (`sources.ts`): the last copy of a link wins,
+ * in the position its first copy took.
+ */
+internal fun collectWebSearchSources(
+    attachments: List<Attachment>,
+    toolCallId: String?,
+): List<WebSearchResult> {
+    val byLink = LinkedHashMap<String, WebSearchResult>()
+    webSearchData(attachments, toolCallId).forEach { data ->
+        (data.organic.orEmpty() + data.topStories.orEmpty()).forEach { s ->
+            val url = s.link?.takeIf { it.isNotBlank() } ?: return@forEach
+            byLink[url] = WebSearchResult(
+                title = s.title?.takeIf { it.isNotBlank() } ?: hostOf(url) ?: url,
+                url = url,
+                snippet = s.snippet.orEmpty(),
+                favicon = null,
+                date = s.date?.takeIf { it.isNotBlank() },
+            )
+        }
+    }
+    return byLink.values.toList()
+}
+
+/** The `web_search` payloads that belong to [toolCallId], scoped as [collectWebSearchSources] says. */
+internal fun webSearchData(attachments: List<Attachment>, toolCallId: String?): List<WebSearchData> {
+    val web = attachments.filter { it.type == ToolConstants.WEB_SEARCH && it.webSearch != null }
+    val scoped = if (toolCallId == null) web else web.filter { it.toolCallId == toolCallId || it.toolCallId == null }
+    return scoped.mapNotNull { it.webSearch }
+}
+
+/** The search turn this call's results belong to (upstream `ownTurn`): 0 until one says otherwise. */
+internal fun webSearchTurn(data: List<WebSearchData>): Int = data.firstNotNullOfOrNull { it.turn } ?: 0
+
+/** The provider's direct answer, from the first payload that has one. Never streams. */
+internal fun webSearchAnswerBox(data: List<WebSearchData>): WebSearchAnswerBox? =
+    data.firstNotNullOfOrNull { box -> box.answerBox?.takeIf { it.title != null || it.text != null } }
+
+private val SEARCH_SOURCE_HEADER = Regex("""^# (?:Search|News) \d+: (?:"(.*)"|\(no title\))\s*$""")
+private val SEARCH_FIELD = Regex("""^(URL|Summary|Date|Source): ?(.*)$""")
+
+/**
+ * Sources from the text the search tool hands the model (`formatResultsForLLM` in
+ * `@librechat/agents` `tools/search/format`): a `# Search N: "title"` block per source with `URL:`,
+ * `Summary:`, `Date:` and `Source:` lines. A Stop after the search persists this output but not
+ * the `web_search` attachment, which is otherwise where the sources come from.
+ */
+internal fun parseFormattedSearchOutput(output: String): List<WebSearchResult> {
+    val results = LinkedHashMap<String, WebSearchResult>()
+    var title: String? = null
+    val fields = mutableMapOf<String, String>()
+    var field: String? = null
+    fun flush() {
+        val url = fields["URL"]?.trim()?.let(::safeWebUrl)
+        if (title != null && url != null && url !in results) {
+            results[url] = WebSearchResult(
+                title = title?.takeIf { it.isNotBlank() } ?: fields["Source"]?.trim()?.takeIf { it.isNotBlank() }
+                    ?: hostOf(url) ?: url,
+                url = url,
+                snippet = fields["Summary"]?.trim().orEmpty(),
+                date = fields["Date"]?.trim()?.takeIf { it.isNotBlank() },
+            )
+        }
+        title = null
+        fields.clear()
+        field = null
+    }
+    for (line in output.lines()) {
+        val header = SEARCH_SOURCE_HEADER.matchEntire(line)
+        when {
+            header != null -> {
+                flush()
+                title = header.groupValues[1]
+            }
+            title == null -> Unit
+            // Highlights follow the fields; nothing after them belongs to the source's own lines.
+            line.startsWith("## ") || line.startsWith("=== ") -> field = null
+            else -> {
+                val match = SEARCH_FIELD.matchEntire(line)
+                if (match != null && match.groupValues[1] !in fields) {
+                    field = match.groupValues[1]
+                    fields[match.groupValues[1]] = match.groupValues[2]
+                } else if (field == "Summary" && line.isNotBlank()) {
+                    // A snippet may run over several lines.
+                    fields["Summary"] = fields["Summary"] + " " + line
+                } else if (line.isBlank()) {
+                    field = null
+                }
+            }
+        }
+    }
+    flush()
+    return results.values.toList()
+}
+
+/** Bare host of a URL (no scheme, no port, no path), or null if it can't be extracted. */
+internal fun hostOf(url: String): String? =
+    url.substringAfter("://", url)
+        .substringBefore("/")
+        .substringBefore(":")
+        .removePrefix("www.")
+        .takeIf { it.isNotEmpty() }
+
+@Suppress("TooGenericExceptionCaught") // untrusted tool output; a malformed shape degrades to null, empty or the raw output
+internal fun parseWebSearchResults(output: String?): List<WebSearchResult> {
+    if (output.isNullOrBlank()) return emptyList()
+    if (output.trimStart().startsWith("===")) return parseFormattedSearchOutput(output)
+    return try {
+        val element = toolCallJson.parseToJsonElement(output)
+        val resultsArray = when (element) {
+            is JsonArray -> element
+            is JsonObject -> element["results"]?.jsonArray ?: return emptyList()
+            else -> return emptyList()
+        }
+        resultsArray.mapNotNull { item ->
+            try {
+                val obj = item.jsonObject
+                WebSearchResult(
+                    title = obj["title"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null,
+                    url = obj["url"]?.jsonPrimitive?.contentOrNull
+                        ?: obj["link"]?.jsonPrimitive?.contentOrNull
+                        ?: return@mapNotNull null,
+                    snippet = obj["snippet"]?.jsonPrimitive?.contentOrNull
+                        ?: obj["description"]?.jsonPrimitive?.contentOrNull
+                        ?: obj["content"]?.jsonPrimitive?.contentOrNull
+                        ?: "",
+                    favicon = obj["favicon"]?.jsonPrimitive?.contentOrNull,
+                )
+            } catch (e: Exception) {
+                    log.d(e) { "Skipping malformed web search result item" }
+                    null
+                }
+        }
+    } catch (e: Exception) {
+        log.d(e) { "Failed to parse web search results" }
+        emptyList()
+    }
+}
+
+/**
+ * The persisted call, read through the same [parseCodeExecution] the live card uses, so a reply
+ * reads the same before and after it settles. Prefers whichever args source carries the code:
+ * `args` as an object or a JSON string, else the legacy `function.arguments`.
+ */
+internal fun parseCodeExecution(toolCall: AgentToolCall?): CodeExecutionResult? {
+    if (toolCall == null) return null
+    val fromArgs = when (val args = toolCall.args) {
+        is JsonPrimitive -> args.contentOrNull
+        null -> null
+        else -> args.toString()
+    }
+    val functionArgs = toolCall.function?.arguments
+    val argsJson = fromArgs?.takeIf { codeArgsObject(it)?.codeField() != null }
+        ?: functionArgs?.takeIf { codeArgsObject(it)?.codeField() != null }
+        ?: fromArgs
+        ?: functionArgs
+    val output = toolCall.output ?: toolCall.function?.output
+    val parsed = parseCodeExecution(
+        name = toolCall.name ?: toolCall.function?.name.orEmpty(),
+        argsJson = argsJson,
+        output = output,
+    ) ?: return null
+    return parsed.withAttachedCommand(toolCall.executor, output)
+}
+
+/**
+ * Reads the attached-workspace command's own verdict from its exit trailer. Only a call the server
+ * stamped as attached-workspace carries one; sandbox output keeps the text heuristics even when it
+ * prints something that looks like one.
+ */
+internal fun CodeExecutionResult.withAttachedCommand(executor: String?, output: String?): CodeExecutionResult {
+    if (executor != AgentToolCall.EXECUTOR_ATTACHED_WORKSPACE) return this
+    val command = parseCommandOutput(output) ?: return this
+    return copy(
+        output = command.head.trimEnd().ifEmpty { null },
+        error = command.stderr.trimEnd().ifEmpty { null },
+        exitCode = command.exitCode,
+        command = command,
+    )
+}
+
+/**
+ * A code-execution call's code, language, intent and result from its raw args JSON and output —
+ * the shape both the live `ActiveToolCall` (args read at completion) and the persisted part carry.
+ *
+ * The output is usually plain stdout. Its trailing `Generated files:` listing is dropped, as the
+ * web client's `Stdout` does: those files render as attachments below the card. A JSON object
+ * output (older tools) is read for stdout/stderr/exit code instead.
+ */
+@Suppress("TooGenericExceptionCaught") // untrusted tool output; a malformed shape degrades to null, empty or the raw output
+internal fun parseCodeExecution(name: String, argsJson: String?, output: String?): CodeExecutionResult? = try {
+    val args = argsJson?.let(::codeArgsObject)
+    val language = args?.stringField("lang") ?: args?.stringField("language")
+    var outputText: String? = null
+    var errorText: String? = null
+    var exitCode: Int? = null
+    if (!output.isNullOrBlank()) {
+        // A program that prints a JSON object is still stdout: only a known result key makes it one.
+        val outputObj = try {
+            (toolCallJson.parseToJsonElement(output) as? JsonObject)?.takeIf { obj -> STRUCTURED_OUTPUT_KEYS.any { it in obj } }
+        } catch (e: Exception) {
+            log.d(e) { "Code execution output is not structured JSON, using raw string" }
+            null
+        }
+        if (outputObj != null) {
+            outputText = outputObj.stringField("output") ?: outputObj.stringField("stdout")
+            errorText = outputObj.stringField("error") ?: outputObj.stringField("stderr")
+            exitCode = outputObj.intField("exit_code") ?: outputObj.intField("exitCode") ?: outputObj.intField("status")
+        } else {
+            outputText = output.substringBefore(GENERATED_FILES_MARKER).trim().ifEmpty { null }
+        }
+    }
+    CodeExecutionResult(
+        language = language?.takeIf { it.isNotBlank() }
+            ?: "bash".takeIf { isBashToolCall(name.lowercase()) },
+        code = args?.codeField(),
+        output = outputText,
+        error = errorText,
+        exitCode = exitCode,
+        intent = args?.intentField(),
+    )
+} catch (e: Exception) {
+    log.d(e) { "Failed to parse code execution tool call" }
+    null
+}
+
+private const val GENERATED_FILES_MARKER = "Generated files:"
+
+private val STRUCTURED_OUTPUT_KEYS = listOf("output", "stdout", "error", "stderr", "exit_code", "exitCode")
+
+@Suppress("TooGenericExceptionCaught") // untrusted tool args
+private fun codeArgsObject(json: String): JsonObject? = try {
+    toolCallJson.parseToJsonElement(json) as? JsonObject
+} catch (e: Exception) {
+    log.d(e) { "Failed to parse code execution args" }
+    null
+}
+
+/** `code` for the code interpreter, `command` for the bash tools (web `BashCall`). */
+private fun JsonObject.codeField(): String? =
+    (stringField("code") ?: stringField("command"))?.takeIf { it.isNotBlank() }
+
+private fun JsonObject.intField(key: String): Int? = (this[key] as? JsonPrimitive)?.intOrNull
+
+/**
+ * The fallback for a memory tool call with no `memory` attachment payload — an older server, or a
+ * write whose artifact the run dropped. `set_memory` returns `content_and_artifact`, so its output
+ * is a readable sentence rather than JSON and lands in the catch below; that sentence is still
+ * worth a card, just without the key as a title. Prefer [collectMemoryArtifacts] when a payload
+ * exists.
+ */
+@Suppress("TooGenericExceptionCaught") // untrusted tool output; a malformed shape degrades to null, empty or the raw output
+internal fun parseMemoryArtifact(output: String?): MemoryArtifact? {
+    if (output.isNullOrBlank()) return null
+    return try {
+        val obj = toolCallJson.parseToJsonElement(output).jsonObject
+        MemoryArtifact(
+            title = obj["title"]?.jsonPrimitive?.contentOrNull
+                ?: obj["key"]?.jsonPrimitive?.contentOrNull,
+            content = obj["content"]?.jsonPrimitive?.contentOrNull
+                ?: obj["value"]?.jsonPrimitive?.contentOrNull
+                ?: obj["text"]?.jsonPrimitive?.contentOrNull,
+            key = obj["key"]?.jsonPrimitive?.contentOrNull,
+        )
+    } catch (e: Exception) {
+        log.d(e) { "Failed to parse memory artifact as JSON, using raw output" }
+        MemoryArtifact(title = null, content = output)
+    }
+}
+
+// The prose the server's memory tools answer a successful write with (`Memory set for key "k"
+// (n tokens)`, `Memory deleted for key "k"`, packages/api/src/agents/memory.ts). Every other
+// sentence they return is a refusal ("Invalid key …", "Failed to set memory …", "Memory storage
+// exceeded …"). Ported verbatim from upstream `isMemoryFailureOutput` (MemoryCall.tsx); kept to
+// plain alternation and `\b` so ICU (Android), JVM and Kotlin/Native all compile it. Registered in
+// scripts/mirrors.json.
+private val SET_MEMORY_SUCCESS = Regex("""^(?:Memory set for key|Memory saved\b)""", RegexOption.IGNORE_CASE)
+private val DELETE_MEMORY_SUCCESS = Regex("""^Memory deleted(?: for key|\.)""", RegexOption.IGNORE_CASE)
+
+/**
+ * Whether a memory tool's [output] reports a refusal. Empty output is NOT a failure: a call still
+ * streaming, or one that returned nothing, must not render as an error. Upstream
+ * `isMemoryFailureOutput`.
+ */
+internal fun isMemoryFailureOutput(toolName: String?, output: String?): Boolean {
+    val trimmed = output?.trim().orEmpty()
+    if (trimmed.isEmpty()) return false
+    val success = if (toolName == ToolConstants.SET_MEMORY) SET_MEMORY_SUCCESS else DELETE_MEMORY_SUCCESS
+    return !success.containsMatchIn(trimmed)
+}
+
+/**
+ * Whether a call is a memory write its card shows as failed: a `set_memory`/`delete_memory` whose
+ * [output] is a refusal, or with an `error` memory artifact among its [attachments] (scoped as
+ * [memoryToolArtifacts] scopes them, so the card and anything summarizing it agree). False for any
+ * other tool. Upstream `MemoryCall`'s verdict, which `outcome.ts` `getToolMeta` reuses for a
+ * group header.
+ */
+internal fun isFailedMemoryToolCall(
+    toolName: String?,
+    output: String?,
+    attachments: List<Attachment>,
+    toolCallId: String?,
+): Boolean {
+    if (!isMemoryToolCall(toolName)) return false
+    return isMemoryFailureOutput(toolName, output) ||
+        collectMemoryArtifacts(attachments, toolCallId).any { it.kind == MemoryChangeKind.ERROR }
+}
+
+/**
+ * The cards one `set_memory`/`delete_memory` call draws. Upstream `MemoryCall` fails the call when
+ * the output is a refusal OR any of its `memory` attachments is an `error` artifact; the
+ * attachments are drawn as they are (an error artifact already renders as an error card). A prose
+ * refusal with no error artifact to explain it becomes an error card carrying the server's own
+ * sentence, which is what web prints in its failed panel; an error artifact whose blob carried no
+ * known reason borrows that sentence too, rather than the bare generic label.
+ */
+internal fun memoryToolArtifacts(
+    toolName: String?,
+    output: String?,
+    attachments: List<Attachment>,
+    toolCallId: String?,
+): List<MemoryArtifact> {
+    val fromPayload = collectMemoryArtifacts(attachments, toolCallId)
+    if (!isMemoryFailureOutput(toolName, output)) {
+        return fromPayload.ifEmpty { listOfNotNull(parseMemoryArtifact(output)) }
+    }
+    val refusal = output.orEmpty().trim()
+    val errors = fromPayload.filter { it.kind == MemoryChangeKind.ERROR }
+    if (errors.isEmpty()) {
+        return listOf(MemoryArtifact(title = null, content = refusal, kind = MemoryChangeKind.ERROR))
+    }
+    return errors.map { if (it.error == null && it.content == null) it.copy(content = refusal) else it }
+}
+
+/**
+ * [memoryToolArtifacts] for a call still in the live stream: empty for any other tool, and for a
+ * memory write with neither output nor a memory attachment yet (it is still running, which is not a
+ * failure), so the generic running card stays until there is something to judge.
+ */
+internal fun streamingMemoryArtifacts(toolCall: ActiveToolCall, attachments: List<Attachment>): List<MemoryArtifact> {
+    if (!isMemoryToolCall(toolCall.name)) return emptyList()
+    return memoryToolArtifacts(toolCall.name, toolCall.output, attachments, toolCall.id)
+}
+
+@Suppress("TooGenericExceptionCaught") // untrusted tool output; a malformed shape degrades to null, empty or the raw output
+internal fun parseMcpResources(output: String?): List<McpResource> {
+    if (output.isNullOrBlank()) return emptyList()
+    return try {
+        val element = toolCallJson.parseToJsonElement(output)
+        val resourcesArray = when (element) {
+            is JsonArray -> element
+            is JsonObject -> element["resources"]?.jsonArray
+                ?: element["contents"]?.jsonArray
+                ?: return emptyList()
+            else -> return emptyList()
+        }
+        resourcesArray.mapNotNull { item ->
+            try {
+                val obj = item.jsonObject
+                McpResource(
+                    title = obj["title"]?.jsonPrimitive?.contentOrNull
+                        ?: obj["name"]?.jsonPrimitive?.contentOrNull
+                        ?: "Resource",
+                    uri = obj["uri"]?.jsonPrimitive?.contentOrNull
+                        ?: obj["url"]?.jsonPrimitive?.contentOrNull
+                        ?: return@mapNotNull null,
+                    preview = obj["preview"]?.jsonPrimitive?.contentOrNull
+                        ?: obj["description"]?.jsonPrimitive?.contentOrNull
+                        ?: obj["text"]?.jsonPrimitive?.contentOrNull,
+                )
+            } catch (e: Exception) {
+                    log.d(e) { "Skipping malformed MCP resource item" }
+                    null
+                }
+        }
+    } catch (e: Exception) {
+        log.d(e) { "Failed to parse MCP resources" }
+        emptyList()
+    }
+}
+
+// debt — CyclomaticComplexMethod: complexity 29
+// debt — NestedBlockDepth: deeply nested
+// TooGenericExceptionCaught: untrusted tool output; a malformed shape degrades to null, empty or the raw output
+@Suppress("CyclomaticComplexMethod", "NestedBlockDepth", "TooGenericExceptionCaught")
+internal fun parseImageGenResult(
+    toolCall: AgentToolCall?,
+    baseUrl: String = "",
+    attachments: List<Attachment> = emptyList(),
+): ImageGenResult {
+    if (toolCall == null) return ImageGenResult()
+
+    val prompt = try {
+        val argsElement = toolCall.args
+        when {
+            argsElement is JsonObject ->
+                argsElement["prompt"]?.jsonPrimitive?.contentOrNull
+            argsElement is JsonPrimitive && argsElement.isString ->
+                toolCallJson.parseToJsonElement(argsElement.content).jsonObject["prompt"]?.jsonPrimitive?.contentOrNull
+            else -> null
+        } ?: toolCall.function?.arguments?.let { argsStr ->
+            try {
+                toolCallJson.parseToJsonElement(argsStr).jsonObject["prompt"]?.jsonPrimitive?.contentOrNull
+            } catch (e: Exception) {
+                    log.d(e) { "Failed to parse image gen prompt from function args" }
+                    null
+                }
+        }
+    } catch (e: Exception) {
+        log.d(e) { "Failed to parse image gen prompt" }
+        null
+    }
+
+    val outputStr = toolCall.output ?: toolCall.function?.output
+
+    val toolCallId = toolCall.id
+    val attachmentUrls = if (toolCallId != null) {
+        attachments.filter { it.toolCallId == toolCallId }
+            .mapNotNull { resolveAttachmentUrl(it, baseUrl) }
+            .distinct()
+    } else {
+        emptyList()
+    }
+
+    // Legacy output shape: reachable only when the call produced no attachments, and it can
+    // describe at most one image.
+    var imageUrl: String? = null
+    if (attachmentUrls.isEmpty() && !outputStr.isNullOrBlank()) {
+        try {
+            val outputObj = toolCallJson.parseToJsonElement(outputStr).jsonObject
+            imageUrl = outputObj["url"]?.jsonPrimitive?.contentOrNull
+                ?: outputObj["image_url"]?.jsonPrimitive?.contentOrNull
+                ?: outputObj["result"]?.jsonPrimitive?.contentOrNull
+            val base = cleanServerUrl(baseUrl)
+            if (imageUrl == null) {
+                val filepath = outputObj["filepath"]?.jsonPrimitive?.contentOrNull
+                if (filepath != null) {
+                    imageUrl = when {
+                        filepath.startsWith("http") -> filepath
+                        filepath.startsWith("/images/") && base.isNotBlank() -> "$base$filepath"
+                        base.isNotBlank() -> "$base/images/$filepath"
+                        else -> filepath
+                    }
+                }
+            }
+            if (imageUrl == null) {
+                val fileId = outputObj["file_id"]?.jsonPrimitive?.contentOrNull
+                if (fileId != null && base.isNotBlank()) {
+                    imageUrl = "$base/api/files/$fileId"
+                }
+            }
+        } catch (e: Exception) {
+            log.d(e) { "Image gen output is not structured JSON, checking for raw URL" }
+            if (outputStr.startsWith("http")) {
+                imageUrl = outputStr.trim()
+            }
+        }
+    }
+
+    val imageUrls = attachmentUrls.ifEmpty { listOfNotNull(imageUrl) }
+    return ImageGenResult(
+        imageUrls = imageUrls,
+        prompt = prompt,
+        isGenerating = outputStr.isNullOrBlank() && imageUrls.isEmpty(),
+        toolCallId = toolCallId,
+    )
+}
+
+/**
+ * Builds an [ImageGenResult] for an in-progress (streaming) image-gen tool call.
+ *
+ * Mirrors the web client: during streaming the prompt/quality are available from the
+ * tool-call args immediately, while the generated image arrives later as a separate
+ * `attachment` SSE event (linked by `toolCallId`). [ImageGenResult.isGenerating] stays
+ * true until the matching attachment lands, at which point the placeholder swaps to the
+ * real image — all before the final message reload.
+ */
+internal fun parseStreamingImageGenResult(
+    toolCall: ActiveToolCall,
+    baseUrl: String,
+    attachments: List<Attachment>,
+): ImageGenResult {
+    val (prompt, quality) = parseImageGenArgs(toolCall.input)
+    val imageUrls = attachments.filter { it.toolCallId == toolCall.id }
+        .mapNotNull { resolveAttachmentUrl(it, baseUrl) }
+        .distinct()
+    return ImageGenResult(
+        imageUrls = imageUrls,
+        prompt = prompt,
+        isGenerating = imageUrls.isEmpty(),
+        quality = quality,
+        toolCallId = toolCall.id,
+    )
+}
+
+/** Extracts (prompt, quality) from a raw image-gen tool-call args JSON string. */
+@Suppress("TooGenericExceptionCaught") // untrusted tool output; a malformed shape degrades to null, empty or the raw output
+private fun parseImageGenArgs(argsJson: String?): Pair<String?, String?> {
+    if (argsJson.isNullOrBlank()) return null to null
+    return try {
+        val obj = toolCallJson.parseToJsonElement(argsJson).jsonObject
+        val prompt = obj["prompt"]?.jsonPrimitive?.contentOrNull
+        val quality = obj["quality"]?.jsonPrimitive?.contentOrNull
+        prompt to quality
+    } catch (e: Exception) {
+        log.d(e) { "Failed to parse streaming image gen args" }
+        null to null
+    }
+}
+
+@Suppress("TooGenericExceptionCaught") // untrusted tool output; a malformed shape degrades to null, empty or the raw output
+internal fun parseLogContent(toolCall: AgentToolCall?): LogContent {
+    if (toolCall == null) return LogContent()
+    return try {
+        val outputStr = toolCall.output ?: toolCall.function?.output
+        val toolName = toolCall.name ?: toolCall.function?.name
+
+        if (!outputStr.isNullOrBlank()) {
+            try {
+                val outputObj = toolCallJson.parseToJsonElement(outputStr).jsonObject
+                val title = outputObj["title"]?.jsonPrimitive?.contentOrNull ?: toolName
+                val content = outputObj["content"]?.jsonPrimitive?.contentOrNull
+                    ?: outputObj["log"]?.jsonPrimitive?.contentOrNull
+                    ?: outputObj["text"]?.jsonPrimitive?.contentOrNull
+                    ?: outputStr
+                LogContent(title = title, content = content)
+            } catch (e: Exception) {
+                log.d(e) { "Log output is not structured JSON, using raw string" }
+                LogContent(title = toolName, content = outputStr)
+            }
+        } else {
+            LogContent(title = toolName)
+        }
+    } catch (e: Exception) {
+        log.d(e) { "Failed to parse log content tool call" }
+        LogContent()
+    }
+}
+
+// --- ask_user_question (HITL) ---
+
+/** The literal answer the Skip button sends. Mirrors upstream's `ASK_USER_DECLINED_ANSWER`, which
+ *  the web client sends for the same action — so a question skipped on either client reads as
+ *  skipped on both. */
+const val ASK_USER_DECLINED_ANSWER = "The user chose not to answer this question."
+
+internal fun isAskUserQuestionToolCall(toolNameLower: String): Boolean =
+    toolNameLower == ToolConstants.ASK_USER_QUESTION
+
+/**
+ * The streaming tool-call cards to render.
+ *
+ * An `ask_user_question` call is dropped while the pause panel owns it. `AskUserQuestionPanel` *is*
+ * the question — a second card restating it under a spinner (the call cannot complete until the
+ * user replies) is both a duplicate and a lie about what is running. Once the answer arrives the
+ * same call renders as the durable Q&A record, so the question is never on screen twice and never
+ * absent after it is settled.
+ *
+ * [pausedToolCallId] is the pause payload's own `tool_call_id`, present from
+ * `@librechat/agents` > 3.3.8. When the server names the call, only that call is dropped — a model
+ * that emits two ask calls in one turn leaves the other genuinely in flight, and hiding it too
+ * would show the user nothing for work that is running.
+ *
+ * When the field is absent (agents SDK <= 3.3.8) there is still exactly ONE live pause, so
+ * exactly one call is suppressed: the one whose args pose [pausedQuestion], falling back to the
+ * first unanswered ask (positional, the order the server paused them in). Dropping *every*
+ * unanswered ask instead collapses two parallel asks into one card.
+ */
+internal fun List<ActiveToolCall>.withoutUnansweredQuestions(
+    pausedToolCallId: String? = null,
+    pausedQuestion: String? = null,
+): List<ActiveToolCall> {
+    fun isUnansweredAsk(call: ActiveToolCall) =
+        isAskUserQuestionToolCall(call.name.lowercase()) && call.output.isNullOrBlank()
+
+    if (pausedToolCallId != null) {
+        return filterNot { isUnansweredAsk(it) && it.id == pausedToolCallId }
+    }
+    val unanswered = withIndex().filter { isUnansweredAsk(it.value) }
+    if (unanswered.isEmpty()) return this
+    val suppressed = unanswered.firstOrNull { (_, call) ->
+        pausedQuestion != null &&
+            parseAskUserQuestion(call.input)?.question?.takeIf { it.isNotBlank() } == pausedQuestion
+    } ?: unanswered.first()
+    return filterIndexed { index, _ -> index != suppressed.index }
+}
+
+/**
+ * Drops EVERY unanswered `ask_user_question` call — for panes that host no `AskUserQuestionPanel`.
+ *
+ * [withoutUnansweredQuestions] deliberately leaves a second, un-paused ask visible because the
+ * primary thread renders the pause card beside it, so the user can see one question being asked
+ * while another is genuinely in flight. A comparison lane has no such card: an unanswered ask
+ * there renders as a Q&A record with an empty answer and no way to answer it, which is a dead end
+ * rather than a status. Suppressing all of them restores that pane's pre-v0.8.8 behaviour.
+ */
+internal fun List<ActiveToolCall>.withoutAnyUnansweredQuestions(): List<ActiveToolCall> =
+    filterNot { isAskUserQuestionToolCall(it.name.lowercase()) && it.output.isNullOrBlank() }
+
+/**
+ * Parses `ask_user_question` arguments, which arrive as an object mid-stream and as a JSON string
+ * on a persisted message.
+ *
+ * Every field here is model-generated, so the shape is normalized rather than trusted: a malformed
+ * `options` entry is dropped and anything without a string `question` degrades to null, which the
+ * card renders as a plain unlabeled record instead of throwing inside composition.
+ */
+internal fun parseAskUserQuestion(raw: JsonElement?): AskUserQuestionRequest? = when (raw) {
+    is JsonObject -> raw.toAskUserQuestion()
+    is JsonPrimitive -> if (raw.isString) parseAskUserQuestion(raw.content) else null
+    else -> null
+}
+
+/**
+ * The model's one-line description of what a call is about to do ("Searching for OAuth handling in
+ * the callback router"), read from the call's own arguments.
+ *
+ * The server injects `intent` as the FIRST property of an opted-in tool's schema, so it is the
+ * first key providers stream and it arrives inside `tool_call.args` verbatim — there is no
+ * separate event to subscribe to and nothing to gate on. Absent whenever the capability is off or
+ * the tool did not opt in, which is why every caller falls back to the tool name.
+ */
+internal fun parseToolIntent(raw: JsonElement?): String? = when (raw) {
+    is JsonObject -> raw.intentField()
+    is JsonPrimitive -> if (raw.isString) parseToolIntent(raw.content) else null
+    else -> null
+}
+
+/**
+ * The `skillName` a `skill` tool call names (upstream `SkillCall.tsx` reads the same field), or
+ * null when the args carry none. The card then falls back to a generic "skill" label.
+ */
+internal fun parseSkillName(raw: JsonElement?): String? = when (raw) {
+    is JsonObject -> raw.stringField(SKILL_NAME_KEY)?.trim()?.takeIf { it.isNotEmpty() }
+    is JsonPrimitive -> if (raw.isString) parseSkillName(raw.content) else null
+    else -> null
+}
+
+/** [parseSkillName] for args held as raw text — the persisted shape, and the streaming `input`. */
+@Suppress("TooGenericExceptionCaught") // untrusted tool args; a malformed shape degrades to null
+internal fun parseSkillName(raw: String?): String? {
+    val text = raw?.trim().orEmpty()
+    if (text.isEmpty()) return null
+    val parsed = try {
+        toolCallJson.parseToJsonElement(text)
+    } catch (e: Exception) {
+        log.d(e) { "Failed to parse skill args" }
+        return null
+    }
+    return (parsed as? JsonObject)?.stringField(SKILL_NAME_KEY)?.trim()?.takeIf { it.isNotEmpty() }
+}
+
+private const val SKILL_NAME_KEY = "skillName"
+
+/** The `query` a web search ran (upstream `parseJsonField(args, 'query')`), or null. */
+internal fun parseSearchQuery(raw: JsonElement?): String? = when (raw) {
+    is JsonObject -> raw.stringField(QUERY_KEY)?.trim()?.takeIf { it.isNotEmpty() }
+    is JsonPrimitive -> if (raw.isString) parseSearchQuery(raw.content) else null
+    else -> null
+}
+
+/** [parseSearchQuery] for args held as raw text — the persisted shape, and the streaming `input`. */
+@Suppress("TooGenericExceptionCaught") // untrusted tool args; a malformed shape degrades to null
+internal fun parseSearchQuery(raw: String?): String? {
+    val text = raw?.trim().orEmpty()
+    if (text.isEmpty()) return null
+    val parsed = try {
+        toolCallJson.parseToJsonElement(text)
+    } catch (e: Exception) {
+        log.d(e) { "Failed to parse search args" }
+        return null
+    }
+    return (parsed as? JsonObject)?.stringField(QUERY_KEY)?.trim()?.takeIf { it.isNotEmpty() }
+}
+
+private const val QUERY_KEY = "query"
+
+/** [parseToolIntent] for args held as raw text — the persisted shape, and the streaming `input`. */
+@Suppress("TooGenericExceptionCaught") // untrusted tool output; a malformed shape degrades to null, empty or the raw output
+internal fun parseToolIntent(raw: String?): String? {
+    val text = raw?.trim().orEmpty()
+    if (text.isEmpty()) return null
+    // Object-only, which is also what stops the [JsonElement] overload from recursing: lenient
+    // parsing turns a bare word back into a string and re-entering on that would not terminate.
+    val parsed = try {
+        toolCallJson.parseToJsonElement(text)
+    } catch (e: Exception) {
+        log.d(e) { "Failed to parse tool args for intent" }
+        return null
+    }
+    return (parsed as? JsonObject)?.intentField()
+}
+
+/**
+ * Only the FIRST key counts.
+ *
+ * Nothing about the opt-in is client-observable — the capability and the per-tool
+ * `describe_intent` flag live server-side, and the argument is stripped before a tool that did not
+ * declare it ever runs. So a plain "is there an `intent` string" test would retitle a user's own
+ * MCP tool that legitimately takes a parameter by that name, on any server. Upstream injects the
+ * property at position zero precisely so it streams ahead of the real arguments, and that ordering
+ * is the one part of the contract this side can actually check.
+ */
+private fun JsonObject.intentField(): String? {
+    if (keys.firstOrNull() != INTENT_KEY) return null
+    return stringField(INTENT_KEY)?.trim()?.takeIf { it.isNotEmpty() }
+}
+
+/** The args as the card should display them: without the label already shown as its title. */
+@Suppress("TooGenericExceptionCaught") // untrusted tool output; a malformed shape degrades to null, empty or the raw output
+internal fun argsWithoutIntent(raw: String?): String? {
+    val text = raw?.trim().orEmpty()
+    if (text.isEmpty()) return raw
+    val parsed = try {
+        toolCallJson.parseToJsonElement(text) as? JsonObject
+    } catch (e: Exception) {
+        log.d(e) { "Failed to parse tool args for display" }
+        null
+    } ?: return raw
+    if (parsed.keys.firstOrNull() != INTENT_KEY) return raw
+    val rest = JsonObject(parsed.filterKeys { it != INTENT_KEY })
+    return if (rest.isEmpty()) null else toolCallJson.encodeToString(JsonObject.serializer(), rest)
+}
+
+private const val INTENT_KEY = "intent"
+
+/** [parseAskUserQuestion] for args held as raw text (the streaming path's `input`). Accepts only
+ *  a JSON object, which is also what stops the [JsonElement] overload from recursing: lenient
+ *  parsing turns a bare word back into a string, and re-entering on that would not terminate. */
+@Suppress("TooGenericExceptionCaught") // untrusted tool output; a malformed shape degrades to null, empty or the raw output
+internal fun parseAskUserQuestion(raw: String?): AskUserQuestionRequest? {
+    val text = raw?.trim().orEmpty()
+    if (text.isEmpty()) return null
+    val parsed = try {
+        toolCallJson.parseToJsonElement(text)
+    } catch (e: Exception) {
+        log.d(e) { "Failed to parse ask_user_question args" }
+        return null
+    }
+    return (parsed as? JsonObject)?.toAskUserQuestion()
+}
+
+internal fun JsonObject.toAskUserQuestion(): AskUserQuestionRequest? {
+    val question = stringField("question") ?: return null
+    val options = (this["options"] as? JsonArray).orEmpty().mapNotNull { element ->
+        val option = element as? JsonObject ?: return@mapNotNull null
+        val label = option.stringField("label") ?: return@mapNotNull null
+        val value = option.stringField("value") ?: return@mapNotNull null
+        AskUserQuestionOption(label = label, value = value)
+    }
+    return AskUserQuestionRequest(
+        question = question,
+        description = stringField("description"),
+        options = options,
+        multiSelect = (this["multiSelect"] as? JsonPrimitive)?.booleanOrNull == true,
+    )
+}
+
+internal fun JsonObject.stringField(key: String): String? =
+    (this[key] as? JsonPrimitive)?.takeIf { it.isString }?.content
+
+/** How an answer reads back against the question that was asked. */
+internal data class AskAnswerDisplay(
+    /** The answer with option values swapped for their labels, or the raw answer. */
+    val label: String,
+    /** Values of the options the answer picked; empty when it is free text. */
+    val selectedValues: Set<String>,
+    /** True when the user dismissed the question rather than answering it. */
+    val declined: Boolean,
+)
+
+/**
+ * Reads an answer back against its question, preferring the picked option's label over its wire
+ * value.
+ *
+ * Multi-select answers are option values joined by `", "`, so segments are mapped back to labels
+ * **only when every one of them matches an option**: a value may legally contain `", "` itself,
+ * and a partial mapping could split such a value into fragments that relabel as options the user
+ * never picked. A mobile answer that qualifies a chip with free text also lands here — it has a
+ * segment that matches nothing — and correctly shows raw. Ported from upstream
+ * `AskUserQuestionCall`.
+ */
+internal fun askAnswerDisplay(
+    question: AskUserQuestionRequest?,
+    answer: String,
+): AskAnswerDisplay {
+    if (answer == ASK_USER_DECLINED_ANSWER) {
+        return AskAnswerDisplay(label = answer, selectedValues = emptySet(), declined = true)
+    }
+    val options = question?.options.orEmpty()
+    val raw = AskAnswerDisplay(label = answer, selectedValues = emptySet(), declined = false)
+    if (options.isEmpty() || answer.isEmpty()) return raw
+
+    options.firstOrNull { it.value == answer }?.let { exact ->
+        return AskAnswerDisplay(
+            label = exact.label.ifBlank { exact.value },
+            selectedValues = setOf(exact.value),
+            declined = false,
+        )
+    }
+    if (question?.multiSelect != true) return raw
+
+    val matched = answer.split(", ").map { segment -> options.firstOrNull { it.value == segment } }
+    if (matched.any { it == null }) return raw
+    val picked = matched.filterNotNull()
+    return AskAnswerDisplay(
+        label = picked.joinToString(", ") { it.label.ifBlank { it.value } },
+        selectedValues = picked.map { it.value }.toSet(),
+        declined = false,
+    )
+}
+
+private val TOOL_CALL_ERROR_PREFIX =
+    Regex("""^Error:\s*(?:\[[^\]]*]\s*)*tool call failed:\s*""", RegexOption.IGNORE_CASE)
+private val VALIDATION_FEEDBACK = Regex("""^Error:[\s\S]*\n Please fix your mistakes\.$""", RegexOption.IGNORE_CASE)
+
+/**
+ * A tool's output that reports a failure, as upstream `OutputRenderer.isError` reads it: the
+ * agents error prefix, a failed tool invocation, or schema-validation feedback.
+ */
+internal fun isToolErrorOutput(output: String?): Boolean {
+    val text = output ?: return false
+    return TOOL_CALL_ERROR_PREFIX.containsMatchIn(text) ||
+        text.startsWith("Error processing tool") ||
+        VALIDATION_FEEDBACK.matches(text)
+}
+
+/**
+ * The sentence the server writes as the result of a tool an interrupt cancelled.
+ *
+ * MIRRORED SERVER CONSTANT — module-private `INTERRUPTED` in
+ * `packages/api/src/agents/steering/tools.ts`, served nowhere. Registered in `scripts/mirrors.json`
+ * as `steer-interrupted-tool-result`. It reaches the persisted call wrapped by the agents SDK's
+ * error formatter (`Error: <sentence>\n Please fix your mistakes.`), so it is matched by
+ * containment, which also survives a change to that wrapper.
+ */
+internal const val INTERRUPTED_TOOL_RESULT =
+    "Interrupted by a user message. Cancellation was requested; external effects may already have occurred. " +
+        "Do not repeat this operation automatically."
+
+/**
+ * A tool call an interrupt ("Interrupt and steer") cancelled. The user caused it, so it reads as
+ * interrupted (neutral) rather than failed (red), and a group header counts it as cancelled.
+ * Plain `contains`, not a regex: Android's ICU engine is not the JVM's.
+ */
+internal fun isInterruptedToolOutput(output: String?): Boolean =
+    output?.contains(INTERRUPTED_TOOL_RESULT) == true
+
+/** How a search card settles, from the run's verdict and the call's output (upstream `WebSearch.tsx`). */
+internal enum class SearchOutcome {
+    /** Draw the search card. */
+    SHOWN,
+
+    /** The generic tool card, with its failed state and the error behind it. */
+    FAILED,
+
+    /** Nothing: upstream draws no card for a cancelled search. */
+    HIDDEN,
+}
+
+/**
+ * [finished] is false for a settled call that left no trace of finishing: no closing status, no
+ * output and no sources. A Stop mid-search leaves one; upstream draws nothing for it
+ * (`!isSubmitting && progress < 1`).
+ */
+internal fun searchOutcome(verdict: ToolCallVerdict, output: String?, finished: Boolean = true): SearchOutcome {
+    // An interrupted search keeps a card (the generic one, in its interrupted look), so the reply
+    // shows what the user's message stopped — whatever close status the run stamped.
+    if (isInterruptedToolOutput(output)) return SearchOutcome.FAILED
+    val error = verdict == ToolCallVerdict.FAILED || isToolErrorOutput(output)
+    // Upstream WebSearch.tsx hides a search whose output merely contains "error processing";
+    // only a recognised error falls back to the card.
+    val legacyError = !error && output?.lowercase()?.contains("error processing") == true
+    return when {
+        error && verdict != ToolCallVerdict.CANCELLED -> SearchOutcome.FAILED
+        verdict == ToolCallVerdict.CANCELLED || legacyError || !finished -> SearchOutcome.HIDDEN
+        else -> SearchOutcome.SHOWN
+    }
+}
+
+/**
+ * The phase of a web search still in the live reply. A finished call reads "Reading results" only
+ * while it is the reply's latest step and no reply text has followed it ([replyMovedOn]); after
+ * that it is settled, as upstream's `finalizing` ends once the search is no longer the last part.
+ */
+internal fun liveWebSearchPhase(
+    isComplete: Boolean,
+    hasSources: Boolean,
+    isLatestStep: Boolean,
+    replyMovedOn: Boolean,
+): WebSearchPhase = when {
+    !isComplete -> if (hasSources) WebSearchPhase.PROCESSING else WebSearchPhase.SEARCHING
+    isLatestStep && !replyMovedOn -> WebSearchPhase.READING
+    else -> WebSearchPhase.COMPLETE
+}
+
+/**
+ * Whether a search-named call gets the web search card. The built-in tool always does, sources or
+ * not; another tool whose name merely mentions search (an MCP `search_docs`) only once it produced
+ * web sources, and otherwise keeps the generic card whatever its output says.
+ */
+internal fun claimsWebSearchCard(toolNameLower: String, hasSources: Boolean): Boolean =
+    toolNameLower == ToolConstants.WEB_SEARCH || hasSources
+
+/** The name of the agent an `lc_transfer_to_<agentId>` call hands off to, or null when [agentNames] doesn't list it. */
+internal fun handoffTargetName(toolName: String, agentNames: Map<String, String>): String? =
+    toolName.substring(ToolConstants.LC_TRANSFER_TO_PREFIX.length).takeIf { it.isNotBlank() }?.let(agentNames::get)

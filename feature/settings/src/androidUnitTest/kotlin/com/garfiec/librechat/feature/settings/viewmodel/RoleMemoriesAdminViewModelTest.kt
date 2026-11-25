@@ -4,6 +4,7 @@ import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.model.permissions.UserRolePermissions
 import com.garfiec.librechat.core.model.request.UpdateRoleMemoriesRequest
+import com.garfiec.librechat.feature.settings.screen.revokesAdminUse
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -63,6 +64,24 @@ class RoleMemoriesAdminViewModelTest {
         assertThat(viewModel.uiState.value.loaded).isTrue()
         assertThat(viewModel.uiState.value.flags)
             .isEqualTo(MemoriesFlags(use = true, create = false, update = true, read = true, optOut = false))
+    }
+
+    @Test
+    fun `switching ADMIN's saved use off, and only that, is an admin lockout`() = runTest {
+        coEvery { roleRepository.getRole("ADMIN") } returns Result.Success(role(name = "ADMIN", use = true))
+        val viewModel = RoleMemoriesAdminViewModel(roleRepository)
+        fun lockout() = viewModel.uiState.value.let { revokesAdminUse(it.selectedRole, it.savedFlags?.use, it.flags.use) }
+
+        viewModel.setUse(false)
+        assertThat(lockout()).isFalse() // USER
+
+        viewModel.setUse(true)
+        viewModel.selectRole("ADMIN")
+        assertThat(lockout()).isFalse()
+        viewModel.setUse(false)
+        assertThat(lockout()).isTrue()
+        viewModel.setUse(true)
+        assertThat(lockout()).isFalse()
     }
 
     @Test

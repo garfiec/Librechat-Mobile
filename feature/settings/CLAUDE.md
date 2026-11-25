@@ -1,6 +1,8 @@
 # feature:settings
 
 ## Structure
+- Each screen here is its stateful entry point; its stateless `…Content`, the UI state types and all
+  strings are in `:feature:settings:ui` (see its `CLAUDE.md`).
 - Sealed `SettingsRoute : NavKey`. `SettingsTabbed` is the home (`SettingsHomeScreen`: profile card +
   category rows); keep its name, saved back stacks restore by it. Each category is a `XxxSettingsPage`
   with no Scaffold of its own, opened by `SettingsCategory(key)` (Appearance by `AppearanceSettings`,
@@ -94,8 +96,8 @@
 - Both render the stateless `RolePermissionsEditor` and PUT a flat partial body. Save is off until a
   switch differs from the server's last answer, and stays on after a refused save as its retry. A load
   generation drops any load/save answering after a newer load. Saving the admin's own role publishes the PUT's answer
-  as the app's role (`RoleRepositoryImpl`). `showAdminWarning` toggles carry web's
-  ADMIN warning (mirror `admin-access-warning`).
+  as the app's role (`RoleRepositoryImpl`). A USE toggle sets `revokesAdminUse`: turning a
+  saved-on USE off for ADMIN warns and makes Save ask for "ADMIN" typed (mirror `admin-access-warning`).
 
 ## Shared links (`SharedLinksScreen`, `SharedLinksViewModel`)
 - Search shows only when `SearchCapabilityRepository` says server search is on (300 ms debounce,

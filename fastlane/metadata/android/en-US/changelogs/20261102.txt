@@ -1,0 +1,9 @@
+- Name the server on Login and show its public banner
+- Lay out for the iPhone Duo's bar column and fold
+- Show artifacts beside the chat, with an Automatic style
+- Give the artifact sheet the room of a big screen
+- Fold the composer to one line while idle
+- Ban stray colour literals and keep server themes readable
+- Notify when a scheduled chat runs
+- Take a server theme's corners and fonts
+- And 66 more; see the release notes on GitHub.

@@ -80,6 +80,8 @@ data class FileReference(
     val height: Int? = null,
     val bytes: Long? = null,
     val source: String? = null,
+    /** The opening of a text/plain file's text (240 characters at most), for display only. */
+    val textPreview: String? = null,
 )
 
 /**

@@ -58,13 +58,22 @@ fun serverOrigin(url: String): String {
 /** Drops one trailing web-UI route from [path] (no trailing slash), or returns it unchanged. */
 private fun stripWebRoute(path: String): String {
     WEB_ROUTES_EXACT.firstOrNull { path.endsWith(it) }?.let { return path.removeSuffix(it) }
-    for (prefix in WEB_ROUTES_WITH_ID) {
+    stripIdRoute(path, WEB_ROUTES_WITH_ID)?.let { return it }
+    if (path.endsWith(RESPONSE_REVIEW_SUFFIX)) {
+        stripIdRoute(path.removeSuffix(RESPONSE_REVIEW_SUFFIX), RESPONSE_REVIEW_PREFIX)?.let { return it }
+    }
+    return path
+}
+
+/** [path] without its trailing `<prefix><id>`, or null when it doesn't end in one of [prefixes]. */
+private fun stripIdRoute(path: String, prefixes: List<String>): String? {
+    for (prefix in prefixes) {
         val at = path.indexOf(prefix)
         // The route owns exactly one more segment (`/c/<id>`, `/share/<id>`); a deeper path is not
         // one of LibreChat's and is left alone.
         if (at >= 0 && path.indexOf('/', at + prefix.length) < 0) return path.substring(0, at)
     }
-    return path
+    return null
 }
 
 private const val SCHEME_SEPARATOR_LENGTH = 3
@@ -76,9 +85,13 @@ private const val SCHEME_SEPARATOR_LENGTH = 3
 private val WEB_ROUTES_EXACT = listOf(
     "/login/2fa/setup", "/login/2fa", "/login", "/register", "/forgot-password", "/reset-password", "/verify",
     "/oauth/success", "/oauth/error", "/search", "/c", "/prompts/new", "/prompts", "/skills/new",
-    "/skills", "/insights", "/projects", "/agents",
+    "/skills", "/insights", "/projects", "/agents", "/channels/link",
 )
 
 private val WEB_ROUTES_WITH_ID = listOf(
     "/c/", "/share/", "/prompts/", "/skills/", "/projects/", "/agents/", "/code/setup/",
 )
+
+// `responses/:responseId/review`: the one route with a segment after its id.
+private val RESPONSE_REVIEW_PREFIX = listOf("/responses/")
+private const val RESPONSE_REVIEW_SUFFIX = "/review"

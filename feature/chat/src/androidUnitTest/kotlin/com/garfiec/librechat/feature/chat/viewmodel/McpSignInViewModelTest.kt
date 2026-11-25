@@ -53,6 +53,23 @@ class McpSignInViewModelTest {
     }
 
     @Test
+    fun `an agent action's sign-in binds through the action launch, showing progress on its id`() = runTest {
+        val actionInApp = McpOAuthLaunch.InApp("auth.example.com", "https://auth", "https://chat", listOf("oauth_csrf=a"))
+        val bound = CompletableDeferred<Result<McpOAuthLaunch>>()
+        coEvery { launcher.prepareAction("act_abc", "https://auth") } coAnswers { bound.await() }
+        val vm = McpSignInViewModel(launcher)
+
+        assertThat(vm.signInAction("act_abc", "https://auth")).isTrue()
+        assertThat(vm.uiState.value.preparingServer).isEqualTo("act_abc")
+        assertThat(vm.signIn("github", "https://idp")).isFalse()
+
+        bound.complete(Result.Success(actionInApp))
+        assertThat(vm.uiState.value.preparingServer).isNull()
+        assertThat(vm.uiState.value.launch).isEqualTo(actionInApp)
+        coVerify(exactly = 0) { launcher.prepare(any(), any()) }
+    }
+
+    @Test
     fun `a sign-in asked for while another is binding or on screen opens nothing and says so`() = runTest {
         val bound = CompletableDeferred<Result<McpOAuthLaunch>>()
         coEvery { launcher.prepare("linear", "https://idp") } coAnswers { bound.await() }

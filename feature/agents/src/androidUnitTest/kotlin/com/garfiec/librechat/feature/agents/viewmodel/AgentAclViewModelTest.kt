@@ -4,7 +4,6 @@ import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.PermissionsRepository
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
-import com.garfiec.librechat.core.data.skills.SkillViewer
 import com.garfiec.librechat.core.model.AccessRole
 import com.garfiec.librechat.core.model.Principal
 import com.garfiec.librechat.core.model.ResourcePermissions
@@ -12,6 +11,7 @@ import com.garfiec.librechat.core.model.ResourceType
 import com.garfiec.librechat.core.model.UpdateResourcePermissionsRequest
 import com.garfiec.librechat.core.model.User
 import com.garfiec.librechat.core.model.permissions.UserRolePermissions
+import com.garfiec.librechat.core.model.skills.SkillViewer
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
 import io.mockk.coVerify

@@ -12,27 +12,28 @@ import com.garfiec.librechat.core.data.repository.AgentRepository
 import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.data.repository.MessageRepository
 import com.garfiec.librechat.core.data.repository.SearchRepository
-import com.garfiec.librechat.core.data.search.FtsQuery
-import com.garfiec.librechat.core.data.search.FtsQueryPlan
-import com.garfiec.librechat.core.data.search.HighlightedSnippet
-import com.garfiec.librechat.core.data.search.HitSource
-import com.garfiec.librechat.core.data.search.MessageSearchHit
-import com.garfiec.librechat.core.data.search.MessageSearchResult
-import com.garfiec.librechat.core.data.search.RegexCheck
-import com.garfiec.librechat.core.data.search.RegexGuard
-import com.garfiec.librechat.core.data.search.RemoteSearchStatus
-import com.garfiec.librechat.core.data.search.RoleFilter
-import com.garfiec.librechat.core.data.search.ScanCursor
-import com.garfiec.librechat.core.data.search.SearchOptions
-import com.garfiec.librechat.core.data.search.SearchSort
-import com.garfiec.librechat.core.data.search.SearchSource
-import com.garfiec.librechat.core.data.search.TitleMatch
 import com.garfiec.librechat.core.model.ContentType
 import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.content.LegacyThinking
 import com.garfiec.librechat.core.model.content.flattenSearchableText
 import com.garfiec.librechat.core.model.content.stripCitations
+import com.garfiec.librechat.core.model.search.FtsQuery
+import com.garfiec.librechat.core.model.search.FtsQueryPlan
+import com.garfiec.librechat.core.model.search.HighlightedSnippet
+import com.garfiec.librechat.core.model.search.HitSource
+import com.garfiec.librechat.core.model.search.MessageSearchHit
+import com.garfiec.librechat.core.model.search.MessageSearchResult
+import com.garfiec.librechat.core.model.search.RegexCheck
+import com.garfiec.librechat.core.model.search.RegexGuard
+import com.garfiec.librechat.core.model.search.RemoteSearchStatus
+import com.garfiec.librechat.core.model.search.RoleFilter
+import com.garfiec.librechat.core.model.search.ScanCursor
+import com.garfiec.librechat.core.model.search.SearchOptions
+import com.garfiec.librechat.core.model.search.SearchSort
+import com.garfiec.librechat.core.model.search.SearchSource
+import com.garfiec.librechat.core.model.search.TitleMatch
+import com.garfiec.librechat.feature.conversations.components.agentKey
 import com.garfiec.librechat.feature.conversations.drawer.DrawerSearchSources
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -402,7 +403,7 @@ class SearchViewModel(
         previewJob = viewModelScope.launch {
             val conversation = (conversationRepository.observeConversations().first() as? Result.Success)
                 ?.data?.firstOrNull { it.conversationId == group.conversationId }
-            resolveAgentName(conversation?.model)
+            resolveAgentName(conversation?.agentKey())
             val messages = messageRepository.conversationMessages(group.conversationId, firstHit, fetch = group.fromServer)
             if (openableConversation(group.conversationId) == null) return@launch
             val turns = withContext(defaultDispatcher) {
@@ -420,7 +421,7 @@ class SearchViewModel(
                 } else {
                     current.copy(
                         chatPreview = preview.copy(
-                            model = conversation?.model,
+                            model = conversation?.let { it.agentKey() ?: it.model },
                             updatedAt = conversation?.updatedAt?.toEpochMilliseconds(),
                             thread = turns.orEmpty(),
                             focusIndex = focus,
@@ -524,8 +525,6 @@ class SearchViewModel(
 
         /** Enough of a message to read it in the preview, still bounded for pasted logs. */
         const val PREVIEW_WINDOW = 2_000
-
-        const val AGENT_ID_PREFIX = "agent_"
 
         /**
          * A thread's turns with matches marked; [hit]'s reasoning is shown when the match is in it.

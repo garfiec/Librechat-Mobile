@@ -222,6 +222,23 @@ interface TokenManager : AuthGateHolder {
     suspend fun beginSignOut(accountId: String?) = Unit
 
     /**
+     * Stores [session], which the server minted in place of [accountId]'s session outside a refresh
+     * (enabling 2FA rotates it), while that slot still holds [sentRefreshToken]. False when the slot
+     * changed meanwhile (signed out, removed, re-authenticated), which keeps the change. Defaulted to
+     * false for the same reason as [sessionHealth].
+     */
+    suspend fun replaceSession(accountId: String, sentRefreshToken: String, session: SessionCredentials): Boolean = false
+
+    /**
+     * Runs [block] with [accountId]'s refreshes held back (null = the bare slot), for a request that
+     * makes the server rotate that session itself: a refresh racing it would spend the retired token
+     * and end the session. A refresh that queued meanwhile then reads what [block] stored. [block]
+     * must not refresh that account itself. Defaulted to running [block] for the same reason as
+     * [sessionHealth].
+     */
+    suspend fun <T> withRefreshesHeld(accountId: String?, block: suspend () -> T): T = block()
+
+    /**
      * True when [accountId]'s session was ended because the server now requires it to set up 2FA
      * (v0.8.9-rc1) and it has not signed in since. Persisted with the account's token slot, so it
      * survives a restart and covers an account that was not active when its refresh was refused.

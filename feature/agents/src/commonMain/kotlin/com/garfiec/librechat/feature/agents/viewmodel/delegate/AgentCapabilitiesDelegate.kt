@@ -12,8 +12,9 @@ import com.garfiec.librechat.core.model.SkillSummary
 import com.garfiec.librechat.core.model.permissions.Permission
 import com.garfiec.librechat.core.model.permissions.PermissionType
 import com.garfiec.librechat.core.model.permissions.hasAccessOrPermissive
+import com.garfiec.librechat.feature.agents.viewmodel.AGENT_CHAIN_MAX
+import com.garfiec.librechat.feature.agents.viewmodel.AGENT_MAX_SUBAGENTS
 import com.garfiec.librechat.feature.agents.viewmodel.AgentEditorStateHandle
-import com.garfiec.librechat.feature.agents.viewmodel.AgentEditorViewModel
 import com.garfiec.librechat.feature.agents.viewmodel.AgentInferenceEndpoint
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
@@ -63,8 +64,14 @@ class AgentCapabilitiesDelegate(
                 // thinkingDisplay `updates`: the same gate as ChatViewModel's, kept in step with it;
                 // see VERSION_GATES.md.
                 val updates = BackendVersion.supportsFeature(detected, "0.8.8", "2026-09-29")
+                // ThinkingLevel.xhigh: the same gate as ChatViewModel's; see VERSION_GATES.md.
+                val xhigh = BackendVersion.supportsFeature(detected, "0.8.9", "2026-11-17")
                 stateHandle.update {
-                    copy(agentFileRemovalDeletes = deletes, isThinkingDisplayUpdatesAvailable = updates)
+                    copy(
+                        agentFileRemovalDeletes = deletes,
+                        isThinkingDisplayUpdatesAvailable = updates,
+                        isThinkingLevelXhighAvailable = xhigh,
+                    )
                 }
             }
         }
@@ -353,7 +360,8 @@ class AgentCapabilitiesDelegate(
             configRepository.endpointConfigs.collect { configs ->
                 val agentsCapabilities = configs["agents"]?.capabilities ?: emptyList()
                 val available = agentsCapabilities.isEmpty() || "subagents" in agentsCapabilities
-                stateHandle.update { copy(isSubagentsAvailable = available) }
+                val cap = configs["agents"]?.maxSubagents ?: AGENT_MAX_SUBAGENTS
+                stateHandle.update { copy(isSubagentsAvailable = available, maxSubagents = cap) }
             }
         }
     }
@@ -371,10 +379,10 @@ class AgentCapabilitiesDelegate(
 
     fun addSubagent(agentId: String) {
         val current = stateHandle.state.selectedSubagentIds
-        // Upstream caps subagents at MAX_SUBAGENTS; never list the agent itself.
+        // Server caps subagents at `maxSubagents`; never list the agent itself.
         if (agentId != stateHandle.state.agentId &&
             agentId !in current &&
-            current.size < AgentEditorViewModel.MAX_SUBAGENTS
+            current.size < stateHandle.state.maxSubagents
         ) {
             stateHandle.update { copy(selectedSubagentIds = current + agentId) }
         }
@@ -389,7 +397,7 @@ class AgentCapabilitiesDelegate(
     fun addChainAgent(agentId: String) {
         val current = stateHandle.state.chainAgentIds
         // Upstream caps the chain at 10 agents.
-        if (agentId !in current && current.size < AgentEditorViewModel.CHAIN_MAX) {
+        if (agentId !in current && current.size < AGENT_CHAIN_MAX) {
             stateHandle.update { copy(chainAgentIds = current + agentId) }
         }
     }

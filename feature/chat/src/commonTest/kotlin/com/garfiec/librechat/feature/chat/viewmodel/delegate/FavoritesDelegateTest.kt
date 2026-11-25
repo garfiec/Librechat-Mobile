@@ -123,7 +123,7 @@ class FavoritesDelegateTest {
 
         assertEquals(listOf("zeta", "alpha", "mid"), state.value.favoriteSpecNames.toList())
         assertEquals(listOf("agent_b", "agent_a"), state.value.favoriteAgentIds.toList())
-        assertEquals(listOf(FavoritesDelegate.favoriteModelKey("openAI", "gpt-5")), state.value.favoriteModelKeys.toList())
+        assertEquals(listOf(favoriteModelKey("openAI", "gpt-5")), state.value.favoriteModelKeys.toList())
     }
 
     @Test

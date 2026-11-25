@@ -10,6 +10,7 @@ import androidx.compose.material3.ExposedDropdownMenuBoxScope
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
@@ -32,12 +33,16 @@ fun AdaptiveExposedDropdownMenuBox(
     modifier: Modifier = Modifier,
     content: @Composable ExposedDropdownMenuBoxScope.() -> Unit,
 ) {
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = onExpandedChange,
-        modifier = modifier,
-        content = content,
-    )
+    // Rebuilt, not moved, when the window switches between the phone and sidebar layouts: a used
+    // anchor field moved with the nav display is left half-attached, and measuring it crashes.
+    key(windowUsesSidebarLayout()) {
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = onExpandedChange,
+            modifier = modifier,
+            content = content,
+        )
+    }
 }
 
 /**

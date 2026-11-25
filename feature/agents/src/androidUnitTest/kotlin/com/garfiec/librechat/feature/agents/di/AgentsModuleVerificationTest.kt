@@ -11,6 +11,7 @@ import com.garfiec.librechat.core.data.repository.FavoritesRepository
 import com.garfiec.librechat.core.data.repository.FileRepository
 import com.garfiec.librechat.core.data.repository.McpRepository
 import com.garfiec.librechat.core.data.repository.PermissionsRepository
+import com.garfiec.librechat.core.data.repository.PromptRepository
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.SkillsRepository
 import com.garfiec.librechat.core.data.repository.ToolFavoritesRepository
@@ -36,6 +37,7 @@ class AgentsModuleVerificationTest {
                 FileRepository::class,
                 McpRepository::class,
                 PermissionsRepository::class,
+                PromptRepository::class,
                 RoleRepository::class,
                 SkillsRepository::class,
                 ToolFavoritesRepository::class,

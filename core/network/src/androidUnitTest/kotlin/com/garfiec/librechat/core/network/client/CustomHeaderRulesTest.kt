@@ -1,5 +1,6 @@
 package com.garfiec.librechat.core.network.client
 
+import com.garfiec.librechat.core.model.server.HeaderRejection
 import com.google.common.truth.Truth.assertThat
 import io.ktor.http.HeadersBuilder
 import io.ktor.http.HttpHeaders

@@ -2,29 +2,10 @@ package com.garfiec.librechat.feature.chat.viewmodel.delegate
 
 import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.model.FileReference
-import com.garfiec.librechat.core.model.response.UploadRoute
 import com.garfiec.librechat.feature.chat.components.AttachedFile
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.StateFlow
-
-/**
- * A file the user picked, with just enough resolved about it to decide how to upload it.
- *
- * [ref] is the opaque platform handle the picker produced (an Android `Uri`, an `IosFileData` /
- * `IosImageData`), carried back verbatim in [RoutedFile]. It deliberately isn't a typed parameter:
- * this type sits in `commonMain`, and the whole point is that neither side has to know the other's
- * handle. Deliberately NOT in `:core:model` either — that module is exported into the iOS
- * framework, and an `Any` in its public surface would be.
- */
-data class PickedFile(val ref: Any, val name: String, val mimeType: String?)
-
-/**
- * A [PickedFile] paired with the delivery mode chosen for it. Carrying the whole description back
- * (rather than just the ref) means the handler doesn't re-resolve the name and type it already
- * asked for — on Android those are main-thread ContentResolver queries.
- */
-data class RoutedFile(val file: PickedFile, val route: UploadRoute)
 
 /**
  * Platform-abstracted file attachment handling.

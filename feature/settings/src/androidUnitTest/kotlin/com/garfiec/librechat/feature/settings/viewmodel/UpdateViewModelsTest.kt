@@ -5,11 +5,11 @@ import com.garfiec.librechat.core.common.DistributionChannel
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.update.AppInstallSource
 import com.garfiec.librechat.core.data.update.AppUpdateRepository
-import com.garfiec.librechat.core.data.update.InstallChannel
 import com.garfiec.librechat.core.data.update.PendingUpdate
 import com.garfiec.librechat.core.data.update.ReleasePage
-import com.garfiec.librechat.core.data.update.UpdateCheckState
 import com.garfiec.librechat.core.model.AppRelease
+import com.garfiec.librechat.core.model.update.InstallChannel
+import com.garfiec.librechat.core.model.update.UpdateCheckState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow

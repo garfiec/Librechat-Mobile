@@ -9,6 +9,8 @@ import com.garfiec.librechat.core.data.repository.ResumePinStore
 import com.garfiec.librechat.core.data.repository.ResumeTurnPin
 import com.garfiec.librechat.core.model.PendingAction
 import com.garfiec.librechat.core.model.ToolApprovalDecisions
+import com.garfiec.librechat.core.model.error.ServerErrorCode
+import com.garfiec.librechat.core.model.error.StreamErrorType
 import com.garfiec.librechat.core.model.request.ChatResumeRequest
 import com.garfiec.librechat.core.model.request.EphemeralAgent
 import com.garfiec.librechat.core.model.request.ToolApprovalResolution
@@ -56,9 +58,10 @@ import kotlin.time.Clock
  * means the words exist nowhere else while the resume is in flight — so every way a
  * [submitAnswerFromComposer] can fail (rejection, transport error, or the pause being cleared out
  * from under the POST) hands them back through [restoreAnswer]. Panel submits ([submitAnswer],
- * [submitAnswers]) never do: their words stay in `askAnswerDrafts` on the panel, and a pause that
- * dies under them (expiry, a run that ends) takes those drafts with it. Tool decisions carry no
- * prose and need none of this.
+ * [submitAnswers]) keep their words in `askAnswerDrafts` on the panel, and a pause that dies under
+ * them (expiry, a run that ends) takes those drafts with it, except a failed resume that dismisses
+ * the pause (404, or a 409 past expiry): the panel's typed text then goes to the composer too.
+ * Tool decisions carry no prose and need none of this.
  */
 class PendingActionDelegate(
     private val handle: PendingActionHandle,
@@ -89,9 +92,9 @@ class PendingActionDelegate(
      * Distinct from [resumeFailureMessage]: the server has finalized the run, so "try again" is
      * exactly the wrong advice — there is nothing left to answer.
      */
-    private val pauseExpiredMessage: () -> String = {
-        "This request for input expired, so the response was finalized without it."
-    },
+    private val pauseExpiredMessage: suspend () -> String,
+    /** Copy for a resume the server answered 404: no paused generation is left to answer. */
+    private val pauseGoneMessage: suspend () -> String,
     /** Injectable clock for the expiry check; production uses the system clock. */
     private val nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) {
@@ -309,12 +312,12 @@ class PendingActionDelegate(
             ?: (expiresAt - nowMillis())
         expiryJob = handle.scope.launch {
             if (wait > 0) delay(wait)
-            expireNow(actionId)
+            expireNow(actionId, pauseExpiredMessage())
         }
     }
 
     /** Dismisses the pause as expired. Mirrors [clear]'s invalidation, plus the expiry copy. */
-    private fun expireNow(actionId: String) {
+    private fun expireNow(actionId: String, message: String) {
         if (handle.state.pendingAction?.actionId != actionId) return
         // Also reached from the 409 mapping while the timer is still armed; cancelling from
         // inside the timer's own coroutine is safe (the remaining writes are non-suspending).
@@ -336,7 +339,7 @@ class PendingActionDelegate(
             askActiveQuestionId = null
             askPanelCollapsed = false
             resetToolPanel()
-            error = pauseExpiredMessage()
+            error = message
         }
     }
 
@@ -386,11 +389,11 @@ class PendingActionDelegate(
     /**
      * Resolves a single-question `ask_user_question` pause from the docked panel.
      *
-     * Nothing is re-homed on failure, for the same reason as [submitAnswers]: the panel's words
-     * live in `askAnswerDrafts` under the action id, still on screen, while the composer is hidden
-     * behind the panel — restoring into it would resurface an answer that already went up (or
-     * Skip's declined sentinel) the moment the pause resolves. The composer's own send goes
-     * through [submitAnswerFromComposer], which does restore.
+     * Nothing is re-homed on a failure that keeps the card, for the same reason as [submitAnswers]:
+     * the panel's words live in `askAnswerDrafts` under the action id, still on screen, while the
+     * composer is hidden behind the panel — restoring into it would resurface an answer that already
+     * went up (or Skip's declined sentinel) the moment the pause resolves. The composer's own send
+     * goes through [submitAnswerFromComposer], which does restore.
      */
     fun submitAnswer(answer: String) {
         submit(answerText = null) { request -> request.copy(answer = answer) }
@@ -420,9 +423,9 @@ class PendingActionDelegate(
      * unknown question id", and anything it names but this omits is 400 "Answers are required for
      * every question".
      *
-     * Nothing is re-homed on failure. A batch's words live in `askAnswerDrafts`, which the card
-     * renders and which a failed submit keeps, so handing them to the composer would duplicate
-     * text the user can still see — and would arm a composer send that `answerNextBatchQuestion`
+     * Nothing is re-homed on a failure that keeps the card. A batch's words live in
+     * `askAnswerDrafts`, which the card renders and which a failed submit keeps, so handing them to
+     * the composer would duplicate text the user can still see — and would arm a composer send that `answerNextBatchQuestion`
      * can only refuse (every question already answered), which is a send that silently does
      * nothing. Retry stays on the card, which is what the failure branch keeps up.
      */
@@ -690,38 +693,29 @@ class PendingActionDelegate(
                 }
                 is Result.Error -> {
                     Logger.w(result.exception) { "Failed to resume paused run: ${result.message}" }
+                    val dismissal = action.dismissalAfterFailure(result.exception as? ApiException, nowMillis())
+                    if (dismissal != null) {
+                        // The panel goes with the pause, so the words typed into it go back to the
+                        // composer too, ahead of the composer's own.
+                        val typed = handle.state.askAnswerDrafts.values.map { it.freeText } + listOfNotNull(answerText)
+                        typed.map { it.trim() }.filter { it.isNotEmpty() }.joinToString("\n").ifEmpty { null }?.let(restoreAnswer)
+                        val message = when (dismissal) {
+                            ResumeDismissal.PROJECT_CONTEXT_CHANGED -> StreamErrorType.PROJECT_CONTEXT_CHANGED.marker
+                            ResumeDismissal.EXPIRED -> pauseExpiredMessage()
+                            ResumeDismissal.GONE -> pauseGoneMessage()
+                        }
+                        expireNow(actionId, message)
+                        return@launch
+                    }
                     // The card stays up so a transient failure can be retried. A composer-origin
                     // submit emptied the composer to send, so its text comes back; a panel submit
                     // passes null because its drafts are still on the panel (see [submitAnswers]).
                     answerText?.let(restoreAnswer)
-                    val statusCode = (result.exception as? ApiException)?.statusCode
-                    // A 409 arriving past the pause's own expiry is the expiry, not a retryable
-                    // failure: the server has finalized the run (clock skew can land this before
-                    // the local timer). Dismiss with the expiry copy — retrying can only 409.
-                    val expiredNow = statusCode == HTTP_CONFLICT &&
-                        action.expiresAt?.let { nowMillis() >= it } == true
-                    if (expiredNow) {
-                        expireNow(actionId)
-                        return@launch
-                    }
-                    // Two 403 families: a decision the policy no longer permits names the calls
-                    // in `disallowed` and can be fixed by choosing again; anything else is the
-                    // fingerprint (or ownership) check, which no answer from here can pass.
-                    val decisionNotPermitted = statusCode == HTTP_FORBIDDEN &&
-                        isDisallowedDecisionBody((result.exception as? ApiException)?.body)
-                    val fingerprintRejected = statusCode == HTTP_FORBIDDEN && !decisionNotPermitted
-                    // The resume route runs the message limiters and moderation over the answer,
-                    // and their refusal arrives as a 200 naming what to do next — wait, or edit.
-                    val refusalMarker = refusalErrorMarker(result.exception)
+                    val notice = resumeFailureNotice(result, fingerprintRejectedMessage, resumeFailureMessage)
                     handle.update {
                         isResolvingPendingAction = false
                         pendingActionResumeFailed = true
-                        error = when {
-                            refusalMarker != null -> refusalMarker
-                            decisionNotPermitted -> ChatNotice.TOOL_DECISION_NOT_PERMITTED.marker()
-                            fingerprintRejected -> fingerprintRejectedMessage()
-                            else -> resumeFailureMessage(result.message)
-                        }
+                        error = notice
                     }
                 }
                 is Result.Loading -> {
@@ -788,10 +782,58 @@ class PendingActionDelegate(
 
     private companion object {
         const val PROMPT_PREFIX_KEY = "promptPrefix"
+    }
+}
 
-        /** The resume route's answer to a request fingerprint that does not match the paused run. */
-        const val HTTP_FORBIDDEN = 403
-        const val HTTP_CONFLICT = 409
+private enum class ResumeDismissal { PROJECT_CONTEXT_CHANGED, EXPIRED, GONE }
+
+/**
+ * Why a failed resume dismisses this pause, or null when the card stays for a retry. A 409 coded
+ * `PROJECT_CONTEXT_CHANGED`, at any time: the server finalized the run because the chat's project
+ * changed during the pause. Any other 409 past the pause's own expiry is the expiry: the server has
+ * finalized the run (clock skew can land this before the local timer), so retrying can only 409.
+ * A 404: the server holds no paused generation for this chat (gone, or not a chat run).
+ */
+private fun PendingAction.dismissalAfterFailure(exception: ApiException?, now: Long): ResumeDismissal? {
+    val statusCode = exception?.statusCode
+    return when {
+        statusCode == HTTP_CONFLICT &&
+            ServerErrorCode.generationCodeOf(exception?.body) == ServerErrorCode.PROJECT_CONTEXT_CHANGED ->
+            ResumeDismissal.PROJECT_CONTEXT_CHANGED
+        statusCode == HTTP_CONFLICT && expiresAt?.let { now >= it } == true -> ResumeDismissal.EXPIRED
+        statusCode == HTTP_NOT_FOUND -> ResumeDismissal.GONE
+        else -> null
+    }
+}
+
+private const val HTTP_CONFLICT = 409
+private const val HTTP_NOT_FOUND = 404
+
+/** The resume route's answer to a request fingerprint that does not match the paused run. */
+private const val HTTP_FORBIDDEN = 403
+private const val HTTP_SERVICE_UNAVAILABLE = 503
+
+/** What a failed resume that keeps the card says. */
+private fun resumeFailureNotice(
+    result: Result.Error,
+    fingerprintRejectedMessage: () -> String,
+    resumeFailureMessage: (String?) -> String,
+): String {
+    val exception = result.exception as? ApiException
+    val statusCode = exception?.statusCode
+    // Two 403 families: a decision the policy no longer permits names the calls in
+    // `disallowed` and can be fixed by choosing again; anything else is the fingerprint (or
+    // ownership) check, which no answer from here can pass.
+    val decisionNotPermitted = statusCode == HTTP_FORBIDDEN && isDisallowedDecisionBody(exception?.body)
+    val code = exception?.let { ServerErrorCode.from(it.body) ?: it.message }
+    // The resume route runs the message limiters and moderation over the answer, and their
+    // refusal arrives as a 200 naming what to do next — wait, or edit.
+    return refusalErrorMarker(result.exception) ?: when {
+        decisionNotPermitted -> ChatNotice.TOOL_DECISION_NOT_PERMITTED.marker()
+        statusCode == HTTP_SERVICE_UNAVAILABLE && code == ServerErrorCode.RESUME_CONTEXT_UNAVAILABLE ->
+            ChatNotice.RESUME_CONTEXT_UNAVAILABLE.marker()
+        statusCode == HTTP_FORBIDDEN -> fingerprintRejectedMessage()
+        else -> resumeFailureMessage(result.message)
     }
 }
 

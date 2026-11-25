@@ -107,6 +107,9 @@ interface AgentRepository {
     suspend fun addOrUpdateAction(agentId: String, request: CreateActionRequest): Result<Pair<Agent, AgentAction>>
     suspend fun deleteAction(agentId: String, actionId: String): Result<Unit>
 
+    /** Has the server set the binding cookies an action's OAuth callback checks (see `AgentsApi.bindActionOAuth`). */
+    suspend fun bindActionOAuth(actionId: String): Result<List<String>>
+
     // Tools
     suspend fun getAvailableTools(): Result<List<AgentTool>>
 

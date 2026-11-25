@@ -303,6 +303,8 @@
     <string name="acl_error_busy">このアクセスに対する別の変更を処理中です。しばらくしてからもう一度お試しください。</string>
     <string name="acl_error_unavailable">現在アクセスを変更できません。しばらくしてからもう一度お試しください。</string>
     <string name="acl_error_audit_unavailable">サーバーが変更を記録できなかったため、アクセスは変更されませんでした。しばらくしてからもう一度お試しください。</string>
+    <string name="acl_error_principal_preparation_failed">共有先のユーザーまたはグループを準備できませんでした。もう一度お試しください。</string>
+    <string name="acl_error_directory_unavailable">ディレクトリを利用できません。しばらくしてからもう一度お試しください。</string>
     <string name="acl_error_load">アクセスできるユーザーを読み込めませんでした。</string>
     <string name="bookmarks">ブックマーク</string>
     <string name="bookmark_new">新しいブックマーク</string>

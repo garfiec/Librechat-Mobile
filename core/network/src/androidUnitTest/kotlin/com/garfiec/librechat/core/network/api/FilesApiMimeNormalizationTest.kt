@@ -5,6 +5,7 @@ import co.touchlab.kermit.Logger
 import co.touchlab.kermit.Severity
 import com.garfiec.librechat.core.network.di.librechatJson
 import com.google.common.truth.Truth.assertThat
+import com.google.common.truth.Truth.assertWithMessage
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
@@ -46,7 +47,13 @@ class FilesApiMimeNormalizationTest {
         channel.readRemaining().readByteArray().decodeToString()
     }
 
-    private suspend fun uploadWithType(type: String): String {
+    private suspend fun uploadWithType(
+        type: String,
+        conversationId: String? = null,
+        isTemporary: Boolean = false,
+        filename: String = "deploy.sh",
+        endpoint: String? = null,
+    ): String {
         var body: String? = null
         val engine = MockEngine { request ->
             body = renderBody(request.body)
@@ -59,8 +66,11 @@ class FilesApiMimeNormalizationTest {
         }
         FilesApi(client(engine), librechatJson).uploadFile(
             bytes = "#!/bin/sh\n".encodeToByteArray(),
-            filename = "deploy.sh",
+            filename = filename,
             type = type,
+            endpoint = endpoint,
+            conversationId = conversationId,
+            isTemporary = isTemporary,
         )
         return body!!
     }
@@ -91,6 +101,45 @@ class FilesApiMimeNormalizationTest {
         val body = uploadWithType("text/markdown")
 
         assertThat(body).contains("text/markdown")
+    }
+
+    @Test
+    fun `the part's filename is percent-encoded for the server's decodeURIComponent`() = runTest {
+        val body = uploadWithType("application/pdf", filename = "50% off \"Größe\" 日本.pdf")
+
+        assertThat(body).contains(
+            "filename=\"50%25%20off%20%22Gr%C3%B6%C3%9Fe%22%20%E6%97%A5%E6%9C%AC.pdf\"",
+        )
+    }
+
+    @Test
+    fun `the file part follows the fields the upload gate reads`() = runTest {
+        val body = uploadWithType("text/plain", endpoint = "agents")
+
+        val partName = { name: String -> Regex("(?<!file)name=\"?$name\"?(?!\\w)") }
+        val endpointIdx = partName("endpoint").find(body)?.range?.first ?: -1
+        val fileIdx = partName("file").find(body)?.range?.first ?: -1
+        assertThat(endpointIdx).isAtLeast(0)
+        assertThat(fileIdx).isAtLeast(0)
+        assertWithMessage("endpoint part must precede the file part").that(endpointIdx).isLessThan(fileIdx)
+        assertWithMessage("the file part must be the last part")
+            .that(Regex("(?<!file)name=").find(body, fileIdx + 1)).isNull()
+    }
+
+    @Test
+    fun `a temporary chat upload carries isTemporary and the conversation id`() = runTest {
+        val body = uploadWithType("text/plain", conversationId = "convo-1", isTemporary = true)
+
+        assertThat(body).containsMatch("name=\"?conversationId\"?\r\n(?:[^\r\n]+\r\n)*\r\nconvo-1\r\n")
+        assertThat(body).containsMatch("name=\"?isTemporary\"?\r\n(?:[^\r\n]+\r\n)*\r\ntrue\r\n")
+    }
+
+    @Test
+    fun `an upload outside a chat sends neither retention field`() = runTest {
+        val body = uploadWithType("text/plain")
+
+        assertThat(body).doesNotContain("conversationId")
+        assertThat(body).doesNotContain("isTemporary")
     }
 
     @Test

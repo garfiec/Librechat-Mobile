@@ -49,10 +49,36 @@ sealed interface McpOAuthOutcome {
  * fallback. Upstream `ToolCall.tsx` reads both. Plain string scanning, no regex.
  */
 fun mcpOAuthServerName(toolName: String?, authorizationUrl: String?): String? =
-    authorizationUrl?.let(::serverNameFromRedirectUri) ?: toolName?.let(::serverNameFromOAuthToolName)
+    authorizationUrl?.let { callbackSegment(it, MCP_CALLBACK_PREFIX) } ?: toolName?.let(::serverNameFromOAuthToolName)
 
+/**
+ * The agent action an OAuth prompt belongs to, read from the authorization URL's `redirect_uri`
+ * (`…/api/actions/{action_id}/oauth/callback`, upstream `ActionService`), as upstream `ToolCall.tsx` does.
+ */
+fun actionOAuthId(authorizationUrl: String?): String? =
+    authorizationUrl?.let { callbackSegment(it, ACTION_CALLBACK_PREFIX) }
+
+/**
+ * Whether a tool call is an MCP sign-in prompt rather than a tool the model called: the server's
+ * synthetic step (`oauth:` id, upstream `createMCPReauthenticationPrompt`) or its `oauth_mcp_`
+ * name. Its completion ("OAuth authentication ended") retires the prompt; it is never a result.
+ */
+fun isMcpOAuthPromptCall(id: String?, name: String?): Boolean =
+    id?.startsWith(MCP_OAUTH_PROMPT_ID_PREFIX) == true || name?.startsWith(MCP_OAUTH_TOOL_PREFIX) == true
+
+/**
+ * The id a synthetic sign-in step's `oauth:` id was built from: the model's tool call id, else its
+ * step id, else the run id. Null for any other id.
+ */
+fun mcpOAuthPromptOwnerId(id: String?): String? =
+    id?.takeIf { it.startsWith(MCP_OAUTH_PROMPT_ID_PREFIX) }
+        ?.removePrefix(MCP_OAUTH_PROMPT_ID_PREFIX)
+        ?.takeIf(String::isNotEmpty)
+
+private const val MCP_OAUTH_PROMPT_ID_PREFIX = "oauth:"
 private const val MCP_OAUTH_TOOL_PREFIX = "oauth_mcp_"
-private const val CALLBACK_PREFIX = "/api/mcp/"
+private const val MCP_CALLBACK_PREFIX = "/api/mcp/"
+private const val ACTION_CALLBACK_PREFIX = "/api/actions/"
 private const val CALLBACK_SUFFIX = "/oauth/callback"
 
 private fun serverNameFromOAuthToolName(name: String): String? =
@@ -60,16 +86,16 @@ private fun serverNameFromOAuthToolName(name: String): String? =
         ?.removePrefix(MCP_OAUTH_TOOL_PREFIX)
         ?.takeIf { it.isNotBlank() }
 
-private fun serverNameFromRedirectUri(url: String): String? {
+private fun callbackSegment(url: String, prefix: String): String? {
     val query = url.substringAfter('?', "").substringBefore('#')
     val raw = query.split('&')
         .firstOrNull { it.substringBefore('=') == "redirect_uri" }
         ?.substringAfter('=', "")
         ?: return null
     val redirect = percentDecode(raw, plusIsSpace = true)
-    val start = redirect.indexOf(CALLBACK_PREFIX)
+    val start = redirect.indexOf(prefix)
     if (start < 0) return null
-    val rest = redirect.substring(start + CALLBACK_PREFIX.length)
+    val rest = redirect.substring(start + prefix.length)
     val end = rest.indexOf(CALLBACK_SUFFIX)
     if (end <= 0) return null
     val segment = rest.substring(0, end)

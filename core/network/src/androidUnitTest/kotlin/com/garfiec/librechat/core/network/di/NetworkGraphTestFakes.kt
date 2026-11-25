@@ -6,7 +6,9 @@ import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.common.identity.InMemoryActiveAccountProvider
 import com.garfiec.librechat.core.common.network.RequestActivityTracker
 import com.garfiec.librechat.core.logging.redact.LogRedactor
+import com.garfiec.librechat.core.network.client.GateCredentialProvider
 import com.garfiec.librechat.core.network.client.LibreChatHttpClient
+import com.garfiec.librechat.core.network.client.NoGateCredentials
 import com.garfiec.librechat.core.network.client.RefreshCookieCredentials
 import com.garfiec.librechat.core.network.client.RefreshResult
 import com.garfiec.librechat.core.network.client.ServerHeadersProvider
@@ -69,6 +71,7 @@ internal object NetworkGraphTestFakes {
             module {
                 single<ServerUrlProvider> { FakeServerUrlProvider() }
                 single<ServerHeadersProvider> { FakeServerHeadersProvider() }
+                single<GateCredentialProvider> { NoGateCredentials }
                 single<TokenManager> { FakeTokenManager() }
                 single<RefreshCookieCredentials> { RefreshCookieCredentials { null } }
                 // Bound in :core:data, :core:logging and :core:common in the real graph.

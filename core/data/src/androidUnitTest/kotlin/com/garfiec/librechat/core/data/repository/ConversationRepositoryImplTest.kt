@@ -1,5 +1,7 @@
 package com.garfiec.librechat.core.data.repository
 
+import com.garfiec.librechat.core.common.BackendBuildClass
+import com.garfiec.librechat.core.common.DetectedBackend
 import com.garfiec.librechat.core.common.identity.AccountId
 import com.garfiec.librechat.core.common.identity.AccountState
 import com.garfiec.librechat.core.common.identity.InMemoryActiveAccountProvider
@@ -15,19 +17,23 @@ import com.garfiec.librechat.core.model.SAVED_TAG
 import com.garfiec.librechat.core.model.response.ConversationListResponse
 import com.garfiec.librechat.core.network.api.ConversationsApi
 import com.google.common.truth.Truth.assertThat
+import io.mockk.MockKMatcherScope
 import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
 import io.mockk.slot
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import org.junit.Before
 import org.junit.Test
+import kotlin.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ConversationRepositoryImplTest {
@@ -43,6 +49,10 @@ class ConversationRepositoryImplTest {
     private val shareChanges = ShareChangeSignal()
     private val tagRepository = mockk<TagRepository>(relaxed = true)
     private val tagChanges = TagChangeSignal()
+    private val detectedBackend = MutableStateFlow<DetectedBackend?>(DetectedBackend("0.8.9-rc1", BackendBuildClass.RC))
+    private val configRepository = mockk<ConfigRepository>(relaxed = true) {
+        every { detectedBackend } returns this@ConversationRepositoryImplTest.detectedBackend
+    }
 
     private lateinit var repository: ConversationRepositoryImpl
 
@@ -61,6 +71,7 @@ class ConversationRepositoryImplTest {
             shareChanges = shareChanges,
             tagRepository = tagRepository,
             tagChanges = tagChanges,
+            configRepository = configRepository,
         )
     }
 
@@ -100,6 +111,18 @@ class ConversationRepositoryImplTest {
     }
 
     @Test
+    fun `loadNextPage stores the archived list's rows as archived when the server omits isArchived`() = runTest {
+        coEvery { conversationsApi.getConversations(any(), any(), any(), any(), any(), any(), any()) } returns
+            ConversationListResponse(conversations = listOf(Conversation(conversationId = "a")), nextCursor = null)
+        val captured = slot<List<ConversationEntity>>()
+        coEvery { conversationDao.upsertPreservingTags(account.value, capture(captured)) } answers {}
+
+        repository.loadNextPage(cursor = null, isArchived = true)
+
+        assertThat(captured.captured.single().isArchived).isTrue()
+    }
+
+    @Test
     fun `getConversationsForTag asks for that tag and returns the page as the server sent it`() = runTest {
         val serverConvo = Conversation(conversationId = "convo-1", title = "Server Title")
         coEvery {
@@ -135,6 +158,62 @@ class ConversationRepositoryImplTest {
         assertThat(captured.captured.accountId).isEqualTo(account.value)
         coVerify(exactly = 0) { conversationDao.upsertPreservingTags(any(), any<ConversationEntity>()) }
         coVerify(exactly = 0) { conversationDao.upsertPreservingTags(any(), any<List<ConversationEntity>>()) }
+    }
+
+    @Test
+    fun `refreshConversation does not cache the server's projection of an unsaved first turn`() = runTest {
+        val started = Instant.parse("2026-11-11T10:00:00Z")
+        coEvery { conversationsApi.getConversation("convo-1") } returns Conversation(
+            conversationId = "convo-1",
+            title = "New Chat",
+            createdAt = started,
+            updatedAt = started,
+            provisional = true,
+        )
+
+        val result = repository.refreshConversation("convo-1", originAccount = null)
+
+        assertThat((result as Result.Success).data.title).isEqualTo("New Chat")
+        coVerify(exactly = 0) { conversationDao.upsert(any<ConversationEntity>()) }
+    }
+
+    @Test
+    fun `refreshConversation caches a saved conversation a proxy marked no-store`() = runTest {
+        coEvery { conversationsApi.getConversation("convo-1") } returns Conversation(
+            conversationId = "convo-1",
+            title = "New Chat",
+            createdAt = Instant.parse("2026-11-11T10:00:00Z"),
+            updatedAt = Instant.parse("2026-11-11T10:00:05Z"),
+            provisional = true,
+        )
+
+        repository.refreshConversation("convo-1", originAccount = null)
+
+        coVerify(exactly = 1) { conversationDao.upsert(any<ConversationEntity>()) }
+    }
+
+    @Test
+    fun `archive marks the cached row archived`() = runTest {
+        coEvery { conversationsApi.archive("convo-1", true) } returns
+            Conversation(conversationId = "convo-1", isArchived = true)
+
+        val result = repository.archive("convo-1", isArchived = true)
+
+        assertThat(result).isInstanceOf(Result.Success::class.java)
+        coVerify(exactly = 1) { conversationDao.updateArchived("convo-1", true, account.value) }
+        coVerify(exactly = 0) { conversationDao.deleteById(any(), any()) }
+    }
+
+    @Test
+    fun `an archive that turns the chat temporary drops it from the cache`() = runTest {
+        coEvery { conversationsApi.archive("convo-1", true) } returns
+            Conversation(conversationId = "convo-1", isArchived = true, isTemporary = true)
+
+        val result = repository.archive("convo-1", isArchived = true)
+
+        assertThat(result).isInstanceOf(Result.Success::class.java)
+        coVerify(exactly = 1) { conversationDao.deleteById("convo-1", account.value) }
+        coVerify(exactly = 0) { conversationDao.updateArchived(any(), any(), any()) }
     }
 
     @Test
@@ -259,6 +338,7 @@ class ConversationRepositoryImplTest {
             shareChanges = shareChanges,
             tagRepository = tagRepository,
             tagChanges = tagChanges,
+            configRepository = configRepository,
         )
 
         indexed.deleteAll()
@@ -419,6 +499,29 @@ class ConversationRepositoryImplTest {
     }
 
     @Test
+    fun `syncFavoritesFromServer writes nothing from a page that returns after an account switch`() = runTest {
+        coEvery {
+            conversationsApi.getConversations(null, any(), any(), any(), any(), any(), any())
+        } returns ConversationListResponse(conversations = listOf(Conversation(conversationId = "c1")), nextCursor = "cursor-2")
+        // Page 2 was sent as the next account, so it lists that account's favorites.
+        coEvery {
+            conversationsApi.getConversations("cursor-2", any(), any(), any(), any(), any(), any())
+        } coAnswers {
+            activeAccountProvider.set(AccountId("srv:other"))
+            ConversationListResponse(conversations = listOf(Conversation(conversationId = "c2")), nextCursor = null)
+        }
+        coEvery { conversationDao.getByIdForAccount(any(), any()) } returns null
+        coEvery {
+            conversationDao.observeConversationsForAccount(account.value, false)
+        } returns flowOf(listOf(entity("c-saved", """["Saved"]""")))
+
+        repository.syncFavoritesFromServer()
+
+        coVerify(exactly = 0) { conversationDao.upsert(match { it.conversationId == "c2" }) }
+        coVerify(exactly = 0) { conversationDao.updateTags(any(), any(), any(), any()) }
+    }
+
+    @Test
     fun `syncFavoritesFromServer no-op when local and server match`() = runTest {
         val serverConvo = Conversation(conversationId = "convo-1")
         coEvery {
@@ -433,6 +536,123 @@ class ConversationRepositoryImplTest {
 
         coVerify(exactly = 0) { conversationDao.updateTags(any(), any(), any(), any()) }
         coVerify(exactly = 0) { conversationDao.upsert(any()) }
+    }
+
+    private suspend fun MockKMatcherScope.pinnedPage(cursor: String?) = conversationsApi.getConversations(
+        cursor = cursor,
+        limit = 100,
+        isArchived = any(),
+        tags = any(),
+        search = any(),
+        sortBy = any(),
+        sortDirection = any(),
+        projectId = any(),
+        filters = any(),
+        pinned = true,
+    )
+
+    @Test
+    fun `syncPinnedFromServer caches pins the list pages never reached`() = runTest {
+        coEvery { pinnedPage(null) } returns ConversationListResponse(
+            conversations = listOf(Conversation(conversationId = "old", pinned = true)),
+            nextCursor = null,
+        )
+        coEvery { conversationDao.observeConversationsForAccount(account.value, false) } returns flowOf(emptyList())
+
+        repository.syncPinnedFromServer()
+
+        coVerify(exactly = 1) {
+            conversationDao.upsertPreservingTags(
+                account.value,
+                match<List<ConversationEntity>> {
+                    it.single().conversationId == "old" && it.single().pinned && it.single().accountId == account.value
+                },
+            )
+        }
+    }
+
+    @Test
+    fun `syncPinnedFromServer unpins rows the server no longer lists as pinned`() = runTest {
+        coEvery { pinnedPage(null) } returns ConversationListResponse(conversations = emptyList(), nextCursor = null)
+        coEvery {
+            conversationDao.observeConversationsForAccount(account.value, false)
+        } returns flowOf(listOf(entity("stale", "[]").copy(pinned = true), entity("plain", "[]")))
+
+        repository.syncPinnedFromServer()
+
+        coVerify(exactly = 1) { conversationDao.updatePinned("stale", false, account.value) }
+        coVerify(exactly = 0) { conversationDao.updatePinned("plain", any(), any()) }
+    }
+
+    @Test
+    fun `syncPinnedFromServer paginates with limit 100`() = runTest {
+        coEvery { pinnedPage(null) } returns ConversationListResponse(
+            conversations = listOf(Conversation(conversationId = "p1", pinned = true)),
+            nextCursor = "cursor-2",
+        )
+        coEvery { pinnedPage("cursor-2") } returns ConversationListResponse(
+            conversations = listOf(Conversation(conversationId = "p2", pinned = true)),
+            nextCursor = null,
+        )
+        coEvery {
+            conversationDao.observeConversationsForAccount(account.value, false)
+        } returns flowOf(listOf(entity("p2", "[]").copy(pinned = true)))
+
+        repository.syncPinnedFromServer()
+
+        coVerify(exactly = 1) { pinnedPage(null) }
+        coVerify(exactly = 1) { pinnedPage("cursor-2") }
+        coVerify(exactly = 0) { conversationDao.updatePinned(any(), any(), any()) }
+    }
+
+    @Test
+    fun `syncPinnedFromServer writes nothing from a page that returns after an account switch`() = runTest {
+        coEvery { pinnedPage(null) } coAnswers {
+            activeAccountProvider.set(AccountId("srv:other"))
+            ConversationListResponse(conversations = listOf(Conversation(conversationId = "p1", pinned = true)), nextCursor = null)
+        }
+        coEvery {
+            conversationDao.observeConversationsForAccount(account.value, false)
+        } returns flowOf(listOf(entity("local-pin", "[]").copy(pinned = true)))
+
+        repository.syncPinnedFromServer()
+
+        coVerify(exactly = 0) { conversationDao.upsertPreservingTags(any(), any<List<ConversationEntity>>()) }
+        coVerify(exactly = 0) { conversationDao.updatePinned(any(), any(), any()) }
+    }
+
+    @Test
+    fun `syncPinnedFromServer sends nothing to a server tagged below rc2`() = runTest {
+        detectedBackend.value = DetectedBackend("0.8.8-rc1", BackendBuildClass.RC)
+
+        repository.syncPinnedFromServer()
+
+        coVerify(exactly = 0) {
+            conversationsApi.getConversations(any(), any(), any(), any(), any(), any(), any(), any(), any(), true)
+        }
+        coVerify(exactly = 0) { conversationDao.updatePinned(any(), any(), any()) }
+    }
+
+    @Test
+    fun `syncPinnedFromServer stops on a server that ignored the pinned filter`() = runTest {
+        detectedBackend.value = null
+        coEvery { pinnedPage(null) } returns ConversationListResponse(
+            conversations = listOf(
+                Conversation(conversationId = "p1", pinned = true),
+                Conversation(conversationId = "u1", pinned = false),
+            ),
+            nextCursor = "cursor-2",
+        )
+        coEvery {
+            conversationDao.observeConversationsForAccount(account.value, false)
+        } returns flowOf(listOf(entity("local-pin", "[]").copy(pinned = true)))
+
+        repository.syncPinnedFromServer()
+
+        coVerify(exactly = 1) { pinnedPage(null) }
+        coVerify(exactly = 0) { pinnedPage("cursor-2") }
+        coVerify(exactly = 0) { conversationDao.upsertPreservingTags(any(), any<List<ConversationEntity>>()) }
+        coVerify(exactly = 0) { conversationDao.updatePinned(any(), any(), any()) }
     }
 
     @Test

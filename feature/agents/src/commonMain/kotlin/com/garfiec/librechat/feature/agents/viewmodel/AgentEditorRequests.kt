@@ -28,14 +28,19 @@ internal fun AgentEditorUiState.hasUnsavedChanges(): Boolean {
 
 private val EMPTY_AGENT = Agent(id = "")
 
+internal fun AgentEditorUiState.isCodeGitIdentityShown(): Boolean =
+    code.gitIdentityShown(statefulCodeConfig, isStatefulCodeAvailable, codeInterpreterEnabled && isCodeInterpreterAvailable)
+
 internal fun AgentEditorUiState.toUpdateAgentRequest(): UpdateAgentRequest {
     val fields = writeFields()
     val loadedCode = loadedAgent?.let(AgentCodeSettings::of) ?: AgentCodeSettings()
-    val code = code.updateFields(loadedCode, codeInterpreterEnabled && isCodeInterpreterAvailable)
+    val code = code.releaseHiddenIdentity(loadedCode, isCodeGitIdentityShown())
+        .updateFields(loadedCode, codeInterpreterEnabled && isCodeInterpreterAvailable)
     return UpdateAgentRequest(
         name = name,
         description = description.ifBlank { null },
         instructions = instructions.ifBlank { null },
+        instructionsPrompt = instructionsPromptWrite(),
         model = model.ifBlank { null },
         provider = provider.ifBlank { null },
         modelParameters = fields.modelParameters,
@@ -44,8 +49,9 @@ internal fun AgentEditorUiState.toUpdateAgentRequest(): UpdateAgentRequest {
         hideSequentialOutputs = capabilities.hideSequentialOutputs,
         endAfterTools = capabilities.endAfterTools,
         category = category.ifBlank { null },
-        tools = fields.tools.ifEmpty { null },
-        conversationStarters = conversationStarters.ifEmpty { null },
+        // Empty lists are sent, not omitted: the update route keeps any key it isn't sent.
+        tools = fields.tools,
+        conversationStarters = conversationStarters,
         isPublic = fields.isPublic,
         isCollaborative = fields.isCollaborative,
         supportContact = fields.supportContact,
@@ -75,6 +81,7 @@ internal fun AgentEditorUiState.toCreateAgentRequest(): CreateAgentRequest {
         name = name,
         description = description.ifBlank { null },
         instructions = instructions.ifBlank { null },
+        instructionsPrompt = instructionsPromptWrite(),
         model = model.ifBlank { null },
         provider = provider.ifBlank { null },
         modelParameters = fields.modelParameters,
@@ -102,7 +109,7 @@ internal fun AgentEditorUiState.toCreateAgentRequest(): CreateAgentRequest {
         codeEnvironmentIds = code.extraEnvironmentIds,
         codeWorkspaceId = code.workspaceId,
         repositoryInstructions = code.repositoryInstructions,
-        gitIdentity = this.code.createGitIdentity(),
+        gitIdentity = this.code.releaseHiddenIdentity(AgentCodeSettings(), isCodeGitIdentityShown()).createGitIdentity(),
     )
 }
 
@@ -278,8 +285,8 @@ private fun AgentEditorUiState.writeFields(): AgentWriteFields {
  * string as its `agent.tools` entry (`McpSection.tsx` `tool.tool_id`, `useMCPToolOptions.ts`), and
  * the update route stores the map it is sent as is. So a key survives when it is one of the
  * [savedTools] being written, or an MCP id under a whole-server marker being written. A bare key
- * still on [selectedMcpTools] survives too: older agents may carry one, and dropping it here would
- * be this client deleting what it doesn't own.
+ * naming a tool still on [selectedMcpTools] survives too: older agents may carry one, and dropping
+ * it here would be this client deleting what it doesn't own.
  *
  * Without the prune, a tool removed here would keep its options and they would come back the next
  * time the tool is added. `bash_tool` follows `execute_code`: kept while the code interpreter is
@@ -295,15 +302,13 @@ internal fun pruneToolOptions(
     val wholeServerSuffixes = savedTools
         .filter { it.startsWith(MCP_SERVER_MARKER_PREFIX) }
         .map { MCP_DELIMITER + it.removePrefix(MCP_SERVER_MARKER_PREFIX) }
+    val selectedMcpNames = selectedMcpTools.mapTo(mutableSetOf()) { it.substringBefore(MCP_DELIMITER) }
     val kept = options.filterKeys { key ->
         key in savedToolSet ||
             // The sandbox pair shares the code interpreter's switches (`withCodeBackground`), and
             // `bash_tool` is never an `agent.tools` entry.
             (key == ToolConstants.BASH_TOOL && ToolConstants.EXECUTE_CODE in savedToolSet) ||
-            key in selectedMcpTools ||
-            // A selected tool whose catalog entry hasn't loaded is saved under the wrong key
-            // (a server marker), so its full-id options are kept rather than lost as well.
-            key.substringBefore(MCP_DELIMITER, missingDelimiterValue = "") in selectedMcpTools ||
+            key in selectedMcpNames ||
             wholeServerSuffixes.any { suffix -> key.endsWith(suffix) && key.length > suffix.length }
     }
     return if (kept.isEmpty()) null else JsonObject(kept)

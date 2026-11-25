@@ -1,0 +1,380 @@
+package com.garfiec.librechat.feature.chat.components
+
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.DisableSelection
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.common.ToolConstants
+import com.garfiec.librechat.core.model.Attachment
+import com.garfiec.librechat.core.model.RunStepStatus
+import com.garfiec.librechat.core.model.background.BackgroundTaskOutcome
+import com.garfiec.librechat.core.model.background.BackgroundTaskOutput
+import com.garfiec.librechat.core.model.background.CHECK_BACKGROUND_TASK_TOOL
+import com.garfiec.librechat.core.model.content.AgentToolCall
+import com.garfiec.librechat.feature.chat.resources.*
+import com.garfiec.librechat.feature.chat.resources.Res
+import com.garfiec.librechat.feature.chat.resources.files_searched
+import com.garfiec.librechat.feature.chat.resources.searched_web_and_files
+import com.garfiec.librechat.feature.chat.resources.web_searched
+import com.garfiec.librechat.feature.chat.util.ContentGroup
+import org.jetbrains.compose.resources.pluralStringResource
+import org.jetbrains.compose.resources.stringResource
+
+/**
+ * True for the message whose reply just finished streaming, provided by `MessageList`.
+ *
+ * Live tool calls render as separate expanded cards outside the message; at Final those vanish and
+ * the same calls re-render inside it. Collapsing them in that same frame drops the reply's height
+ * by the whole stack at once, which reads as content disappearing rather than as a fold. The
+ * groups stay open for this render and collapse on a later load instead.
+ */
+internal val LocalSuppressGroupAutoCollapse = compositionLocalOf { false }
+
+/**
+ * A reasoning + tool-call block under one collapsible header.
+ *
+ * The header is the model's own one-line summary of the batch when the server generated one, and
+ * the generic "Used N tools" otherwise — the generated line only wins once it exists, so a block
+ * whose label never filled renders exactly as it did before the feature.
+ *
+ * Deliberately not a [CollapsibleDisclosureCard]: this wraps tool cards, which are themselves
+ * surfaces, and nesting one card inside another reads as a rendering bug. It reuses that card's
+ * auto-expand *mechanism* rather than its chrome.
+ */
+@Composable
+internal fun ActivityGroup(
+    group: ContentGroup.Activity,
+    /** How the calls ended: [activityGroupOutcome], joined with attachments at the render site. */
+    outcome: ActivityOutcome,
+    stateKey: String,
+    modifier: Modifier = Modifier,
+    // Pops the block open when the in-conversation search focuses a match inside it; without this
+    // a collapsed group swallows a match the user just navigated to.
+    autoExpand: Boolean = false,
+    autoExpandKey: Any? = null,
+    /**
+     * The files this block's tool calls produced, including those of the calls they ran nested
+     * inside a subagent.
+     *
+     * **Load-bearing: rendered as a SIBLING AFTER the collapsible, never inside it.** The block
+     * folds away the *process*; a generated image is the *result*, and moving this inside folds
+     * the result away with it. Upstream pins the same structure in `ToolCallGroup.tsx`
+     * (`__tests__/ToolCallGroup.test.tsx`).
+     *
+     * Unindented on purpose: the body carries the group's indent, the hoisted output reads at the
+     * message's own level. The slot supplies its own top padding so an empty one costs nothing.
+     */
+    hoistedAttachments: @Composable () -> Unit = {},
+    /** A group of searches only reads as one, with the sites it read, unless the server labelled it. */
+    searchHeader: SearchGroupHeader? = null,
+    body: @Composable () -> Unit,
+) {
+    // Saveable and keyed on the group: this is a LazyColumn item, so scrolling the message out of
+    // the viewport disposes plain `remember` state and silently re-collapses what the user opened.
+    val suppressAutoCollapse = LocalSuppressGroupAutoCollapse.current
+    var isExpanded by rememberSaveable(key = "activity:$stateKey") {
+        mutableStateOf(!group.collapsedByDefault || suppressAutoCollapse)
+    }
+    var userOverride by rememberSaveable(key = "activity-override:$stateKey") { mutableStateOf(false) }
+    // Latch: the auto-collapse decision is taken at most ONCE per group. Re-deciding would let a
+    // block shut under someone reading it the moment its label settles.
+    var autoCollapsed by rememberSaveable(key = "activity-latched:$stateKey") { mutableStateOf(false) }
+
+    LaunchedEffect(group.collapsedByDefault, suppressAutoCollapse) {
+        if (!group.collapsedByDefault || userOverride || autoCollapsed) return@LaunchedEffect
+        // Latch the decision including when the answer is "no". A suppressed group left unlatched
+        // would simply fold later: the flag moves on to the next turn's reply, suppression flips
+        // back off underneath a message the user has settled into reading, and the height drop
+        // arrives anyway — just further from the cause that explains it.
+        autoCollapsed = true
+        if (!suppressAutoCollapse) isExpanded = false
+    }
+    LaunchedEffect(autoExpand, autoExpandKey) {
+        if (autoExpand) isExpanded = true
+    }
+
+    val headerLabel = group.labelText.ifEmpty {
+        when (searchHeader?.kind) {
+            SearchGroupKind.WEB -> stringResource(Res.string.web_searched)
+            SearchGroupKind.FILES -> stringResource(Res.string.files_searched)
+            SearchGroupKind.WEB_AND_FILES -> stringResource(Res.string.searched_web_and_files)
+            null -> stringResource(Res.string.activity_used_n_tools, group.toolCount)
+        }
+    }
+    // A state description, not a content description: `clickable` makes this Row a merging
+    // semantics node, so a contentDescription on top of the merged label announces the label and
+    // then the label again.
+    val expansionState =
+        stringResource(if (isExpanded) Res.string.state_expanded else Res.string.state_collapsed)
+
+    Column(modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(8.dp))
+                .heightIn(min = 40.dp)
+                .clickable {
+                    userOverride = true
+                    isExpanded = !isExpanded
+                }
+                .padding(vertical = 4.dp)
+                .semantics {
+                    role = Role.Button
+                    stateDescription = expansionState
+                },
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            val hosts = searchHeader?.hosts.orEmpty()
+            if (outcome.showsPartialMarker) {
+                Icon(
+                    Icons.Default.Warning,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.tertiary,
+                )
+            } else if (hosts.isNotEmpty()) {
+                SourceFaviconStack(hosts)
+            } else {
+                Icon(
+                    when (searchHeader?.kind) {
+                        SearchGroupKind.WEB -> Icons.Default.Language
+                        SearchGroupKind.FILES -> Icons.Default.Description
+                        SearchGroupKind.WEB_AND_FILES -> Icons.Default.Search
+                        null -> Icons.Default.Build
+                    },
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            val labelColor = if (outcome.headerFailed) {
+                MaterialTheme.colorScheme.error
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            }
+            if (group.labelText.isEmpty()) {
+                // "Used N tools" is our own fallback — chrome, kept out of "Select all". The Box
+                // carries the weight that the DisableSelection lambda cannot (it is not RowScope).
+                Box(modifier = Modifier.weight(1f)) {
+                    DisableSelection { ActivityHeaderLabel(headerLabel, labelColor) }
+                }
+            } else {
+                // The server's own label is message text — SearchMatchEnumeration counts it, so a
+                // phrase found by search has to be copyable too.
+                ActivityHeaderLabel(headerLabel, labelColor, Modifier.weight(1f))
+            }
+            activityOutcomeDetail(outcome)?.let { detail ->
+                Spacer(modifier = Modifier.width(8.dp))
+                DisableSelection {
+                    Text(
+                        text = detail,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (outcome.failed > 0) {
+                            MaterialTheme.colorScheme.error
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                        maxLines = 1,
+                    )
+                }
+                Spacer(modifier = Modifier.width(4.dp))
+            }
+            Icon(
+                if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        // AnimatedVisibility, not animateContentSize: the latter animates on every token while a
+        // child grows and re-runs from zero height each time the item re-enters the viewport.
+        AnimatedVisibility(visible = isExpanded, enter = expandVertically(), exit = shrinkVertically()) {
+            Column(modifier = Modifier.padding(start = 12.dp)) {
+                body()
+            }
+        }
+
+        // Outside the AnimatedVisibility — see the parameter's KDoc.
+        hoistedAttachments()
+    }
+}
+
+/**
+ * What a group's header says about how its calls ended (upstream `outcome.ts` `summarizeSpan` +
+ * `ToolCallGroup.tsx`, #16949).
+ *
+ * The header reads as failed only when every call failed ([isSpanFailed]) or the batch label
+ * reported `failed`. Mixed outcomes keep the ordinary header and show the count instead
+ * ("1/3 failed"); a `partial` label is mixed by definition. [showsPartialMarker] is upstream's
+ * `partialMarkerFallback`: a partial label the per-call verdicts cannot corroborate (none failed,
+ * or all did) still shows a warning glyph.
+ */
+internal data class ActivityOutcome(
+    val failed: Int,
+    val cancelled: Int,
+    val total: Int,
+    val labelFailed: Boolean,
+    val labelPartial: Boolean,
+) {
+    val headerFailed: Boolean get() = labelFailed || isSpanFailed(failed, total)
+    val showsPartialMarker: Boolean
+        get() = labelPartial && !labelFailed && (failed == 0 || failed >= total)
+}
+
+/** True when every call a summary stands for failed. Upstream `isSpanFailed`. */
+internal fun isSpanFailed(failed: Int, total: Int): Boolean = failed > 0 && failed >= total
+
+/**
+ * A group's [ActivityOutcome], judging each call with [toolCallOutcome].
+ *
+ * Takes the attachments here, at the render site, rather than in [ContentGroup] (see
+ * `groupedToolCallIds`).
+ */
+internal fun activityGroupOutcome(group: ContentGroup.Activity, attachments: List<Attachment>): ActivityOutcome {
+    var failed = 0
+    var cancelled = 0
+    var total = 0
+    group.entries.forEach { entry ->
+        val call = entry.part.toolCall ?: return@forEach
+        total += 1
+        when (toolCallOutcome(call, attachments)) {
+            ToolCallVerdict.FAILED -> failed += 1
+            ToolCallVerdict.CANCELLED -> cancelled += 1
+            else -> Unit
+        }
+    }
+    return ActivityOutcome(
+        failed = failed,
+        cancelled = cancelled,
+        total = total,
+        labelFailed = group.labelFailed,
+        labelPartial = group.labelPartial,
+    )
+}
+
+/**
+ * One call's verdict as a summary must read it, so a header never disagrees with the card under
+ * it (upstream `outcome.ts` `getToolMeta`): the run step's terminal status, a refused memory write
+ * judged by the memory card's own rule, error-shaped output on any other tool, an attached-workspace
+ * `bash_tool` whose trailer reports a non-zero exit, and a background-task poll whose task failed or
+ * was stopped. With a terminal status, cancellation outranks a failure-shaped result; without one,
+ * only output can say it failed (upstream `resolveOutcome`).
+ *
+ * Not counted, unlike web: a backgrounded call whose `background_task_status` attachment reports
+ * an error (that attachment is not parsed here).
+ */
+internal fun toolCallOutcome(call: AgentToolCall, attachments: List<Attachment>): ToolCallVerdict {
+    val name = call.name ?: call.function?.name
+    val output = call.output ?: call.function?.output
+    val failedOutput = if (isMemoryToolCall(name)) {
+        // The dispatcher's own name and output reads, so the header and the card judge one call.
+        isFailedMemoryToolCall(toolName = name, output = output, attachments = attachments, toolCallId = call.id)
+    } else {
+        isToolErrorOutput(output) ||
+            (
+                name == ToolConstants.BASH_TOOL &&
+                    call.executor == AgentToolCall.EXECUTOR_ATTACHED_WORKSPACE &&
+                    attachedCommandFailed(output) == true
+                )
+    }
+    val polled = if (name == CHECK_BACKGROUND_TASK_TOOL) {
+        BackgroundTaskOutput.outcome(BackgroundTaskOutput.parse(output))
+    } else {
+        null
+    }
+    // Cancelled by the user's own interrupt: counted as cancelled, never failed.
+    if (isInterruptedToolOutput(output)) return ToolCallVerdict.CANCELLED
+    val hasError = failedOutput || polled == BackgroundTaskOutcome.FAILED
+    val status = if (polled == BackgroundTaskOutcome.CANCELLED) RunStepStatus.CANCELLED else call.effectiveRunStepStatus
+    return when (status) {
+        null -> if (hasError) ToolCallVerdict.FAILED else ToolCallVerdict.COMPLETED
+        RunStepStatus.CANCELLED -> ToolCallVerdict.CANCELLED
+        RunStepStatus.FAILED -> ToolCallVerdict.FAILED
+        RunStepStatus.COMPLETED -> if (hasError) ToolCallVerdict.FAILED else ToolCallVerdict.COMPLETED
+    }
+}
+
+/**
+ * The header's count line: "1/3 failed" and "2 cancelled" (upstream `com_ui_n_of_n_actions_failed`,
+ * `com_ui_n_actions_cancelled`), or null when every call finished cleanly. A fully failed group still
+ * shows its count beside the red header, as upstream's failure pill does.
+ */
+@Composable
+private fun activityOutcomeDetail(outcome: ActivityOutcome): String? {
+    val parts = buildList {
+        if (outcome.failed > 0) {
+            add(stringResource(Res.string.activity_n_of_n_failed, outcome.failed, outcome.total))
+        }
+        if (outcome.cancelled > 0) {
+            add(pluralStringResource(Res.plurals.activity_n_cancelled, outcome.cancelled, outcome.cancelled))
+        }
+    }
+    return parts.takeIf { it.isNotEmpty() }?.joinToString(" · ")
+}
+
+@Composable
+private fun ActivityHeaderLabel(text: String, color: Color, modifier: Modifier = Modifier) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodyMedium,
+        color = color,
+        modifier = modifier,
+    )
+}
+
+/**
+ * A label whose own block was filtered out of the render. Upstream keeps it as a bare line rather
+ * than dropping it — it is still the only description of what happened at that point.
+ *
+ * Selectable: this is the server's text, and search already treats it as message content.
+ */
+@Composable
+fun OrphanActivityLabel(text: String, modifier: Modifier = Modifier) {
+    if (text.isBlank()) return
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = modifier.padding(vertical = 4.dp),
+    )
+}

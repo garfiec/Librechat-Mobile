@@ -136,6 +136,18 @@ class OpenIdCookiesTest {
     }
 
     @Test
+    fun rawSseCarriesTheGateCredential() {
+        assertEquals(
+            "Proxy-Authorization: Bearer authelia_at_x\r\n",
+            sseCustomHeaderLines(emptyMap(), null, GateCredential.Bearer("authelia_at_x")),
+        )
+        assertEquals(
+            "Cookie: authelia_session=s1; gateway=keep\r\n",
+            sseCustomHeaderLines(mapOf("Cookie" to "gateway=keep"), null, GateCredential.Cookie("authelia_session=s1")),
+        )
+    }
+
+    @Test
     fun credentialRepresentationsAreRedacted() {
         val rendered = SessionCredentials("access-secret", original).toString() + original + original.openId
         listOf("access-secret", "idp-refresh", "signed-marker").forEach { assertFalse(it in rendered) }

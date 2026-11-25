@@ -63,10 +63,11 @@ class SkillFileViewModelTest {
         path: String = "notes.md",
         mime: String = "text/markdown",
         isBinary: Boolean = false,
+        filename: String = path.substringAfterLast('/'),
     ) = json.decodeFromString(
         SkillFileContentResponse.serializer(),
         buildString {
-            append("""{"relativePath":"$path","filename":"${path.substringAfterLast('/')}","mimeType":"$mime",""")
+            append("""{"relativePath":"$path","filename":"$filename","mimeType":"$mime",""")
             append(""""bytes":5,"isBinary":$isBinary""")
             if (fileId != null) append(""","fileId":"$fileId"""")
             if (text != null) append(""","content":"$text"""")
@@ -459,5 +460,18 @@ class SkillFileViewModelTest {
         assertThat(viewModel.uiState.value.draft).isEqualTo("hello")
         assertThat(viewModel.uiState.value.exitRequested).isFalse()
         coVerify(exactly = 2) { repo.getSkillFileContent("sk-1", "notes.md") }
+    }
+
+    @Test
+    fun `the viewer names a sanitized-path file by its filename once loaded`() = runTest(testDispatcher) {
+        val answer = CompletableDeferred<Result<SkillFileContentResponse>>()
+        coEvery { repo.getSkillFileContent("sk-1", "____1.md") } coAnswers { answer.await() }
+        val viewModel = opened("____1.md")
+        assertThat(viewModel.uiState.value.displayName).isEqualTo("____1.md")
+
+        answer.complete(Result.Success(content(path = "____1.md", filename = "参考 #1.md")))
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.displayName).isEqualTo("参考 #1.md")
+        assertThat(viewModel.uiState.value.displayPath).isEqualTo("参考 #1.md")
     }
 }

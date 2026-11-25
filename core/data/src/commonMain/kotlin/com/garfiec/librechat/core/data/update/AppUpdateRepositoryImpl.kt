@@ -7,6 +7,7 @@ import com.garfiec.librechat.core.common.result.apiCallCatching
 import com.garfiec.librechat.core.common.result.safeApiCall
 import com.garfiec.librechat.core.common.result.toSafeError
 import com.garfiec.librechat.core.model.AppRelease
+import com.garfiec.librechat.core.model.update.UpdateCheckState
 import com.garfiec.librechat.core.network.api.GitHubReleasesApi
 import com.garfiec.librechat.core.network.api.dto.GitHubRelease
 import io.ktor.client.plugins.ClientRequestException

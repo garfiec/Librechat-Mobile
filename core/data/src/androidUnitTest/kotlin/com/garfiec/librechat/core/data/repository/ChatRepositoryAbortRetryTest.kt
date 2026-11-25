@@ -1,5 +1,8 @@
 package com.garfiec.librechat.core.data.repository
 
+import com.garfiec.librechat.core.common.identity.AccountId
+import com.garfiec.librechat.core.common.identity.AccountState
+import com.garfiec.librechat.core.common.identity.InMemoryActiveAccountProvider
 import com.garfiec.librechat.core.common.network.ConnectivityObserver
 import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
@@ -32,6 +35,7 @@ class ChatRepositoryAbortRetryTest {
         dispatcher = UnconfinedTestDispatcher(scheduler),
         json = Json,
         projectChanges = ProjectChangeSignal(),
+        activeAccountProvider = InMemoryActiveAccountProvider(AccountState.Resolved(AccountId("acct-a"))),
     )
 
     private fun conflict(code: String) = ApiException(

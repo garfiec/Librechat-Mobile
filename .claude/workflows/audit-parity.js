@@ -1,11 +1,11 @@
 export const meta = {
   name: 'audit-parity',
-  description: 'Audit Switchboard area by area against the pinned server and a reference client: scope each area, three-lens finders looped until dry, two-lens adversarial verify, per-area critic and triage, then a cross-area ranking and report',
+  description: 'Audit Switchboard area by area against the pinned server and a reference client: scope each area, three-lens finders looped until dry, adversarial verify (a second lens on doubt), per-area critic and triage, then a cross-area ranking and report',
   whenToUse: 'Launched by the audit-parity skill after the lead has written areas.json and known.md into the run directory. Read-only on the repo; agents write only into the run directory.',
   phases: [
     { title: 'Scope', detail: 'one agent per area maps our files, the endpoints, the server handlers at the pin and the reference client' },
-    { title: 'Find', detail: 'contract, behaviour-parity and dead-wiring finders per area; repeats until two complete rounds add nothing' },
-    { title: 'Verify', detail: 'two refuters per new finding; a split goes to a judge' },
+    { title: 'Find', detail: 'contract, behaviour-parity and dead-wiring finders per area; later rounds aimed at what earlier ones left untraced, until a round adds fewer than 3 survivors' },
+    { title: 'Verify', detail: 'one refuter per new finding, a second when it does not confirm or the finding is high; a split goes to a judge' },
     { title: 'Critic', detail: 'per area: what did the rounds not check? its findings are verified the same way' },
     { title: 'Triage', detail: 'per area: merge, mark known issues, rank, write areas/<id>/findings.json' },
     { title: 'Report', detail: 'cross-area merge groups, shared roots and report.md (last batch only)' },
@@ -20,7 +20,9 @@ const RUN = A.run
 const PIN = A.pin
 const REF = A.ref || 'web'
 const AREAS = parse(A.areas) || []
-const MAX_ROUNDS = A.maxRounds || 4
+const MAX_ROUNDS = A.maxRounds || 3
+// A complete round with fewer surviving findings than this counts as dry.
+const DRY_BELOW = A.dryBelow || 3
 const CAP = A.agentCap || 950
 const REPORT = A.report !== false
 const PRIOR_INDEX = parse(A.priorIndex) || []
@@ -48,7 +50,7 @@ function fnv(str) {
 }
 // The round cap, agent cap and report flag steer which agents run and what later prompts hold.
 // stopAt and haltOnFailure stay out: a resume changes them.
-const FINGERPRINT = fnv(JSON.stringify([REPO, RUN, PIN, REF, AREAS, MAX_ROUNDS, CAP, REPORT, PRIOR_INDEX, PRIOR_RUNS, PRIOR_LEADS, PRIOR_REFUTED, WORK_LOG]))
+const FINGERPRINT = fnv(JSON.stringify([REPO, RUN, PIN, REF, AREAS, MAX_ROUNDS, DRY_BELOW, CAP, REPORT, PRIOR_INDEX, PRIOR_RUNS, PRIOR_LEADS, PRIOR_REFUTED, WORK_LOG]))
 log(`args fingerprint ${FINGERPRINT}`)
 if (A.expectFingerprint && A.expectFingerprint !== FINGERPRINT) {
   throw new Error(`audit-parity: args fingerprint ${FINGERPRINT} does not match expectFingerprint ${A.expectFingerprint}. These args would re-run the agents whose prompts they change, or change which agents run; pass the args saved in the run directory unchanged.`)
@@ -58,7 +60,7 @@ if (A.expectFingerprint && A.expectFingerprint !== FINGERPRINT) {
 // count: each area gets an equal share and the cross-area report keeps a reserve.
 const REPORT_RESERVE = REPORT ? 2 : 0
 const SHARE = AREAS.length ? Math.floor((CAP - REPORT_RESERVE) / AREAS.length) : 0
-const TAIL = 9 // critic, its dedupe, triage, and verification of up to three critic findings
+const TAIL = 8 // critic, its dedupe, triage, and verification of up to three critic findings
 const SKIP = { skipped: true }
 const HALTED = { halted: true }
 const spent = {}
@@ -96,19 +98,32 @@ async function call(areaId, prompt, opts) {
 const left = id => SHARE - (spent[id] || 0)
 const got = r => r && r !== SKIP && r !== HALTED
 
+// Every turn rereads the agent's whole context, so turns, not tool calls, drive the cost.
+const WORK_STYLE = `Work in few turns: put several independent Bash/Read calls in one turn, chain related greps and reads into one command (grep ...; sed -n ...), and read a file region once, noting what you need, instead of reopening it.`
+
+// role: 'scoper', 'finder' (finders and the critic), 'verifier' or 'triage'. Only triage reads
+// known.md; verifiers read only the method sections they apply.
 function context(area, opts = {}) {
+  const role = opts.role || 'finder'
+  const method = role === 'verifier'
+    ? `Read only these sections of ${METHOD}: sed -n '/^## Evidence rules/,/^## Not findings/p;/^## Severity/,/^## Ticket format/p' ${METHOD}`
+    : `First read ${METHOD} completely: lenses, scope, evidence rules, known issues, what is not a finding, severity.`
+  const scope = role !== 'finder' ? '' : opts.noScope
+    ? `The scoper for this area failed, so there is no scope.md. Build your own map from the seeds before you start.\n`
+    : `Then read ${RUN}/areas/${area.id}/scope.md, the file map for this area.\n`
+  const known = role === 'triage'
+    ? `${RUN}/known.md lists board drafts, filed issues, recorded bugs, backend-less web features and deliberate divergences.\n`
+    : `Leave duplicate_of empty: triage checks known issues.\n`
   return `
 You are part of a READ-ONLY audit of Switchboard (Compose Multiplatform LibreChat client, Android + iOS). Do NOT edit, create or delete any file in the repo. Repo: ${REPO}.
 
 Area under audit: ${area.name} (${area.id}). Seeds: ${area.seeds || '(none given)'}
 Reference client: ${WEB ? 'the upstream LibreChat web client (client/ and packages/data-provider/ in the upstream submodule)' : `${REF} (a third-party client; read it from its working tree)`}.
 Pinned upstream commit: ${PIN}. Read server${WEB ? ' and web' : ''} files ONLY at the pin: git -C ${REPO}/upstream show "${PIN}:<path>". The submodule working tree is not the pin.
+${WORK_STYLE}
 
-First read ${METHOD} completely: lenses, scope, evidence rules, known issues, what is not a finding, severity.
-${opts.scoper ? '' : opts.noScope
-    ? `The scoper for this area failed, so there is no scope.md. Build your own map from the seeds before you start.\n`
-    : `Then read ${RUN}/areas/${area.id}/scope.md, the file map for this area.\n`}${RUN}/known.md lists board drafts, filed issues, recorded bugs, backend-less web features and deliberate divergences.
-`
+${method}
+${scope}${known}`
 }
 
 const FINDING_PROPS = {
@@ -122,7 +137,7 @@ const FINDING_PROPS = {
   evidence: { type: 'string', description: 'what the code does, and for absence claims which searches you ran; may be one line for missing-feature' },
   fix_hint: { type: 'string' },
   maybe_intentional: { type: 'boolean' },
-  duplicate_of: { type: 'string', description: '"#N" when known.md has it as an open issue; "draft: <title>" when it is a board draft (an issue marked [moved to board] counts as its draft); "#N (closed, regression)" when a closed issue still reproduces in code; else empty' },
+  duplicate_of: { type: 'string', description: 'finders and verifiers leave this empty. Triage: "#N" when known.md has it as an open issue; "draft: <title>" when it is a board draft (an issue marked [moved to board] counts as its draft); "#N (closed, regression)" when a closed issue still reproduces in code; "divergence: <entry>" for a listed deliberate divergence or backend-less feature; else empty' },
 }
 const FINDING_REQ = ['title', 'kind', 'severity', 'platforms', 'ours', 'theirs', 'trigger', 'evidence', 'fix_hint', 'maybe_intentional', 'duplicate_of']
 const FINDING = { type: 'object', properties: FINDING_PROPS, required: FINDING_REQ }
@@ -134,6 +149,24 @@ const FIND_SCHEMA = {
     findings: { type: 'array', items: FINDING },
   },
   required: ['checked', 'findings'],
+}
+
+const PLAN_SCHEMA = {
+  type: 'object',
+  properties: {
+    targets: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          lens: { type: 'string', enum: ['contract', 'parity', 'wiring'] },
+          flows: { type: 'array', items: { type: 'string' }, description: 'untraced calls, flows or states for this lens, one line each with the files to start from; empty when nothing is left worth a finder' },
+        },
+        required: ['lens', 'flows'],
+      },
+    },
+  },
+  required: ['targets'],
 }
 
 const NEW_SCHEMA = {
@@ -208,7 +241,7 @@ const LENSES = [
 ]
 
 const VERIFIERS = [
-  { key: 'ours', focus: 'Check OUR side: open every cited Switchboard line, trace callers and both platforms (commonMain, androidMain, iosMain, iosApp Swift). Does our code really behave as claimed? Absence claims: search several ways yourself.' },
+  { key: 'ours', focus: 'Check OUR side: open every cited Switchboard line, trace callers and both platforms (commonMain, androidMain, iosMain, iosApp Swift). Does our code really behave as claimed? Absence claims: search several ways yourself. If the finding cites the server or reference, open those lines at the pin too: you are often the only verifier.' },
   { key: 'theirs', focus: `Check THEIR side: read the server handler, middleware and models at the pin yourself${WEB ? ', and the web client at the pin if cited' : `, and the reference client in ${REF} if cited`}. Does the server or reference really behave as claimed, so that our behaviour is actually wrong for a user?` },
 ]
 
@@ -223,19 +256,25 @@ const brief = f => `${f.title} [${f.kind}] ours: ${f.ours}`
 // The log is named for the task's exact prompt: a relaunch whose earlier rounds came out
 // differently gives a later finder a different prompt, so it never inherits a log of other work.
 const withLog = (area, label, prompt) => (WORK_LOG ? `${prompt}
-Work log: ${RUN}/areas/${area.id}/log/${label.replace(/:/g, '-')}-${fnv(prompt)}.md is the only file you may write. If it already exists, an earlier attempt at this exact task was cut off: read it first, keep what it found, and do not re-trace what it lists. As you go, append each flow you finish tracing (one line) and each finding as soon as you have checked it (every field), so a cut-off attempt loses little. Your returned answer must still list everything, the log's contents included.
+Work log: ${RUN}/areas/${area.id}/log/${label.replace(/:/g, '-')}-${fnv(prompt)}.md is the only file you may write. If it already exists, an earlier attempt at this exact task was cut off: read it first, keep what it found, and continue from where it ends without re-tracing what it lists. Otherwise create it in your FIRST turn with your plan (the flows you will trace, one line each). From then on append (cat >> or Edit) after each flow you finish tracing (one line), each finding as soon as you have checked it (every field), and at least once every 8 tool calls, so a cut-off attempt loses little. Your returned answer must still list everything, the log's contents included.
 ` : prompt)
 const short = (s, n) => (s && s.length > n ? `${s.slice(0, n)}…` : s || '')
 
+// One verifier first; a second angle only when it does not confirm, or for a high-severity finding.
+// A refutation needs the second angle's agreement, and a split goes to a judge.
 async function verify(area, ctx, f, label) {
   const angles = f.theirs && f.theirs.trim() ? VERIFIERS : OURS_ONLY
-  const votes = await parallel(angles.map(v => () =>
-    call(area.id, `${ctx}
+  const ask = v => call(area.id, `${ctx}
 You are an adversarial VERIFIER. ${v.focus}
 Try to REFUTE this finding. Default to REFUTED when the evidence is not solid; PLAUSIBLE when it hinges on runtime data you cannot see.
 
 Finding (JSON):
-${JSON.stringify(f, null, 1)}`, { label: `verify:${label}:${v.key}`, phase: 'Verify', schema: CHECK_SCHEMA })))
+${JSON.stringify(f, null, 1)}`, { label: `verify:${label}:${v.key}`, phase: 'Verify', schema: CHECK_SCHEMA })
+  const first = await ask(angles[0])
+  if (halt) return null
+  const needSecond = !got(first) || first.result !== 'CONFIRMED' || f.severity === 'high'
+  const votes = needSecond ? [first, await ask(angles[1])] : [first]
+  if (halt) return null
   const ok = votes.filter(got)
   const reasons = ok.map(v => v.reason).join(' | ')
   if (!ok.length) return { ...f, verdict: 'UNVERIFIED', reason: votes.some(v => v === SKIP) ? 'agent budget spent' : 'no verifier returned' }
@@ -252,10 +291,11 @@ Verifier (${angles[1].key}): ${JSON.stringify(votes[1])}`, { label: `judge:${lab
     if (!got(judge)) return { ...f, verdict: 'PLAUSIBLE', reason: `verifiers split and the judge ${judge === SKIP ? 'had no budget' : 'failed'}: ${reasons}` }
     return { ...judge.corrected, verdict: judge.result, reason: judge.reason }
   }
+  // A lone refutation stands only when the second angle could not run.
   if (refuted >= 1) return { ...f, verdict: 'REFUTED', reason: reasons }
   const keep = ok.find(v => v.result === 'CONFIRMED') || ok[0]
-  const verdict = ok.length === 2 && ok.every(v => v.result === 'CONFIRMED') ? 'CONFIRMED' : 'PLAUSIBLE'
-  return { ...keep.corrected, verdict, reason: ok.length === 1 ? `one verifier only: ${reasons}` : reasons }
+  const verdict = ok.every(v => v.result === 'CONFIRMED') ? 'CONFIRMED' : 'PLAUSIBLE'
+  return { ...keep.corrected, verdict, reason: ok.length < votes.length ? `one verifier only: ${reasons}` : reasons }
 }
 
 async function fresh(area, candidates, seen, label, phase) {
@@ -278,7 +318,7 @@ Return the indexes of candidates that are new (not in Seen, and not a repeat of 
 
 // Verify what the area's budget allows; the rest is kept as UNVERIFIED rather than dropped.
 async function verifyAll(area, ctx, news, prefix, reserve) {
-  const fits = Math.max(0, Math.floor((left(area.id) - reserve) / 2.5))
+  const fits = Math.max(0, Math.floor((left(area.id) - reserve) / 1.5))
   const now = news.slice(0, fits)
   const later = news.slice(fits)
   if (later.length) log(`${area.id}: ${later.length} finding(s) left UNVERIFIED, agent budget`)
@@ -287,7 +327,7 @@ async function verifyAll(area, ctx, news, prefix, reserve) {
 }
 
 async function scope(area) {
-  const r = await call(area.id, `${context(area, { scoper: true })}
+  const r = await call(area.id, `${context(area, { role: 'scoper' })}
 You are the SCOPER for this area. Write ${RUN}/areas/${area.id}/scope.md (the ONLY file you may write) as a file map that every finder will read:
 - Ours: screens, ViewModels, delegates, repositories, core/network api/*Api.kt and DTOs, Room entities if cached, settings rows and preference keys, androidMain/iosMain actuals and iosApp Swift. Grep nav keys, string resources and API paths.
 - Endpoints: every route those Api files call, as METHOD /api/....
@@ -301,43 +341,63 @@ Use path:line where useful. Be complete rather than brief. Return one line: how 
 
 async function auditArea(area, scoped) {
   const ctx = context(area, { noScope: !scoped.ok })
+  const vctx = context(area, { role: 'verifier' })
+  const tctx = context(area, { role: 'triage', noScope: !scoped.ok })
   const seen = []
   const results = []
   const leads = []
   const coverage = []
-  let dry = 0
+  let dry = false
   let round = 0
   let budgetStop = false
   const paused = () => ({ area: area.id, name: area.name, halted: true, rounds: round, agents: spent[area.id] || 0, found: seen.length })
-  while (dry < 2 && round < MAX_ROUNDS) {
+  while (!dry && round < MAX_ROUNDS) {
     if (pauseHere(`${area.id} round ${round + 1}`)) return paused()
-    if (left(area.id) < LENSES.length + 1 + TAIL) { budgetStop = true; log(`${area.id}: no budget for round ${round + 1}`); break }
+    if (left(area.id) < LENSES.length + 2 + TAIL) { budgetStop = true; log(`${area.id}: no budget for round ${round + 1}`); break }
     round++
-    const raw = await parallel(LENSES.map(l => () =>
+    // After round 1, a planner aims each lens at what earlier rounds left untraced, so a finder
+    // doesn't re-read the whole area. A lens with nothing left gets no finder.
+    let targets = null
+    if (round > 1) {
+      const plan = await call(area.id, `You are planning round ${round} of an audit of Switchboard's ${area.name} (${area.id}) area. ${WORK_STYLE}
+Read ${scoped.ok ? `${RUN}/areas/${area.id}/scope.md (the area's file map)` : `the seeds (${area.seeds || 'none'}) to map the area`}. Then, for each lens, list the calls, flows and states in the area that the earlier rounds did NOT trace with that lens, or traced only on one platform. One line each, naming the files to start from. Leave a lens's list empty when nothing is left worth a finder. Do not read code beyond what you need to name the targets.
+Lenses: ${LENSES.map(l => `${l.key}: ${l.focus}`).join('\n')}
+
+What earlier rounds traced:
+${coverage.map(c => `[r${c.round} ${c.lens}] ${c.checked.join('; ')}`).join('\n')}
+
+What they found:
+${seen.map((f, i) => `${i + 1}. ${brief(f)}`).join('\n') || '(nothing)'}`, { label: `plan:${area.id}:r${round}`, phase: 'Find', schema: PLAN_SCHEMA, effort: 'medium' })
+      if (halt) return paused()
+      if (got(plan)) targets = Object.fromEntries(LENSES.map(l => [l.key, plan.targets.filter(t => t.lens === l.key).flatMap(t => t.flows)]))
+      else log(`plan:${area.id}:r${round} ${plan === SKIP ? 'skipped' : 'failed'}; finders search the whole area`)
+    }
+    const lenses = targets ? LENSES.filter(l => targets[l.key].length) : LENSES
+    if (!lenses.length) { dry = true; log(`${area.id}: round ${round} planner found nothing left to trace`); break }
+    const raw = await parallel(lenses.map(l => () =>
       call(area.id, withLog(area, `find:${area.id}:r${round}:${l.key}`, `${ctx}
 Your lens is ${l.focus}
 This is round ${round}. ${seen.length ? `These are already found (some were refuted); do NOT report them again, look for what they missed:\n${seen.map((f, i) => `${i + 1}. ${brief(f)}`).join('\n')}` : 'Nothing has been found yet.'}
-Report every defect that survives your own check against the evidence rules. There is no cap. In "checked", list what you traced, including things that were fine, so later rounds know what was covered.`),
+${targets ? `Earlier rounds already traced the rest of the area. Trace these targets, and follow them wherever they lead:\n${targets[l.key].map(t => `- ${t}`).join('\n')}\n` : ''}Report every defect that survives your own check against the evidence rules. There is no cap. In "checked", list what you traced, including things that were fine, so later rounds know what was covered.`),
       { label: `find:${area.id}:r${round}:${l.key}`, phase: 'Find', schema: FIND_SCHEMA })))
     if (halt) return paused()
-    raw.forEach((o, i) => { if (got(o)) coverage.push({ round, lens: LENSES[i].key, checked: o.checked }) })
-    const failed = LENSES.filter((l, i) => !got(raw[i])).map(l => l.key)
+    raw.forEach((o, i) => { if (got(o)) coverage.push({ round, lens: lenses[i].key, checked: o.checked }) })
+    const failed = lenses.filter((l, i) => !got(raw[i])).map(l => l.key)
     if (failed.length) log(`${area.id} round ${round}: finder(s) did not run: ${failed.join(', ')}`)
     const news = await fresh(area, raw.filter(got).flatMap(o => o.findings), seen, `${area.id}:r${round}`, 'Find')
     if (halt) return paused()
     seen.push(...news)
     leads.push(...news.filter(f => f.kind === 'missing-feature'))
-    const judged = await verifyAll(area, ctx, news.filter(f => f.kind !== 'missing-feature'), `${area.id}:r${round}`, TAIL)
+    const judged = await verifyAll(area, vctx, news.filter(f => f.kind !== 'missing-feature'), `${area.id}:r${round}`, TAIL)
     if (halt) return paused()
     results.push(...judged)
     const survived = judged.filter(j => j.verdict !== 'REFUTED').length
     log(`${area.id} round ${round}: ${news.length} new, ${survived} survived`)
-    // Only a complete round that adds nothing counts as dry.
-    if (survived) dry = 0
-    else if (!failed.length) dry++
+    // Only a complete round counts as dry.
+    if (survived < DRY_BELOW && !failed.length) dry = true
   }
-  const exhausted = dry >= 2
-  if (!exhausted && !budgetStop) log(`${area.id}: stopped at the ${MAX_ROUNDS}-round cap before two dry rounds`)
+  const exhausted = dry
+  if (!exhausted && !budgetStop) log(`${area.id}: stopped at the ${MAX_ROUNDS}-round cap while rounds still added ${DRY_BELOW}+ findings`)
 
   if (pauseHere(`${area.id} critic`)) return paused()
   const critic = await call(area.id, withLog(area, `critic:${area.id}`, `${ctx}
@@ -354,7 +414,7 @@ Ask what is missing: calls in the scope nobody traced, status codes or error cod
   if (halt) return paused()
   seen.push(...criticNew)
   leads.push(...criticNew.filter(f => f.kind === 'missing-feature'))
-  const criticJudged = await verifyAll(area, ctx, criticNew.filter(f => f.kind !== 'missing-feature'), `${area.id}:c`, 1)
+  const criticJudged = await verifyAll(area, vctx, criticNew.filter(f => f.kind !== 'missing-feature'), `${area.id}:c`, 1)
   if (halt) return paused()
   results.push(...criticJudged)
 
@@ -365,10 +425,10 @@ Ask what is missing: calls in the scope nobody traced, status codes or error cod
   let triageOk = false
   if (kept.length) {
     if (pauseHere(`${area.id} triage`)) return paused()
-    const triage = await call(area.id, `${ctx}
+    const triage = await call(area.id, `${tctx}
 You are triaging this area's verified findings. Write ${file} (the ONLY file you may write): a JSON array, one object per finding after merging, each with every field of the input plus "id" ("${area.id}-1", "${area.id}-2", ... in rank order), "area": "${area.id}" and "merged_from" (titles folded into it).
 - Merge findings that one fix would close (same root cause), keeping each one's evidence.
-- Check each against ${RUN}/known.md and set duplicate_of: "#N" if it is an open issue, "draft: <title>" if it is a board draft, "#N (closed, regression)" if a closed issue still reproduces in the code. An issue marked [moved to board] is open work: use its draft, never "closed, regression".
+- Check each against ${RUN}/known.md and set duplicate_of: "#N" if it is an open issue, "draft: <title>" if it is a board draft, "#N (closed, regression)" if a closed issue still reproduces in the code, "divergence: <entry>" if it is a deliberate divergence or backend-less feature listed there. An issue marked [moved to board] is open work: use its draft, never "closed, regression".
 - Rank by severity then reach. Do not add findings and do not drop any: every input must be in the file or in some merged_from.
 Return the index of what you wrote and a condensed coverage note.
 

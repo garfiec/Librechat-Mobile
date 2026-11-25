@@ -7,14 +7,8 @@ import android.view.ViewGroup
 import android.webkit.SslErrorHandler
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableIntState
 import androidx.compose.runtime.mutableIntStateOf
@@ -22,9 +16,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.layout
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.ui.theme.chatColors
@@ -115,52 +107,6 @@ new MutationObserver(reportHeight).observe(document.body, { childList: true, sub
 </body>
 </html>
     """.trimIndent()
-}
-
-// ── Plain-text renderers (lightweight, no WebView) ────────────────
-
-@Composable
-private fun NativeLatexBlock(
-    latex: String,
-    modifier: Modifier = Modifier,
-) {
-    Text(
-        text = latex,
-        style = MaterialTheme.typography.bodyLarge.copy(
-            fontFamily = FontFamily.Monospace,
-            fontSize = 16.sp,
-        ),
-        color = chatColors().messageText,
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp)
-            .background(
-                color = chatColors().codeBody,
-                shape = RoundedCornerShape(6.dp),
-            )
-            .horizontalScroll(rememberScrollState())
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-    )
-}
-
-@Composable
-private fun NativeLatexInline(
-    latex: String,
-    modifier: Modifier = Modifier,
-) {
-    Text(
-        text = latex,
-        style = MaterialTheme.typography.bodyMedium.copy(
-            fontFamily = FontFamily.Monospace,
-        ),
-        color = chatColors().messageText,
-        modifier = modifier
-            .background(
-                color = chatColors().codeBody,
-                shape = RoundedCornerShape(4.dp),
-            )
-            .padding(horizontal = 4.dp, vertical = 2.dp),
-    )
 }
 
 // ── KaTeX (WebView) renderers ──────────────────────────────────────
@@ -338,7 +284,7 @@ actual fun LatexBlock(
     if (useKatex) {
         KatexLatexBlock(latex = latex, modifier = modifier)
     } else {
-        NativeLatexBlock(latex = latex, modifier = modifier)
+        LatexSource(latex = latex, display = true, modifier = modifier)
     }
 }
 
@@ -356,6 +302,6 @@ actual fun LatexInline(
     if (useKatex) {
         KatexLatexInline(latex = latex, modifier = modifier)
     } else {
-        NativeLatexInline(latex = latex, modifier = modifier)
+        LatexSource(latex = latex, display = false, modifier = modifier)
     }
 }

@@ -6,16 +6,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
 /**
- * A PDF upload held until the user types the file's password. [chipKey] is the attached-file chip
- * (its `uri`), left pending (not failed) meanwhile; [file] is what to upload again with the password.
- */
-data class PdfPasswordPrompt(
-    val chipKey: Any,
-    val file: PickedFile,
-    val incorrectPassword: Boolean,
-)
-
-/**
  * The prompts waiting on the user, oldest first; the UI shows the head. Shared by both platform
  * handlers so the queueing rules can't drift apart.
  */

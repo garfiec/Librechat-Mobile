@@ -1,20 +1,24 @@
 package com.garfiec.librechat.feature.auth.viewmodel
 
 import androidx.lifecycle.SavedStateHandle
+import com.garfiec.librechat.core.common.result.AccessGatewayException
 import com.garfiec.librechat.core.common.result.FailureKind
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.common.result.message
 import com.garfiec.librechat.core.data.datastore.AccountEntry
 import com.garfiec.librechat.core.data.datastore.AccountRoster
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
+import com.garfiec.librechat.core.data.gate.GateAccess
+import com.garfiec.librechat.core.data.gate.GateSignInDetails
+import com.garfiec.librechat.core.data.gate.GateSignInResult
 import com.garfiec.librechat.core.data.repository.AccountSwitcher
 import com.garfiec.librechat.core.data.repository.ConfigRepository
-import com.garfiec.librechat.core.data.repository.HeaderWriteFailure
 import com.garfiec.librechat.core.data.repository.HeaderWriteResult
 import com.garfiec.librechat.core.data.repository.ServerRepository
 import com.garfiec.librechat.core.data.repository.ServerResolution
 import com.garfiec.librechat.core.model.config.StartupConfig
-import com.garfiec.librechat.core.network.client.HeaderRejection
+import com.garfiec.librechat.core.model.server.HeaderRejection
+import com.garfiec.librechat.core.model.server.HeaderWriteFailure
 import com.garfiec.librechat.core.ui.components.CustomHeaderRow
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
@@ -57,6 +61,12 @@ class ServerUrlViewModelTest {
     private val pendingUrl = "https://b.example.com"
     private val config = StartupConfig(serverDomain = pendingUrl)
 
+    private val gateAccess = mockk<GateAccess>(relaxed = true)
+    private val portal = "https://auth.example.com/?rd=https%3A%2F%2Fb.example.com%2Fapi%2Fconfig&rm=GET"
+    private val gateBlock = ServerResolution.Failed(
+        Result.Error(AccessGatewayException(portalUrl = portal), "gateway", FailureKind.AccessGateway),
+    )
+
     private val liveUrl = "https://live.example.com"
     private val liveHeaders = mapOf("CF-Access-Client-Id" to "id-value")
 
@@ -92,6 +102,7 @@ class ServerUrlViewModelTest {
         savedStateHandle = savedStateHandle,
         addAccount = addAccount,
         cleartextBlockedForDomainNames = cleartextBlockedForDomainNames,
+        gateAccess = gateAccess,
     )
 
     @Test
@@ -878,6 +889,126 @@ class ServerUrlViewModelTest {
 
         assertThat(restored.uiState.value.url).isEqualTo(liveUrl)
         assertThat(restored.uiState.value.customHeaders).isEmpty()
+    }
+
+    @Test
+    fun `a forward-auth gate shows the gate instead of an error`() = runTest(testDispatcher) {
+        coEvery { configRepository.resolveServer(any(), any()) } returns gateBlock
+        coEvery { gateAccess.offersBrowserSignIn(portal) } returns true
+        val viewModel = createViewModel(addAccount = false)
+
+        viewModel.onUrlChanged(pendingUrl)
+        viewModel.validateAndConnect()
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertThat(state.error).isNull()
+        assertThat(state.gate?.portalHost).isEqualTo("auth.example.com")
+        assertThat(state.gate?.isAuthelia).isTrue()
+        assertThat(state.gate?.browserSignIn).isTrue()
+    }
+
+    @Test
+    fun `signing in to the gate connects again and goes on to sign-in`() = runTest(testDispatcher) {
+        var gateSignedIn = false
+        coEvery { configRepository.resolveServer(any(), any()) } coAnswers {
+            if (gateSignedIn) ServerResolution.Resolved(pendingUrl, config) else gateBlock
+        }
+        coEvery { gateAccess.offersBrowserSignIn(portal) } returns true
+        coEvery { gateAccess.signIn(pendingUrl, portal, "switchboard") } coAnswers {
+            gateSignedIn = true
+            GateSignInResult.Success
+        }
+        val viewModel = createViewModel(addAccount = false)
+        viewModel.onUrlChanged(pendingUrl)
+        viewModel.validateAndConnect()
+        advanceUntilIdle()
+
+        viewModel.signInToGate()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.gate).isNull()
+        assertThat(viewModel.uiState.value.isValidated).isTrue()
+    }
+
+    @Test
+    fun `an unknown client opens Advanced and the typed client id is used next time`() = runTest(testDispatcher) {
+        coEvery { configRepository.resolveServer(any(), any()) } returns gateBlock
+        coEvery { gateAccess.offersBrowserSignIn(portal) } returns true
+        coEvery { gateAccess.signIn(pendingUrl, portal, any()) } returns GateSignInResult.Cancelled
+        coEvery { gateAccess.signIn(pendingUrl, portal, "switchboard") } returns
+            GateSignInResult.UnknownClient("switchboard")
+        val viewModel = createViewModel(addAccount = false)
+        viewModel.onUrlChanged(pendingUrl)
+        viewModel.validateAndConnect()
+        advanceUntilIdle()
+
+        viewModel.signInToGate()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.gate?.problem).isEqualTo(GateProblem.UnknownClient("switchboard"))
+        assertThat(viewModel.uiState.value.showAdvanced).isTrue()
+
+        viewModel.onGateClientIdChanged("librechat-mobile")
+        viewModel.signInToGate()
+        advanceUntilIdle()
+        coVerify { gateAccess.signIn(pendingUrl, portal, "librechat-mobile") }
+    }
+
+    @Test
+    fun `a gate with no OAuth provider signs in on its page`() = runTest(testDispatcher) {
+        var gateSignedIn = false
+        coEvery { configRepository.resolveServer(any(), any()) } coAnswers {
+            if (gateSignedIn) ServerResolution.Resolved(pendingUrl, config) else gateBlock
+        }
+        coEvery { gateAccess.offersBrowserSignIn(portal) } returns false
+        coEvery { gateAccess.savePageSignIn(pendingUrl, portal, "authelia_session=s1") } coAnswers {
+            gateSignedIn = true
+        }
+        val viewModel = createViewModel(addAccount = false)
+        viewModel.onUrlChanged(pendingUrl)
+        viewModel.validateAndConnect()
+        advanceUntilIdle()
+
+        viewModel.signInToGate()
+        assertThat(viewModel.uiState.value.gate?.pageSignIn).isTrue()
+        coVerify(exactly = 0) { gateAccess.signIn(any(), any(), any()) }
+
+        viewModel.onGatePageSignedIn("authelia_session=s1")
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.isValidated).isTrue()
+    }
+
+    /** Authelia answers a revoked token with a bare 407; the portal comes from the stored sign-in. */
+    @Test
+    fun `a refused stored gate token shows the gate it was signed in at`() = runTest(testDispatcher) {
+        coEvery { configRepository.resolveServer(any(), any()) } returns ServerResolution.Failed(
+            Result.Error(AccessGatewayException(), "gateway", FailureKind.AccessGateway),
+        )
+        coEvery { gateAccess.signInDetails(pendingUrl) } returns
+            GateSignInDetails(portal, "switchboard", usesBrowserSignIn = true)
+        val viewModel = createViewModel(addAccount = false)
+
+        viewModel.onUrlChanged(pendingUrl)
+        viewModel.validateAndConnect()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.gate?.portalHost).isEqualTo("auth.example.com")
+        assertThat(viewModel.uiState.value.error).isNull()
+    }
+
+    @Test
+    fun `editing the address drops the gate`() = runTest(testDispatcher) {
+        coEvery { configRepository.resolveServer(any(), any()) } returns gateBlock
+        val viewModel = createViewModel(addAccount = false)
+        viewModel.onUrlChanged(pendingUrl)
+        viewModel.validateAndConnect()
+        advanceUntilIdle()
+
+        viewModel.onUrlChanged("https://c.example.com")
+
+        assertThat(viewModel.uiState.value.gate).isNull()
     }
 
     private fun SavedStateHandle.restoredAfterProcessDeath(): SavedStateHandle =

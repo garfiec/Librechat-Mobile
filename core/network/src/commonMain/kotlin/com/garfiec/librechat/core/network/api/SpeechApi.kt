@@ -5,9 +5,11 @@ import com.garfiec.librechat.core.model.speech.SpeechToTextResponse
 import com.garfiec.librechat.core.model.speech.TextToSpeechRequest
 import com.garfiec.librechat.core.model.speech.TtsVoice
 import com.garfiec.librechat.core.model.speech.TtsVoiceListSerializer
+import com.garfiec.librechat.core.network.client.ClientLimitsHolder
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.retry
+import io.ktor.client.plugins.timeout
 import io.ktor.client.request.forms.formData
 import io.ktor.client.request.forms.submitFormWithBinaryData
 import io.ktor.client.request.get
@@ -24,8 +26,9 @@ import kotlinx.serialization.json.JsonElement
 class SpeechApi constructor(
     private val client: HttpClient,
     private val json: Json,
+    private val clientLimits: ClientLimitsHolder = ClientLimitsHolder(),
 ) {
-    suspend fun speechToText(audioData: ByteArray, mimeType: String): SpeechToTextResponse {
+    suspend fun speechToText(audioData: ByteArray, mimeType: String, language: String?): SpeechToTextResponse {
         val extension = mimeTypeToExtension(mimeType)
         return client.submitFormWithBinaryData(
             formData = formData {
@@ -33,6 +36,7 @@ class SpeechApi constructor(
                     append(HttpHeaders.ContentDisposition, "filename=\"audio.$extension\"")
                     append(HttpHeaders.ContentType, mimeType)
                 })
+                if (language != null) append("language", language)
             },
         ) {
             url { path("api/files/speech/stt") }
@@ -53,6 +57,7 @@ class SpeechApi constructor(
     suspend fun textToSpeechManual(request: TextToSpeechRequest): ByteArray =
         client.post {
             url { path("api/files/speech/tts/manual") }
+            timeout { requestTimeoutMillis = clientLimits.ttsTimeoutMs }
             contentType(ContentType.Application.Json)
             setBody(request)
         }.body()

@@ -2,6 +2,7 @@ package com.garfiec.librechat.feature.settings.viewmodel
 
 import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.model.error.ServerErrorCode
 
 /**
  * Checks whether a [Result.Error] was caused by a specific HTTP status code.
@@ -23,3 +24,7 @@ internal fun Result.Error.isTwoFactorCodeRequired(): Boolean {
     val message = message ?: exception?.message ?: return false
     return message.contains("backup code", ignoreCase = true) && message.contains("required", ignoreCase = true)
 }
+
+/** The change was made, but the server could not sign out every earlier session and handed back none. */
+internal fun Result.Error.isCredentialRetirementIncomplete(): Boolean =
+    ServerErrorCode.from((exception as? ApiException)?.body) == ServerErrorCode.CREDENTIAL_RETIREMENT_INCOMPLETE

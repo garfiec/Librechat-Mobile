@@ -19,10 +19,13 @@ import com.garfiec.librechat.core.model.config.StartupConfig
 import com.garfiec.librechat.core.model.endpoint.KeyState
 import com.garfiec.librechat.core.model.permissions.UserRolePermissions
 import com.garfiec.librechat.core.model.response.BackupCodesResponse
+import com.garfiec.librechat.core.model.response.TwoFactorSetupResponse
 import com.garfiec.librechat.core.ui.media.PreparedImage
 import com.garfiec.librechat.feature.settings.model.AutoRefillInfo
+import com.garfiec.librechat.feature.settings.model.autoRefillInfo
 import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.resources.account_profile_load_failed
+import com.garfiec.librechat.feature.settings.resources.twofa_sign_in_again_to_enable
 import com.garfiec.librechat.feature.settings.util.ContentReader
 import com.garfiec.librechat.feature.settings.viewmodel.delegate.ProviderKeysSummary
 import com.google.common.truth.Truth.assertThat
@@ -30,6 +33,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
@@ -38,6 +42,7 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
@@ -354,6 +359,92 @@ class AccountSettingsViewModelTest {
     }
 
     @Test
+    fun `2FA turned on with a rotated session says other devices were signed out, until the codes close`() = runTest {
+        coEvery { authRepository.confirmTwoFactor("123456") } returns Result.Success(true)
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.confirmEnableTwoFactor("123456")
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.showBackupCodesDialog).isTrue()
+        assertThat(viewModel.uiState.value.twoFactorOtherSessionsSignedOut).isTrue()
+
+        viewModel.dismissBackupCodesDialog()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.twoFactorOtherSessionsSignedOut).isFalse()
+        assertThat(viewModel.uiState.value.isLoggedOut).isFalse()
+    }
+
+    @Test
+    fun `2FA on a server that keeps other sessions says nothing about them`() = runTest {
+        coEvery { authRepository.confirmTwoFactor("123456") } returns Result.Success(false)
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.confirmEnableTwoFactor("123456")
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.showBackupCodesDialog).isTrue()
+        assertThat(viewModel.uiState.value.twoFactorOtherSessionsSignedOut).isFalse()
+    }
+
+    @Test
+    fun `a 2FA confirm refused for want of a live session asks for a fresh sign-in in app copy`() = runTest {
+        coEvery { authRepository.confirmTwoFactor("123456") } returns Result.Error(
+            ApiException(401, "Sign in again to enable 2FA", body = """{"message":"Sign in again to enable 2FA"}"""),
+            "Sign in again to enable 2FA",
+        )
+        coEvery { authRepository.enableTwoFactor(null, null) } returns
+            Result.Success(TwoFactorSetupResponse(otpauthUrl = "otpauth://totp/x?secret=ABC", backupCodes = listOf("code-1")))
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        viewModel.toggleTwoFactor()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.showTwoFactorSetupDialog).isTrue()
+
+        viewModel.confirmEnableTwoFactor("123456")
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.errorRes).isEqualTo(Res.string.twofa_sign_in_again_to_enable)
+        assertThat(viewModel.uiState.value.error).isNull()
+        assertThat(viewModel.uiState.value.isTwoFactorEnabled).isFalse()
+        // Closed, so the message isn't drawn under the dialog's scrim.
+        assertThat(viewModel.uiState.value.showTwoFactorSetupDialog).isFalse()
+
+        viewModel.dismissError()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.errorRes).isNull()
+    }
+
+    @Test
+    fun `2FA turned on without a replacement session shows the codes, then signs this account in again`() = runTest {
+        coEvery { authRepository.confirmTwoFactor("123456") } returns Result.Error(
+            ApiException(500, "error", body = """{"code":"CREDENTIAL_RETIREMENT_INCOMPLETE"}"""),
+        )
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.confirmEnableTwoFactor("123456")
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.isTwoFactorEnabled).isTrue()
+        assertThat(viewModel.uiState.value.showBackupCodesDialog).isTrue()
+        assertThat(viewModel.uiState.value.twoFactorSignInRequired).isTrue()
+        assertThat(viewModel.uiState.value.isSignInAgainRequested).isFalse()
+        var signInRequestedDuringRevoke: Boolean? = null
+        coEvery { authRepository.revokeActiveSession() } coAnswers {
+            signInRequestedDuringRevoke = viewModel.uiState.value.isSignInAgainRequested
+        }
+
+        viewModel.dismissBackupCodesDialog()
+        advanceUntilIdle()
+        // Not a sign-out: that removes the account, and with it the server the sign-in needs.
+        assertThat(viewModel.uiState.value.isSignInAgainRequested).isTrue()
+        assertThat(viewModel.uiState.value.isLoggedOut).isFalse()
+        // But this device's server session is revoked as a sign-out would, before the local session ends.
+        coVerify(exactly = 1) { authRepository.revokeActiveSession() }
+        assertThat(signInRequestedDuringRevoke).isFalse()
+        coVerify(exactly = 0) { authRepository.logout() }
+    }
+
+    @Test
     fun `regenerating backup codes asks for confirmation, then the code, before any request`() = runTest {
         coEvery { userRepository.getUser() } returns Result.Success(testUser.copy(twoFactorEnabled = true))
         coEvery { authRepository.regenerateBackupCodes(token = "123456", backupCode = null) } returns
@@ -521,6 +612,10 @@ class AccountSettingsViewModelTest {
         val viewModel = createViewModel()
         advanceUntilIdle()
 
+        viewModel.refreshOnReturn()
+        viewModel.refreshBalance()
+        advanceUntilIdle()
+
         assertThat(viewModel.uiState.value.balanceEnabled).isFalse()
         coVerify(exactly = 0) { balanceRepository.getBalance() }
     }
@@ -555,6 +650,79 @@ class AccountSettingsViewModelTest {
 
         assertThat(viewModel.uiState.value.balance)
             .isEqualTo(BalanceUiState.Loaded(tokenCredits = 5.0, autoRefill = AutoRefillInfo.Off))
+    }
+
+    @Test
+    fun `a return re-reads the balance without blanking the shown one`() = runTest {
+        startupConfig.value = StartupConfig(balance = BalanceConfig(enabled = true))
+        coEvery { balanceRepository.getBalance() } returns Result.Success(Balance(tokenCredits = 5.0))
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.balance)
+            .isEqualTo(BalanceUiState.Loaded(tokenCredits = 5.0, autoRefill = AutoRefillInfo.Off))
+
+        val refilled = Balance(
+            tokenCredits = 7.0,
+            autoRefillEnabled = true,
+            refillAmount = 5000.0,
+            refillIntervalValue = 30.0,
+            refillIntervalUnit = "days",
+            lastRefill = "2026-11-01T00:00:00.000Z",
+        )
+        val gate = CompletableDeferred<Unit>()
+        coEvery { balanceRepository.getBalance() } coAnswers {
+            gate.await()
+            Result.Success(refilled)
+        }
+        viewModel.refreshOnReturn()
+        runCurrent()
+        assertThat(viewModel.uiState.value.balance)
+            .isEqualTo(BalanceUiState.Loaded(tokenCredits = 5.0, autoRefill = AutoRefillInfo.Off))
+
+        gate.complete(Unit)
+        advanceUntilIdle()
+        val balance = viewModel.uiState.value.balance as BalanceUiState.Loaded
+        assertThat(balance.tokenCredits).isEqualTo(7.0)
+        assertThat(balance.autoRefill).isEqualTo(refilled.autoRefillInfo())
+        assertThat(balance.autoRefill).isNotEqualTo(AutoRefillInfo.Off)
+    }
+
+    @Test
+    fun `a failed balance refresh on return keeps the shown balance`() = runTest {
+        startupConfig.value = StartupConfig(balance = BalanceConfig(enabled = true))
+        coEvery { balanceRepository.getBalance() } returns Result.Success(Balance(tokenCredits = 5.0))
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        coEvery { balanceRepository.getBalance() } returns Result.Error(RuntimeException("boom"), "boom")
+        viewModel.refreshOnReturn()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.balance)
+            .isEqualTo(BalanceUiState.Loaded(tokenCredits = 5.0, autoRefill = AutoRefillInfo.Off))
+        coVerify(exactly = 2) { balanceRepository.getBalance() }
+    }
+
+    @Test
+    fun `the first resume skips a balance load still running, then re-reads on re-entry`() = runTest {
+        startupConfig.value = StartupConfig(balance = BalanceConfig(enabled = true))
+        val gate = CompletableDeferred<Unit>()
+        coEvery { balanceRepository.getBalance() } coAnswers {
+            gate.await()
+            Result.Success(Balance(tokenCredits = 5.0))
+        }
+        val viewModel = createViewModel()
+        runCurrent()
+
+        viewModel.refreshBalance()
+        runCurrent()
+        coVerify(exactly = 1) { balanceRepository.getBalance() }
+
+        gate.complete(Unit)
+        advanceUntilIdle()
+        viewModel.refreshBalance()
+        advanceUntilIdle()
+        coVerify(exactly = 2) { balanceRepository.getBalance() }
     }
 
     @Test

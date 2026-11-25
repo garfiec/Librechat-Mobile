@@ -80,15 +80,6 @@ private fun parameterKey(key: String, family: Family): String = when {
     else -> ALIASES[key] ?: key
 }
 
-/**
- * What an endpoint's `customParams` says about agent inference (served on `/api/endpoints`): the
- * family its parameters follow and the extra keys an administrator declared.
- */
-data class AgentInferenceEndpoint(
-    val defaultParamsEndpoint: String? = null,
-    val declaredKeys: Set<String> = emptySet(),
-)
-
 /** Whether [provider] is a built-in family, whose accepted keys need no endpoint config. */
 internal fun isBuiltInInferenceProvider(provider: String?): Boolean = knownFamily(provider) != null
 

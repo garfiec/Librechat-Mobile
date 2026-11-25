@@ -97,7 +97,7 @@ class ConfigCacheDataStore(
         }
     }
 
-    private suspend fun serverId(): String? =
+    internal suspend fun serverId(): String? =
         serverUrlProvider.awaitBaseUrl().takeIf { it.isNotBlank() }?.let { deriveServerId(it).value }
 
     private fun key(serverId: String, base: String) = serverScopedKey(serverId, base)

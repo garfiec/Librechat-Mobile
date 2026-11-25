@@ -5,6 +5,8 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 
 @Serializable
 data class EndpointConfig(
@@ -49,12 +51,33 @@ data class EndpointConfig(
      * server enforces the real policy.
      */
     val toolApproval: EndpointToolApproval? = null,
+    /** The agents entry's linked-instructions switches (v0.8.9); absent on older servers. */
+    val linkedInstructions: EndpointLinkedInstructions? = null,
     /**
      * The agents entry's attached code machines (`environments`, already scoped to the caller)
      * and whether a chat may pick among an agent's allowed machines.
      */
     val statefulCodeSessions: StatefulCodeSessionsConfig? = null,
-)
+    /** An Azure entry's per-deployment reasoning efforts, by model name ([reasoningCustomParams]). */
+    val modelReasoningEfforts: Map<String, List<String>>? = null,
+    /** The agents entry's cap on an agent's listed subagents; absent on servers before v0.8.8-rc2. */
+    val maxSubagents: Int? = null,
+) {
+    /**
+     * The [customParams] a reasoning control for [model] resolves against: the endpoint's own, plus a
+     * `reasoning_effort` definition offering unset and the efforts [model]'s deployment declares.
+     * MIRRORED from upstream `getReasoningParamDefinitions` (scripts/mirrors.json).
+     */
+    fun reasoningCustomParams(model: String?): CustomParams? {
+        val efforts = model?.let { modelReasoningEfforts?.get(it) } ?: return customParams
+        val definition = buildJsonObject {
+            put("key", "reasoning_effort")
+            put("options", JsonArray((listOf("") + efforts.filter { it.isNotEmpty() }).map(::JsonPrimitive)))
+        }
+        val base = customParams ?: CustomParams()
+        return base.copy(paramDefinitions = base.paramDefinitions.orEmpty() + definition)
+    }
+}
 
 @Serializable
 data class EndpointToolApproval(
@@ -66,6 +89,15 @@ data class EndpointToolApproval(
     val deny: List<String>? = null,
     val ask: List<String>? = null,
 )
+
+@Serializable
+data class EndpointLinkedInstructions(
+    /** Whether an agent's instructions may link a Langfuse prompt group; off unless the admin opted in. */
+    val langfuse: EndpointSwitch? = null,
+)
+
+@Serializable
+data class EndpointSwitch(val enabled: Boolean? = null)
 
 /**
  * A custom endpoint's `customParams` as `/api/endpoints` serves them. The chat reads only

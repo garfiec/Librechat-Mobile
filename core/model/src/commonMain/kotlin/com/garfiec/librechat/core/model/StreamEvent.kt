@@ -1,6 +1,7 @@
 package com.garfiec.librechat.core.model
 
 import com.garfiec.librechat.core.model.content.MessageContentPart
+import com.garfiec.librechat.core.model.queuedturn.PromotedSteer
 import com.garfiec.librechat.core.model.usage.ContextUsage
 import com.garfiec.librechat.core.model.usage.TokenUsage
 
@@ -106,10 +107,11 @@ sealed interface StreamEvent {
     }
 
     /**
-     * The run is waiting on the user to sign in to an MCP server: an `on_run_step_delta` whose
-     * delta carries `auth` (the provider's authorization URL) and `expires_at`. Sent at turn start,
-     * or on the first tool call of a server configured with `oauthPrompt: on_use`. The run resumes
-     * by itself once the callback lands; the step then completes like any tool call.
+     * The run is waiting on the user to sign in to an MCP server or an agent action's OAuth provider:
+     * an `on_run_step_delta` whose delta carries `auth` (the provider's authorization URL) and
+     * `expires_at`. Sent at turn start, or on the first tool call of a server configured with
+     * `oauthPrompt: on_use`. The run resumes by itself once the callback lands; the step then
+     * completes like any tool call.
      *
      * [expiresAt] is the server's epoch milliseconds, carried for display only: compared against
      * the device clock, skew would expire a two-minute prompt early. The server is the judge.
@@ -121,6 +123,8 @@ sealed interface StreamEvent {
         val expiresAt: Long? = null,
         val agentId: String? = null,
         val groupId: Int? = null,
+        /** The agent action the prompt signs in to, when it is an action's rather than an MCP server's. */
+        val actionId: String? = null,
     ) : StreamEvent
 
     /**
@@ -212,8 +216,21 @@ sealed interface StreamEvent {
          * own copy when it writes this, so a frame that carries them and is ignored loses them.
          */
         val pendingSteers: List<PendingSteer> = emptyList(),
+        /**
+         * Unapplied steers the server already made durable queued turns (v0.8.9). They are
+         * not in [pendingSteers] and must never be re-homed locally: the server runs them.
+         */
+        val promotedSteers: List<PromotedSteer> = emptyList(),
+        /** The frame settles a failed turn (`final` and `error` both true). */
+        val settledError: Boolean = false,
     ) : StreamEvent {
         val hasParseErrors: Boolean get() = parseErrors.isNotEmpty()
+
+        /**
+         * A settled error the server never saved: it stamps [Conversation.lastResponseAt] only after
+         * saving the error turn (upstream `isUnsavedSettledError`), so nothing here is on the server.
+         */
+        val isUnsavedError: Boolean get() = settledError && conversation?.lastResponseAt == null
     }
 
     data class Sync(
@@ -314,6 +331,12 @@ sealed interface StreamEvent {
          * the model. The live turn shows it as its own message already shows the original text.
          */
         val privacyRevision: String? = null,
+        /**
+         * The skills the server resolved for the user turn (v0.8.9), always-applied ones
+         * included. Null when the frame names none: older servers echo only the request's lists.
+         */
+        val manualSkills: List<String>? = null,
+        val alwaysAppliedSkills: List<String>? = null,
     ) : StreamEvent
 
     /**
@@ -366,6 +389,16 @@ sealed interface StreamEvent {
         val summary: String,
         val agentId: String? = null,
         val groupId: Int? = null,
+    ) : StreamEvent
+
+    /**
+     * Summary text a compaction streams as it is written (`on_summarize_delta`). [reset] replaces
+     * what streamed so far instead of extending it: the attempt that wrote it was abandoned (a
+     * retry, a fallback provider), and a reset with no text empties the summary.
+     */
+    data class SummaryDelta(
+        val text: String,
+        val reset: Boolean = false,
     ) : StreamEvent
 
     /**

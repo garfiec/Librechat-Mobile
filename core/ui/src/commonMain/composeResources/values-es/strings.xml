@@ -311,6 +311,8 @@
     <string name="acl_error_busy">Hay otro cambio en curso en este acceso. Inténtalo de nuevo en un momento.</string>
     <string name="acl_error_unavailable">No se puede cambiar el acceso en este momento. Inténtalo de nuevo en breve.</string>
     <string name="acl_error_audit_unavailable">El acceso no se cambió porque el servidor no pudo registrar el cambio. Inténtalo de nuevo en breve.</string>
+    <string name="acl_error_principal_preparation_failed">No se pudo preparar a las personas o grupos con los que compartir. Inténtalo de nuevo.</string>
+    <string name="acl_error_directory_unavailable">El directorio no está disponible. Inténtalo de nuevo en breve.</string>
     <string name="acl_error_load">No se pudo cargar quién tiene acceso.</string>
     <string name="bookmarks">Marcadores</string>
     <string name="bookmark_new">Nuevo marcador</string>

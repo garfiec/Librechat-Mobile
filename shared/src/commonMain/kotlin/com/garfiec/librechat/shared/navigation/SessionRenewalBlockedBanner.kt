@@ -50,6 +50,9 @@ internal fun SessionRenewalBlockedBanner(
     visible: Boolean,
     onSignInAgain: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Replaces the renewal wording, for the sign-in gate's lapse (which shares this slot). */
+    message: String? = null,
+    actionLabel: String? = null,
 ) {
     AnimatedVisibility(
         visible = visible,
@@ -88,14 +91,14 @@ internal fun SessionRenewalBlockedBanner(
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
-                        text = stringResource(Res.string.session_renewal_blocked_message),
+                        text = message ?: stringResource(Res.string.session_renewal_blocked_message),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onErrorContainer,
                     )
                 }
                 TextButton(onClick = onSignInAgain) {
                     Text(
-                        text = stringResource(Res.string.session_renewal_sign_in_again),
+                        text = actionLabel ?: stringResource(Res.string.session_renewal_sign_in_again),
                         color = MaterialTheme.colorScheme.onErrorContainer,
                     )
                 }

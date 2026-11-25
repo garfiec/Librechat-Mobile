@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Server URL -->
+    <string name="server_url_label">رابط الخادم</string>
+    <string name="server_url_placeholder">https://your-server.com</string>
+    <string name="server_url_connect">اتصال</string>
+    <string name="connect_to_librechat">الاتصال بـ LibreChat</string>
+    <string name="enter_server_url_hint">أدخل رابط خادمك للبدء</string>
+    <string name="insecure_connection_title">اتصال غير آمن</string>
+    <string name="insecure_connection_message">أنت تتصل عبر HTTP. سيتم إرسال بيانات تسجيل الدخول والرسائل الخاصة بك دون تشفير وقد يعترضها آخرون على الشبكة.\n\nاستخدم HTTP فقط لخوادم التطوير المحلية.</string>
+    <string name="connect_anyway">الاتصال على أي حال</string>
+    <string name="cancel">إلغاء</string>
+
+    <!-- Login -->
+    <string name="login_title">تسجيل الدخول</string>
+    <string name="login_title_server">تسجيل الدخول إلى %1$s</string>
+    <string name="email_label">البريد الإلكتروني</string>
+    <string name="password_label">كلمة المرور</string>
+    <string name="cd_show_password">إظهار كلمة المرور</string>
+    <string name="cd_hide_password">إخفاء كلمة المرور</string>
+    <string name="continue_button">متابعة</string>
+    <string name="forgot_password">هل نسيت كلمة المرور؟</string>
+    <string name="no_account_sign_up">ليس لديك حساب؟ سجّل الآن</string>
+    <string name="or_continue_with">أو تابع باستخدام</string>
+
+    <!-- Register -->
+    <string name="register_title">إنشاء حساب</string>
+    <string name="full_name_label">الاسم الكامل</string>
+    <string name="username_label">اسم المستخدم</string>
+    <string name="username_optional_label">اسم المستخدم (اختياري)</string>
+    <string name="register_error_missing_fields">أدخل اسمك وبريدك الإلكتروني وكلمة مرور.</string>
+    <string name="register_error_password_too_short">يجب ألا تقل كلمة المرور عن %1$d أحرف.</string>
+    <string name="register_error_password_mismatch">كلمتا المرور غير متطابقتين.</string>
+    <string name="register_error_email_taken">يوجد حساب بهذا البريد الإلكتروني بالفعل. سجّل الدخول بدلًا من ذلك.</string>
+    <string name="confirm_password_label">تأكيد كلمة المرور</string>
+    <string name="sign_up">سجّل الآن</string>
+    <string name="have_account_sign_in">لديك حساب بالفعل؟ سجّل الدخول</string>
+
+    <!-- Forgot Password -->
+    <string name="reset_password_title">إعادة تعيين كلمة المرور</string>
+    <string name="forgot_your_password">هل نسيت كلمة المرور؟</string>
+    <string name="enter_email_for_reset">أدخل بريدك الإلكتروني لتلقّي رابط إعادة التعيين</string>
+    <string name="send_reset_link">إرسال رابط إعادة التعيين</string>
+    <string name="check_your_email">تحقّق من بريدك الإلكتروني</string>
+    <string name="reset_link_sent">لقد أرسلنا رابط إعادة تعيين كلمة المرور إلى %1$s</string>
+    <string name="reset_password_unavailable">لم يتم إعداد إرسال البريد الإلكتروني. تواصل مع المسؤول لإعادة تعيين كلمة المرور.</string>
+    <string name="back_to_sign_in">العودة إلى تسجيل الدخول</string>
+
+    <!-- Reset Password -->
+    <string name="reset_password_screen_title">إعادة تعيين كلمة المرور</string>
+    <string name="password_reset_successful">تمت إعادة تعيين كلمة المرور بنجاح</string>
+    <string name="password_reset_message">تم تحديث كلمة المرور الخاصة بك. يمكنك الآن تسجيل الدخول بكلمة المرور الجديدة.</string>
+    <string name="password_reset_incomplete">كلمة المرور الجديدة مفعّلة، لكن قد تظل بعض الجلسات الأخرى مسجّلة الدخول حتى تنتهي صلاحيتها. سجّل الدخول بكلمة المرور الجديدة، ثم اطلب رابط إعادة تعيين آخر لتسجيل خروجها.</string>
+    <string name="set_new_password">تعيين كلمة مرور جديدة</string>
+    <string name="enter_new_password_hint">أدخل كلمة المرور الجديدة أدناه</string>
+    <string name="new_password_label">كلمة المرور الجديدة</string>
+    <string name="confirm_new_password_label">تأكيد كلمة المرور الجديدة</string>
+    <string name="reset_password_button">إعادة تعيين كلمة المرور</string>
+
+    <!-- Two-Factor -->
+    <string name="two_factor_title">المصادقة الثنائية</string>
+    <string name="enter_verification_code">أدخل رمز التحقق</string>
+    <string name="enter_backup_code">أدخل رمز النسخ الاحتياطي</string>
+    <string name="authenticator_prompt">أدخل الرمز المكوّن من 6 أرقام من تطبيق المصادقة الخاص بك</string>
+    <string name="backup_code_prompt">أدخل أحد رموز النسخ الاحتياطي الخاصة بك</string>
+    <string name="verify">تحقّق</string>
+    <string name="use_authenticator_code">استخدام رمز المصادقة</string>
+    <string name="use_backup_code">استخدام رمز النسخ الاحتياطي</string>
+    <string name="backup_code_label">رمز النسخ الاحتياطي</string>
+
+    <!-- Verify Email -->
+    <string name="verify_email_title">التحقق من البريد الإلكتروني</string>
+    <string name="verification_link_sent">لقد أرسلنا رابط تحقق إلى</string>
+    <string name="click_link_to_verify">انقر على الرابط الموجود في البريد الإلكتروني للتحقق من حسابك.</string>
+    <string name="verification_email_sent">تم إرسال بريد التحقق!</string>
+    <string name="resend_verification_email">إعادة إرسال بريد التحقق</string>
+    <string name="resend_in_seconds">إعادة الإرسال خلال %1$d ثانية</string>
+
+    <!-- Terms -->
+    <string name="terms_title">شروط الخدمة</string>
+    <string name="terms_no_content">لم يُرفق هذا الخادم نص شروط الخدمة.</string>
+    <string name="i_accept">أوافق</string>
+    <string name="terms_decline">رفض</string>
+    <string name="privacy_policy">سياسة الخصوصية</string>
+    <string name="terms_of_service">شروط الخدمة</string>
+    <string name="retry">إعادة المحاولة</string>
+
+    <!-- Common -->
+    <string name="back">رجوع</string>
+
+    <!-- Custom server headers (issue #287) -->
+    <string name="server_headers_advanced">متقدم</string>
+    <!-- SSO (in-app WebView) -->
+    <string name="sso_risk_title">تسجيل الدخول داخل التطبيق؟</string>
+    <string name="sso_risk_body">بعض المزوّدين، ومنهم Google، لا يدعمون ذلك رسميًا وقد يحظرونه في أي وقت. استخدمه على مسؤوليتك الخاصة.</string>
+    <string name="sso_sign_in_failed">فشل تسجيل الدخول. يرجى المحاولة مرة أخرى.</string>
+    <string name="diagnostic_log_export">تصدير سجلات التشخيص</string>
+    <string name="diagnostic_log_exported">تم تصدير السجل. أرفقه عند الإبلاغ عن المشكلة.</string>
+    <string name="diagnostic_log_failed">تعذّر تصدير السجل.</string>
+    <string name="user_ca_notice">يُوثق بشهادة هذا الخادم عبر جهة إصدار شهادات مثبّتة على هذا الجهاز، وليست مدمجة في Android. لا تتابع إلا إذا كنت أنت أو مؤسستك من ثبّتها.</string>
+    <string name="continue_with_provider">المتابعة باستخدام %1$s</string>
+    <string name="two_factor_setup_title">إعداد المصادقة الثنائية</string>
+    <string name="two_factor_setup_required_description">يتطلب هذا الخادم المصادقة الثنائية. أعِدّها للمتابعة.</string>
+    <string name="two_factor_setup_begin">بدء الإعداد</string>
+    <string name="two_factor_setup_authenticator_heading">أضف هذا الحساب إلى تطبيق المصادقة</string>
+    <string name="two_factor_setup_authenticator_body">افتحه في تطبيق المصادقة، أو أدخل مفتاح الإعداد، أو امسح رمز QR من جهاز آخر.</string>
+    <string name="two_factor_setup_open_authenticator">فتح تطبيق المصادقة</string>
+    <string name="two_factor_setup_no_authenticator">لم يتمكن أي تطبيق مصادقة على هذا الجهاز من فتح الرابط. أدخل مفتاح الإعداد بدلًا من ذلك.</string>
+    <string name="two_factor_setup_key">مفتاح الإعداد</string>
+    <string name="two_factor_setup_show_qr">إظهار رمز QR</string>
+    <string name="two_factor_setup_hide_qr">إخفاء رمز QR</string>
+    <string name="two_factor_setup_qr_description">رمز QR لتطبيق المصادقة</string>
+    <string name="two_factor_setup_next">التالي</string>
+    <string name="two_factor_setup_verify_heading">أدخل الرمز من تطبيق المصادقة</string>
+    <string name="two_factor_setup_backup_heading">احفظ رموز النسخ الاحتياطي</string>
+    <string name="two_factor_setup_backup_body">يتيح لك كل رمز تسجيل الدخول مرة واحدة إذا فقدت تطبيق المصادقة. احتفظ بها في مكان آمن؛ فلن تظهر مرة أخرى.</string>
+    <string name="two_factor_setup_save_codes">حفظ في ملف</string>
+    <string name="two_factor_setup_codes_saved">تم حفظ رموز النسخ الاحتياطي.</string>
+    <string name="two_factor_setup_codes_acknowledged">لقد حفظت هذه الرموز</string>
+    <string name="two_factor_setup_complete">إكمال الإعداد</string>
+    <string name="two_factor_setup_expired">انتهت صلاحية جلسة الإعداد. سجّل الدخول مجددًا للمتابعة.</string>
+    <string name="two_factor_setup_sessions_incomplete">تم تفعيل المصادقة الثنائية، لكن قد تظل بعض الجلسات الأخرى مسجّلة الدخول حتى تنتهي صلاحيتها. سجّل الدخول مرة أخرى للمتابعة.</string>
+    <string name="two_factor_setup_back_to_sign_in">العودة إلى تسجيل الدخول</string>
+    <string name="two_factor_setup_error_start">تعذّر بدء الإعداد. حاول مرة أخرى.</string>
+    <string name="two_factor_setup_error_invalid">هذا الرمز غير مطابق. أدخل الرمز الحالي من تطبيق المصادقة.</string>
+    <string name="two_factor_setup_error_rate_limited">محاولات كثيرة جدًا. انتظر قليلًا ثم حاول مرة أخرى.</string>
+    <string name="two_factor_setup_error_finalize">تعذّر إكمال الإعداد. حاول مرة أخرى.</string>
+    <string name="two_factor_setup_error_connection">تعذّر الوصول إلى الخادم. تحقق من اتصالك وحاول مرة أخرى.</string>
+    <string name="login_error_federated_blocked">يسجّل هذا الحساب الدخول عبر مزوّد الهوية الخاص به. استخدم خيار تسجيل الدخول ذلك بدلًا من هذا.</string>
+    <string name="auth_error_tenant_required">يحتاج هذا الخادم إلى معرفة المؤسسة التي تنتمي إليها. استخدم عنوان مؤسستك لهذا الخادم.</string>
+    <string name="auth_error_cross_origin">رفض الخادم تسجيل الدخول هذا لأنه يبدو قادمًا من موقع آخر. ربما يغيّر وكيل أمام الخادم الطلب.</string>
+    <string name="auth_error_banned">تسجيل الدخول محظور لهذا الحساب أو هذه الشبكة. تواصل مع أحد المسؤولين.</string>
+    <string name="auth_error_rate_limited">محاولات تسجيل دخول كثيرة جدًا. انتظر بضع دقائق ثم حاول مرة أخرى.</string>
+    <string name="login_error_wrong_credentials">البريد الإلكتروني أو كلمة المرور غير صحيحة.</string>
+    <string name="login_error_wrong_credentials_username">اسم المستخدم أو كلمة المرور غير صحيحة.</string>
+    <string name="login_error_other_sign_in_method">يسجّل هذا الحساب الدخول بطريقة أخرى. استخدم الخيار الذي سجّلت الدخول به أول مرة.</string>
+    <string name="login_error_email_login_disabled">لا يسمح هذا الخادم بتسجيل الدخول بالبريد الإلكتروني وكلمة المرور.</string>
+    <string name="login_error_email_not_verified">تحقّق من بريدك الإلكتروني قبل تسجيل الدخول.</string>
+    <string name="login_error_missing_fields">أدخل بريدك الإلكتروني وكلمة المرور.</string>
+    <string name="login_error_missing_fields_username">أدخل اسم المستخدم وكلمة المرور.</string>
+    <string name="login_error_invalid_email">أدخل عنوان بريد إلكتروني صالحًا.</string>
+    <string name="login_error_password_too_short">كلمات المرور على هذا الخادم لا تقل عن %1$d أحرف.</string>
+    <string name="login_error_password_too_long">لا يمكن أن تزيد كلمة المرور عن %1$d حرفًا.</string>
+    <string name="sso_error_exchange_rejected">لم يكتمل تسجيل الدخول. حاول مرة أخرى.</string>
+    <string name="auth_error_session_cookie_missing">سجّلك الخادم الدخول، لكن ملف تعريف ارتباط الجلسة لم يصل إلى التطبيق، لذا لا يمكنك البقاء مسجّلاً. ربما يزيله وكيل أمام الخادم. اسأل مسؤول الخادم.</string>
+    <string name="login_two_factor_setup_required">يتطلب هذا الخادم الآن المصادقة الثنائية لـ %1$s. سجّل الدخول لإعدادها.</string>
+    <string name="use_another_account">استخدم حسابًا آخر</string>
+    <string name="server_url_known_servers">خوادمك</string>
+    <string name="server_url_known_server_cd">الاتصال بـ %1$s</string>
+    <plurals name="server_url_known_server_accounts">
+        <item quantity="zero">%1$d حساب</item>
+        <item quantity="one">حساب واحد</item>
+        <item quantity="two">حسابان</item>
+        <item quantity="few">%1$d حسابات</item>
+        <item quantity="many">%1$d حسابًا</item>
+        <item quantity="other">%1$d حساب</item>
+    </plurals>
+    <string name="progress_connecting">جارٍ الاتصال…</string>
+    <string name="progress_signing_in">جارٍ تسجيل الدخول…</string>
+    <string name="progress_creating_account">جارٍ إنشاء الحساب…</string>
+    <string name="progress_sending">جارٍ الإرسال…</string>
+    <string name="progress_resetting_password">جارٍ إعادة تعيين كلمة المرور…</string>
+    <string name="progress_verifying">جارٍ التحقق…</string>
+    <string name="progress_accepting">جارٍ القبول…</string>
+    <string name="progress_starting">جارٍ البدء…</string>
+    <string name="progress_finishing">جارٍ الإنهاء…</string>
+    <!-- Sign-in gate (Authelia forward-auth) in front of the server -->
+    <string name="gate_title_authelia">محمي بواسطة Authelia</string>
+    <string name="gate_title_generic">محمي ببوابة تسجيل دخول</string>
+    <string name="gate_body">سجّل الدخول في %1$s أولاً. يليه تسجيل الدخول إلى LibreChat.</string>
+    <string name="gate_sign_in_authelia">تسجيل الدخول باستخدام Authelia</string>
+    <string name="gate_sign_in_generic">سجّل الدخول للمتابعة</string>
+    <string name="gate_page_instead">تسجيل الدخول في صفحة البوابة بدلاً من ذلك</string>
+    <string name="gate_unknown_client_title">لا يتعرّف Authelia على هذا التطبيق</string>
+    <string name="gate_unknown_client_body">لا يوجد في %1$s عميل باسم «%2$s». أدخل معرّف العميل الذي سجّله المسؤول ضمن «متقدم»، أو اطلب منه إضافة Switchboard.</string>
+    <string name="gate_redirect_title">رد الاستدعاء الخاص بهذا التطبيق غير مسموح به</string>
+    <string name="gate_redirect_body">لا يتضمن العميل «%2$s» في %1$s العنوان http://127.0.0.1/callback ضمن عناوين URI لإعادة التوجيه. اطلب من المسؤول إضافته.</string>
+    <string name="gate_refused_title">رفض %1$s تسجيل الدخول</string>
+    <string name="gate_failed_body">تعذّر إكمال تسجيل الدخول. تحقّق من اتصالك وحاول مرة أخرى.</string>
+    <string name="gate_setup_guide">دليل الإعداد للمسؤولين</string>
+    <string name="gate_client_id_label">معرّف عميل Authelia</string>
+    <string name="gate_page_close">إغلاق</string>
+</resources>

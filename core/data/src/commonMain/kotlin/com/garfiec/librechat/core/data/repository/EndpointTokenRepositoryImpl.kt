@@ -30,10 +30,12 @@ class EndpointTokenRepositoryImpl(
         cachedTokenConfig?.let { return Result.Success(it) }
         return tokenConfigMutex.withLock {
             cachedTokenConfig?.let { return@withLock Result.Success(it) }
+            val serverId = configCache.serverId()
             when (val result = safeApiCall { endpointTokenApi.getTokenConfig() }) {
                 is Result.Success -> {
                     cachedTokenConfig = result.data
-                    configCache.saveTokenConfig(result.data)
+                    // Answered after a server switch: the old server's copy must not land under the new one.
+                    if (configCache.serverId() == serverId) configCache.saveTokenConfig(result.data)
                     result
                 }
                 // Deliberately not memoized: the next caller retries the network, so the session

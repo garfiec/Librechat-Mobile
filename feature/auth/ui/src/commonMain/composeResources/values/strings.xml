@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Server URL -->
+    <string name="server_url_label">Server URL</string>
+    <string name="server_url_placeholder">https://your-server.com</string>
+    <string name="server_url_connect">Connect</string>
+    <string name="connect_to_librechat">Connect to LibreChat</string>
+    <string name="enter_server_url_hint">Enter your server URL to get started</string>
+    <string name="insecure_connection_title">Insecure connection</string>
+    <string name="insecure_connection_message">You are connecting over HTTP. Your login credentials and messages will be sent unencrypted and could be intercepted by others on the network.\n\nOnly use HTTP for local development servers.</string>
+    <string name="connect_anyway">Connect anyway</string>
+    <string name="cancel">Cancel</string>
+
+    <!-- Login -->
+    <string name="login_title">Sign in</string>
+    <string name="login_title_server">Sign in to %1$s</string>
+    <string name="email_label">Email</string>
+    <string name="password_label">Password</string>
+    <string name="cd_show_password">Show password</string>
+    <string name="cd_hide_password">Hide password</string>
+    <string name="continue_button">Continue</string>
+    <string name="forgot_password">Forgot password?</string>
+    <string name="no_account_sign_up">Don't have an account? Sign up</string>
+    <string name="or_continue_with">Or continue with</string>
+
+    <!-- Register -->
+    <string name="register_title">Create account</string>
+    <string name="full_name_label">Full name</string>
+    <string name="username_label">Username</string>
+    <string name="username_optional_label">Username (optional)</string>
+    <string name="register_error_missing_fields">Enter your name, email and password.</string>
+    <string name="register_error_password_too_short">Password must be at least %1$d characters.</string>
+    <string name="register_error_password_mismatch">Passwords don't match.</string>
+    <string name="register_error_email_taken">An account with this email already exists. Sign in instead.</string>
+    <string name="confirm_password_label">Confirm password</string>
+    <string name="sign_up">Sign up</string>
+    <string name="have_account_sign_in">Already have an account? Sign in</string>
+
+    <!-- Forgot Password -->
+    <string name="reset_password_title">Reset password</string>
+    <string name="forgot_your_password">Forgot your password?</string>
+    <string name="enter_email_for_reset">Enter your email to receive a reset link</string>
+    <string name="send_reset_link">Send reset link</string>
+    <string name="check_your_email">Check your email</string>
+    <string name="reset_link_sent">We've sent a password reset link to %1$s</string>
+    <string name="reset_password_unavailable">Email delivery is not configured. Contact your administrator to reset your password.</string>
+    <string name="back_to_sign_in">Back to sign in</string>
+
+    <!-- Reset Password -->
+    <string name="reset_password_screen_title">Reset Password</string>
+    <string name="password_reset_successful">Password reset successful</string>
+    <string name="password_reset_message">Your password has been updated. You can now sign in with your new password.</string>
+    <string name="password_reset_incomplete">Your new password is active, but some other sessions may stay signed in until they expire. Sign in with your new password, then request another reset link to sign them out.</string>
+    <string name="set_new_password">Set new password</string>
+    <string name="enter_new_password_hint">Enter your new password below</string>
+    <string name="new_password_label">New password</string>
+    <string name="confirm_new_password_label">Confirm new password</string>
+    <string name="reset_password_button">Reset password</string>
+
+    <!-- Two-Factor -->
+    <string name="two_factor_title">Two-Factor Authentication</string>
+    <string name="enter_verification_code">Enter verification code</string>
+    <string name="enter_backup_code">Enter backup code</string>
+    <string name="authenticator_prompt">Enter the 6-digit code from your authenticator app</string>
+    <string name="backup_code_prompt">Enter one of your backup codes</string>
+    <string name="verify">Verify</string>
+    <string name="use_authenticator_code">Use authenticator code</string>
+    <string name="use_backup_code">Use backup code</string>
+    <string name="backup_code_label">Backup code</string>
+
+    <!-- Verify Email -->
+    <string name="verify_email_title">Verify Email</string>
+    <string name="verification_link_sent">We've sent a verification link to</string>
+    <string name="click_link_to_verify">Click the link in the email to verify your account.</string>
+    <string name="verification_email_sent">Verification email sent!</string>
+    <string name="resend_verification_email">Resend verification email</string>
+    <string name="resend_in_seconds">Resend in %1$ds</string>
+
+    <!-- Terms -->
+    <string name="terms_title">Terms of Service</string>
+    <string name="terms_no_content">This server didn't include the text of its terms.</string>
+    <string name="i_accept">I Accept</string>
+    <string name="terms_decline">Decline</string>
+    <string name="privacy_policy">Privacy policy</string>
+    <string name="terms_of_service">Terms of service</string>
+    <string name="retry">Retry</string>
+
+    <!-- Common -->
+    <string name="back">Back</string>
+
+    <!-- Custom server headers (issue #287) -->
+    <string name="server_headers_advanced">Advanced</string>
+    <!-- SSO (in-app WebView) -->
+    <string name="sso_risk_title">Sign in with an in-app browser?</string>
+    <string name="sso_risk_body">Some providers, including Google, do not officially support this and may block it at any time. Use at your own risk.</string>
+    <string name="sso_sign_in_failed">Sign-in failed. Please try again.</string>
+    <string name="diagnostic_log_export">Export diagnostic logs</string>
+    <string name="diagnostic_log_exported">Log exported. Attach it when you report the problem.</string>
+    <string name="diagnostic_log_failed">Couldn't export the log.</string>
+    <string name="user_ca_notice">This server's certificate is trusted through a certificate authority installed on this device, not one built into Android. Continue only if you or your organization installed it.</string>
+    <string name="continue_with_provider">Continue with %1$s</string>
+
+    <!-- Required two-factor setup (v0.8.9-rc1) -->
+    <string name="two_factor_setup_title">Set up two-factor authentication</string>
+    <string name="two_factor_setup_required_description">This server requires two-factor authentication. Set it up to continue.</string>
+    <string name="two_factor_setup_begin">Begin setup</string>
+    <string name="two_factor_setup_authenticator_heading">Add this account to your authenticator</string>
+    <string name="two_factor_setup_authenticator_body">Open it in your authenticator app, enter the setup key, or scan the QR code from another device.</string>
+    <string name="two_factor_setup_open_authenticator">Open authenticator app</string>
+    <string name="two_factor_setup_no_authenticator">No authenticator app on this device could open the link. Enter the setup key instead.</string>
+    <string name="two_factor_setup_key">Setup key</string>
+    <string name="two_factor_setup_show_qr">Show QR code</string>
+    <string name="two_factor_setup_hide_qr">Hide QR code</string>
+    <string name="two_factor_setup_qr_description">QR code for your authenticator app</string>
+    <string name="two_factor_setup_next">Next</string>
+    <string name="two_factor_setup_verify_heading">Enter the code from your authenticator</string>
+    <string name="two_factor_setup_backup_heading">Save your backup codes</string>
+    <string name="two_factor_setup_backup_body">Each code signs you in once if you lose your authenticator. Keep them somewhere safe; they are not shown again.</string>
+    <string name="two_factor_setup_save_codes">Save to file</string>
+    <string name="two_factor_setup_codes_saved">Backup codes saved.</string>
+    <string name="two_factor_setup_codes_acknowledged">I have saved these codes</string>
+    <string name="two_factor_setup_complete">Complete setup</string>
+    <string name="two_factor_setup_expired">Your setup session has expired. Sign in again to continue.</string>
+    <string name="two_factor_setup_sessions_incomplete">Two-factor authentication is on, but some other sessions may stay signed in until they expire. Sign in again to continue.</string>
+    <string name="two_factor_setup_back_to_sign_in">Back to sign in</string>
+    <string name="two_factor_setup_error_start">Couldn't start setup. Try again.</string>
+    <string name="two_factor_setup_error_invalid">That code didn't match. Enter the current code from your authenticator.</string>
+    <string name="two_factor_setup_error_rate_limited">Too many attempts. Wait a moment and try again.</string>
+    <string name="two_factor_setup_error_finalize">Couldn't finish setup. Try again.</string>
+    <string name="two_factor_setup_error_connection">Couldn't reach the server. Check your connection and try again.</string>
+
+    <!-- Sign-in refusals (v0.8.9-rc1) -->
+    <string name="login_error_federated_blocked">This account signs in with its identity provider. Use that sign-in option instead.</string>
+    <string name="auth_error_tenant_required">This server needs to know which organization you belong to. Use your organization's address for this server.</string>
+    <string name="auth_error_cross_origin">The server rejected this sign-in as coming from another site. A proxy in front of the server may be changing the request.</string>
+    <string name="auth_error_banned">This account or network is blocked from signing in. Contact an administrator.</string>
+    <string name="auth_error_rate_limited">Too many sign-in attempts. Wait a few minutes and try again.</string>
+    <string name="login_error_wrong_credentials">Incorrect email or password.</string>
+    <string name="login_error_wrong_credentials_username">Incorrect username or password.</string>
+    <string name="login_error_other_sign_in_method">This account signs in a different way. Use the option you first signed in with.</string>
+    <string name="login_error_email_login_disabled">This server doesn't allow sign-in with email and password.</string>
+    <string name="login_error_email_not_verified">Verify your email before signing in.</string>
+    <string name="login_error_missing_fields">Enter your email and password.</string>
+    <string name="login_error_missing_fields_username">Enter your username and password.</string>
+    <string name="login_error_invalid_email">Enter a valid email address.</string>
+    <string name="login_error_password_too_short">Passwords on this server are at least %1$d characters.</string>
+    <string name="login_error_password_too_long">Passwords can't be longer than %1$d characters.</string>
+    <string name="sso_error_exchange_rejected">Sign-in didn't complete. Try again.</string>
+    <string name="auth_error_session_cookie_missing">The server signed you in, but its session cookie never reached the app, so you can't stay signed in. A proxy in front of the server may be removing it. Ask the server's admin.</string>
+    <string name="login_two_factor_setup_required">This server now requires two-factor authentication for %1$s. Sign in to set it up.</string>
+    <string name="use_another_account">Use another account</string>
+    <string name="server_url_known_servers">Your servers</string>
+    <string name="server_url_known_server_cd">Connect to %1$s</string>
+    <plurals name="server_url_known_server_accounts">
+        <item quantity="one">%1$d account</item>
+        <item quantity="other">%1$d accounts</item>
+    </plurals>
+    <string name="progress_connecting">Connecting…</string>
+    <string name="progress_signing_in">Signing in…</string>
+    <string name="progress_creating_account">Creating account…</string>
+    <string name="progress_sending">Sending…</string>
+    <string name="progress_resetting_password">Resetting password…</string>
+    <string name="progress_verifying">Verifying…</string>
+    <string name="progress_accepting">Accepting…</string>
+    <string name="progress_starting">Starting…</string>
+    <string name="progress_finishing">Finishing…</string>
+    <!-- Sign-in gate (Authelia forward-auth) in front of the server -->
+    <string name="gate_title_authelia">Protected by Authelia</string>
+    <string name="gate_title_generic">Protected by a sign-in gate</string>
+    <string name="gate_body">Sign in at %1$s first. Your LibreChat sign-in comes next.</string>
+    <string name="gate_sign_in_authelia">Sign in with Authelia</string>
+    <string name="gate_sign_in_generic">Sign in to continue</string>
+    <string name="gate_page_instead">Sign in on the gate’s page instead</string>
+    <string name="gate_unknown_client_title">Authelia doesn’t recognize this app</string>
+    <string name="gate_unknown_client_body">%1$s has no client named “%2$s”. Enter the client ID your admin registered under Advanced, or ask them to add Switchboard.</string>
+    <string name="gate_redirect_title">This app’s callback isn’t allowed</string>
+    <string name="gate_redirect_body">The client “%2$s” on %1$s doesn’t list http://127.0.0.1/callback as a redirect URI. Ask your admin to add it.</string>
+    <string name="gate_refused_title">%1$s refused the sign-in</string>
+    <string name="gate_failed_body">Couldn’t finish signing in. Check your connection and try again.</string>
+    <string name="gate_setup_guide">Setup guide for admins</string>
+    <string name="gate_client_id_label">Authelia client ID</string>
+    <string name="gate_page_close">Close</string>
+</resources>

@@ -30,6 +30,7 @@ val authModule = module {
             accountRoster = get(),
             savedStateHandle = get(),
             addAccount = params.getOrNull() ?: false,
+            gateAccess = get(),
         )
     }
     viewModelOf(::LoginViewModel)
@@ -68,6 +69,7 @@ val authModule = module {
     viewModel { params ->
         TwoFactorSetupViewModel(
             authRepository = get(),
+            configRepository = get(),
             tempToken = params.get(),
         )
     }

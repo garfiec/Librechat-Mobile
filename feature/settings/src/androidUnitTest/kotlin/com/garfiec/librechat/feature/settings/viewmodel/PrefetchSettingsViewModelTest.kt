@@ -3,7 +3,7 @@ package com.garfiec.librechat.feature.settings.viewmodel
 import com.garfiec.librechat.core.data.datastore.AppPreferences
 import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import com.garfiec.librechat.core.data.prefetch.AttachmentWarmer
-import com.garfiec.librechat.core.data.prefetch.PrefetchDepth
+import com.garfiec.librechat.core.model.prefetch.PrefetchDepth
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coVerify
 import io.mockk.every

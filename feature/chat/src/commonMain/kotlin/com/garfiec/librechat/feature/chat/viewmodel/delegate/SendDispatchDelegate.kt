@@ -97,6 +97,8 @@ class SendDispatchDelegate(
     private val codeWorkspace: () -> CodeWorkspaceSubmission? = { CodeWorkspaceSubmission.NONE },
     /** `CodeWorkspaceDelegate.sendsWithoutWorkspace`: this send seals the chat "No workspace". */
     private val sendsWithoutWorkspace: () -> Boolean = { false },
+    /** A drained turn the workspace row holds: put it back and pause the queue. */
+    private val onDrainHeld: (QueuedMessage) -> Unit = {},
 ) {
     /**
      * Staged chips a new chat's first send already held back, handed to this chat
@@ -429,6 +431,16 @@ class SendDispatchDelegate(
     }
 
     /**
+     * The decision for a turn queued while the workspace row held the send. A new chat's never goes
+     * out: sending no fields would seal it "No workspace". A saved chat's takes the one held now,
+     * and while that is still held the turn goes back to the queue ([onDrainHeld]).
+     */
+    private fun decisionForHeldSpec(spec: QueuedMessage): CodeWorkspaceSubmission? {
+        if (handle.state.conversationId == null) return null
+        return codeWorkspace().also { if (it == null) onDrainHeld(spec) }
+    }
+
+    /**
      * Sends one message from a [QueuedMessage] config snapshot. The config (endpoint/model/
      * tools/webSearch/attachments/dispatch/ephemeralAgent) comes from the spec (a drain re-derives
      * the request fields from it, see [rebuiltForDrain]), but the
@@ -449,9 +461,7 @@ class SendDispatchDelegate(
         val hasFiles = fileRefs.isNotEmpty()
         val messageText = baseSpec.text
         if ((messageText.isBlank() && !hasFiles) || handle.state.isStreaming) return false
-        // A new chat never goes out without its workspace decision: that would seal it "No workspace".
-        val codeWorkspace = baseSpec.codeWorkspace
-            ?: if (handle.state.conversationId != null) CodeWorkspaceSubmission.NONE else return false
+        val codeWorkspace = baseSpec.codeWorkspace ?: decisionForHeldSpec(baseSpec) ?: return false
         // Guard passed: safe to take the chips and clear the composer without risking their loss.
         // A drained turn's spec was held at enqueue; the config may have changed while it waited.
         val choice = baseSpec.choice.storedAgainst(handle.state.modelSpecs)
@@ -510,6 +520,7 @@ class SendDispatchDelegate(
                 attachedRun = null,
                 streamingContent = "",
                 streamingThinking = "",
+                streamingSummary = "",
                 activeToolCalls = emptyList(),
                 sandboxStartingToolCallIds = emptySet(),
                 streamingAttachments = emptyList(),

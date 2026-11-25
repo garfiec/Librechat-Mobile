@@ -3,8 +3,8 @@ package com.garfiec.librechat.core.data.db
 import androidx.room.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import com.garfiec.librechat.core.data.db.entity.MessageEntity
-import com.garfiec.librechat.core.data.search.FtsQuery
-import com.garfiec.librechat.core.data.search.FtsQueryPlan
+import com.garfiec.librechat.core.model.search.FtsQuery
+import com.garfiec.librechat.core.model.search.FtsQueryPlan
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.runBlocking

@@ -73,8 +73,9 @@ class MessageEditingDelegate(
         primaryModelParams: JsonObject?,
     ) -> AddedConversation?,
     /**
-     * `CodeWorkspaceDelegate.submissionForSend`. An edit, regenerate or continue runs in a chat
-     * that has sent before, so a held decision (null) sends nothing and the recorded one applies.
+     * `CodeWorkspaceDelegate.submissionForSend`. Every entry point refuses while the workspace row
+     * holds the send (`codeWorkspace.holdsSend`), so this gives the chat's decision as it stands,
+     * and NONE sends no fields.
      */
     private val codeWorkspace: () -> CodeWorkspaceSubmission? = { CodeWorkspaceSubmission.NONE },
 ) {
@@ -98,7 +99,7 @@ class MessageEditingDelegate(
      */
     fun retryWithoutFiles(failedReplyId: String) {
         val state = handle.state
-        if (state.isStreaming) return
+        if (state.isStreaming || state.codeWorkspace.holdsSend) return
         val reply = state.messages.find { it.messageId == failedReplyId } ?: return
         if (reply.isCreatedByUser) return
         val parent = state.messages.find { it.messageId == reply.parentMessageId } ?: return
@@ -190,7 +191,7 @@ class MessageEditingDelegate(
     }
 
     fun regenerateMessage(messageId: String) {
-        if (handle.state.isStreaming) return
+        if (handle.state.isStreaming || handle.state.codeWorkspace.holdsSend) return
 
         val aiMessage = handle.state.messages.find { it.messageId == messageId } ?: return
         if (aiMessage.isCreatedByUser) return
@@ -227,7 +228,7 @@ class MessageEditingDelegate(
      */
     fun compactConversation() {
         val state = handle.state
-        if (!state.canCompactNow) return
+        if (!state.canCompactNow || state.codeWorkspace.holdsSend) return
         val leaf = state.compactionLeaf ?: return
         runWhenSendReady({}) { compactConversationNow(leaf) }
     }
@@ -253,7 +254,7 @@ class MessageEditingDelegate(
     }
 
     fun continueGeneration() {
-        if (handle.state.isStreaming) return
+        if (handle.state.isStreaming || handle.state.codeWorkspace.holdsSend) return
         val lastAiMessage = handle.state.displayMessages.lastOrNull {
             !it.message.isCreatedByUser
         } ?: return
@@ -466,7 +467,7 @@ class MessageEditingDelegate(
         val original = state.editing.editingTextOriginal
         // Checked BEFORE the editor is cleared: these early returns do not run `onRefused`, so
         // clearing first would throw the draft away for a send that never started.
-        if (state.isSavingEdit || state.isStreaming || !state.canStartRun) return
+        if (state.isSavingEdit || state.isStreaming || !state.canStartRun || state.codeWorkspace.holdsSend) return
 
         if (message.isCreatedByUser) {
             // Retained attachments make an otherwise textless turn submittable, as they do in the
@@ -505,7 +506,7 @@ class MessageEditingDelegate(
         val state = handle.state
         val messageId = state.editingMessageId ?: return
         val message = state.messages.find { it.messageId == messageId } ?: return
-        if (state.isSavingEdit || state.isStreaming || !state.canStartRun) return
+        if (state.isSavingEdit || state.isStreaming || !state.canStartRun || state.codeWorkspace.holdsSend) return
 
         val drafts = state.editing.partDrafts
         val originals = state.editing.partOriginals

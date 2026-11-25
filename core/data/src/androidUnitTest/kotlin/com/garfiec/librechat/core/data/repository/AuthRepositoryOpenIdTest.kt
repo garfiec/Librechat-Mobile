@@ -163,6 +163,7 @@ class AuthRepositoryOpenIdTest {
             val repository = AuthRepositoryImpl(
                 AuthApi(client), UserApi(client), store, mockk(relaxed = true), mockk(relaxed = true),
                 establisher, mockk(relaxed = true), provider, mockk(relaxed = true), switcher, gate, mockk(relaxed = true),
+                store,
             )
             block(repository, store)
         }

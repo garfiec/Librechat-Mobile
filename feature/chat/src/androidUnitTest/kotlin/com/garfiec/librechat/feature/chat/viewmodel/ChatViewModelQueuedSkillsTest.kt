@@ -6,13 +6,7 @@ import com.garfiec.librechat.core.common.DetectedBackend
 import com.garfiec.librechat.core.common.EndpointConstants
 import com.garfiec.librechat.core.common.ToolConstants
 import com.garfiec.librechat.core.common.result.Result
-import com.garfiec.librechat.core.data.datastore.ChatFontSize
-import com.garfiec.librechat.core.data.datastore.ChatHeaderAlignment
-import com.garfiec.librechat.core.data.datastore.ChatHeaderContent
-import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
-import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.data.datastore.LastUsedSelection
-import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.Preset
@@ -21,6 +15,12 @@ import com.garfiec.librechat.core.model.ToolAuthResult
 import com.garfiec.librechat.core.model.config.ModelSpec
 import com.garfiec.librechat.core.model.config.ModelSpecs
 import com.garfiec.librechat.core.model.config.StartupConfig
+import com.garfiec.librechat.core.model.preferences.ChatFontSize
+import com.garfiec.librechat.core.model.preferences.ChatHeaderAlignment
+import com.garfiec.librechat.core.model.preferences.ChatHeaderContent
+import com.garfiec.librechat.core.model.preferences.ContextBarPlacement
+import com.garfiec.librechat.core.model.preferences.DuringRunAction
+import com.garfiec.librechat.core.model.preferences.StarredModelsDisplay
 import com.garfiec.librechat.core.model.request.EphemeralAgent
 import com.garfiec.librechat.core.model.request.SteerRequest
 import com.garfiec.librechat.core.model.response.ChatResumeResponse
@@ -49,7 +49,6 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
-import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -492,12 +491,11 @@ class ChatViewModelQueuedSkillsTest {
         val brand = ModelSpec(
             name = "brand",
             preset = Preset(endpoint = ENDPOINT, model = MODEL),
-            skills = JsonArray(listOf(JsonPrimitive("translator"))),
+            skills = JsonPrimitive(false),
         )
         serveSpecs(brand)
         queuedSkillsTest(DuringRunAction.QUEUE) { vm ->
             vm.addPendingManualSkill("pdf-tools")
-            vm.addPendingManualSkill("translator")
             vm.onInputChanged(TEXT)
             vm.queueMessage()
             runCurrent()
@@ -510,7 +508,7 @@ class ChatViewModelQueuedSkillsTest {
             vm.commitQueuedEdit()
             runCurrent()
 
-            assertThat(vm.uiState.value.messageQueue.single().manualSkills).containsExactly("translator")
+            assertThat(vm.uiState.value.messageQueue.single().manualSkills.orEmpty()).isEmpty()
             assertThat(vm.uiState.value.error).isEqualTo(ChatNotice.SKILLS_REMOVED_FROM_QUEUED.marker())
         }
     }

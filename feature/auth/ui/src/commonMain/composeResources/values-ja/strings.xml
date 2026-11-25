@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Server URL -->
+    <string name="server_url_label">サーバーURL</string>
+    <string name="server_url_placeholder">https://your-server.com</string>
+    <string name="server_url_connect">接続</string>
+    <string name="connect_to_librechat">LibreChatに接続</string>
+    <string name="enter_server_url_hint">開始するにはサーバーURLを入力してください</string>
+    <string name="insecure_connection_title">安全でない接続</string>
+    <string name="insecure_connection_message">HTTPで接続しようとしています。ログイン情報やメッセージは暗号化されずに送信され、ネットワーク上の他者に傍受される可能性があります。\n\nHTTPはローカル開発サーバーにのみ使用してください。</string>
+    <string name="connect_anyway">それでも接続</string>
+    <string name="cancel">キャンセル</string>
+
+    <!-- Login -->
+    <string name="login_title">サインイン</string>
+    <string name="login_title_server">%1$s にサインイン</string>
+    <string name="email_label">メールアドレス</string>
+    <string name="password_label">パスワード</string>
+    <string name="cd_show_password">パスワードを表示</string>
+    <string name="cd_hide_password">パスワードを非表示</string>
+    <string name="continue_button">続行</string>
+    <string name="forgot_password">パスワードをお忘れですか？</string>
+    <string name="no_account_sign_up">アカウントをお持ちでないですか？サインアップ</string>
+    <string name="or_continue_with">または次で続行</string>
+
+    <!-- Register -->
+    <string name="register_title">アカウントを作成</string>
+    <string name="full_name_label">氏名</string>
+    <string name="username_label">ユーザー名</string>
+    <string name="username_optional_label">ユーザー名（任意）</string>
+    <string name="register_error_missing_fields">名前、メールアドレス、パスワードを入力してください。</string>
+    <string name="register_error_password_too_short">パスワードは %1$d 文字以上にしてください。</string>
+    <string name="register_error_password_mismatch">パスワードが一致しません。</string>
+    <string name="register_error_email_taken">このメールアドレスのアカウントは既に存在します。サインインしてください。</string>
+    <string name="confirm_password_label">パスワードの確認</string>
+    <string name="sign_up">サインアップ</string>
+    <string name="have_account_sign_in">すでにアカウントをお持ちですか？サインイン</string>
+
+    <!-- Forgot Password -->
+    <string name="reset_password_title">パスワードをリセット</string>
+    <string name="forgot_your_password">パスワードをお忘れですか？</string>
+    <string name="enter_email_for_reset">リセットリンクを受け取るにはメールアドレスを入力してください</string>
+    <string name="send_reset_link">リセットリンクを送信</string>
+    <string name="check_your_email">メールをご確認ください</string>
+    <string name="reset_link_sent">%1$s にパスワードリセットリンクを送信しました</string>
+    <string name="reset_password_unavailable">メール送信が設定されていません。パスワードをリセットするには管理者に連絡してください。</string>
+    <string name="back_to_sign_in">サインインに戻る</string>
+
+    <!-- Reset Password -->
+    <string name="reset_password_screen_title">パスワードをリセット</string>
+    <string name="password_reset_successful">パスワードのリセットに成功しました</string>
+    <string name="password_reset_message">パスワードが更新されました。新しいパスワードでサインインできます。</string>
+    <string name="password_reset_incomplete">新しいパスワードは有効になりましたが、他のセッションの一部は有効期限が切れるまでサインインしたままになる場合があります。新しいパスワードでサインインし、もう一度リセットリンクを申請してそれらをサインアウトしてください。</string>
+    <string name="set_new_password">新しいパスワードを設定</string>
+    <string name="enter_new_password_hint">新しいパスワードを下に入力してください</string>
+    <string name="new_password_label">新しいパスワード</string>
+    <string name="confirm_new_password_label">新しいパスワードの確認</string>
+    <string name="reset_password_button">パスワードをリセット</string>
+
+    <!-- Two-Factor -->
+    <string name="two_factor_title">二要素認証</string>
+    <string name="enter_verification_code">確認コードを入力</string>
+    <string name="enter_backup_code">バックアップコードを入力</string>
+    <string name="authenticator_prompt">認証アプリの6桁のコードを入力してください</string>
+    <string name="backup_code_prompt">バックアップコードのいずれかを入力してください</string>
+    <string name="verify">確認</string>
+    <string name="use_authenticator_code">認証アプリのコードを使用</string>
+    <string name="use_backup_code">バックアップコードを使用</string>
+    <string name="backup_code_label">バックアップコード</string>
+
+    <!-- Verify Email -->
+    <string name="verify_email_title">メールアドレスを確認</string>
+    <string name="verification_link_sent">次のアドレスに確認リンクを送信しました</string>
+    <string name="click_link_to_verify">メール内のリンクをクリックしてアカウントを確認してください。</string>
+    <string name="verification_email_sent">確認メールを送信しました！</string>
+    <string name="resend_verification_email">確認メールを再送信</string>
+    <string name="resend_in_seconds">%1$d 秒後に再送信</string>
+
+    <!-- Terms -->
+    <string name="terms_title">利用規約</string>
+    <string name="terms_no_content">このサーバーは利用規約の本文を提供していません。</string>
+    <string name="i_accept">同意します</string>
+    <string name="terms_decline">拒否</string>
+    <string name="privacy_policy">プライバシーポリシー</string>
+    <string name="terms_of_service">利用規約</string>
+    <string name="retry">再試行</string>
+
+    <!-- Common -->
+    <string name="back">戻る</string>
+
+    <!-- Custom server headers (issue #287) -->
+    <string name="server_headers_advanced">詳細設定</string>
+    <!-- SSO (in-app WebView) -->
+    <string name="sso_risk_title">アプリ内ブラウザーでサインインしますか？</string>
+    <string name="sso_risk_body">Google を含む一部のプロバイダーは公式にはこれをサポートしておらず、いつでもブロックされる可能性があります。自己責任でご利用ください。</string>
+    <string name="sso_sign_in_failed">サインインに失敗しました。もう一度お試しください。</string>
+    <string name="diagnostic_log_export">診断ログをエクスポート</string>
+    <string name="diagnostic_log_exported">ログをエクスポートしました。問題を報告する際に添付してください。</string>
+    <string name="diagnostic_log_failed">ログをエクスポートできませんでした。</string>
+    <string name="user_ca_notice">このサーバーの証明書は、Android に組み込まれた認証局ではなく、このデバイスにインストールされた認証局によって信頼されています。ご自身または組織がインストールした場合にのみ続行してください。</string>
+    <string name="continue_with_provider">%1$s で続行</string>
+    <string name="two_factor_setup_title">二要素認証を設定</string>
+    <string name="two_factor_setup_required_description">このサーバーでは二要素認証が必要です。続行するには設定してください。</string>
+    <string name="two_factor_setup_begin">設定を開始</string>
+    <string name="two_factor_setup_authenticator_heading">このアカウントを認証アプリに追加</string>
+    <string name="two_factor_setup_authenticator_body">認証アプリで開くか、セットアップキーを入力するか、別のデバイスで QR コードをスキャンしてください。</string>
+    <string name="two_factor_setup_open_authenticator">認証アプリを開く</string>
+    <string name="two_factor_setup_no_authenticator">このデバイスにはリンクを開ける認証アプリがありません。代わりにセットアップキーを入力してください。</string>
+    <string name="two_factor_setup_key">セットアップキー</string>
+    <string name="two_factor_setup_show_qr">QR コードを表示</string>
+    <string name="two_factor_setup_hide_qr">QR コードを非表示</string>
+    <string name="two_factor_setup_qr_description">認証アプリ用の QR コード</string>
+    <string name="two_factor_setup_next">次へ</string>
+    <string name="two_factor_setup_verify_heading">認証アプリのコードを入力してください</string>
+    <string name="two_factor_setup_backup_heading">バックアップコードを保存</string>
+    <string name="two_factor_setup_backup_body">認証アプリを紛失した場合、各コードで 1 回サインインできます。安全な場所に保管してください。再表示はされません。</string>
+    <string name="two_factor_setup_save_codes">ファイルに保存</string>
+    <string name="two_factor_setup_codes_saved">バックアップコードを保存しました。</string>
+    <string name="two_factor_setup_codes_acknowledged">これらのコードを保存しました</string>
+    <string name="two_factor_setup_complete">設定を完了</string>
+    <string name="two_factor_setup_expired">設定セッションの有効期限が切れました。続行するには再度サインインしてください。</string>
+    <string name="two_factor_setup_sessions_incomplete">二要素認証はオンになりましたが、他のセッションの一部は有効期限が切れるまでサインインしたままになる場合があります。続けるには、もう一度サインインしてください。</string>
+    <string name="two_factor_setup_back_to_sign_in">サインインに戻る</string>
+    <string name="two_factor_setup_error_start">設定を開始できませんでした。もう一度お試しください。</string>
+    <string name="two_factor_setup_error_invalid">コードが一致しません。認証アプリに表示されている現在のコードを入力してください。</string>
+    <string name="two_factor_setup_error_rate_limited">試行回数が多すぎます。しばらく待ってからもう一度お試しください。</string>
+    <string name="two_factor_setup_error_finalize">設定を完了できませんでした。もう一度お試しください。</string>
+    <string name="two_factor_setup_error_connection">サーバーに接続できませんでした。接続を確認してもう一度お試しください。</string>
+    <string name="login_error_federated_blocked">このアカウントは ID プロバイダーでサインインします。そのサインイン方法を使用してください。</string>
+    <string name="auth_error_tenant_required">このサーバーは、あなたが所属する組織を特定する必要があります。このサーバーの組織用アドレスを使用してください。</string>
+    <string name="auth_error_cross_origin">別のサイトからのサインインとしてサーバーに拒否されました。サーバーの前段にあるプロキシがリクエストを変更している可能性があります。</string>
+    <string name="auth_error_banned">このアカウントまたはネットワークはサインインをブロックされています。管理者に連絡してください。</string>
+    <string name="auth_error_rate_limited">サインインの試行回数が多すぎます。数分待ってからもう一度お試しください。</string>
+    <string name="login_error_wrong_credentials">メールアドレスまたはパスワードが正しくありません。</string>
+    <string name="login_error_wrong_credentials_username">ユーザー名またはパスワードが正しくありません。</string>
+    <string name="login_error_other_sign_in_method">このアカウントは別の方法でサインインします。最初にサインインしたときの方法を使ってください。</string>
+    <string name="login_error_email_login_disabled">このサーバーではメールアドレスとパスワードによるサインインは許可されていません。</string>
+    <string name="login_error_email_not_verified">サインインする前にメールアドレスを確認してください。</string>
+    <string name="login_error_missing_fields">メールアドレスとパスワードを入力してください。</string>
+    <string name="login_error_missing_fields_username">ユーザー名とパスワードを入力してください。</string>
+    <string name="login_error_invalid_email">有効なメールアドレスを入力してください。</string>
+    <string name="login_error_password_too_short">このサーバーのパスワードは%1$d文字以上です。</string>
+    <string name="login_error_password_too_long">パスワードは%1$d文字以内にしてください。</string>
+    <string name="sso_error_exchange_rejected">サインインが完了しませんでした。もう一度お試しください。</string>
+    <string name="auth_error_session_cookie_missing">サーバーでのサインインは完了しましたが、セッション Cookie がアプリに届かなかったため、サインイン状態を維持できません。サーバーの前段にあるプロキシが削除している可能性があります。サーバー管理者に問い合わせてください。</string>
+    <string name="login_two_factor_setup_required">このサーバーでは %1$s に二要素認証が必須になりました。サインインして設定してください。</string>
+    <string name="use_another_account">別のアカウントを使用</string>
+    <string name="server_url_known_servers">使用中のサーバー</string>
+    <string name="server_url_known_server_cd">%1$s に接続</string>
+    <plurals name="server_url_known_server_accounts">
+        <item quantity="other">アカウント %1$d 件</item>
+    </plurals>
+    <string name="progress_connecting">接続中…</string>
+    <string name="progress_signing_in">サインイン中…</string>
+    <string name="progress_creating_account">アカウントを作成中…</string>
+    <string name="progress_sending">送信中…</string>
+    <string name="progress_resetting_password">パスワードをリセット中…</string>
+    <string name="progress_verifying">確認中…</string>
+    <string name="progress_accepting">同意を送信中…</string>
+    <string name="progress_starting">開始中…</string>
+    <string name="progress_finishing">完了しています…</string>
+    <!-- Sign-in gate (Authelia forward-auth) in front of the server -->
+    <string name="gate_title_authelia">Authelia で保護されています</string>
+    <string name="gate_title_generic">サインインゲートで保護されています</string>
+    <string name="gate_body">まず %1$s でサインインしてください。その後に LibreChat のサインインが続きます。</string>
+    <string name="gate_sign_in_authelia">Authelia でサインイン</string>
+    <string name="gate_sign_in_generic">サインインして続行</string>
+    <string name="gate_page_instead">代わりにゲートのページでサインイン</string>
+    <string name="gate_unknown_client_title">Authelia がこのアプリを認識していません</string>
+    <string name="gate_unknown_client_body">%1$s に「%2$s」という名前のクライアントがありません。管理者が登録したクライアント ID を「詳細設定」で入力するか、Switchboard の追加を管理者に依頼してください。</string>
+    <string name="gate_redirect_title">このアプリのコールバックが許可されていません</string>
+    <string name="gate_redirect_body">%1$s のクライアント「%2$s」のリダイレクト URI に http://127.0.0.1/callback が含まれていません。追加するよう管理者に依頼してください。</string>
+    <string name="gate_refused_title">%1$s がサインインを拒否しました</string>
+    <string name="gate_failed_body">サインインを完了できませんでした。接続を確認して、もう一度お試しください。</string>
+    <string name="gate_setup_guide">管理者向けセットアップガイド</string>
+    <string name="gate_client_id_label">Authelia クライアント ID</string>
+    <string name="gate_page_close">閉じる</string>
+</resources>

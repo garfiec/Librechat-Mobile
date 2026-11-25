@@ -5,12 +5,12 @@ import com.garfiec.librechat.core.common.identity.currentAccountId
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.SearchCapabilityRepository
 import com.garfiec.librechat.core.data.repository.SearchRepository
-import com.garfiec.librechat.core.data.search.FtsQuery
-import com.garfiec.librechat.core.data.search.FtsQueryPlan
 import com.garfiec.librechat.core.data.search.MessageSearchRepository
-import com.garfiec.librechat.core.data.search.MessageSearchResult
-import com.garfiec.librechat.core.data.search.RemoteSearchStatus
 import com.garfiec.librechat.core.model.Conversation
+import com.garfiec.librechat.core.model.search.FtsQuery
+import com.garfiec.librechat.core.model.search.FtsQueryPlan
+import com.garfiec.librechat.core.model.search.MessageSearchResult
+import com.garfiec.librechat.core.model.search.RemoteSearchStatus
 import com.garfiec.librechat.feature.conversations.search.searchNote
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
@@ -36,9 +36,12 @@ class DrawerSearchSources(
      * (off, unknown, failed).
      */
     suspend fun remoteTitles(query: String, maxResults: Int = SearchRepository.ONE_PAGE): List<Conversation>? {
-        if (capability.serverSearchEnabled.first() != true) return null
+        if (!serverSearchOn()) return null
         return (titles.search(query, maxResults) as? Result.Success)?.data
     }
+
+    /** Whether the server can search conversations; unknown counts as off. */
+    suspend fun serverSearchOn(): Boolean = capability.serverSearchEnabled.first() == true
 
     /**
      * The drawer's Messages section for a stream of typed queries. Debounced like the title filter,

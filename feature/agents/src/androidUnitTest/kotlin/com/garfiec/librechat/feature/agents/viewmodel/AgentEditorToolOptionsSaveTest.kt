@@ -60,7 +60,7 @@ class AgentEditorToolOptionsSaveTest {
                 mapOf("create_issue_mcp_github" to chatMode, "search_code_mcp_github" to deferred),
             ),
         )
-        val state = editing(agent).let { it.copy(selectedMcpTools = it.selectedMcpTools - "search_code") }
+        val state = editing(agent).let { it.copy(selectedMcpTools = it.selectedMcpTools - "search_code_mcp_github") }
 
         val sent = state.toUpdateAgentRequest().toolOptions
 
@@ -92,6 +92,22 @@ class AgentEditorToolOptionsSaveTest {
         val sent = state.toUpdateAgentRequest().toolOptions
 
         assertThat(sent).isEqualTo(JsonObject(emptyMap()))
+    }
+
+    @Test
+    fun `removing every conversation starter sends an empty list on update`() {
+        val agent = Agent(id = "agent-1", conversationStarters = listOf("s1", "s2"))
+        val state = editing(agent).copy(conversationStarters = emptyList())
+
+        assertThat(state.toUpdateAgentRequest().conversationStarters).isEqualTo(emptyList<String>())
+    }
+
+    @Test
+    fun `removing every tool sends an empty list on update`() {
+        val agent = Agent(id = "agent-1", tools = listOf("wolfram"))
+        val state = editing(agent).copy(selectedTools = emptyList())
+
+        assertThat(state.toUpdateAgentRequest().tools).isEqualTo(emptyList<String>())
     }
 
     @Test

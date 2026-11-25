@@ -6,7 +6,6 @@ import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.SkillStatesUpdateResult
 import com.garfiec.librechat.core.data.repository.SkillsRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
-import com.garfiec.librechat.core.data.skills.SkillAccess
 import com.garfiec.librechat.core.model.PermissionBits
 import com.garfiec.librechat.core.model.Skill
 import com.garfiec.librechat.core.model.User
@@ -14,6 +13,7 @@ import com.garfiec.librechat.core.model.config.StartupConfig
 import com.garfiec.librechat.core.model.permissions.UserRolePermissions
 import com.garfiec.librechat.core.model.response.Category
 import com.garfiec.librechat.core.model.response.DeleteSkillResponse
+import com.garfiec.librechat.core.model.skills.SkillAccess
 import com.garfiec.librechat.feature.skills.SkillError
 import com.garfiec.librechat.feature.skills.SkillErrorKind
 import com.garfiec.librechat.feature.skills.SkillSaveNotices

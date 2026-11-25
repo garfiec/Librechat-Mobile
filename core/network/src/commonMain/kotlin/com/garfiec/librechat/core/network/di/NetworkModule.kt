@@ -17,6 +17,7 @@ import com.garfiec.librechat.core.network.api.EndpointTokenApi
 import com.garfiec.librechat.core.network.api.FavoritesApi
 import com.garfiec.librechat.core.network.api.FilesApi
 import com.garfiec.librechat.core.network.api.FilesExtApi
+import com.garfiec.librechat.core.network.api.GateOAuthApi
 import com.garfiec.librechat.core.network.api.GitHubReleasesApi
 import com.garfiec.librechat.core.network.api.KeysApi
 import com.garfiec.librechat.core.network.api.McpApi
@@ -42,6 +43,8 @@ import com.garfiec.librechat.core.network.api.TracesApi
 import com.garfiec.librechat.core.network.api.UserApi
 import com.garfiec.librechat.core.network.client.AuthInterceptorPlugin
 import com.garfiec.librechat.core.network.client.CertificateTrustRegistry
+import com.garfiec.librechat.core.network.client.ClientLimitsHolder
+import com.garfiec.librechat.core.network.client.GateCredentialProvider
 import com.garfiec.librechat.core.network.client.GatewayDetectionPlugin
 import com.garfiec.librechat.core.network.client.LibreChatHttpClient
 import com.garfiec.librechat.core.network.client.OpenIdCookiePlugin
@@ -54,6 +57,8 @@ import com.garfiec.librechat.core.network.client.SwitchBarrierPlugin
 import com.garfiec.librechat.core.network.client.SwitchGate
 import com.garfiec.librechat.core.network.client.TokenManager
 import com.garfiec.librechat.core.network.client.applyBrowserDefaults
+import com.garfiec.librechat.core.network.client.installGateCredentials
+import com.garfiec.librechat.core.network.client.refreshDeadline
 import com.garfiec.librechat.core.network.sse.SseClient
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.HttpClientEngineFactory
@@ -114,6 +119,7 @@ val networkModule = module {
             switchGate = get(),
             serverHeadersProvider = get(),
             requestActivityTracker = get(),
+            gateCredentialProvider = get(),
         )
     }
 
@@ -123,6 +129,7 @@ val networkModule = module {
         val engineFactory = get<HttpClientEngineFactory<*>>()
         val switchGate = get<SwitchGate>()
         val serverHeadersProvider = get<ServerHeadersProvider>()
+        val gateCredentialProvider = get<GateCredentialProvider>()
         HttpClient(engineFactory) {
             install(AuthInterceptorPlugin) {
                 this.tokenManager = tokenManager
@@ -135,6 +142,7 @@ val networkModule = module {
                 this.serverHeadersProvider = serverHeadersProvider
                 this.serverUrlProvider = serverUrlProvider
             }
+            installGateCredentials(gateCredentialProvider, serverUrlProvider)
             // No HttpResponseValidator here, so without this the gateway's 302→200 sign-in page
             // reaches the SSE parser as a valid response and the chat hangs with no error.
             install(GatewayDetectionPlugin)
@@ -152,11 +160,15 @@ val networkModule = module {
         }
     }
 
+    single { ClientLimitsHolder() }
+
     single(KoinQualifiers.Refresh) {
         val json = get<Json>()
+        val clientLimits = get<ClientLimitsHolder>()
         val serverUrlProvider = get<ServerUrlProvider>()
         val engineFactory = get<HttpClientEngineFactory<*>>()
         val serverHeadersProvider = get<ServerHeadersProvider>()
+        val gateCredentialProvider = get<GateCredentialProvider>()
         HttpClient(engineFactory) {
             install(ContentNegotiation) { json(json) }
             install(ServerUrlReadyPlugin) {
@@ -178,13 +190,14 @@ val networkModule = module {
                 this.serverHeadersProvider = serverHeadersProvider
                 this.serverUrlProvider = serverUrlProvider
             }
+            installGateCredentials(gateCredentialProvider, serverUrlProvider)
             // Detection reads the challenge off that 302 directly, so it does not depend on the
             // redirect being followed — which on a POST it is not. See RefreshAttempt.GatewayBlocked.
             install(GatewayDetectionPlugin)
             install(HttpTimeout) {
-                requestTimeoutMillis = 15_000
                 connectTimeoutMillis = 10_000
             }
+            install(refreshDeadline(clientLimits))
             defaultRequest {
                 contentType(ContentType.Application.Json)
             }
@@ -237,6 +250,7 @@ val networkModule = module {
     singleOf(::FilesApi)
     singleOf(::FilesExtApi)
     single { GitHubReleasesApi(get(KoinQualifiers.External)) }
+    single { GateOAuthApi(get(KoinQualifiers.External), get()) }
     singleOf(::KeysApi)
     singleOf(::McpApi)
     singleOf(::McpAppsApi)

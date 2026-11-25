@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -43,6 +44,7 @@ import kotlin.test.assertTrue
 class LiquidSegmentedControlIosTest {
 
     private var selectedIndex by mutableIntStateOf(0)
+    private var controlWidth by mutableStateOf(300.dp)
     private val selects = mutableListOf<Int>()
     private var slop = 0f
     private val scroll = ScrollState(0)
@@ -65,7 +67,7 @@ class LiquidSegmentedControlIosTest {
                             selects += it
                             selectedIndex = it
                         },
-                        modifier = Modifier.width(300.dp).testTag(CONTROL),
+                        modifier = Modifier.width(controlWidth).testTag(CONTROL),
                         enabled = enabled,
                     )
                 }
@@ -133,6 +135,25 @@ class LiquidSegmentedControlIosTest {
         control.performTouchInput { up() }
         waitForIdle()
         assertEquals(listOf(2), selects)
+    }
+
+    @Test
+    fun aControlThatWidensAfterLayoutMapsADragOnItsNewWidth() = runComposeUiTest {
+        controlWidth = 150.dp
+        setUp()
+        controlWidth = 300.dp
+        waitForIdle()
+        val control = onNodeWithTag(CONTROL)
+        control.performTouchInput {
+            down(segment(0))
+            moveBy(Offset(slop * 2, 0f))
+        }
+        waitForIdle()
+        control.performTouchInput { moveTo(segment(1)) }
+        waitForIdle()
+        control.performTouchInput { up() }
+        waitForIdle()
+        assertEquals(listOf(1), selects)
     }
 
     @Test

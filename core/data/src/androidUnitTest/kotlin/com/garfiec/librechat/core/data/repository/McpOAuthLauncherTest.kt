@@ -17,11 +17,12 @@ class McpOAuthLauncherTest {
 
     private val mcp = mockk<McpRepository>()
     private val config = mockk<ConfigRepository>()
+    private val agents = mockk<AgentRepository>()
 
     private fun launcher(version: String?): McpOAuthLauncher {
         every { config.detectedBackendVersion } returns MutableStateFlow(version)
         every { config.serverUrl } returns flowOf("https://chat.example.com")
-        return McpOAuthLauncher(mcp, config)
+        return McpOAuthLauncher(mcp, config, agents)
     }
 
     @Test
@@ -97,5 +98,40 @@ class McpOAuthLauncherTest {
             Result.Error(exception = ApiException(statusCode = 500, message = "Failed to bind OAuth flow"))
 
         assertThat(launcher(null).prepare("github", "https://idp")).isInstanceOf(Result.Error::class.java)
+    }
+
+    @Test
+    fun `an agent action binds through its own route and opens in app even on an older server`() = runTest {
+        // The action callback has required the binding cookie since v0.8.3-rc1, with no pending-flow fallback.
+        coEvery { agents.bindActionOAuth("act_abc") } returns Result.Success(listOf("oauth_csrf=a; Path=/api/actions"))
+
+        val launch = (launcher("0.8.8").prepareAction("act_abc", "https://auth.example.com/authorize?x=1") as Result.Success).data
+
+        assertThat(launch).isEqualTo(
+            McpOAuthLaunch.InApp(
+                serverName = "auth.example.com",
+                authorizationUrl = "https://auth.example.com/authorize?x=1",
+                serverUrl = "https://chat.example.com",
+                seedCookies = listOf("oauth_csrf=a; Path=/api/actions"),
+            ),
+        )
+        coVerify(exactly = 0) { mcp.bindOAuth(any()) }
+    }
+
+    @Test
+    fun `an action bind that sets no cookie is a failure, not the system browser`() = runTest {
+        coEvery { agents.bindActionOAuth(any()) } returns Result.Success(emptyList())
+
+        assertThat(launcher(null).prepareAction("act_abc", "https://auth.example.com/authorize"))
+            .isInstanceOf(Result.Error::class.java)
+    }
+
+    @Test
+    fun `a failed action bind is reported`() = runTest {
+        coEvery { agents.bindActionOAuth(any()) } returns
+            Result.Error(exception = ApiException(statusCode = 500, message = "Failed to bind OAuth flow"))
+
+        assertThat(launcher("0.8.9").prepareAction("act_abc", "https://auth.example.com/authorize"))
+            .isInstanceOf(Result.Error::class.java)
     }
 }

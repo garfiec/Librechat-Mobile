@@ -1,0 +1,488 @@
+:root {
+  --bg: #fbfbfd;
+  --surface: #ffffff;
+  --surface-2: #f1f2f6;
+  --text: #16181d;
+  --text-2: #5b6170;
+  --line: #e2e4ea;
+  --accent: #3b5bdb;
+  --accent-text: #ffffff;
+  --m-bg: #eef0fb;
+  --m-surface: #fbfbff;
+  --m-text: #1b1d2a;
+  --m-text-2: #4d5166;
+  --radius: 20px;
+  --max: 1120px;
+  --gutter: 16px;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e0f13;
+    --surface: #16181e;
+    --surface-2: #1d2028;
+    --text: #eceef3;
+    --text-2: #9aa1b2;
+    --line: #2a2e38;
+    --accent: #8ea4ff;
+    --accent-text: #0e0f13;
+    --m-bg: #14161f;
+    --m-surface: #1e212c;
+    --m-text: #e8eaf3;
+    --m-text-2: #a3a8bb;
+    color-scheme: dark;
+  }
+}
+
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  /* The browser's rectangular tap flash is off; pressed controls dim in their own shape instead. */
+  -webkit-tap-highlight-color: transparent;
+}
+.btn, .badge, .menu-btn, .segmented button, .site-menu a, .swatch, .hero-swatches button {
+  transition: opacity 0.1s ease, transform 0.1s ease, background-color 0.1s ease;
+}
+.btn:active, .badge:active { opacity: 0.75; transform: scale(0.97); }
+.menu-btn:active, .site-menu a:active, .segmented button:active { background: var(--surface-2); opacity: 0.8; }
+.swatch:active, .hero-swatches button:active { transform: scale(0.88); }
+@media (prefers-reduced-motion: reduce) {
+  .btn:active, .badge:active, .swatch:active, .hero-swatches button:active { transform: none; }
+}
+
+a { color: var(--accent); }
+img { max-width: 100%; display: block; }
+code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.9em; }
+pre code { font-size: inherit; }
+pre {
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 16px;
+  overflow-x: auto;
+}
+code { overflow-wrap: anywhere; }
+
+.wrap { max-width: var(--max); margin: 0 auto; padding: 0 var(--gutter); }
+.narrow { max-width: 760px; }
+
+/* Header */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: color-mix(in srgb, var(--bg) 85%, transparent);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--line);
+}
+.site-header .wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  height: 64px;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  color: var(--text);
+  text-decoration: none;
+}
+.brand-mark { width: 28px; height: 28px; border-radius: 6px; box-shadow: 0 0 0 1px var(--line); }
+.site-nav { display: flex; gap: 20px; align-items: center; }
+.site-nav a { color: var(--text-2); text-decoration: none; font-size: 15px; }
+.site-nav a:hover { color: var(--text); }
+.site-nav a.btn { color: var(--accent-text); }
+.menu-btn {
+  display: none;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  margin-right: -8px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+.menu-btn:hover { background: var(--surface-2); }
+/* The menu sits in the top layer, so it's placed against the viewport, under the 64px header. */
+.site-menu {
+  position: fixed;
+  inset: 72px var(--gutter) auto auto;
+  margin: 0;
+  min-width: 200px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.18);
+}
+.site-menu:popover-open { display: flex; flex-direction: column; }
+.site-menu a { padding: 12px 14px; border-radius: 10px; color: var(--text); text-decoration: none; font-size: 16px; }
+.site-menu a:hover { background: var(--surface-2); }
+@media (max-width: 720px) {
+  .site-nav { gap: 8px; }
+  .site-nav .hide-sm { display: none; }
+  .menu-btn { display: grid; }
+}
+@media (min-width: 721px) { .site-menu:popover-open { display: none; } }
+
+.btn {
+  display: inline-block;
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-text);
+  font-weight: 600;
+  text-decoration: none;
+}
+.btn-ghost { background: transparent; color: var(--text); border: 1px solid var(--line); }
+
+/* Sections */
+section { padding: 88px 0; }
+section + section { border-top: 1px solid var(--line); }
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  margin: 0 0 8px;
+}
+h1, h2, h3 { line-height: 1.15; margin: 0 0 16px; }
+h1 { font-size: clamp(36px, 6vw, 60px); letter-spacing: -0.02em; }
+h2 { font-size: clamp(28px, 4vw, 40px); letter-spacing: -0.01em; }
+h3 { font-size: 20px; }
+.lede { font-size: 20px; color: var(--text-2); max-width: 640px; }
+.muted { color: var(--text-2); }
+
+/* Hero: a full-bleed split between the Material and Liquid Glass looks.
+   --cut is the divider position; --acc is the accent both looks are tinted with. */
+.hero { padding: 0; }
+.badges { display: flex; flex-wrap: wrap; gap: 12px; margin: 28px 0 16px; }
+.badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 48px;
+  padding: 0 18px;
+  border-radius: 12px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.compat-note { font-size: 14px; margin: 0; }
+.hero h1 { font-size: clamp(36px, 5vw, 56px); }
+.hero .lede { margin: 0; }
+
+.split {
+  --cut: 50%;
+  --acc: #3B82F6;
+  position: relative;
+  height: 640px;
+  overflow: hidden;
+  touch-action: pan-y;
+  user-select: none;
+  cursor: ew-resize;
+}
+.half { position: absolute; inset: 0; }
+.half-inner {
+  height: 100%;
+  padding-block: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 48px;
+}
+.hero-copy-wide { max-width: 560px; min-width: 0; cursor: auto; }
+
+.material {
+  background: var(--m-bg);
+  color: var(--m-text);
+  font-family: "Roboto Flex", Roboto, system-ui, sans-serif;
+}
+.material .lede, .material .compat-note { color: var(--m-text-2); }
+.material .badge { background: var(--m-text); color: var(--m-bg); }
+.material .compat-note a { color: color-mix(in srgb, var(--acc) 65%, var(--m-text)); }
+
+.glass {
+  background:
+    radial-gradient(circle at 70% 25%, color-mix(in srgb, var(--acc) 75%, #fff) 0, transparent 45%),
+    radial-gradient(circle at 85% 80%, #f2a7c3 0, transparent 50%),
+    radial-gradient(circle at 15% 85%, color-mix(in srgb, var(--acc) 55%, #000) 0, transparent 55%),
+    #1b2140;
+  color: #ffffff;
+  font-family: -apple-system, "SF Pro Display", system-ui, sans-serif;
+  clip-path: inset(0 0 0 var(--cut));
+}
+.glass .lede, .glass .compat-note { color: rgba(255, 255, 255, 0.78); }
+.glass .compat-note a { color: #ffffff; }
+.glass .badge {
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(12px);
+}
+
+/* Both halves place their phone identically, so the two captures overlap pixel for pixel. */
+.hero-pic { flex-shrink: 0; }
+.hero-phone { width: 250px; height: auto; pointer-events: none; -webkit-user-drag: none; }
+
+.divider {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--cut);
+  width: 2px;
+  margin-left: -1px;
+  background: #ffffff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12);
+}
+.divider span {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #ffffff;
+  color: #222222;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-weight: 700;
+  font-size: 13px;
+  white-space: nowrap;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+.divider:focus-visible span { outline: 3px solid var(--acc); outline-offset: 2px; }
+.look-tag {
+  position: absolute;
+  top: 16px;
+  font: 500 12px ui-monospace, SFMono-Regular, Menlo, monospace;
+  padding: 4px 10px;
+  border-radius: 6px;
+  pointer-events: none;
+}
+.look-tag-l { left: max(16px, env(safe-area-inset-left, 0px)); background: var(--m-surface); color: var(--m-text); }
+.look-tag-r { right: max(16px, env(safe-area-inset-right, 0px)); background: rgba(255, 255, 255, 0.2); color: #ffffff; }
+.hero-swatches {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+}
+.hero-swatches button {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  padding: 0;
+  cursor: pointer;
+}
+.hero-swatches button[aria-pressed="true"] { outline: 2px solid #ffffff; outline-offset: 2px; }
+
+/* material-only shows just the Material half: no divider, tags, accent swatches or dragging. */
+.split.material-only { cursor: auto; }
+.split.material-only .glass, .split.material-only .divider, .split.material-only .look-tag,
+.split.material-only .hero-swatches { display: none; }
+
+/* Wide screens show the copy inside the split; narrow screens show it above, with only the phone split. */
+.hero-copy-narrow { display: none; padding-block: 48px 32px; }
+@media (max-width: 760px) {
+  .hero-copy-narrow { display: block; }
+  .hero-copy-narrow .compat-note { color: var(--text-2); }
+  .hero-copy-narrow .badge { background: var(--text); color: var(--bg); }
+  .split .hero-copy-wide { display: none; }
+  .split { height: 600px; }
+  /* The bottom padding keeps the phone clear of the swatch bar. */
+  .half-inner { justify-content: center; padding-block: 24px 76px; }
+  .split.material-only { height: auto; }
+  .split.material-only .half { position: static; }
+  .split.material-only .half-inner { padding-block: 24px; }
+  .hero-phone { width: 230px; }
+}
+
+/* Captures. Loops are flattened on --surface-2, so whatever frames a loop uses that colour. */
+img, video { height: auto; }
+.feature-media {
+  background: var(--surface-2);
+  border-radius: var(--radius);
+  padding: 32px 24px;
+}
+.feature-media > img,
+.feature-media > video { display: block; width: 100%; max-width: 280px; margin: 0 auto; }
+.two-up .feature-media > img { max-width: 100%; }
+/* A tile shows the whole device: what a shot is about is often at the bottom (the composer, a panel). */
+.shot {
+  aspect-ratio: 3 / 4;
+  border-radius: 14px;
+  margin-bottom: 16px;
+  overflow: hidden;
+  background: var(--surface-2);
+}
+.shot > img,
+.shot > video {
+  width: 100%;
+  height: 100%;
+  padding: 14px;
+  object-fit: contain;
+  object-position: center;
+}
+.shot[data-show="tablet"] > img,
+.shot[data-show="tablet"] > video { padding: 12px; }
+.looks-stage { position: relative; width: 100%; max-width: 300px; margin: 0 auto; aspect-ratio: 600 / 1267; }
+.looks-stage img { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; transition: opacity 0.35s ease; }
+.looks-stage img.on { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .looks-stage img { transition: none; } }
+
+/* Make it yours */
+.picker { display: flex; flex-wrap: wrap; gap: 24px; align-items: center; margin: 24px 0 32px; }
+.segmented { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 4px; }
+.segmented button {
+  border: 0;
+  background: transparent;
+  color: var(--text-2);
+  padding: 8px 16px;
+  border-radius: 999px;
+  font: inherit;
+  cursor: pointer;
+}
+.segmented button[aria-pressed="true"] { background: var(--surface-2); color: var(--text); }
+.swatches { display: flex; gap: 10px; }
+.swatch {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid var(--bg);
+  outline: 2px solid transparent;
+  cursor: pointer;
+}
+.swatch[aria-pressed="true"] { outline-color: var(--text); }
+
+/* Feature rows: copy beside a phone */
+.feature {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 48px;
+  align-items: center;
+  padding: 48px 0;
+}
+.feature:nth-child(even) .feature-copy { order: 2; }
+@media (max-width: 760px) {
+  .feature { grid-template-columns: 1fr; gap: 24px; }
+  .feature:nth-child(even) .feature-copy { order: 0; }
+}
+
+/* Tile grid */
+/* 8 tiles: 4 columns (phone captures), then 2, then 1, so no row is left half empty. */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 20px;
+  margin-top: 40px;
+}
+.tile {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px 16px 20px;
+}
+.tile h3 { margin-bottom: 6px; }
+@media (max-width: 1000px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .grid { grid-template-columns: 1fr; } }
+.tile p { margin: 0; color: var(--text-2); }
+
+.two-up { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 40px; }
+.two-up figure { margin: 0; }
+@media (max-width: 760px) { .two-up { grid-template-columns: 1fr; } }
+.caption { margin-top: 12px; color: var(--text-2); font-size: 15px; }
+
+/* FAQ */
+details {
+  border-bottom: 1px solid var(--line);
+  padding: 18px 0;
+}
+summary { cursor: pointer; font-weight: 600; font-size: 18px; }
+details p { color: var(--text-2); margin: 12px 0 0; }
+
+/* Tables */
+.table-scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+th { color: var(--text-2); font-weight: 600; font-size: 14px; }
+
+/* Plain content pages */
+.page { padding: 64px 0 96px; }
+.page h2 { font-size: 26px; margin-top: 48px; }
+
+/* Closing CTA + footer */
+.cta { text-align: center; }
+.cta .lede { margin: 0 auto 28px; }
+.site-footer { border-top: 1px solid var(--line); padding: 40px 0; font-size: 14px; color: var(--text-2); }
+.site-footer .wrap { display: flex; flex-wrap: wrap; gap: 24px; justify-content: space-between; }
+.site-footer nav { display: flex; flex-wrap: wrap; gap: 16px; }
+.site-footer a { color: var(--text-2); }
+.disclaimer { flex-basis: 100%; margin: 0; }
+
+/* Device switch in the features section */
+.section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px 32px;
+}
+.section-head h2 { margin-bottom: 0; }
+#features[data-device="phone"] [data-show="tablet"],
+#features[data-device="tablet"] [data-show="phone"] { display: none; }
+#features[data-device="tablet"] .shot { aspect-ratio: 1 / 1; }
+/* Tablet captures are wider and more detailed than phone ones, so two to a row. */
+#features[data-device="tablet"] .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+@media (max-width: 560px) { #features[data-device="tablet"] .grid { grid-template-columns: 1fr; } }
+
+/* Demo link in the hero */
+.try-link { display: inline-block; margin-top: 12px; font-weight: 600; text-decoration: none; }
+.material .try-link { color: color-mix(in srgb, var(--acc) 65%, var(--m-text)); }
+.glass .try-link { color: #ffffff; }
+.hero-copy-narrow .try-link { color: var(--accent); }
+
+/* Live demo page: the demo's frame mounts in .demo-stage after the visitor opts in. The stage keeps the
+   chosen device's size and is scaled from its corner; .demo-viewport holds it at the scaled size. */
+.demo-stage {
+  transform-origin: 0 0;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+.demo-poster { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 24px; text-align: center; }
+.demo-size, .demo-req { margin: 0; }
+.demo-req { font-size: 14px; }
+.demo-frame { width: 100%; height: 100%; border: 0; display: block; align-self: stretch; justify-self: stretch; }
+.demo-devices { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 12px; margin-top: 32px; }
+.demo-full { display: inline-flex; align-items: center; gap: 8px; }
+.demo-viewport { margin: 16px auto 40px; }
+@media (max-width: 760px) {
+  .demo-devices { display: none; }
+  .demo-viewport { margin: 24px 0; }
+  .demo-stage { aspect-ratio: 9 / 16; }
+}

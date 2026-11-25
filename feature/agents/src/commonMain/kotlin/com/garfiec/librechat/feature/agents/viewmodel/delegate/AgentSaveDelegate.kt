@@ -8,6 +8,7 @@ import com.garfiec.librechat.feature.agents.viewmodel.AgentEditorStateHandle
 import com.garfiec.librechat.feature.agents.viewmodel.AgentEditorUiState
 import com.garfiec.librechat.feature.agents.viewmodel.applyAgentData
 import com.garfiec.librechat.feature.agents.viewmodel.inferenceParameterRejection
+import com.garfiec.librechat.feature.agents.viewmodel.isCodeGitIdentityShown
 import com.garfiec.librechat.feature.agents.viewmodel.isGitIdentityValid
 import com.garfiec.librechat.feature.agents.viewmodel.toCreateAgentRequest
 import com.garfiec.librechat.feature.agents.viewmodel.toUpdateAgentRequest
@@ -56,8 +57,9 @@ class AgentSaveDelegate(
             else -> null
         }
         // Web: a valid Git name and email, or both blank. Only checked while the field shows.
-        val gitIdentityError = state.code.statefulSessions && !state.code.isGitIdentityValid()
-        val hasErrors = gitIdentityError ||
+        val gitIdentityError = state.isCodeGitIdentityShown() && !state.code.isGitIdentityValid()
+        val instructionsPromptError = state.isInstructionsPromptMissing
+        val hasErrors = gitIdentityError || instructionsPromptError ||
             listOfNotNull(nameError, descriptionError, supportContactNameError, supportContactEmailError).isNotEmpty()
         if (hasErrors) {
             stateHandle.update {
@@ -67,6 +69,7 @@ class AgentSaveDelegate(
                     supportContactNameError = supportContactNameError,
                     supportContactEmailError = supportContactEmailError,
                     codeGitIdentityError = gitIdentityError,
+                    instructionsPromptError = instructionsPromptError,
                 )
             }
             return
@@ -75,8 +78,9 @@ class AgentSaveDelegate(
         stateHandle.scope.launch {
             stateHandle.update { copy(isSaving = true, error = null) }
 
-            val result = if (state.isEditMode && state.agentId != null) {
-                agentRepository.updateAgent(id = state.agentId, request = state.toUpdateAgentRequest())
+            val editedId = state.agentId
+            val result = if (state.isEditMode && editedId != null) {
+                agentRepository.updateAgent(id = editedId, request = state.toUpdateAgentRequest())
             } else {
                 agentRepository.createAgent(request = state.toCreateAgentRequest())
             }

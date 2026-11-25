@@ -15,9 +15,11 @@ import com.garfiec.librechat.core.model.code.CodeControlPlane
 import com.garfiec.librechat.core.model.code.CodeEnvironmentConfigSchema
 import com.garfiec.librechat.core.model.code.CodeEnvironmentPairingResponse
 import com.garfiec.librechat.core.model.code.CodeEnvironmentPermissionField
+import com.garfiec.librechat.core.model.code.CodeEnvironmentPermissionSettings
 import com.garfiec.librechat.core.model.code.CodeEnvironmentPermissionsSchema
 import com.garfiec.librechat.core.model.code.CodeEnvironmentStatus
 import com.garfiec.librechat.core.model.code.CodeEnvironmentSummary
+import com.garfiec.librechat.core.model.code.CodeEnvironmentUserSettings
 import com.garfiec.librechat.core.model.code.CodeEnvironmentsResponse
 import com.garfiec.librechat.core.model.code.CodeSetupAttempt
 import com.garfiec.librechat.core.model.code.CodeWorkerPairing
@@ -25,8 +27,10 @@ import com.garfiec.librechat.core.model.code.CodeWorkerShell
 import com.garfiec.librechat.core.model.code.StatefulCodeSessionsConfig
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -133,6 +137,32 @@ class CodeExecutionViewModelTest {
         model.confirmRemoval()
         assertThat(model.uiState.value.loadFailed).isTrue()
         assertThat(model.uiState.value.machines).hasSize(1)
+    }
+
+    @Test
+    fun `a second machine's permission saves while the first is still saving`() = runTest {
+        coEvery { machines.list() } returns Result.Success(
+            CodeEnvironmentsResponse(listOf(vm, vm.copy(id = "code-2", name = "Build box")), emptyList()),
+        )
+        val first = CompletableDeferred<Boolean>()
+        coEvery { machines.updatePermissions("code-1", any()) } coAnswers { first.await() }
+        coEvery { machines.updatePermissions("code-2", any()) } returns true
+        val model = viewModel()
+
+        model.setPermission("code-1", CodePermissionCategory.FILE_WRITE, "allow")
+        model.setPermission("code-2", CodePermissionCategory.FILE_WRITE, "ask")
+        model.setPermission("code-1", CodePermissionCategory.FILE_WRITE, "ask")
+
+        coVerify {
+            machines.updatePermissions(
+                "code-2",
+                CodeEnvironmentUserSettings(CodeEnvironmentPermissionSettings(fileWrite = "ask")),
+            )
+        }
+        coVerify(exactly = 1) { machines.updatePermissions("code-1", any()) }
+        assertThat(model.uiState.value.savingPermissionIds).containsExactly("code-1")
+        first.complete(true)
+        assertThat(model.uiState.value.savingPermissionIds).isEmpty()
     }
 
     @Test

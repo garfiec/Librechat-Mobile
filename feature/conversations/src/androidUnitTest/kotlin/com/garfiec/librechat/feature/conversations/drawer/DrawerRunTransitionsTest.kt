@@ -81,6 +81,7 @@ class DrawerRunTransitionsTest {
             every { entries } returns flowOf(emptyMap())
             every { revision } returns MutableStateFlow(0L)
         },
+        agentRepository = mockk(relaxed = true),
         search = mockk<DrawerSearchSources>(relaxed = true) {
             every { messageSearch(any(), any()) } returns flowOf(DrawerMessageSearch.Idle)
         },
@@ -150,6 +151,22 @@ class DrawerRunTransitionsTest {
             coVerify(exactly = 1) { conversationRepository.refreshConversation("B", account) }
         } finally {
             keepUp.cancel()
+            vm.viewModelScope.cancel()
+        }
+    }
+
+    @Test
+    fun `opening the drawer reloads a list whose first page failed`() = runTest(testDispatcher) {
+        coEvery { conversationRepository.loadNextPage(cursor = null, any(), any(), any(), any(), any()) } returns
+            Result.Error(message = "offline")
+        val vm = viewModel()
+        try {
+            runCurrent()
+            vm.setDrawerVisible(true)
+            runCurrent()
+
+            coVerify(exactly = 2) { conversationRepository.loadNextPage(cursor = null, any(), any(), any(), any(), any()) }
+        } finally {
             vm.viewModelScope.cancel()
         }
     }

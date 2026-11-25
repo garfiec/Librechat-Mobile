@@ -4,11 +4,12 @@ import com.garfiec.librechat.core.common.BackendVersion
 import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.model.mcp.McpOAuthLaunch
+import io.ktor.http.Url
 import kotlinx.coroutines.flow.first
 
 /**
  * The one place that decides how an MCP OAuth sign-in is opened, for Settings' reconnect and the
- * in-chat prompt alike.
+ * in-chat prompt alike, and how an agent action's is ([prepareAction]).
  *
  * v0.8.9-rc1 (upstream d349120ec) removed the callback's fallback to a pending flow: it now
  * redirects to `/oauth/error?error=csrf_validation_failed` unless the browser carries the
@@ -32,6 +33,7 @@ import kotlinx.coroutines.flow.first
 class McpOAuthLauncher(
     private val mcpRepository: McpRepository,
     private val configRepository: ConfigRepository,
+    private val agentRepository: AgentRepository,
 ) {
     suspend fun prepare(serverName: String, authorizationUrl: String): Result<McpOAuthLaunch> {
         if (!usesBoundWebView(configRepository.detectedBackendVersion.value)) {
@@ -60,6 +62,30 @@ class McpOAuthLauncher(
             Result.Loading -> Result.Error(message = null)
         }
     }
+
+    /**
+     * An agent action's sign-in always binds and opens in app: its callback has required the binding
+     * cookie on every supported server, with no pending-flow fallback. Named after the provider's host.
+     */
+    suspend fun prepareAction(actionId: String, authorizationUrl: String): Result<McpOAuthLaunch> =
+        when (val bound = agentRepository.bindActionOAuth(actionId)) {
+            is Result.Success ->
+                if (bound.data.isEmpty()) {
+                    Result.Error(message = null)
+                } else {
+                    Result.Success(
+                        McpOAuthLaunch.InApp(
+                            serverName = runCatching { Url(authorizationUrl).host }.getOrNull()
+                                ?.takeIf { it.isNotBlank() } ?: actionId,
+                            authorizationUrl = authorizationUrl,
+                            serverUrl = configRepository.serverUrl.first(),
+                            seedCookies = bound.data,
+                        ),
+                    )
+                }
+            is Result.Error -> bound
+            Result.Loading -> Result.Error(message = null)
+        }
 
     private fun Result.Error.isRouteMissing(): Boolean =
         (exception as? ApiException)?.statusCode == HTTP_NOT_FOUND

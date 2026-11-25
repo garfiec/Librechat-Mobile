@@ -7,6 +7,9 @@ import com.garfiec.librechat.core.data.repository.ChatRepository
 import com.garfiec.librechat.core.model.PendingSteer
 import com.garfiec.librechat.core.model.config.DEFAULT_STEER_ARM_CONFIRMATION_TIMEOUT_MS
 import com.garfiec.librechat.core.model.error.StreamErrorType
+import com.garfiec.librechat.core.model.queuedturn.AgentQueuedTurnReceipt
+import com.garfiec.librechat.core.model.queuedturn.PromotedSteer
+import com.garfiec.librechat.core.model.queuedturn.QueuedTurnSteer
 import com.garfiec.librechat.core.model.request.SteerArmRequest
 import com.garfiec.librechat.core.model.request.SteerCancelRequest
 import com.garfiec.librechat.core.model.request.SteerRequest
@@ -100,6 +103,14 @@ class SteeringDelegate(
     private val onSteerNotice: (SteerNotice) -> Unit = {},
     /** How long [arm] waits for the server before saying it couldn't confirm (`interface.steerArmConfirmationTimeoutMs`). */
     private val armTimeoutMs: () -> Long = { DEFAULT_STEER_ARM_CONFIRMATION_TIMEOUT_MS },
+    /**
+     * Whether a steer composed as this follow-up may be promoted by the server to a durable queued
+     * turn if the run ends without applying it (`promoteLeftover`): the server must support it and
+     * be able to own the follow-up as it would a queued one.
+     */
+    private val promotable: (QueuedMessage) -> Boolean = { false },
+    /** Shows the queued turns the server promoted unapplied steers to, as its own queued rows. */
+    private val adoptPromotedTurns: (List<AgentQueuedTurnReceipt>) -> Unit = {},
 ) {
 
     /**
@@ -213,6 +224,7 @@ class SteeringDelegate(
             requestedPreempt = interrupt,
         )
         publishChips()
+        val promote = promotable(fallback)
 
         handle.scope.launch {
             val result = chatRepository.steerChat(
@@ -225,6 +237,8 @@ class SteeringDelegate(
                     quotes = fallback.quotes.takeIf { it.isNotEmpty() },
                     clientSteerId = localId,
                     preempt = true.takeIf { interrupt },
+                    promoteLeftover = true.takeIf { promote },
+                    codeApprovalMode = fallback.codeWorkspace?.approvalMode?.takeIf { promote },
                 ),
             )
             val record = records[localId] ?: return@launch
@@ -628,6 +642,49 @@ class SteeringDelegate(
             ?: return false
         enqueue(spec)
         return true
+    }
+
+    /**
+     * Adopts the final frame's `promotedSteers`: steers the run never applied that the server made
+     * durable queued turns. Called before [reclaim], so neither it nor a later report can re-home
+     * their words; the turns show as the server's own queued rows.
+     */
+    fun adoptPromoted(promoted: List<PromotedSteer>) {
+        if (promoted.isEmpty()) return
+        adoptPromotedTurns(
+            promoted.map { entry ->
+                val steer = entry.receipt.steer
+                    ?: QueuedTurnSteer(steerId = entry.steerId, clientSteerId = entry.clientSteerId ?: entry.steerId)
+                entry.receipt.copy(steer = steer)
+            },
+        )
+    }
+
+    /**
+     * Retires the steer a promoted queued turn names: the server runs its words now. Returns the
+     * local id of the queue row they were already re-homed into, if any, so that row can become
+     * the server's turn rather than a second send.
+     */
+    fun claimPromoted(steer: QueuedTurnSteer): String? {
+        val ids = listOf(steer.steerId, steer.clientSteerId).filter { it.isNotBlank() }.distinct()
+        var rehomedLocalId: String? = null
+        var changed = false
+        for (id in ids) {
+            val record = records[id] ?: continue
+            when {
+                record.isLive -> {
+                    records[id] = record.copy(status = SteerRecord.Status.RECLAIMED)
+                    changed = true
+                }
+                record.status == SteerRecord.Status.RECLAIMED -> rehomedLocalId = rehomedLocalId ?: record.spec?.localId
+                else -> Unit
+            }
+        }
+        if (changed) {
+            evictSettled()
+            publishChips()
+        }
+        return rehomedLocalId
     }
 
     /** Withdraws a queued steer. Optimistic — the row goes immediately, the POST just confirms. */

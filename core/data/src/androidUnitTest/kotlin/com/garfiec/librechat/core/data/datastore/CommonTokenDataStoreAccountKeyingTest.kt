@@ -17,6 +17,7 @@ import io.ktor.http.contentType
 import io.ktor.http.headersOf
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -526,4 +527,56 @@ class CommonTokenDataStoreAccountKeyingTest {
         assertThat(store.hasLiveSession("openid")).isTrue()
         assertThat(store.hasLiveSession("lastAccess")).isTrue()
     }
+
+    @Test
+    fun `a session minted outside a refresh replaces the slot that still holds the token sent`() = runTest {
+        val store = FakeTokenStore(noRefresh)
+        store.setTokens(accessToken = "A-access", refreshToken = "A-refresh")
+        store.onAccountResolved("acctA")
+        val rotated = SessionCredentials("A-access-2", AuthCookies("A-refresh-2"))
+
+        assertThat(store.replaceSession("acctA", sentRefreshToken = "stale", session = rotated)).isFalse()
+        assertThat(store.persistedRefresh("acctA")).isEqualTo("A-refresh")
+
+        assertThat(store.replaceSession("acctA", sentRefreshToken = "A-refresh", session = rotated)).isTrue()
+        assertThat(store.persistedSession("acctA")).isEqualTo(rotated)
+        assertThat(store.getAccessToken()).isEqualTo("A-access-2")
+    }
+
+    @Test
+    fun `a replacement never resurrects a slot that was removed meanwhile`() = runTest {
+        val store = FakeTokenStore(noRefresh)
+        store.setTokens(accessToken = "A-access", refreshToken = "A-refresh")
+        store.onAccountResolved("acctA")
+        store.removeAccount("acctA")
+
+        val replaced = store.replaceSession("acctA", "A-refresh", SessionCredentials("A-access-2", AuthCookies("A-refresh-2")))
+
+        assertThat(replaced).isFalse()
+        assertThat(store.persistedSession("acctA")).isNull()
+    }
+
+    @Test
+    fun `a refresh queued while the account's refreshes are held reads the session stored meanwhile`() =
+        runTest(UnconfinedTestDispatcher()) {
+            var posts = 0
+            val engine = unconfinedMockEngine {
+                posts++
+                respond(refreshResponseBody("A-access-refreshed"), HttpStatusCode.OK, jsonResponseHeaders)
+            }
+            val store = FakeTokenStore(refreshClientOf(engine))
+            store.setTokens(accessToken = "A-access", refreshToken = "A-refresh")
+            store.onAccountResolved("acctA")
+            val rotated = SessionCredentials("A-access-2", AuthCookies("A-refresh-2"))
+
+            store.withRefreshesHeld("acctA") {
+                val queued = async { store.refreshAccessTokenFor("acctA", TEST_SERVER, usedAccessToken = "A-access") }
+                assertThat(queued.isCompleted).isFalse()
+                assertThat(store.replaceSession("acctA", "A-refresh", rotated)).isTrue()
+                queued
+            }.let { assertThat(it.await()).isEqualTo(RefreshResult.Refreshed) }
+
+            assertThat(posts).isEqualTo(0)
+            assertThat(store.persistedSession("acctA")).isEqualTo(rotated)
+        }
 }

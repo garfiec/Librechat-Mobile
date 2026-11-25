@@ -7,14 +7,7 @@ import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.MemoryRepository
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.model.Memory
-import com.garfiec.librechat.core.model.MemoryKeyProblem
-import com.garfiec.librechat.core.model.memoryKeyProblem
-import com.garfiec.librechat.core.model.permissions.Permission
-import com.garfiec.librechat.core.model.permissions.PermissionType
-import com.garfiec.librechat.core.model.permissions.UserRolePermissions
 import com.garfiec.librechat.core.model.permissions.canOpenMemories
-import com.garfiec.librechat.core.model.permissions.hasAccessOrPermissive
-import com.garfiec.librechat.core.model.permissions.hasAccessStrictOrDenied
 import com.garfiec.librechat.core.model.request.CreateMemoryRequest
 import com.garfiec.librechat.core.model.request.UpdateMemoryPreferencesRequest
 import com.garfiec.librechat.core.model.response.MemoriesResponse
@@ -31,7 +24,6 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlin.math.floor
 
 /**
  * The Memories page: the list with its usage envelope, local search and partition filter, the
@@ -534,7 +526,7 @@ private fun MemoriesUiState.withSnapshot(next: MemoriesResponse?): MemoriesUiSta
 private fun MemoryEditorState.isDraftOf(operation: MemoryOperation): Boolean = when (operation) {
     is MemoryOperation.Create -> mode == MemoryEditorMode.Create
     is MemoryOperation.Update -> mode == MemoryEditorMode.Edit &&
-        original != null && memoryRowHandle(original) == memoryRowHandle(operation.memory)
+        original?.let(::memoryRowHandle) == memoryRowHandle(operation.memory)
     else -> false
 }
 
@@ -554,164 +546,4 @@ private fun MemoriesResponse.withWritten(written: Memory, replaced: Memory?): Me
         written
     }
     return copy(memories = listOf(merged) + memories.filterNot { memoryRowHandle(it) in gone })
-}
-
-/** An agent chip whose memories are gone, or any chip once there are no chips, falls back to All. */
-private fun MemoryPartition.narrowedTo(memories: List<Memory>): MemoryPartition {
-    if (memories.none { it.agentId != null }) return MemoryPartition.All
-    return when (this) {
-        is MemoryPartition.Agent -> if (memories.any { it.agentId == agentId }) this else MemoryPartition.All
-        else -> this
-    }
-}
-
-private fun UserRolePermissions?.canMemories(permission: Permission): Boolean =
-    hasAccessOrPermissive(PermissionType.MEMORIES, Permission.USE) &&
-        hasAccessOrPermissive(PermissionType.MEMORIES, permission)
-
-/** Fills the derived fields from the raw state and the shared flows. Pure. */
-internal fun MemoriesUiState.derive(
-    role: UserRolePermissions?,
-    memoriesEnabled: Boolean?,
-): MemoriesUiState {
-    val memories = snapshot?.memories.orEmpty()
-    val canRead = role.canOpenMemories()
-    val canOptOut = role.canMemories(Permission.OPT_OUT)
-    // A known READ denial leaves OPT_OUT's own bit to decide. A 403 despite READ looking allowed
-    // could be a missing USE, so then only an explicit OPT_OUT grant keeps the switch.
-    val readLooksAllowedButForbidden = canRead && loadError == MemoryFailure.Forbidden
-    val canOptOutWithoutList = canOptOut &&
-        (!readLooksAllowedButForbidden || role.hasAccessStrictOrDenied(PermissionType.MEMORIES, Permission.OPT_OUT))
-    val charLimit = snapshot?.charLimit?.takeIf { it > 0 } ?: DEFAULT_MEMORY_CHAR_LIMIT
-    val showSearch = memories.size >= MEMORY_SEARCH_THRESHOLD
-    val partition = partition.narrowedTo(memories)
-    val needle = if (showSearch) query.trim() else ""
-    return copy(
-        memories = memories,
-        partition = partition,
-        partitionOptions = partitionOptions(memories),
-        agentOrdinals = agentLabelOrdinals(memories),
-        showSearch = showSearch,
-        visibleMemories = memories.filter { it.isIn(partition) && it.matches(needle) },
-        memoriesEnabled = memoriesEnabled,
-        preferenceLoadFailed = preferenceLoadFailed && memoriesEnabled == null,
-        charLimit = charLimit,
-        canRead = canRead,
-        canCreate = role.canMemories(Permission.CREATE),
-        canUpdate = role.canMemories(Permission.UPDATE),
-        canOptOut = canOptOut,
-        canOptOutWithoutList = canOptOutWithoutList,
-        editor = editor?.validated(memories, charLimit)?.copy(
-            tokenShare = editor.original?.let { memoryTokenShare(it, snapshot) },
-        ),
-    )
-}
-
-/**
- * [memory]'s [MemoryTokenShare], or null unless every input is there and meaningful: the totals
- * count the personal pool only, so an agent's entry has no share in them; a zero count or a missing
- * limit has nothing to say; and the room left can reach zero or below, since edits don't enforce
- * the limit.
- */
-internal fun memoryTokenShare(memory: Memory, snapshot: MemoriesResponse?): MemoryTokenShare? {
-    val tokens = memory.tokenCount?.takeIf { it > 0 } ?: return null
-    val limit = snapshot?.tokenLimit ?: return null
-    if (memory.agentId != null) return null
-    val room = limit.toLong() - (snapshot.totalTokens ?: 0) + tokens
-    if (room <= 0) return null
-    // Half up, as web's Math.round.
-    val percent = floor(tokens * PERCENT / room.toDouble() + HALF).toInt()
-    return MemoryTokenShare(tokens = tokens, percent = percent)
-}
-
-private const val PERCENT = 100.0
-private const val HALF = 0.5
-
-private fun partitionOptions(memories: List<Memory>): List<MemoryPartitionOption>? {
-    val agents = memories.mapNotNull { it.agentId }.distinct()
-    if (agents.isEmpty()) return null
-    val names = agents.associateWith { agentId -> agentName(memories, agentId) }
-    val ordinals = agentLabelOrdinals(agents, names)
-    return buildList {
-        add(MemoryPartitionOption(MemoryPartition.All))
-        add(MemoryPartitionOption(MemoryPartition.Personal))
-        agents.forEach { agentId ->
-            add(MemoryPartitionOption(MemoryPartition.Agent(agentId), agentName = names[agentId], ordinal = ordinals[agentId]))
-        }
-    }
-}
-
-private fun agentName(memories: List<Memory>, agentId: String): String? = memories.firstNotNullOfOrNull { memory ->
-    memory.agentName?.takeIf { memory.agentId == agentId && it.isNotBlank() }
-}
-
-/**
- * A 1-based number for each agent whose label another agent's would repeat: two agents the server
- * can't name both read "Agent memory", and two agents may share a name. Agents with a label of
- * their own get none. Numbered in agentId order, not list order: the list is last-updated first,
- * so an edit would otherwise swap two agents' numbers between reloads.
- */
-internal fun agentLabelOrdinals(memories: List<Memory>): Map<String, Int> {
-    val agents = memories.mapNotNull { it.agentId }.distinct()
-    return agentLabelOrdinals(agents, agents.associateWith { agentName(memories, it) })
-}
-
-private fun agentLabelOrdinals(agents: List<String>, names: Map<String, String?>): Map<String, Int> =
-    agents.groupBy { names[it]?.trim()?.lowercase() }
-        .values
-        .filter { it.size > 1 }
-        .flatMap { group -> group.sorted().mapIndexed { index, agentId -> agentId to index + 1 } }
-        .toMap()
-
-private fun Memory.isIn(partition: MemoryPartition): Boolean = when (partition) {
-    MemoryPartition.All -> true
-    MemoryPartition.Personal -> agentId == null
-    is MemoryPartition.Agent -> agentId == partition.agentId
-}
-
-/** Substring over key and value, ignoring case. A blank needle matches everything. */
-private fun Memory.matches(needle: String): Boolean =
-    needle.isEmpty() || key.contains(needle, ignoreCase = true) || value.contains(needle, ignoreCase = true)
-
-private fun MemoryEditorState.validated(
-    memories: List<Memory>,
-    charLimit: Int,
-): MemoryEditorState {
-    val trimmedKey = key.trim()
-    val trimmedValue = value.trim()
-    val keyError = when (mode) {
-        MemoryEditorMode.View -> null
-        MemoryEditorMode.Create -> memoryKeyProblem(key = key, memories = memories)
-        // Validated in the memory's own partition: the same key may exist in another one.
-        MemoryEditorMode.Edit -> memoryKeyProblem(
-            key = key,
-            memories = memories,
-            agentId = original?.agentId,
-            originalKey = original?.key,
-        )
-    } ?: MemoryKeyProblem.DUPLICATE.takeIf { mode != MemoryEditorMode.View && trimmedKey == conflictKey }
-    val valueError = when {
-        mode == MemoryEditorMode.View -> null
-        trimmedValue.isEmpty() -> MemoryValueProblem.REQUIRED
-        trimmedValue.length > charLimit -> MemoryValueProblem.TOO_LONG
-        else -> null
-    }
-    val dirty = when (mode) {
-        MemoryEditorMode.Create -> key.isNotBlank() || value.isNotBlank()
-        MemoryEditorMode.Edit -> key != original?.key || value != original?.value
-        MemoryEditorMode.View -> false
-    }
-    // An edit's Save needs something to send: a PATCH of the stored text still bumps updated_at and
-    // moves the row to the top. Compared trimmed, as the request is, so a stray space is no change.
-    val hasChange = mode != MemoryEditorMode.Edit ||
-        original == null ||
-        trimmedKey != original.key.trim() ||
-        trimmedValue != original.value.trim()
-    return copy(
-        keyError = keyError,
-        valueError = valueError,
-        valueLength = trimmedValue.length,
-        isDirty = dirty,
-        canSave = mode != MemoryEditorMode.View && !isSaving && keyError == null && valueError == null && hasChange,
-    )
 }

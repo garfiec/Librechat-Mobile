@@ -32,7 +32,7 @@ fun SidebarScaffold(
     // onNewChat distinction. Defaults to [onNewChat].
     onActiveConversationDelete: () -> Unit = onNewChat,
     // Whether the host is showing the sidebar (phone drawer open / tablet sidebar expanded); gates
-    // the drawer's active-jobs poll.
+    // the drawer's active-jobs poll and its stale-list reload.
     isOpen: Boolean = true,
     // The Workspace destination the tablet's content pane shows; null on a phone.
     currentWorkspace: WorkspaceDestination? = null,

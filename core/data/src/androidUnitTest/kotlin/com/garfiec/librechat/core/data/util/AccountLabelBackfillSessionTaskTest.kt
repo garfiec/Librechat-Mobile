@@ -67,6 +67,35 @@ class AccountLabelBackfillSessionTaskTest {
     }
 
     @Test
+    fun `a profile that returns after an account switch does not relabel the account it started for`() = runTest {
+        val roster = roster()
+        roster.upsertAndActivate(
+            AccountEntry(
+                accountId = accountId.value,
+                serverUrl = serverUrl,
+                displayLabel = "chat.example.com",
+                avatarUrl = null,
+                lastActiveAt = 1L,
+            ),
+        )
+        val activeAccountProvider = InMemoryActiveAccountProvider(AccountState.Resolved(accountId))
+        coEvery { userRepository.getUser() } coAnswers {
+            activeAccountProvider.set(deriveAccountId(deriveServerId(serverUrl), "user-2"))
+            Result.Success(User(id = "user-2", name = "Bob", email = "bob@example.com"))
+        }
+
+        AccountLabelBackfillSessionTask(
+            userRepository = userRepository,
+            accountRoster = roster,
+            activeAccountProvider = activeAccountProvider,
+            serverUrlProvider = serverUrlProvider,
+        ).run()
+
+        assertThat(roster.snapshot().entries.single { it.accountId == accountId.value }.displayLabel)
+            .isEqualTo("chat.example.com")
+    }
+
+    @Test
     fun `skips when the account is unresolved or the user fetch fails`() = runTest {
         val roster = roster()
         roster.upsertAndActivate(

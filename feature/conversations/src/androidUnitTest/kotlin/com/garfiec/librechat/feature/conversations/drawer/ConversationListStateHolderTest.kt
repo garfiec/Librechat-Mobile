@@ -7,6 +7,7 @@ import com.garfiec.librechat.core.model.ConversationListFilters
 import com.garfiec.librechat.core.model.ConversationPage
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.CompletableDeferred
@@ -16,14 +17,18 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -33,6 +38,7 @@ class ConversationListStateHolderTest {
     private lateinit var scope: CoroutineScope
 
     private val conversationRepository = mockk<ConversationRepository>(relaxed = true)
+    private var nowMs = 1_000_000_000L
 
     private val convos = listOf(
         Conversation(conversationId = "c1", title = "Alpha One", updatedAt = Instant.parse("2026-02-19T10:00:00.000Z")),
@@ -55,6 +61,20 @@ class ConversationListStateHolderTest {
         holder.groupedConversations.value
             .flatMap { it.second }
             .mapNotNull { it.conversationId }
+
+    private fun staleHolder() =
+        ConversationListStateHolder(conversationRepository, scope, dayBoundaries = emptyFlow(), nowMillis = { nowMs })
+
+    @Test
+    fun `refreshConversations also syncs pins`() = runTest {
+        every { conversationRepository.observeConversations(any()) } returns MutableStateFlow(Result.Success(convos))
+        val holder = ConversationListStateHolder(conversationRepository, scope, dayBoundaries = emptyFlow())
+
+        holder.refreshConversations()
+        advanceUntilIdle()
+
+        coVerify { conversationRepository.syncPinnedFromServer() }
+    }
 
     @Test
     fun `delete during active drawer search removes the row without a query change`() = runTest {
@@ -316,6 +336,7 @@ class ConversationListStateHolderTest {
             scope,
             dayBoundaries = emptyFlow(),
             remoteTitleSearch = { unfilteredAsked++; emptyList() },
+            serverSearchEnabled = { true },
         )
         advanceUntilIdle()
         holder.setFilters(filters)
@@ -326,5 +347,191 @@ class ConversationListStateHolderTest {
 
         assertThat(visibleIds(holder)).containsExactly("c1", "r1")
         assertThat(unfilteredAsked).isEqualTo(0)
+    }
+
+    @Test
+    fun `a list older than five minutes reloads page 1 quietly`() = runTest {
+        coEvery { conversationRepository.loadNextPage(cursor = null) } returns Result.Success("p2")
+        val holder = staleHolder()
+        advanceUntilIdle()
+        var refreshed = false
+        backgroundScope.launch { holder.isRefreshing.collect { if (it) refreshed = true } }
+
+        nowMs += (5.minutes + 1.seconds).inWholeMilliseconds
+        holder.refreshIfStale()
+        advanceUntilIdle()
+
+        coVerify(exactly = 2) { conversationRepository.loadNextPage(cursor = null) }
+        assertThat(refreshed).isFalse()
+    }
+
+    @Test
+    fun `a fresh list does not reload`() = runTest {
+        coEvery { conversationRepository.loadNextPage(cursor = null) } returns Result.Success("p2")
+        val holder = staleHolder()
+        advanceUntilIdle()
+
+        nowMs += 4.minutes.inWholeMilliseconds
+        holder.refreshIfStale()
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { conversationRepository.loadNextPage(cursor = null) }
+    }
+
+    @Test
+    fun `a wall clock set back since the last load counts as stale`() = runTest {
+        coEvery { conversationRepository.loadNextPage(cursor = null) } returns Result.Success("p2")
+        val holder = staleHolder()
+        advanceUntilIdle()
+
+        nowMs -= 1.minutes.inWholeMilliseconds
+        holder.refreshIfStale()
+        advanceUntilIdle()
+
+        coVerify(exactly = 2) { conversationRepository.loadNextPage(cursor = null) }
+    }
+
+    @Test
+    fun `filters or a search skip the stale reload`() = runTest {
+        coEvery { conversationRepository.loadNextPage(cursor = null) } returns Result.Success("p2")
+        val filters = ConversationListFilters(hasFiles = true)
+        coEvery { conversationRepository.getConversationsFiltered(filters, null, null, any()) } returns
+            Result.Success(ConversationPage(emptyList(), nextCursor = null))
+        val holder = staleHolder()
+        advanceUntilIdle()
+
+        holder.setFilters(filters)
+        advanceUntilIdle()
+        nowMs += 6.minutes.inWholeMilliseconds
+        holder.refreshIfStale()
+        advanceUntilIdle()
+        coVerify(exactly = 1) { conversationRepository.loadNextPage(cursor = null) }
+        coVerify(exactly = 1) { conversationRepository.getConversationsFiltered(filters, null, null, any()) }
+
+        holder.setFilters(null)
+        advanceUntilIdle()
+        nowMs += 6.minutes.inWholeMilliseconds
+        holder.onSearchQueryChanged("x")
+        holder.refreshIfStale()
+        advanceUntilIdle()
+        coVerify(exactly = 2) { conversationRepository.loadNextPage(cursor = null) }
+    }
+
+    @Test
+    fun `a failed reload leaves the list stale so the next one retries`() = runTest {
+        coEvery { conversationRepository.loadNextPage(cursor = null) } returns Result.Success("p2")
+        val holder = staleHolder()
+        advanceUntilIdle()
+        coEvery { conversationRepository.loadNextPage(cursor = null) } returns Result.Error(IllegalStateException("offline"))
+
+        nowMs += 6.minutes.inWholeMilliseconds
+        holder.refreshIfStale()
+        advanceUntilIdle()
+        holder.refreshIfStale()
+        advanceUntilIdle()
+
+        coVerify(exactly = 3) { conversationRepository.loadNextPage(cursor = null) }
+        assertThat(holder.listLoad.value).isEqualTo(ListLoad.LOADED)
+    }
+
+    @Test
+    fun `a quiet reload keeps the deeper cursor`() = runTest {
+        coEvery { conversationRepository.loadNextPage(cursor = null) } returns Result.Success("p2")
+        coEvery { conversationRepository.loadNextPage(cursor = "p2") } returns Result.Success("p3")
+        val holder = staleHolder()
+        advanceUntilIdle()
+        holder.loadMoreConversations()
+        advanceUntilIdle()
+
+        nowMs += 6.minutes.inWholeMilliseconds
+        holder.refreshIfStale()
+        advanceUntilIdle()
+        holder.loadMoreConversations()
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { conversationRepository.loadNextPage(cursor = "p2") }
+        coVerify(exactly = 1) { conversationRepository.loadNextPage(cursor = "p3") }
+    }
+
+    @Test
+    fun `the launch load in flight counts as fresh`() = runTest {
+        val gate = CompletableDeferred<Result<String?>>()
+        coEvery { conversationRepository.loadNextPage(cursor = null) } coAnswers { gate.await() }
+        val holder = staleHolder()
+        runCurrent()
+
+        holder.refreshIfStale()
+        gate.complete(Result.Success("p2"))
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { conversationRepository.loadNextPage(cursor = null) }
+        assertThat(holder.listLoad.value).isEqualTo(ListLoad.LOADED)
+    }
+
+    @Test
+    fun `a reload still in flight at an account switch is dropped`() = runTest {
+        coEvery { conversationRepository.loadNextPage(cursor = null) } returns Result.Success("p2")
+        val holder = staleHolder()
+        advanceUntilIdle()
+        val gate = CompletableDeferred<Result<String?>>()
+        coEvery { conversationRepository.loadNextPage(cursor = null) } coAnswers { gate.await() }
+
+        nowMs += 6.minutes.inWholeMilliseconds
+        holder.refreshIfStale()
+        runCurrent()
+        holder.reset()
+        gate.complete(Result.Success("old"))
+        advanceUntilIdle()
+
+        assertThat(holder.listLoad.value).isEqualTo(ListLoad.PENDING)
+        assertThat(holder.hasMore.value).isTrue()
+        coEvery { conversationRepository.loadNextPage(cursor = null) } returns Result.Success(null)
+        holder.loadMoreConversations()
+        advanceUntilIdle()
+        coVerify(exactly = 0) { conversationRepository.loadNextPage(cursor = "old") }
+    }
+
+    @Test
+    fun `a list whose first page failed retries without waiting`() = runTest {
+        coEvery { conversationRepository.loadNextPage(cursor = null) } returns Result.Error(IllegalStateException("offline"))
+        coEvery { conversationRepository.loadNextPage(cursor = "p2") } returns Result.Success(null)
+        val holder = staleHolder()
+        advanceUntilIdle()
+        assertThat(holder.listLoad.value).isEqualTo(ListLoad.FAILED)
+        coEvery { conversationRepository.loadNextPage(cursor = null) } returns Result.Success("p2")
+
+        holder.refreshIfStale()
+        advanceUntilIdle()
+
+        assertThat(holder.listLoad.value).isEqualTo(ListLoad.LOADED)
+        assertThat(holder.hasMore.value).isTrue()
+        holder.loadMoreConversations()
+        advanceUntilIdle()
+        coVerify(exactly = 1) { conversationRepository.loadNextPage(cursor = "p2") }
+    }
+
+    @Test
+    fun `a query over a filtered list stays on-device while server search is off`() = runTest {
+        every { conversationRepository.observeConversations(any()) } returns MutableStateFlow(Result.Success(convos))
+        val filters = ConversationListFilters(endpoints = listOf("openAI"))
+        coEvery { conversationRepository.getConversationsFiltered(filters, null, null, any()) } returns
+            Result.Success(ConversationPage(listOf(convos[0]), nextCursor = null))
+        val remote = Conversation(
+            conversationId = "r1",
+            title = "Alpha far back",
+            updatedAt = Instant.parse("2025-01-01T10:00:00.000Z"),
+        )
+        coEvery { conversationRepository.getConversationsFiltered(filters, null, "Alpha", any()) } returns
+            Result.Success(ConversationPage(listOf(remote), nextCursor = null))
+        val holder = ConversationListStateHolder(conversationRepository, scope, dayBoundaries = emptyFlow())
+        advanceUntilIdle()
+        holder.setFilters(filters)
+        advanceUntilIdle()
+
+        holder.onSearchQueryChanged("Alpha")
+        advanceUntilIdle()
+
+        coVerify(exactly = 0) { conversationRepository.getConversationsFiltered(filters, any(), "Alpha", any()) }
+        assertThat(visibleIds(holder)).containsExactly("c1")
     }
 }

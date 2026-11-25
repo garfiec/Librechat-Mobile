@@ -1,13 +1,13 @@
 package com.garfiec.librechat.feature.chat.viewmodel.delegate
 
 import com.garfiec.librechat.core.common.result.Result
-import com.garfiec.librechat.core.data.endpoint.EndpointDispatch
 import com.garfiec.librechat.core.data.repository.ChatPayloadBuilder
 import com.garfiec.librechat.core.data.repository.ChatRepository
 import com.garfiec.librechat.core.data.repository.ResumePinStore
 import com.garfiec.librechat.core.model.PendingAction
 import com.garfiec.librechat.core.model.PendingActionPayload
 import com.garfiec.librechat.core.model.PendingActionTypes
+import com.garfiec.librechat.core.model.endpoint.EndpointDispatch
 import com.garfiec.librechat.core.model.request.ChatResumeRequest
 import com.garfiec.librechat.core.model.request.EphemeralAgent
 import com.garfiec.librechat.core.model.response.ChatResumeResponse
@@ -56,6 +56,7 @@ class PendingActionSkillsPinTest {
             restoreAnswer = {},
             resumePinStore = ResumePinStore(),
             pauseExpiredMessage = { "expired" },
+            pauseGoneMessage = { "gone" },
             nowMillis = { 0L },
         )
     }

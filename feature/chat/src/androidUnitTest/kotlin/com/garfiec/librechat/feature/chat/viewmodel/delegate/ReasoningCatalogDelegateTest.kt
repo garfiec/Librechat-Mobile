@@ -1,12 +1,12 @@
 package com.garfiec.librechat.feature.chat.viewmodel.delegate
 
 import com.garfiec.librechat.core.common.result.Result
-import com.garfiec.librechat.core.data.endpoint.EndpointDispatch
 import com.garfiec.librechat.core.data.repository.ReasoningCapabilitiesRepository
 import com.garfiec.librechat.core.data.repository.ReasoningCatalog
 import com.garfiec.librechat.core.model.CustomParams
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.ReasoningOverride
+import com.garfiec.librechat.core.model.endpoint.EndpointDispatch
 import com.garfiec.librechat.core.model.reasoning.ModelReasoning
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState

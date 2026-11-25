@@ -2,11 +2,6 @@ package com.garfiec.librechat.feature.chat.viewmodel
 
 import androidx.lifecycle.viewModelScope
 import com.garfiec.librechat.core.common.result.Result
-import com.garfiec.librechat.core.data.datastore.ChatFontSize
-import com.garfiec.librechat.core.data.datastore.ChatHeaderAlignment
-import com.garfiec.librechat.core.data.datastore.ChatHeaderContent
-import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
-import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
 import com.garfiec.librechat.core.model.ContentType
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.Message
@@ -14,6 +9,11 @@ import com.garfiec.librechat.core.model.RunStepStatus
 import com.garfiec.librechat.core.model.StreamEvent
 import com.garfiec.librechat.core.model.content.AgentToolCall
 import com.garfiec.librechat.core.model.content.MessageContentPart
+import com.garfiec.librechat.core.model.preferences.ChatFontSize
+import com.garfiec.librechat.core.model.preferences.ChatHeaderAlignment
+import com.garfiec.librechat.core.model.preferences.ChatHeaderContent
+import com.garfiec.librechat.core.model.preferences.ContextBarPlacement
+import com.garfiec.librechat.core.model.preferences.StarredModelsDisplay
 import com.garfiec.librechat.core.model.response.ChatStatusResponse
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery

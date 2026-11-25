@@ -15,6 +15,7 @@ import com.garfiec.librechat.core.model.request.RevertAgentRequest
 import com.garfiec.librechat.core.model.request.UpdateAgentRequest
 import com.garfiec.librechat.core.model.response.AgentListResponse
 import com.garfiec.librechat.core.model.response.DuplicateAgentResponse
+import com.garfiec.librechat.core.network.client.CookieHelper
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.delete
@@ -27,6 +28,7 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.Headers
 import io.ktor.http.HttpHeaders
+import io.ktor.http.appendPathSegments
 import io.ktor.http.path
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -39,11 +41,17 @@ class AgentsApi constructor(
 
     // --- Agent CRUD ---
 
-    suspend fun getAgents(category: String? = null): AgentListResponse =
-        client.get {
-            url { path("api/agents") }
-            if (category != null) parameter("category", category)
-        }.body()
+    /** Every page of `GET /api/agents`, merged: the route answers 100 per page when no `limit` is sent. */
+    suspend fun getAgents(category: String? = null): AgentListResponse {
+        val agents = mutableListOf<Agent>()
+        var cursor: String? = null
+        do {
+            val page = getAgentsPaginated(limit = WALK_PAGE_SIZE, cursor = cursor, category = category)
+            agents += page.data
+            cursor = page.after
+        } while (cursor != null)
+        return AgentListResponse(objectType = "list", data = agents)
+    }
 
     /**
      * One page of `GET /api/agents` (upstream `getListAgentsHandler`).
@@ -172,6 +180,18 @@ class AgentsApi constructor(
         }
     }
 
+    /**
+     * POST /api/actions/:action_id/oauth/bind — sets `oauth_csrf` (Path `/api/actions`) and
+     * `oauth_session`, which the action's OAuth callback requires. Returned as `Set-Cookie` values
+     * for the in-app sign-in WebView to seed; empty when the server set none.
+     */
+    suspend fun bindActionOAuth(actionId: String): List<String> {
+        val response = client.post {
+            url { appendPathSegments("api", "actions", actionId, "oauth", "bind") }
+        }
+        return CookieHelper.setCookieValues(response.headers, MCP_OAUTH_BINDING_COOKIES)
+    }
+
     // --- Agent Avatar ---
 
     /**
@@ -239,4 +259,9 @@ class AgentsApi constructor(
             url { path("api/agents/tools/calls") }
             parameter("conversationId", conversationId)
         }.body()
+
+    private companion object {
+        /** The page size web's `fetchAllAgentPages` asks for; the data layer caps `limit` at 1000. */
+        const val WALK_PAGE_SIZE = 1000
+    }
 }

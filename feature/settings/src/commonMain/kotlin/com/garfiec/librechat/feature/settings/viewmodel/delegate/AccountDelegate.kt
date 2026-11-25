@@ -5,6 +5,7 @@ import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.common.result.suspendRunCatching
 import com.garfiec.librechat.core.data.repository.BalanceRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
+import com.garfiec.librechat.core.model.Balance
 import com.garfiec.librechat.core.model.User
 import com.garfiec.librechat.core.ui.media.AvatarImagePreparer
 import com.garfiec.librechat.feature.settings.model.allotment
@@ -105,14 +106,7 @@ class AccountDelegate(
         loadBalanceJob = stateHandle.scope.launch {
             stateHandle.update { copy(balance = BalanceUiState.Loading) }
             when (val result = balanceRepository.getBalance()) {
-                is Result.Success -> {
-                    val loaded = BalanceUiState.Loaded(
-                        tokenCredits = result.data.tokenCredits,
-                        autoRefill = result.data.autoRefillInfo(),
-                        allotmentFromRefill = result.data.allotment(startBalance = null),
-                    )
-                    stateHandle.update { copy(balance = loaded) }
-                }
+                is Result.Success -> stateHandle.update { copy(balance = result.data.toBalanceUiState()) }
                 is Result.Error -> {
                     Logger.w(result.exception) { "Failed to load balance: ${result.message}" }
                     stateHandle.update { copy(balance = BalanceUiState.Error) }
@@ -121,6 +115,32 @@ class AccountDelegate(
             }
         }
     }
+
+    /**
+     * Re-reads the balance on a return to the page. Quiet: the shown balance stays while it loads,
+     * and stays when it fails. Skipped while a load is already running.
+     */
+    fun refreshBalanceQuietly() {
+        if (loadBalanceJob?.isActive == true) return
+        loadBalanceJob = stateHandle.scope.launch {
+            when (val result = balanceRepository.getBalance()) {
+                is Result.Success -> stateHandle.update { copy(balance = result.data.toBalanceUiState()) }
+                is Result.Error -> {
+                    Logger.w(result.exception) { "Balance refresh failed: ${result.message}" }
+                    if (stateHandle.state.balance !is BalanceUiState.Loaded) {
+                        stateHandle.update { copy(balance = BalanceUiState.Error) }
+                    }
+                }
+                is Result.Loading -> { /* no-op */ }
+            }
+        }
+    }
+
+    private fun Balance.toBalanceUiState() = BalanceUiState.Loaded(
+        tokenCredits = tokenCredits,
+        autoRefill = autoRefillInfo(),
+        allotmentFromRefill = allotment(startBalance = null),
+    )
 
     // ── Avatar ─────────────────────────────────────────────────────
 
@@ -234,7 +254,7 @@ class AccountDelegate(
     }
 
     fun dismissError() {
-        stateHandle.update { copy(error = null) }
+        stateHandle.update { copy(error = null, errorRes = null) }
     }
 
     private companion object {

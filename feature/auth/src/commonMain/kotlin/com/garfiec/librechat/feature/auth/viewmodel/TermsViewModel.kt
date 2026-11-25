@@ -1,6 +1,5 @@
 package com.garfiec.librechat.feature.auth.viewmodel
 
-import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.garfiec.librechat.core.common.result.Result
@@ -12,20 +11,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-
-@Immutable
-data class TermsUiState(
-    /** The server's `modalContent` (Markdown), or blank when it sent none. */
-    val termsText: String = "",
-    /** The server's `modalTitle`, or null for the app's own title. */
-    val title: String? = null,
-    /** A startup config has arrived, so [termsText] and [title] are what the server sends. */
-    val termsLoaded: Boolean = false,
-    val isAccepted: Boolean = false,
-    val isAccepting: Boolean = false,
-    /** Loading the terms failed with no config to fall back on, or accepting them failed. */
-    val error: String? = null,
-)
 
 /**
  * The terms come from the startup config (`interface.termsOfService.modalTitle` / `modalContent`),

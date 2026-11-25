@@ -22,6 +22,7 @@ class AuthSkipPathsTest {
         assertThat(matches("https://chat.example.com/api/auth/requestPasswordReset")).isTrue()
         assertThat(matches("https://chat.example.com/api/auth/resetPassword")).isTrue()
         assertThat(matches("https://chat.example.com/api/auth/2fa/verify-temp")).isTrue()
+        assertThat(matches("https://chat.example.com/api/auth/2fa/setup/cancel")).isTrue()
     }
 
     @Test

@@ -38,6 +38,8 @@ interface FileRepository {
          * `PdfPasswordProtectedException`. The PDF is decrypted on-device with it; it is never sent.
          */
         pdfPassword: String? = null,
+        conversationId: String? = null,
+        isTemporary: Boolean = false,
     ): Result<FileObject>
 
     /**

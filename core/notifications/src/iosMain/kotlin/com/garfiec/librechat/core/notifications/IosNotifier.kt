@@ -73,11 +73,14 @@ class IosNotifier : PlatformNotifier {
     /** Registered before each post so the hidden-preview text follows the in-app language. */
     private suspend fun registerCategories() {
         val categories = Kind.entries.map { kind ->
+            // Resolved before the call: a suspend call inside an Objective-C call's arguments lets the
+            // arguments bridged before it be freed across the suspension (a crash in objc_retain).
+            val hiddenBody = getString(kind.hiddenBody)
             UNNotificationCategory.categoryWithIdentifier(
                 identifier = kind.category,
                 actions = emptyList<Any>(),
                 intentIdentifiers = emptyList<Any>(),
-                hiddenPreviewsBodyPlaceholder = getString(kind.hiddenBody),
+                hiddenPreviewsBodyPlaceholder = hiddenBody,
                 options = UNNotificationCategoryOptionNone,
             )
         }

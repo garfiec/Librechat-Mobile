@@ -1,6 +1,6 @@
 package com.garfiec.librechat.feature.chat.components.web
 
-import com.garfiec.librechat.feature.chat.resources.Res
+import com.garfiec.librechat.feature.chat.web.resources.Res
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 
 /**

@@ -28,6 +28,12 @@ object ServerErrorCode {
     const val RUN_STILL_ACTIVE = "RUN_STILL_ACTIVE"
 
     /**
+     * 503 from `POST /api/agents/chat/resume`, under `error`: the paused run's context couldn't be
+     * loaded just now. Retryable; the pause stays answerable.
+     */
+    const val RESUME_CONTEXT_UNAVAILABLE = "resume_context_unavailable"
+
+    /**
      * 400 from the abort route when a target field is present but zero-length or over 512 chars.
      * The client should never provoke this — see `ChatAbortRequest`, which is what stopped mobile
      * sending an empty `abortKey`.
@@ -127,6 +133,22 @@ object ServerErrorCode {
     const val PROJECT_RESOURCES_CHANGED = "PROJECT_RESOURCES_CHANGED"
 
     /**
+     * 409 from a generation start (agents chat, Assistants): the account is being deleted, so no new
+     * run is admitted. Also answered by authenticated routes while the deletion runs.
+     */
+    const val ACCOUNT_DELETION_IN_PROGRESS = "ACCOUNT_DELETION_IN_PROGRESS"
+
+    /** 503 from a generation start: the admission check itself failed. Nothing ran; retryable. */
+    const val GENERATION_ADMISSION_UNAVAILABLE = "GENERATION_ADMISSION_UNAVAILABLE"
+
+    /**
+     * 409 from `POST /api/agents/chat/resume` (v0.8.9-rc1, `packages/api/src/projects/resume.ts`): a
+     * project chat's instructions or files changed during the pause. The run is already finalized, so
+     * no retry can resume it.
+     */
+    const val PROJECT_CONTEXT_CHANGED = "PROJECT_CONTEXT_CHANGED"
+
+    /**
      * The uncoded 404 body on the chat start POST when a project chat's context can't be resolved
      * (v0.8.9-rc1): the project is gone or not the user's. It is the server's `error` sentence, not a
      * code, so it is matched only together with the 404 at that one site.
@@ -146,6 +168,13 @@ object ServerErrorCode {
      * a password sign-in while 2FA is enforced. The only way in is that provider.
      */
     const val TWO_FACTOR_FEDERATED_LOGIN_BLOCKED = "TWO_FACTOR_FEDERATED_LOGIN_BLOCKED"
+
+    /**
+     * 500 from a password reset, a required-2FA finalize or enabling 2FA in settings: the change is
+     * made (new password active, 2FA on), but not every earlier session could be signed out, and no
+     * session is handed back. The user signs in again with the new credential.
+     */
+    const val CREDENTIAL_RETIREMENT_INCOMPLETE = "CREDENTIAL_RETIREMENT_INCOMPLETE"
 
     /**
      * 403 from a write while `interface.termsOfService.modalAcceptance` is on and the user has not

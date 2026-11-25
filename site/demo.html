@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Live demo · Switchboard</title>
+  <meta name="description" content="Try Switchboard's real interface in your browser.">
+  <link rel="icon" href="favicon.ico" sizes="48x48">
+  <link rel="icon" href="icons/icon-192.png" type="image/png" sizes="192x192">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="./"><img class="brand-mark" src="icons/icon-64.png" width="28" height="28" alt="">Switchboard</a>
+    <nav class="site-nav" aria-label="Main">
+      <a class="hide-sm" href="./#features">Features</a>
+      <a class="hide-sm" href="./#faq">FAQ</a>
+      <a class="hide-sm" href="demo.html">Live demo</a>
+      <a class="hide-sm" href="admins.html">For admins</a>
+      <a class="btn" href="./#get">Get the app</a>
+      <button class="menu-btn" type="button" popovertarget="site-menu" aria-label="Menu"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+    </nav>
+    <nav id="site-menu" class="site-menu" popover aria-label="Menu" onclick="if (event.target.closest('a')) this.hidePopover()">
+      <a href="./#features">Features</a>
+      <a href="./#faq">FAQ</a>
+      <a href="demo.html">Live demo</a>
+      <a href="admins.html">For admins</a>
+      <a href="changelog.html">What's new</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+  <div class="wrap narrow">
+    <p class="eyebrow">Live demo</p>
+    <h1>Try Switchboard in your browser</h1>
+    <p class="lede">This is the app's real interface, built from the same code as the Android and iPhone apps. Switch between Material and Liquid Glass, pick an accent color and watch the whole app follow.</p>
+  </div>
+
+  <div class="wrap">
+    <div class="demo-devices">
+      <div class="segmented" role="group" aria-label="Device size" id="demo-device">
+        <button type="button" data-width="390" data-height="844" aria-pressed="true">Phone</button>
+        <button type="button" data-width="800" data-height="850" aria-pressed="false">Foldable</button>
+        <button type="button" data-width="1194" data-height="834" aria-pressed="false">Tablet</button>
+      </div>
+      <a class="btn btn-ghost demo-full" id="demo-full" href="demo/"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Full screen</a>
+    </div>
+    <div class="demo-viewport" id="demo-viewport">
+    <div class="demo-stage" id="demo-stage">
+      <div class="demo-poster">
+        <p class="demo-size" id="demo-size">The demo is a one-time download of about 7 MB.</p>
+        <button type="button" class="btn" id="demo-start">Start the demo</button>
+        <p class="muted demo-req">Needs a recent version of Chrome, Edge, Firefox or Safari.</p>
+      </div>
+    </div>
+    </div>
+  </div>
+
+  <div class="wrap narrow">
+    <h2>What you can try</h2>
+    <ul>
+      <li><strong>Search everything.</strong> Tap the search button in the sidebar and type <em>chocolate</em>: matching messages show up under the chats, with the words marked. "See all" opens the full search, where tapping a result opens the chat at that line.</li>
+      <li><strong>Search inside the model's thinking.</strong> Try <em>riddle</em>, which only appears in a reply's reasoning.</li>
+      <li><strong>Search with patterns.</strong> In the full search, turn on <em>.*</em> and type <em>\d+ minutes</em>.</li>
+      <li><strong>Compare two models.</strong> Open a chat's ⋮ menu, choose Compare Models, and ask whether to walk or drive to a car wash 50 meters away. The two models don't agree.</li>
+      <li><strong>Make it yours.</strong> In Settings, switch between Material and Liquid Glass, light and dark, and pick an accent color.</li>
+      <li><strong>Switch accounts.</strong> Tap your avatar at the bottom of the sidebar to move between a personal, a work and a family server.</li>
+      <li><strong>Try other screen sizes.</strong> Switch to Foldable or Tablet above the demo. Swipe the sidebar away, or bring it back with the menu button.</li>
+    </ul>
+
+    <h2>What it isn't</h2>
+    <p>The demo runs with sample content and never connects to a server. To chat with your own models, <a href="./#get">get the app</a>.</p>
+  </div>
+</main>
+
+
+<footer class="site-footer">
+  <div class="wrap">
+    <nav aria-label="Footer">
+      <a href="https://github.com/garfiec/Librechat-Mobile">GitHub</a>
+      <a href="https://github.com/garfiec/Librechat-Mobile/releases">Releases</a>
+      <a href="changelog.html">What's new</a>
+      <a href="compatibility.html">Compatibility</a>
+      <a href="admins.html">For admins</a>
+      <a href="demo.html">Live demo</a>
+      <a href="verify.html">Verify your download</a>
+      <a href="privacy.html">Privacy</a>
+    </nav>
+    <p class="disclaimer">What you can do depends on your LibreChat server: its version, the models and features it enables, and how sign-in is set up. Switchboard is an independent project, not affiliated with LibreChat.</p>
+  </div>
+</footer>
+
+<script>
+  // The demo (demo/, with its own loading screen) opens in the stage on click; prefetch.js may have
+  // downloaded it already, in which case it opens from the cache.
+  (function () {
+    var stage = document.getElementById('demo-stage');
+    // Full screen is the demo's own page; it keeps the link to a sample chat, if there is one.
+    document.getElementById('demo-full').href = 'demo/' + location.hash;
+    function ready() {
+      document.getElementById('demo-size').textContent = 'The demo is downloaded and ready.';
+    }
+    try { if (sessionStorage.getItem('switchboard-demo-prefetched')) ready(); } catch (e) {}
+    document.addEventListener('switchboard-demo-prefetched', ready);
+    document.getElementById('demo-start').addEventListener('click', function () {
+      // On a phone the demo gets the whole page: a frame can't move up with the keyboard.
+      if (matchMedia('(max-width: 760px)').matches) {
+        location.href = 'demo/' + location.hash;
+        return;
+      }
+      var frame = document.createElement('iframe');
+      frame.className = 'demo-frame';
+      frame.title = 'Switchboard demo';
+      frame.src = 'demo/' + location.hash;
+      stage.replaceChildren(frame);
+      frame.focus({ preventScroll: true });
+    });
+
+    // The device switch sizes the stage to that device's window in CSS pixels, so the app lays out
+    // as it would there (drawer on a phone, sidebar on the others), and scales it down to fit the page.
+    // On a narrow screen the stage just fills the width and the switch is hidden.
+    var viewport = document.getElementById('demo-viewport');
+    var buttons = Array.prototype.slice.call(document.querySelectorAll('#demo-device button'));
+    var device = buttons[0];
+    function layout() {
+      if (matchMedia('(max-width: 760px)').matches) {
+        viewport.removeAttribute('style');
+        stage.removeAttribute('style');
+        return;
+      }
+      var width = Number(device.dataset.width);
+      var height = Number(device.dataset.height);
+      var scale = Math.min(1, viewport.parentElement.clientWidth / width, (innerHeight - 120) / height);
+      viewport.style.width = width * scale + 'px';
+      viewport.style.height = height * scale + 'px';
+      stage.style.width = width + 'px';
+      stage.style.height = height + 'px';
+      stage.style.transform = scale < 1 ? 'scale(' + scale + ')' : '';
+    }
+    buttons.forEach(function (button) {
+      button.addEventListener('click', function () {
+        device = button;
+        buttons.forEach(function (x) { x.setAttribute('aria-pressed', String(x === button)); });
+        layout();
+      });
+    });
+    addEventListener('resize', layout);
+    layout();
+  })();
+</script>
+<script src="prefetch.js" defer></script>
+</body>
+</html>

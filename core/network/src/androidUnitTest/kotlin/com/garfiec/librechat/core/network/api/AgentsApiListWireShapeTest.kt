@@ -9,6 +9,8 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.HttpRequestData
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpMethod
+import io.ktor.http.headers
 import io.ktor.http.headersOf
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.test.runTest
@@ -30,12 +32,18 @@ class AgentsApiListWireShapeTest {
         "has_more":true,"after":"eyJ1cGRhdGVkQXQiOiIyMDI2In0="}
     """.trimIndent().replace("\n", "")
 
-    private fun api(): AgentsApi {
+    private val requests = mutableListOf<HttpRequestData>()
+
+    private fun api(vararg setCookies: String): AgentsApi {
         val engine = MockEngine { request ->
             lastRequest = request
+            requests += request
             respond(
                 content = response,
-                headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+                headers = headers {
+                    append(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+                    setCookies.forEach { append(HttpHeaders.SetCookie, it) }
+                },
             )
         }
         return AgentsApi(HttpClient(engine) { install(ContentNegotiation) { json(librechatJson) } })
@@ -110,5 +118,46 @@ class AgentsApiListWireShapeTest {
         assertThat(page.hasMore).isTrue()
         assertThat(page.after).isEqualTo("eyJ1cGRhdGVkQXQiOiIyMDI2In0=")
         assertThat(page.data.map { it.id }).containsExactly("agent_1")
+    }
+
+    /** Upstream `POST /api/actions/:action_id/oauth/bind`, which the action callback's CSRF check needs. */
+    @Test
+    fun `an action's OAuth bind posts to its bind route and returns the binding cookies`() = runTest {
+        val cookies = api(
+            "oauth_session=s1; Max-Age=86400; Path=/api; HttpOnly; Secure; SameSite=Lax",
+            "oauth_csrf=c1; Max-Age=600; Path=/api/actions; HttpOnly; Secure; SameSite=Lax",
+            "unrelated=1; Path=/",
+        ).bindActionOAuth("act_abc")
+
+        assertThat(cookies).hasSize(2)
+        assertThat(cookies.single { it.startsWith("oauth_session=s1") }).contains("Path=/api")
+        assertThat(cookies.single { it.startsWith("oauth_csrf=c1") }).contains("Path=/api/actions")
+        val request = requests.single()
+        assertThat(request.method).isEqualTo(HttpMethod.Post)
+        assertThat(request.url.encodedPath).isEqualTo("/api/actions/act_abc/oauth/bind")
+    }
+
+    @Test
+    fun `getAgents walks every page at limit 1000`() = runTest {
+        val engine = MockEngine { request ->
+            requests += request
+            val body = if (request.url.parameters["cursor"] == null) {
+                """{"object":"list","data":[{"id":"agent_1","name":"One"}],"has_more":true,"after":"c1"}"""
+            } else {
+                """{"object":"list","data":[{"id":"agent_2","name":"Two"}],"has_more":false,"after":null}"""
+            }
+            respond(content = body, headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()))
+        }
+        val api = AgentsApi(HttpClient(engine) { install(ContentNegotiation) { json(librechatJson) } })
+
+        val all = api.getAgents(category = "education")
+
+        assertThat(requests.first().url.parameters["limit"]).isEqualTo("1000")
+        assertThat(requests).hasSize(2)
+        assertThat(requests.map { it.url.parameters["limit"] }).containsExactly("1000", "1000")
+        assertThat(requests.map { it.url.parameters["cursor"] }).containsExactly(null, "c1").inOrder()
+        assertThat(requests.map { it.url.parameters["category"] }).containsExactly("education", "education")
+        assertThat(all.data.map { it.id }).containsExactly("agent_1", "agent_2").inOrder()
+        assertThat(all.hasMore).isFalse()
     }
 }

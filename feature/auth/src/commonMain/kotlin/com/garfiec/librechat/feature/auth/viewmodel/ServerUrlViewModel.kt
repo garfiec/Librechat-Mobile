@@ -1,12 +1,12 @@
 package com.garfiec.librechat.feature.auth.viewmodel
 
-import androidx.compose.runtime.Immutable
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.garfiec.librechat.core.common.extensions.serverHostLabel
 import com.garfiec.librechat.core.common.identity.cleanServerUrl
 import com.garfiec.librechat.core.common.identity.serverOrigin
+import com.garfiec.librechat.core.common.result.AccessGatewayException
 import com.garfiec.librechat.core.common.result.FailureKind
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.common.result.message
@@ -14,15 +14,16 @@ import com.garfiec.librechat.core.common.result.suspendRunCatching
 import com.garfiec.librechat.core.data.datastore.AccountEntry
 import com.garfiec.librechat.core.data.datastore.AccountRoster
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
+import com.garfiec.librechat.core.data.gate.GateAccess
+import com.garfiec.librechat.core.data.gate.GateSignInResult
 import com.garfiec.librechat.core.data.repository.AccountSwitcher
 import com.garfiec.librechat.core.data.repository.ConfigRepository
-import com.garfiec.librechat.core.data.repository.HeaderWriteFailure
 import com.garfiec.librechat.core.data.repository.HeaderWriteResult
 import com.garfiec.librechat.core.data.repository.ServerRepository
 import com.garfiec.librechat.core.data.repository.ServerResolution
+import com.garfiec.librechat.core.model.auth.DEFAULT_GATE_CLIENT_ID
 import com.garfiec.librechat.core.model.config.StartupConfig
 import com.garfiec.librechat.core.network.client.CustomHeaderRules
-import com.garfiec.librechat.core.network.client.HeaderRejection
 import com.garfiec.librechat.core.ui.components.CustomHeaderRow
 import com.garfiec.librechat.core.ui.components.toPairs
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,50 +32,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-
-/**
- * A rejected header row, as the row index plus the machine-readable reason. Deliberately not a
- * message: `:core:network` has no string resources and this module's strings live in its own
- * `composeResources`, so the mapping to text belongs in the composable.
- */
-@Immutable
-data class HeaderFieldError(val index: Int, val reason: HeaderRejection)
-
-/** A server the roster's accounts are on, as the "Your servers" shortcut shows it. */
-@Immutable
-data class KnownServer(
-    val url: String,
-    /** The address without its scheme; the path stays, so two subpath servers on one host differ. */
-    val label: String,
-    val host: String,
-    val accountCount: Int,
-)
-
-@Immutable
-data class ServerUrlUiState(
-    val url: String = "",
-    val isLoading: Boolean = false,
-    val error: String? = null,
-    val isValidated: Boolean = false,
-    val showHttpWarning: Boolean = false,
-    val showAdvanced: Boolean = false,
-    val customHeaders: List<CustomHeaderRow> = emptyList(),
-    val headerError: HeaderFieldError? = null,
-    /**
-     * The stored headers could not be read, so [customHeaders] is empty because nothing loaded, not
-     * because nothing is configured. Rendered as a warning: an unlabelled empty editor reads as the
-     * credential having been lost.
-     */
-    val headersLoadFailed: Boolean = false,
-    /**
-     * Why the typed headers could not be persisted, or null. Connect stops on any of these rather
-     * than probing, because a probe without the credential fails as an opaque connection error and
-     * sends the user to fix a URL that was never the problem.
-     */
-    val headersSaveFailure: HeaderWriteFailure? = null,
-    /** Servers of the accounts on this device, most recently used first. */
-    val knownServers: List<KnownServer> = emptyList(),
-)
 
 internal fun knownServersOf(entries: List<AccountEntry>): List<KnownServer> =
     entries.groupBy { it.serverUrl }
@@ -115,6 +72,7 @@ class ServerUrlViewModel(
     private val savedStateHandle: SavedStateHandle,
     private val addAccount: Boolean = false,
     private val cleartextBlockedForDomainNames: Boolean = platformBlocksCleartextToDomainNames,
+    private val gateAccess: GateAccess? = null,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ServerUrlUiState())
@@ -178,6 +136,7 @@ class ServerUrlViewModel(
             headerError = null,
             headersLoadFailed = false,
             headersSaveFailure = null,
+            gate = null,
         )
         saveDraft()
         validateAndConnect()
@@ -187,7 +146,7 @@ class ServerUrlViewModel(
         // Deliberately does not re-key the saved headers: this fires per keystroke, and deriveServerId
         // throws on partial input. The header set is committed against the final URL on Connect.
         userEdited = true
-        _uiState.value = _uiState.value.copy(url = url, error = null)
+        _uiState.value = _uiState.value.copy(url = url, error = null, gate = null)
         saveDraft()
     }
 
@@ -393,7 +352,10 @@ class ServerUrlViewModel(
                 // Nothing was stored for this attempt. An add session left over from an earlier,
                 // abandoned attempt is dropped so no staged state outlives it.
                 if (addAccount) accountSwitcher.cancelAdd()
-                showError(resolution.error)
+                val gateBlock = resolution.error.exception as? AccessGatewayException
+                // A refused stored token (407) names no portal; the one it was signed in at does.
+                val portal = gateBlock?.let { it.portalUrl ?: gateAccess?.signInDetails(url)?.portalUrl }
+                if (portal != null && gateAccess != null) showGate(url, portal) else showError(resolution.error)
             }
             is ServerResolution.Resolved -> {
                 val winner = resolution.url
@@ -430,6 +392,93 @@ class ServerUrlViewModel(
                 _uiState.value = _uiState.value.copy(url = winner, isLoading = false, isValidated = true)
             }
         }
+    }
+
+    private fun showGate(serverUrl: String, portalUrl: String) {
+        val previous = _uiState.value.gate
+        _uiState.value = _uiState.value.copy(
+            isLoading = false,
+            error = null,
+            gate = GateUi(
+                portalHost = portalUrl.substringAfter("://").substringBefore('/').substringBefore('?')
+                    .substringAfterLast('@').substringBefore(':'),
+                isAuthelia = portalUrl.substringAfter('?', "").split('&').any { it.startsWith("rm=") },
+                clientId = previous?.clientId.orEmpty(),
+                portalUrl = portalUrl,
+                serverUrl = serverUrl,
+            ),
+        )
+        val access = gateAccess ?: return
+        viewModelScope.launch {
+            val storedClient = access.signInDetails(serverUrl)?.clientId
+            val offersBrowser = access.offersBrowserSignIn(portalUrl)
+            updateGate {
+                it.copy(
+                    browserSignIn = offersBrowser,
+                    clientId = it.clientId.ifBlank { storedClient?.takeIf { id -> id != DEFAULT_GATE_CLIENT_ID }.orEmpty() },
+                )
+            }
+        }
+    }
+
+    private fun updateGate(transform: (GateUi) -> GateUi) {
+        val gate = _uiState.value.gate ?: return
+        _uiState.value = _uiState.value.copy(gate = transform(gate))
+    }
+
+    fun onGateClientIdChanged(clientId: String) = updateGate { it.copy(clientId = clientId, problem = null) }
+
+    /** The primary action while a gate is shown: the browser sign-in, or the page when that's all there is. */
+    fun signInToGate() {
+        val gate = _uiState.value.gate ?: return
+        val access = gateAccess ?: return
+        if (gate.busy || gate.browserSignIn == null) return
+        if (gate.browserSignIn == false) {
+            openGatePage()
+            return
+        }
+        updateGate { it.copy(busy = true, problem = null) }
+        viewModelScope.launch {
+            val clientId = gate.clientId.trim().ifBlank { DEFAULT_GATE_CLIENT_ID }
+            when (val result = access.signIn(gate.serverUrl, gate.portalUrl, clientId)) {
+                GateSignInResult.Success -> reconnectThroughGate(gate.serverUrl)
+                GateSignInResult.Cancelled -> updateGate { it.copy(busy = false) }
+                GateSignInResult.NoProvider -> updateGate { it.copy(busy = false, browserSignIn = false) }
+                is GateSignInResult.UnknownClient -> showGateProblem(GateProblem.UnknownClient(result.clientId))
+                is GateSignInResult.RedirectNotRegistered ->
+                    showGateProblem(GateProblem.RedirectNotRegistered(result.clientId))
+                is GateSignInResult.Refused -> showGateProblem(GateProblem.Refused(result.description))
+                is GateSignInResult.Failed -> showGateProblem(GateProblem.Failed)
+            }
+        }
+    }
+
+    private fun showGateProblem(problem: GateProblem) {
+        val clientProblem = problem is GateProblem.UnknownClient || problem is GateProblem.RedirectNotRegistered
+        updateGate { it.copy(busy = false, problem = problem) }
+        // The fix for a client problem is the client id field, which lives under Advanced.
+        if (clientProblem) _uiState.value = _uiState.value.copy(showAdvanced = true)
+    }
+
+    /** The gate's own sign-in page in the app, for a gate with no usable OAuth client. */
+    fun openGatePage() = updateGate { it.copy(pageSignIn = true, problem = null) }
+
+    fun dismissGatePage() = updateGate { it.copy(pageSignIn = false) }
+
+    /** The page sign-in ended on the server with the gate's session [cookies] in the jar. */
+    fun onGatePageSignedIn(cookies: String) {
+        val gate = _uiState.value.gate ?: return
+        val access = gateAccess ?: return
+        updateGate { it.copy(pageSignIn = false, busy = true) }
+        viewModelScope.launch {
+            access.savePageSignIn(gate.serverUrl, gate.portalUrl, cookies)
+            reconnectThroughGate(gate.serverUrl)
+        }
+    }
+
+    private fun reconnectThroughGate(serverUrl: String) {
+        _uiState.value = _uiState.value.copy(gate = null)
+        doValidateAndConnect(serverUrl)
     }
 
     private fun showError(error: Result.Error) {

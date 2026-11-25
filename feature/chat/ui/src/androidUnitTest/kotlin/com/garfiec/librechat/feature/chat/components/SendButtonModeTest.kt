@@ -1,0 +1,172 @@
+package com.garfiec.librechat.feature.chat.components
+
+import com.garfiec.librechat.feature.chat.viewmodel.DuringRunSendTarget
+import com.garfiec.librechat.feature.chat.viewmodel.withStagedFiles
+import com.google.common.truth.Truth.assertThat
+import org.junit.Test
+
+/**
+ * The composer button must NAME what tapping it does.
+ *
+ * This is the half of the during-run send that no behavioural test reaches: routing is decided by
+ * [com.garfiec.librechat.feature.chat.viewmodel.ChatUiState.duringRunSendTarget] and exercised in
+ * `ChatViewModelDuringRunSendTest`, while the button's face is derived separately — and for a
+ * while, from a different source (the user's steer/queue preference), so a live
+ * `ask_user_question` pause got a button reading "add to queue" over a tap that answered the
+ * question. Nothing failed, because nothing compared the two.
+ */
+class SendButtonModeTest {
+
+    private fun mode(
+        isStreaming: Boolean = true,
+        canQueue: Boolean = true,
+        target: DuringRunSendTarget = DuringRunSendTarget.QUEUE,
+        isEditingQueued: Boolean = false,
+        isAwaitingUploadSend: Boolean = false,
+        isQueuedEditEmptied: Boolean = false,
+    ) = sendButtonModeFor(
+        isStreaming = isStreaming,
+        canQueue = canQueue,
+        duringRunTarget = target,
+        isEditingQueued = isEditingQueued,
+        isAwaitingUploadSend = isAwaitingUploadSend,
+        isQueuedEditEmptied = isQueuedEditEmptied,
+    )
+
+    // ── The button names its target ───────────────────────────────────────
+
+    @Test
+    fun `an interrupt default shows the interrupt face, not the steer one`() {
+        assertThat(mode(target = DuringRunSendTarget.INTERRUPT)).isEqualTo(SendButtonMode.INTERRUPT)
+    }
+
+    @Test
+    fun `a send that will answer a paused run says so`() {
+        assertThat(mode(target = DuringRunSendTarget.ANSWER_PAUSE)).isEqualTo(SendButtonMode.ANSWER)
+    }
+
+    @Test
+    fun `a send that will steer the running reply says so`() {
+        assertThat(mode(target = DuringRunSendTarget.STEER)).isEqualTo(SendButtonMode.STEER)
+    }
+
+    @Test
+    fun `a send that will queue a follow-up says so`() {
+        assertThat(mode(target = DuringRunSendTarget.QUEUE)).isEqualTo(SendButtonMode.QUEUE)
+    }
+
+    @Test
+    fun `a steer or interrupt default with files staged shows the queue face`() {
+        assertThat(mode(target = DuringRunSendTarget.STEER.withStagedFiles(true))).isEqualTo(SendButtonMode.QUEUE)
+        assertThat(mode(target = DuringRunSendTarget.INTERRUPT.withStagedFiles(true))).isEqualTo(SendButtonMode.QUEUE)
+    }
+
+    @Test
+    fun `files leave the other targets alone`() {
+        assertThat(mode(target = DuringRunSendTarget.STEER.withStagedFiles(false))).isEqualTo(SendButtonMode.STEER)
+        assertThat(mode(target = DuringRunSendTarget.INTERRUPT.withStagedFiles(false)))
+            .isEqualTo(SendButtonMode.INTERRUPT)
+        assertThat(mode(target = DuringRunSendTarget.QUEUE.withStagedFiles(true))).isEqualTo(SendButtonMode.QUEUE)
+        assertThat(mode(target = DuringRunSendTarget.ANSWER_PAUSE.withStagedFiles(true)))
+            .isEqualTo(SendButtonMode.ANSWER)
+    }
+
+    /**
+     * The invariant behind the cases above: every target maps to its own face. A preference-derived
+     * rule collapses two of them together, because a pause overrides the preference but not the icon.
+     */
+    @Test
+    fun `every during-run target gets a distinct face`() {
+        val faces = DuringRunSendTarget.entries.map { mode(target = it) }
+        assertThat(faces.toSet().size).isEqualTo(DuringRunSendTarget.entries.size)
+    }
+
+    // ── The pre-existing rules still hold ─────────────────────────────────
+
+    /** The "clear the box to reveal Stop" rule: nothing to send mid-run leaves Stop reachable. */
+    @Test
+    fun `a mid-run button with nothing to send is Stop`() {
+        assertThat(mode(canQueue = false)).isEqualTo(SendButtonMode.STOP)
+        assertThat(mode(canQueue = false, target = DuringRunSendTarget.ANSWER_PAUSE))
+            .isEqualTo(SendButtonMode.STOP)
+    }
+
+    /**
+     * An emptied queued edit must still reach the commit, which withdraws the message; otherwise
+     * the user has no way to take it back and the original runs at the run end.
+     */
+    @Test
+    fun `an emptied queued edit offers to remove the message`() {
+        assertThat(mode(isEditingQueued = true, isQueuedEditEmptied = true))
+            .isEqualTo(SendButtonMode.REMOVE_QUEUED)
+        assertThat(mode(isEditingQueued = true, isQueuedEditEmptied = true, isStreaming = false))
+            .isEqualTo(SendButtonMode.REMOVE_QUEUED)
+        // Only while editing: an empty composer otherwise keeps its ordinary faces.
+        assertThat(mode(isQueuedEditEmptied = true, canQueue = false)).isEqualTo(SendButtonMode.STOP)
+    }
+
+    @Test
+    fun `a queued edit commits instead of sending`() {
+        assertThat(mode(isEditingQueued = true, target = DuringRunSendTarget.ANSWER_PAUSE))
+            .isEqualTo(SendButtonMode.UPDATE)
+    }
+
+    /** A parked upload must never hide a mid-stream Stop; off-stream it becomes the spinner. */
+    @Test
+    fun `a send parked behind an upload keeps Stop while streaming`() {
+        assertThat(mode(isAwaitingUploadSend = true)).isEqualTo(SendButtonMode.STOP)
+        assertThat(mode(isStreaming = false, isAwaitingUploadSend = true))
+            .isEqualTo(SendButtonMode.AWAITING)
+    }
+
+    @Test
+    fun `an idle composer sends`() {
+        assertThat(mode(isStreaming = false)).isEqualTo(SendButtonMode.SEND)
+    }
+
+    // ── A control that will refuse the tap must not look live ────────────
+
+    @Test
+    fun `unsettled picks disable the control even with text typed`() {
+        // Every send path refuses while a pick is mid-intake or staged for the routing sheet. The
+        // window is as long as the agent-provider resolve takes, and an enabled-looking Send that
+        // silently does nothing for it reads as the app being broken.
+        assertThat(
+            composerCanSend(inputText = "look at this", hasAttachments = false, arePicksUnsettled = true),
+        ).isFalse()
+    }
+
+    @Test
+    fun `unsettled picks disable the control even with a file already in the tray`() {
+        assertThat(
+            composerCanSend(inputText = "", hasAttachments = true, arePicksUnsettled = true),
+        ).isFalse()
+    }
+
+    @Test
+    fun `settled content sends`() {
+        assertThat(
+            composerCanSend(inputText = "hello", hasAttachments = false, arePicksUnsettled = false),
+        ).isTrue()
+        assertThat(
+            composerCanSend(inputText = "  ", hasAttachments = true, arePicksUnsettled = false),
+        ).isTrue()
+    }
+
+    @Test
+    fun `a failed upload disables the control whatever else the composer holds`() {
+        assertThat(
+            composerCanSend(inputText = "hello", hasAttachments = true, arePicksUnsettled = false, hasFailedUploads = true),
+        ).isFalse()
+        assertThat(
+            composerCanSend(inputText = "", hasAttachments = true, arePicksUnsettled = false, hasFailedUploads = true),
+        ).isFalse()
+    }
+
+    @Test
+    fun `an empty composer still cannot send`() {
+        assertThat(
+            composerCanSend(inputText = "   ", hasAttachments = false, arePicksUnsettled = false),
+        ).isFalse()
+    }
+}

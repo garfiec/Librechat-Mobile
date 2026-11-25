@@ -42,7 +42,10 @@ import platform.Security.kSecValueData
 class IosTokenDataStore(
     refreshClient: Lazy<HttpClient>,
     ioDispatcher: CoroutineDispatcher,
-) : CommonTokenDataStore(refreshClient, ioDispatcher), ServerUrlKeychainFallback {
+) : CommonTokenDataStore(refreshClient, ioDispatcher), ServerUrlKeychainFallback, SecureValueStore {
+
+    override fun readSecure(key: String): String? = keychainGet(key)
+    override fun writeSecure(key: String, value: String) = keychainSet(key, value)
 
     override fun readValue(key: String): String? = keychainGet(key)
 

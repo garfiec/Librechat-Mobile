@@ -1,6 +1,5 @@
 package com.garfiec.librechat.feature.auth.diagnostics
 
-import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.garfiec.librechat.core.common.result.suspendRunCatching
@@ -12,18 +11,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-
-@Immutable
-data class DiagnosticLogFile(val content: String, val fileName: String)
-
-enum class DiagnosticLogOutcome { Exported, Failed }
-
-@Immutable
-data class DiagnosticLogExportState(
-    val isExporting: Boolean = false,
-    val pendingFile: DiagnosticLogFile? = null,
-    val outcome: DiagnosticLogOutcome? = null,
-)
 
 /**
  * Exports the diagnostic log from the sign-in screens, where Settings → Data can't be reached.

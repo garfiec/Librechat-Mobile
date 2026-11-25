@@ -40,6 +40,10 @@ import io.ktor.client.plugins.logging.Logger as KtorLogger
 
 object LibreChatHttpClient {
 
+    private fun isCredentialHeader(name: String, headers: ServerHeadersProvider, urls: ServerUrlProvider): Boolean =
+        name.equals(HttpHeaders.ProxyAuthorization, ignoreCase = true) ||
+            headers.headersFor(urls.getBaseUrl()).keys.any { it.equals(name, ignoreCase = true) }
+
     fun create(
         engineFactory: HttpClientEngineFactory<*>,
         json: Json,
@@ -51,6 +55,7 @@ object LibreChatHttpClient {
         switchGate: SwitchGate? = null,
         serverHeadersProvider: ServerHeadersProvider = EmptyServerHeadersProvider,
         requestActivityTracker: RequestActivityTracker? = null,
+        gateCredentialProvider: GateCredentialProvider = NoGateCredentials,
         debug: Boolean = false,
     ): HttpClient = HttpClient(engineFactory) {
         install(ContentNegotiation) {
@@ -76,10 +81,7 @@ object LibreChatHttpClient {
             // header" is every RFC-7230 token outside RESERVED_NAMES — Location, Set-Cookie,
             // Retry-After, X-Request-Id — i.e. exactly the fields someone turns HEADERS logging on to
             // read, and redacting them makes the log useless for the gateway problems it exists for.
-            sanitizeHeader { name ->
-                serverHeadersProvider.headersFor(serverUrlProvider.getBaseUrl())
-                    .keys.any { it.equals(name, ignoreCase = true) }
-            }
+            sanitizeHeader { isCredentialHeader(it, serverHeadersProvider, serverUrlProvider) }
         }
 
         install(HttpTimeout) {
@@ -124,6 +126,7 @@ object LibreChatHttpClient {
             this.serverHeadersProvider = serverHeadersProvider
             this.serverUrlProvider = serverUrlProvider
         }
+        installGateCredentials(gateCredentialProvider, serverUrlProvider)
 
         // Outside GatewayDetectionPlugin, so a gateway's challenge is reported before a redirect is.
         install(ServerProbePlugin)

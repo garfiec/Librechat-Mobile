@@ -85,8 +85,8 @@
   the first write if that failed; a failed read is an error, not a write of `[thisAgent]`. `isPinned` follows
   the repository flow (pins from the chat picker show). Over
   `FavoritesLimits.MAX_FAVORITES` = `PinLimit` error, nothing sent.
-- **Copy link**: `agentChatLink()` = `<server>/c/new?agent_id=<id>` (mirror `agent-chat-link`), via this
-  module's `ClipboardWriter`.
+- **Copy link**: `agentChatLink()` = `<server>/c/new?agent_id=<id>` (mirror `agent-chat-link`), via `:core:ui`'s
+  `ClipboardWriter`.
 - Errors: never-loaded page = `loadError` (ErrorBanner + Retry); failed Delete/Duplicate/pin = `actionError`
   snackbar. No English in the VM.
 
@@ -102,6 +102,13 @@
   files/avatar don't count as edits. `applyAgentData` sets `loadedAgent` (load and revert move the baseline).
 - Version history loads lazily (`AgentLoaderDelegate.loadVersions`; v0.8.8 stopped inlining `versions[]`).
   Compare the active revision against `versionBasis` captured at load, never live form state.
+
+### Linked instructions (v0.8.9)
+- Inline/Prompt, group and revision are editable only while `isInstructionsLinkEditable` (revisions route;
+  never over the restricted stub, nor a saved Langfuse link while `agents.linkedInstructions.langfuse.enabled`
+  is off); otherwise a linked agent keeps `LinkedInstructionsNote`. The switch only adds Langfuse groups:
+  read the library through `offeredPromptGroups()`, never `promptGroups` directly. **Save sends `instructionsPrompt` only when the link changed**
+  (`instructionsPromptWrite`): absent keeps the stored link, `JsonNull` removes it.
 
 ### Tools picker
 - `ToolsMarketplaceDialog` is the ONE picker (capabilities, plugin tools, MCP servers, skills). Elsewhere the
@@ -152,7 +159,7 @@
   identity are explicit `JsonNull`s (`explicitNulls = false` would drop them). Code off saves stateful sessions
   off. Enabling stateful sessions applies the Settings default scope, else the first allowed. Picking a default
   workspace also writes the effective machine. A half-filled/malformed Git identity blocks Save
-  (`codeGitIdentityError`).
+  (`codeGitIdentityError`) while the Git fields show; hidden, it is left out of the write (web `releaseIdentity`).
 - **Background execution** (`AgentCodeBackgroundRow`): shown while code interpreter is on and
   `agents.capabilities` has `run_in_background` (fail-closed). `withCodeBackground` (port of
   `withNativeBooleanOptOut`) edits `tool_options` for BOTH `execute_code` and `bash_tool`: off writes

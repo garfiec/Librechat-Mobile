@@ -238,7 +238,9 @@ internal fun LiquidSegmentedControl(
             // Read latest rather than keyed: a re-layout mid-press (a sidebar dragged beside the strip)
             // would otherwise restart the gesture and cancel it before the thumb is released.
             val latestCount by rememberUpdatedState(count)
-            val latestPositionAt by rememberUpdatedState(::positionAt)
+            // A lambda, not ::positionAt: references to one local function are equal whatever they
+            // captured, so the state would keep the first layout's segment width.
+            val latestPositionAt by rememberUpdatedState { x: Float, width: Float -> positionAt(x, width) }
             val gestures = if (enabled) {
                 Modifier.pointerInput(motion) {
                     awaitEachGesture {

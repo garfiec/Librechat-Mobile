@@ -1,6 +1,9 @@
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.configure
+import org.gradle.kotlin.dsl.getByType
+import org.jetbrains.compose.ComposeExtension
+import org.jetbrains.compose.resources.ResourcesExtension
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 
 class KmpFeatureConventionPlugin : Plugin<Project> {
@@ -10,6 +13,14 @@ class KmpFeatureConventionPlugin : Plugin<Project> {
             pluginManager.apply("librechat.kmp.compose")
             pluginManager.apply("librechat.kmp.koin")
             pluginManager.apply("librechat.kotlin.serialization")
+
+            // A feature with a :ui module reads that module's public Res; generating its own would put a
+            // second class in the same package and fail the dex merge.
+            if (findProject("$path:ui") != null && !file("src/commonMain/composeResources").exists()) {
+                extensions.getByType<ComposeExtension>().extensions.configure<ResourcesExtension> {
+                    generateResClass = ResourcesExtension.ResourceClassGeneration.Never
+                }
+            }
 
             extensions.configure<KotlinMultiplatformExtension> {
                 sourceSets.commonMain.dependencies {

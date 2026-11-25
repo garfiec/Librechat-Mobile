@@ -7,6 +7,7 @@ import io.ktor.client.plugins.HttpSend
 import io.ktor.client.plugins.plugin
 import io.ktor.http.HttpHeaders
 import io.ktor.util.AttributeKey
+import kotlinx.coroutines.CancellationException
 
 /**
  * Turns an access gateway's interception into a typed [AccessGatewayException] (issue #287).
@@ -16,8 +17,10 @@ import io.ktor.util.AttributeKey
  * `NoTransformationFoundException` — which quotes the request URL, and so carries the gateway's
  * redirect, query string and `meta=` JWT into an error banner.
  *
- * Detection keys on the `WWW-Authenticate: Cloudflare-Access` header on the gateway's 302, which is
- * measured against a live Access deployment. Three reasons that header and not something looser:
+ * Detection keys on the `WWW-Authenticate: Cloudflare-Access` header on the gateway's 302 (measured
+ * against a live Access deployment), and on a forward-auth gate's answer (Authelia, measured against
+ * Authelia 4.39): see [AccessGatewaySignal.forwardAuthRejection]. Three reasons for headers and status
+ * and not something looser:
  *
  * - **No body read.** This interceptor runs for every response including streaming ones; consuming
  *   a body here would break SSE.
@@ -46,7 +49,17 @@ class GatewayDetectionPlugin private constructor() {
 
         override fun install(plugin: GatewayDetectionPlugin, scope: HttpClient) {
             scope.plugin(HttpSend).intercept { request ->
-                val call = execute(request)
+                val call = try {
+                    execute(request)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+                    // Engines wrap a refused 407 in their own types; only the cause chain says what it was.
+                    if (generateSequence<Throwable>(e) { it.cause }.any { it is GateChallengeSignal }) {
+                        throw AccessGatewayException(cause = e)
+                    }
+                    throw e
+                }
                 // Every line, not `headers[...]`: that returns only the first, and a gateway fronting
                 // a server that already answers 401 with `Bearer` puts its challenge on a second line.
                 val challenges = call.response.headers.getAll(HttpHeaders.WWWAuthenticate)
@@ -55,6 +68,11 @@ class GatewayDetectionPlugin private constructor() {
                     // page the redirect would otherwise deliver as a perfectly valid 200.
                     throw AccessGatewayException()
                 }
+                AccessGatewaySignal.forwardAuthRejection(
+                    status = call.response.status.value,
+                    location = call.response.headers[HttpHeaders.Location],
+                    requestUrl = call.request.url,
+                )?.let { throw AccessGatewayException(portalUrl = it.portalUrl) }
                 call
             }
         }

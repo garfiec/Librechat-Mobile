@@ -93,15 +93,6 @@ class QueueOrchestrationDelegate(
         }
     }
 
-    private fun ChatUiState.enforcedSpecRestored(): Boolean {
-        if (!gates.serverQueueEnforcedAgentSpecSupported) return false
-        val active = activeSpec ?: return false
-        val preset = active.preset ?: return false
-        return preset.endpoint == EndpointConstants.AGENTS &&
-            preset.agentId == selectedModel &&
-            modelSpecs?.list.orEmpty().count { it.name == active.name } == 1
-    }
-
     /**
      * Marks [spec] as one the SERVER will admit and run, or returns it unchanged for the legacy
      * local drain.
@@ -134,11 +125,7 @@ class QueueOrchestrationDelegate(
      */
     private fun serverOwnedSpec(spec: QueuedMessage): QueuedMessage {
         val state = handle.state
-        if (!state.gates.serverQueueSupported) return spec
-        if (state.modelSpecs.requiresSpec && !state.enforcedSpecRestored()) return spec
-        // Without v2 the server would run the turn under the machine's own permissions.
-        if (spec.codeWorkspace?.approvalMode != null && !state.gates.serverQueueApprovalModeSupported) return spec
-        if (state.selectedEndpoint != EndpointConstants.AGENTS) return spec
+        if (!state.serverCanOwn(spec)) return spec
         if (!state.isStreaming) return spec
         val parentMessageId = state.displayMessages.lastOrNull()?.message?.messageId
             ?.let(queueAnchor) ?: return spec
@@ -262,7 +249,7 @@ class QueueOrchestrationDelegate(
     /** Whether [QueuedTurnDelegate.cancel] can succeed for this row at all: local, addressed, or
      *  refused with nothing committed. */
     private fun QueuedMessage.isWithdrawable(): Boolean =
-        server == null || server.id != null || server.status == QueuedTurnServerState.Status.Rejected
+        server == null || server?.id != null || server?.status == QueuedTurnServerState.Status.Rejected
 
     /** Drops every trace of server ownership, leaving a row the local drain may send. */
     private fun QueuedMessage.asLegacyRow(): QueuedMessage = copy(
@@ -459,8 +446,8 @@ class QueueOrchestrationDelegate(
         // An unconfirmed delivery: its window expired with no id, so nothing can withdraw it and
         // it refuses every drain. Upstream's × dismisses it locally, leaving the server to run it
         // if it did land. Only the × — an edit would resend words the server may already hold.
-        if (item.server.status == QueuedTurnServerState.Status.Uncertain &&
-            item.server.reconciliationExpired
+        if (item.server?.status == QueuedTurnServerState.Status.Uncertain &&
+            item.server?.reconciliationExpired == true
         ) {
             queueDelegate.cancel(localId)
             tryResumeDrain()
@@ -535,7 +522,7 @@ class QueueOrchestrationDelegate(
      */
     fun sendQueuedNow() {
         val refused = handle.state.messageQueue.firstOrNull {
-            it.server?.status == QueuedTurnServerState.Status.Rejected && it.server.id != null
+            it.server?.status == QueuedTurnServerState.Status.Rejected && it.server?.id != null
         }
         if (refused == null) {
             queueDelegate.resume()
@@ -637,4 +624,25 @@ class QueueOrchestrationDelegate(
             state.gates.serverQueueSupported
         queuedTurnDelegate.ensurePolling(state.conversationId.takeIf { eligible })
     }
+}
+
+/**
+ * Whether the server's queue could run [spec] as this client would send it: also what a steer
+ * needs before it may be promoted to a server queued turn.
+ */
+internal fun ChatUiState.serverCanOwn(spec: QueuedMessage): Boolean {
+    if (!gates.serverQueueSupported) return false
+    if (modelSpecs.requiresSpec && !enforcedSpecRestored()) return false
+    // Without v2 the server would run the turn under the machine's own permissions.
+    if (spec.codeWorkspace?.approvalMode != null && !gates.serverQueueApprovalModeSupported) return false
+    return selectedEndpoint == EndpointConstants.AGENTS
+}
+
+private fun ChatUiState.enforcedSpecRestored(): Boolean {
+    if (!gates.serverQueueEnforcedAgentSpecSupported) return false
+    val active = activeSpec ?: return false
+    val preset = active.preset ?: return false
+    return preset.endpoint == EndpointConstants.AGENTS &&
+        preset.agentId == selectedModel &&
+        modelSpecs?.list.orEmpty().count { it.name == active.name } == 1
 }

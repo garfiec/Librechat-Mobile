@@ -2,6 +2,8 @@ package com.garfiec.librechat.feature.chat.viewmodel.delegate
 
 import com.garfiec.librechat.core.common.EndpointConstants
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.model.config.ModelSpec
+import com.garfiec.librechat.core.model.config.ModelSpecs
 import com.garfiec.librechat.core.model.mcp.McpDisplayStatus
 import com.garfiec.librechat.core.model.mcp.McpReinitializeResponse
 import com.garfiec.librechat.core.model.mcp.McpServer
@@ -618,6 +620,62 @@ class McpServersDelegateTest : McpServersDelegateTestBase() {
 
         assertThat(toggled).containsExactly("owed")
         coVerify(exactly = 1) { mcpRepository.listServers() }
+    }
+
+    @Test
+    fun anAgentOnlyServerIsNotOfferedInTheChat() = runTest {
+        coEvery { mcpRepository.listServers() } returns
+            Result.Success(listOf(github, McpServer(name = "docs", consumeOnly = true)))
+        coEvery { mcpRepository.getConnectionStatus() } returns Result.Success(
+            mapOf("github" to McpServerStatus(connectionState = "connected"), "docs" to McpServerStatus(connectionState = "connected")),
+        )
+        val (handle, delegate) = newDelegate()
+
+        delegate.load()
+        advanceUntilIdle()
+
+        assertThat(handle.state.settingChipInputs.mcpServers.map { it.name }).containsExactly("github")
+        assertThat(handle.state.offeredMcpServers.map { it.name }).containsExactly("github")
+        assertThat(handle.state.mcpServers.map { it.name }).containsExactly("github", "docs").inOrder()
+    }
+
+    @Test
+    fun aStoredPickOfAServerTheChatNoLongerOffersIsNotInUse() = runTest {
+        coEvery { mcpRepository.listServers() } returns
+            Result.Success(listOf(github, McpServer(name = "docs", chatMenu = false)))
+        coEvery { mcpRepository.getConnectionStatus() } returns Result.Success(emptyMap())
+        val (handle, delegate) = newDelegate(
+            modelChat.copy(selection = modelChat.selection.copy(selectedMcpServerNames = setOf("github", "docs"))),
+        )
+
+        delegate.load()
+        advanceUntilIdle()
+
+        assertThat(handle.state.effectiveMcpServerNames).containsExactly("github")
+    }
+
+    @Test
+    fun aServerHiddenFromTheChatMenuIsNotOfferedUnlessTheSpecPinsIt() = runTest {
+        coEvery { mcpRepository.listServers() } returns
+            Result.Success(listOf(github, McpServer(name = "docs", chatMenu = false)))
+        coEvery { mcpRepository.getConnectionStatus() } returns Result.Success(emptyMap())
+        val (handle, delegate) = newDelegate()
+        delegate.load()
+        advanceUntilIdle()
+        assertThat(handle.state.offeredMcpServers.map { it.name }).containsExactly("github")
+
+        val pinned = ModelSpec(name = "pinned", mcpServers = listOf("docs"))
+        handle.update {
+            copy(
+                selection = selection.copy(
+                    modelSpecs = ModelSpecs(list = listOf(pinned)),
+                    choice = ModelChoice.Spec("pinned", "openAI", "gpt-4o"),
+                ),
+            )
+        }
+
+        assertThat(handle.state.offeredMcpServers.map { it.name }).containsExactly("github", "docs").inOrder()
+        assertThat(handle.state.lockedMcpServers).containsExactly("docs")
     }
 
     @Test

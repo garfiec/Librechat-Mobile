@@ -1,5 +1,12 @@
 package com.garfiec.librechat.core.data.search
 
+import com.garfiec.librechat.core.model.search.FtsQuery
+import com.garfiec.librechat.core.model.search.FtsQueryPlan
+import com.garfiec.librechat.core.model.search.RegexCheck
+import com.garfiec.librechat.core.model.search.RegexGuard
+import com.garfiec.librechat.core.model.search.RegexProblem
+import com.garfiec.librechat.core.model.search.SearchOptions
+
 /** How the local half of a search runs, from the query and its options. */
 internal sealed interface LocalPlan {
     data object Empty : LocalPlan

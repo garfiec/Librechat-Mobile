@@ -1,16 +1,17 @@
 package com.garfiec.librechat.feature.settings.viewmodel
 
 import com.garfiec.librechat.core.data.datastore.AppPreferences
-import com.garfiec.librechat.core.data.datastore.ArtifactDisplayMode
-import com.garfiec.librechat.core.data.datastore.DuringRunAction
-import com.garfiec.librechat.core.data.datastore.InlineArtifactPrefs
-import com.garfiec.librechat.core.data.datastore.LatexRenderer
 import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
-import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
-import com.garfiec.librechat.core.data.datastore.UploadRoutingMode
-import com.garfiec.librechat.core.data.datastore.WebSearchPreference
 import com.garfiec.librechat.core.model.ArtifactsMode
+import com.garfiec.librechat.core.model.preferences.ArtifactDisplayMode
+import com.garfiec.librechat.core.model.preferences.DuringRunAction
+import com.garfiec.librechat.core.model.preferences.InlineArtifactPrefs
+import com.garfiec.librechat.core.model.preferences.LatexRenderer
+import com.garfiec.librechat.core.model.preferences.StarredModelsDisplay
+import com.garfiec.librechat.core.model.preferences.TTS_SOURCE_DEVICE
+import com.garfiec.librechat.core.model.preferences.UploadRoutingMode
+import com.garfiec.librechat.core.model.preferences.WebSearchPreference
 import com.garfiec.librechat.core.model.speech.voiceFor
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.SharingStarted
@@ -84,7 +85,7 @@ class ChatPreferencesController(
     }.stateIn(
         scope,
         SharingStarted.Eagerly,
-        ExtraPreferences(false, null, false, true, SettingsDataStore.TTS_SOURCE_DEVICE),
+        ExtraPreferences(false, null, false, true, TTS_SOURCE_DEVICE),
     )
 
     private val deviceTtsPreferences: StateFlow<DeviceTtsPreferences> = combine(

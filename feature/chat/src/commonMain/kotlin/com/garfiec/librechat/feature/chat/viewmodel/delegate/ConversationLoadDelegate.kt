@@ -3,6 +3,7 @@ package com.garfiec.librechat.feature.chat.viewmodel.delegate
 import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.common.result.getOrNull
+import com.garfiec.librechat.core.data.datastore.SpecChatTools
 import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.data.repository.DraftRepository
 import com.garfiec.librechat.core.data.repository.MessageRepository
@@ -25,6 +26,7 @@ import com.garfiec.librechat.feature.chat.util.withoutLivePartial
 import com.garfiec.librechat.feature.chat.viewmodel.ChatScreenState
 import com.garfiec.librechat.feature.chat.viewmodel.ComposerSnapshot
 import com.garfiec.librechat.feature.chat.viewmodel.ConversationLoadHandle
+import com.garfiec.librechat.feature.chat.viewmodel.PendingUnpin
 import com.garfiec.librechat.feature.chat.viewmodel.isRealTitle
 import com.garfiec.librechat.feature.chat.viewmodel.isServerCopyOf
 import kotlinx.coroutines.CoroutineDispatcher
@@ -56,13 +58,13 @@ class ConversationLoadDelegate(
     private val applyConversationModel: (Conversation) -> Boolean,
     /** Whether this screen takes the conversation's stored parameters (not a handed-off new chat). */
     private val wantsStoredParameters: () -> Boolean = { false },
-    /** Writes the conversation's parameters, with the web-search switch this device remembered (if any). */
-    private val restoreParameters: (Conversation, Boolean?) -> Unit = { _, _ -> },
+    /** Writes the conversation's parameters, with the tool switches this device remembered for it. */
+    private val restoreParameters: (Conversation, RememberedTools) -> Unit = { _, _ -> },
     /**
-     * The web-search switch this device remembered for a conversation. Read before the model is
-     * applied, so nothing suspends between that and [restoreParameters] for a user change to land in.
+     * The tool switches this device remembered for a conversation. Read before the model is applied,
+     * so nothing suspends between that and [restoreParameters] for a user change to land in.
      */
-    private val rememberedWebSearch: suspend (String) -> Boolean? = { null },
+    private val rememberedTools: suspend (String) -> RememberedTools = { RememberedTools() },
     /**
      * Marks the conversation-model load attempted (never "resolved") and refilters the model list;
      * see ModelSelectionDelegate.conversationModelLoaded. Runs on every path out of
@@ -245,46 +247,7 @@ class ConversationLoadDelegate(
                 handle.stateFlow.map { it.activeBranches }.distinctUntilChanged(),
                 revalidated,
             ) { messages, branches, settled ->
-                // Reuse on-screen Message instances that changed only in volatile fields, so
-                // the rebuilt path stays value-equal and the cosmetic Room reconcile conflates
-                // instead of re-rendering the list (see [stabilizeMessageInstances]). The
-                // baseline is read straight from handle.state, not a combine input: the
-                // completion path writes finalized messages into the state *outside* this flow
-                // (finalizeChatDisplay) and happens-before the cacheMessages write that
-                // triggers this emission, so handle.state reflects the true on-screen state.
-                val baseline = handle.state
-                val stabilized = stabilizeMessageInstances(messages, baseline.messages)
-                // A handed-off new chat seeds the just-sent user message (pendingResumeUserMessage):
-                // the server persists the request only when the reply completes or a client drops its
-                // stream, so the Room read can be empty mid-stream and the user's message would otherwise
-                // vanish for the whole stream.
-                // Keep that seed appended until the server's own copy arrives, then drop it. The copy
-                // is matched by content as well as id (isServerCopyOf): rc3+ re-mints the id, so an
-                // id-only match never fires, and a run ending with no Final (a resume that 404s) would
-                // leave the seed as a newer root sibling that hides the persisted turn. finalizeChatDisplay
-                // also clears the seed at Final. Done here, off Main, so the path build stays on the
-                // Default dispatcher. The takeIf guarantees no copy of the seed is in stabilized, so
-                // this is a plain append — no by-id reconcile needed.
-                val pending = baseline.pendingResumeUserMessage
-                val retainedPending = pending?.takeIf { seed ->
-                    stabilized.none { it.messageId == seed.messageId || it.isServerCopyOf(seed) }
-                }
-                val merged = retainedPending?.let { stabilized + it } ?: stabilized
-                // An attached run's reply is in the bubble, and may also be in this read as the
-                // partial the server saved when the last subscriber left: keep that copy off the
-                // path, or the reply shows twice until the run ends.
-                val attachedRun = baseline.content.attachedRun?.takeIf { baseline.isStreaming }
-                // A resumed run's saved partial: the streaming bubble shows that text already.
-                val liveReplyId = baseline.content.resumedReplyId.takeIf { baseline.isStreaming }
-                MessagePathEmission(
-                    messages = merged,
-                    displayMessages = (
-                        attachedRun?.displayPath(merged, branches)
-                            ?: buildActiveMessagePath(merged, branches)
-                        ).withoutLivePartial(liveReplyId),
-                    retainedPending = retainedPending,
-                    revalidated = settled,
-                )
+                messagePathEmission(messages, branches, settled)
             }
                 .flowOn(defaultDispatcher)
                 .collect { emission ->
@@ -306,6 +269,12 @@ class ConversationLoadDelegate(
                             // a later server-side delete can then still remove the row.
                             pendingResumeUserMessage = emission.retainedPending,
                         )
+                        emission.appliedUnpin?.takeIf { it == content.unpinWhenCached }?.let { applied ->
+                            content = content.copy(
+                                activeBranches = content.activeBranches - applied.keys,
+                                unpinWhenCached = null,
+                            )
+                        }
                     }
                     // Judged on the settled read only: a cached emission predates the failed turn
                     // and would always look like the server dropped it. A fetch that failed also
@@ -352,6 +321,60 @@ class ConversationLoadDelegate(
                     }
                 }
         }
+    }
+
+    /** The Room reconcile's transform: a read of [messages] under [branches] as the path to show. */
+    private fun messagePathEmission(
+        messages: List<Message>,
+        branches: Map<String, Int>,
+        settled: Boolean,
+    ): MessagePathEmission {
+        // Reuse on-screen Message instances that changed only in volatile fields, so
+        // the rebuilt path stays value-equal and the cosmetic Room reconcile conflates
+        // instead of re-rendering the list (see [stabilizeMessageInstances]). The
+        // baseline is read straight from handle.state, not a combine input: the
+        // completion path writes finalized messages into the state *outside* this flow
+        // (finalizeChatDisplay) and happens-before the cacheMessages write that
+        // triggers this emission, so handle.state reflects the true on-screen state.
+        val baseline = handle.state
+        val stabilized = stabilizeMessageInstances(messages, baseline.messages)
+        // A handed-off new chat seeds the just-sent user message (pendingResumeUserMessage):
+        // the server persists the request only when the reply completes or a client drops its
+        // stream, so the Room read can be empty mid-stream and the user's message would otherwise
+        // vanish for the whole stream.
+        // Keep that seed appended until the server's own copy arrives, then drop it. The copy
+        // is matched by content as well as id (isServerCopyOf): rc3+ re-mints the id, so an
+        // id-only match never fires, and a run ending with no Final (a resume that 404s) would
+        // leave the seed as a newer root sibling that hides the persisted turn. finalizeChatDisplay
+        // also clears the seed at Final. Done here, off Main, so the path build stays on the
+        // Default dispatcher. The takeIf guarantees no copy of the seed is in stabilized, so
+        // this is a plain append — no by-id reconcile needed.
+        val pending = baseline.pendingResumeUserMessage
+        val retainedPending = pending?.takeIf { seed ->
+            stabilized.none { it.messageId == seed.messageId || it.isServerCopyOf(seed) }
+        }
+        val merged = retainedPending?.let { stabilized + it } ?: stabilized
+        // An attached run's reply is in the bubble, and may also be in this read as the
+        // partial the server saved when the last subscriber left: keep that copy off the
+        // path, or the reply shows twice until the run ends.
+        val attachedRun = baseline.content.attachedRun?.takeIf { baseline.isStreaming }
+        // A resumed run's saved partial: the streaming bubble shows that text already.
+        val liveReplyId = baseline.content.resumedReplyId.takeIf { baseline.isStreaming }
+        // Pins a finalized turn made stale come off only with a read that holds the turn;
+        // an earlier read would show the pre-turn branch.
+        val unpin = baseline.content.unpinWhenCached
+            ?.takeIf { stale -> merged.any { it.messageId == stale.messageId } }
+        val pathBranches = unpin?.let { branches - it.keys } ?: branches
+        return MessagePathEmission(
+            messages = merged,
+            displayMessages = (
+                attachedRun?.displayPath(merged, pathBranches)
+                    ?: buildActiveMessagePath(merged, pathBranches)
+                ).withoutLivePartial(liveReplyId),
+            retainedPending = retainedPending,
+            revalidated = settled,
+            appliedUnpin = unpin,
+        )
     }
 
     /**
@@ -448,7 +471,7 @@ class ConversationLoadDelegate(
             val result = conversationRepository.getConversation(conversationId, originAccount = null)
             var conversation = result.getOrNull()
             val wantsParameters = wantsStoredParameters()
-            val remembered = if (wantsParameters) rememberedWebSearch(conversationId) else null
+            val remembered = if (wantsParameters) rememberedTools(conversationId) else RememberedTools()
             fun apply(loaded: Conversation, restore: Boolean): Boolean {
                 // A handed-off new chat's row is read while its title is still generating: a
                 // placeholder must not replace the title TitleUpdate already showed.
@@ -547,4 +570,8 @@ private data class MessagePathEmission(
     val displayMessages: List<MessageNode>,
     val retainedPending: Message?,
     val revalidated: Boolean,
+    val appliedUnpin: PendingUnpin?,
 )
+
+/** A conversation's tool switches this device remembered: the web-search switch, and a spec chat's tools. */
+data class RememberedTools(val webSearch: Boolean? = null, val specTools: SpecChatTools? = null)

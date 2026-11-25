@@ -111,6 +111,28 @@ class SkillsApiMultipartTest {
     }
 
     @Test
+    fun `importSkill sends a non-ASCII filename as raw UTF-8, not percent-encoded`() = runTest {
+        // Skills routes read the name as UTF-8 with no decode step, unlike `/api/files`.
+        var body: String? = null
+        val engine = MockEngine { request ->
+            body = renderBody(request.body)
+            respond(
+                content = skillJson,
+                status = HttpStatusCode.Created,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+
+        SkillsApi(client(engine)).importSkill(
+            bytes = "PK".encodeToByteArray(),
+            filename = "Größe 50%.zip",
+            mimeType = "application/zip",
+        )
+
+        assertThat(body).contains("filename=\"Größe 50%.zip\"")
+    }
+
+    @Test
     fun `getSkillFileContent encodes a nested relativePath into the path`() = runTest {
         var path: String? = null
         val engine = MockEngine { request ->

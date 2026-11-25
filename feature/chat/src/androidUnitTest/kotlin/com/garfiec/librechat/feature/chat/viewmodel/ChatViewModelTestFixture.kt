@@ -8,18 +8,11 @@ import com.garfiec.librechat.core.common.identity.InMemoryActiveAccountProvider
 import com.garfiec.librechat.core.common.network.ConnectivityObserver
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.AppPreferences
-import com.garfiec.librechat.core.data.datastore.ChatFontSize
-import com.garfiec.librechat.core.data.datastore.ChatHeaderAlignment
-import com.garfiec.librechat.core.data.datastore.ChatHeaderContent
 import com.garfiec.librechat.core.data.datastore.CodeWorkspacePreferenceStore
-import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.core.data.datastore.ConversationWebSearchStore
-import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
-import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
-import com.garfiec.librechat.core.data.datastore.WebSearchPreference
 import com.garfiec.librechat.core.data.repository.AgentRepository
 import com.garfiec.librechat.core.data.repository.AgentToolsRepository
 import com.garfiec.librechat.core.data.repository.ChatRepository
@@ -56,6 +49,13 @@ import com.garfiec.librechat.core.data.util.PermissionGate
 import com.garfiec.librechat.core.model.ToolAuthResult
 import com.garfiec.librechat.core.model.User
 import com.garfiec.librechat.core.model.code.CodeEnvironmentStatus
+import com.garfiec.librechat.core.model.preferences.ChatFontSize
+import com.garfiec.librechat.core.model.preferences.ChatHeaderAlignment
+import com.garfiec.librechat.core.model.preferences.ChatHeaderContent
+import com.garfiec.librechat.core.model.preferences.ContextBarPlacement
+import com.garfiec.librechat.core.model.preferences.DuringRunAction
+import com.garfiec.librechat.core.model.preferences.StarredModelsDisplay
+import com.garfiec.librechat.core.model.preferences.WebSearchPreference
 import com.garfiec.librechat.core.model.queuedturn.QueuedTurnOutcome
 import com.garfiec.librechat.core.model.usage.ContextDetailPreset
 import com.garfiec.librechat.core.model.usage.DEFAULT_COMPACT_NUDGE_THRESHOLD
@@ -255,6 +255,7 @@ internal class ChatViewModelTestFixture {
         every { preferenceStore.initial(AppPreferences.SiteIcons) } returns null
         every { preferenceStore.observe(AppPreferences.WebSearchFirst) } returns webSearchFirst
         coEvery { conversationWebSearchStore.get(any()) } returns null
+        coEvery { conversationWebSearchStore.specTools(any()) } returns null
         coEvery { agentToolsRepository.verifyToolAuth(ToolConstants.WEB_SEARCH) } answers {
             Result.Success(ToolAuthResult(authenticated = webSearchAuthenticated))
         }

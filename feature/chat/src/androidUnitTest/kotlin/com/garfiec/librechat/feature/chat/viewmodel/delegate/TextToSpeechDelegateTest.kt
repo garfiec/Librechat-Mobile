@@ -5,6 +5,8 @@ import android.speech.tts.TextToSpeech
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.repository.SpeechRepository
+import com.garfiec.librechat.core.model.preferences.TTS_SOURCE_DEVICE
+import com.garfiec.librechat.core.model.preferences.TTS_SOURCE_SERVER
 import com.garfiec.librechat.core.model.speech.SpeechConfig
 import com.garfiec.librechat.core.model.speech.SpeechToTextResponse
 import com.garfiec.librechat.core.model.speech.TtsVoice
@@ -40,7 +42,7 @@ class TextToSpeechDelegateTest {
 
     private fun TestScope.start(
         autoRead: Boolean = false,
-        source: String = SettingsDataStore.TTS_SOURCE_SERVER,
+        source: String = TTS_SOURCE_SERVER,
         context: Context = mockk(relaxed = true),
     ): Pair<MutableStateFlow<ChatUiState>, TextToSpeechDelegate> {
         val settings = mockk<SettingsDataStore>(relaxed = true) {
@@ -96,7 +98,7 @@ class TextToSpeechDelegateTest {
 
     @Test
     fun `a Stop before the device engine is ready keeps it silent`() = runTest {
-        val (_, delegate) = start(source = SettingsDataStore.TTS_SOURCE_DEVICE, context = RuntimeEnvironment.getApplication())
+        val (_, delegate) = start(source = TTS_SOURCE_DEVICE, context = RuntimeEnvironment.getApplication())
         delegate.readAloud("m1")
         runCurrent()
         val engine = shadowOf(ShadowTextToSpeech.getLastTextToSpeechInstance())
@@ -109,7 +111,7 @@ class TextToSpeechDelegateTest {
 
     @Test
     fun `a device read speaks once the engine is ready`() = runTest {
-        val (_, delegate) = start(source = SettingsDataStore.TTS_SOURCE_DEVICE, context = RuntimeEnvironment.getApplication())
+        val (_, delegate) = start(source = TTS_SOURCE_DEVICE, context = RuntimeEnvironment.getApplication())
         delegate.readAloud("m1")
         runCurrent()
         val engine = shadowOf(ShadowTextToSpeech.getLastTextToSpeechInstance())
@@ -137,7 +139,11 @@ class TextToSpeechDelegateTest {
             }
         }
 
-        override suspend fun transcribeAudio(audioData: ByteArray, mimeType: String): Result<SpeechToTextResponse> =
+        override suspend fun transcribeAudio(
+            audioData: ByteArray,
+            mimeType: String,
+            language: String?,
+        ): Result<SpeechToTextResponse> =
             error("unused")
 
         override suspend fun getVoices(): Result<List<TtsVoice>> = Result.Success(emptyList())

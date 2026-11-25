@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="gate_sign_in_channel">サインイン</string>
+    <string name="gate_sign_in_title">サーバーのゲートにサインイン中</string>
+    <string name="gate_sign_in_text">ブラウザーで完了すると Switchboard に戻ります。</string>
+</resources>

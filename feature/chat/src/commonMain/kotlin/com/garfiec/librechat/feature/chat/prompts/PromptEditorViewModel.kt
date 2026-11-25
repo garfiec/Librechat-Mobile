@@ -2,12 +2,10 @@ package com.garfiec.librechat.feature.chat.prompts
 
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
-import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.PromptRepository
-import com.garfiec.librechat.core.model.Prompt
 import com.garfiec.librechat.core.model.request.AddPromptToGroupRequest
 import com.garfiec.librechat.core.model.request.CreatePromptData
 import com.garfiec.librechat.core.model.request.CreatePromptGroupData
@@ -18,49 +16,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-@Immutable
-data class PromptEditorUiState(
-    val groupId: String? = null,
-    val name: String = "",
-    val oneliner: String = "",
-    val promptText: String = "",
-    val variableValues: Map<String, String> = emptyMap(),
-    val prompts: List<Prompt> = emptyList(),
-    val productionId: String? = null,
-    val isLoading: Boolean = false,
-    val isSaving: Boolean = false,
-    val error: String? = null,
-    val saved: Boolean = false,
-    val showVersionsSheet: Boolean = false,
-    /** The saved fields as the group was loaded (blank for create). */
-    val loadedFields: PromptFields = PromptFields(),
-    val showDiscardConfirm: Boolean = false,
-    val exitRequested: Boolean = false,
-) {
-    val isNewPrompt: Boolean get() = groupId == null
-
-    /**
-     * Whether Save has anything to write. [command] is passed in because it lives in a
-     * `TextFieldState` rather than in this state; the variable values only fill the preview and are
-     * never saved, so they are left out.
-     */
-    fun hasUnsavedChanges(command: String): Boolean =
-        !isLoading && PromptFields(name, oneliner, promptText, command) != loadedFields
-}
-
-/** The fields a save writes. */
-@Immutable
-data class PromptFields(
-    val name: String = "",
-    val oneliner: String = "",
-    val promptText: String = "",
-    val command: String = "",
-)
-
 class PromptEditorViewModel(
     private val promptRepository: PromptRepository,
     initialGroupId: String? = null,
-) : ViewModel() {
+) : ViewModel(), PromptEditorActions {
 
     private val _uiState = MutableStateFlow(PromptEditorUiState())
     val uiState: StateFlow<PromptEditorUiState> = _uiState.asStateFlow()
@@ -129,33 +88,33 @@ class PromptEditorViewModel(
         }
     }
 
-    fun updateName(name: String) {
+    override fun updateName(name: String) {
         _uiState.value = _uiState.value.copy(name = name)
     }
 
-    fun updateOneliner(oneliner: String) {
+    override fun updateOneliner(oneliner: String) {
         _uiState.value = _uiState.value.copy(oneliner = oneliner)
     }
 
-    fun updatePromptText(text: String) {
+    override fun updatePromptText(text: String) {
         _uiState.value = _uiState.value.copy(promptText = text)
     }
 
-    fun updateVariable(name: String, value: String) {
+    override fun updateVariable(name: String, value: String) {
         val current = _uiState.value.variableValues.toMutableMap()
         current[name] = value
         _uiState.value = _uiState.value.copy(variableValues = current)
     }
 
-    fun showVersionsSheet() {
+    override fun showVersionsSheet() {
         _uiState.value = _uiState.value.copy(showVersionsSheet = true)
     }
 
-    fun hideVersionsSheet() {
+    override fun hideVersionsSheet() {
         _uiState.value = _uiState.value.copy(showVersionsSheet = false)
     }
 
-    fun setProductionTag(promptId: String) {
+    override fun setProductionTag(promptId: String) {
         val state = _uiState.value
         val groupId = state.groupId ?: return
         viewModelScope.launch {
@@ -178,7 +137,7 @@ class PromptEditorViewModel(
         }
     }
 
-    fun save() {
+    override fun save() {
         val state = _uiState.value
         if (state.name.isBlank() || state.promptText.isBlank()) {
             _uiState.value = state.copy(error = "Name and prompt text are required")
@@ -298,7 +257,7 @@ class PromptEditorViewModel(
 
     fun hasUnsavedChanges(): Boolean = _uiState.value.hasUnsavedChanges(command)
 
-    fun onBackRequested() {
+    override fun onBackRequested() {
         // A save navigates when it lands; leaving first would let it pop the screen behind this one.
         if (_uiState.value.isSaving) return
         _uiState.value = if (hasUnsavedChanges()) {
@@ -308,19 +267,19 @@ class PromptEditorViewModel(
         }
     }
 
-    fun discardChanges() {
+    override fun discardChanges() {
         _uiState.value = _uiState.value.copy(showDiscardConfirm = false, exitRequested = true)
     }
 
-    fun dismissDiscardConfirmation() {
+    override fun dismissDiscardConfirmation() {
         _uiState.value = _uiState.value.copy(showDiscardConfirm = false)
     }
 
-    fun consumeSaved() {
+    override fun consumeSaved() {
         _uiState.value = _uiState.value.copy(saved = false)
     }
 
-    fun dismissError() {
+    override fun dismissError() {
         _uiState.value = _uiState.value.copy(error = null)
     }
 }

@@ -1,49 +1,14 @@
 package com.garfiec.librechat.feature.chat.viewmodel
 
-import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.SubagentRepository
-import com.garfiec.librechat.core.model.subagent.SubagentSummary
-import com.garfiec.librechat.core.model.subagent.SubagentThreadView
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-
-@Immutable
-data class SubagentThreadsUiState(
-    val children: List<SubagentSummary> = emptyList(),
-    val childrenTruncated: Boolean = false,
-    val isLoadingIndex: Boolean = false,
-    /** The child being viewed, or null while the list is showing. */
-    val openThread: SubagentThreadView? = null,
-    val openThreadId: String? = null,
-    val isLoadingThread: Boolean = false,
-    val isLoadingOlder: Boolean = false,
-    /**
-     * The conversation has no child view — it has no children, it is not the caller's, or it is
-     * itself a subagent thread. One 404 covers all three, and none of them is a verdict about the
-     * server, so this never turns the feature off anywhere else.
-     */
-    val hasNoChildView: Boolean = false,
-    val error: String? = null,
-) {
-    val isShowingThread: Boolean get() = openThreadId != null
-
-    /** Older history exists and can still be asked for. */
-    val canLoadOlder: Boolean
-        get() = openThread?.nextCursor != null && openThread.historyUnavailable != true
-
-    /**
-     * Older history is gone and no cursor will bring it back — the retained chain vanished between
-     * requests. Rendering a load-more here would spin forever on nothing.
-     */
-    val olderHistoryUnavailable: Boolean
-        get() = openThread?.historyUnavailable == true || (openThread?.historyTruncated == true && !canLoadOlder)
-}
 
 /**
  * Read-only viewing of the child threads a conversation spawned (v0.8.8-rc2).
@@ -74,7 +39,8 @@ class SubagentThreadsViewModel(
     private var requestedThread: String? = null
 
     /**
-     * Loads the conversation's children, once per conversation.
+     * Reads the conversation's children on every open: each turn can spawn children and move
+     * their status, so an index read earlier would miss them.
      *
      * Skipped entirely on a server KNOWN to predate the routes; an unplaceable one is asked,
      * because it is the population most likely to have them.
@@ -86,17 +52,10 @@ class SubagentThreadsViewModel(
         }
         requestedFocus = focusParentToolCallId
         requestedThread = focusThreadId
-        if (loadedFor == parentConversationId) {
-            // Still reading this conversation's index: there is nothing to focus against yet, and
-            // restarting would throw away a request already in flight. The read lands on
-            // `requestedFocus`, which the line above has just moved to this tap.
-            if (_uiState.value.isLoadingIndex) return
-            // Reopened on a conversation already read. Back to the list first, so dismissing while
-            // a child was open does not reopen onto a stale thread the user did not ask for.
-            backToList()
-            focusChild(parentConversationId, focusParentToolCallId, focusThreadId)
-            return
-        }
+        // Still reading this conversation's index: there is nothing to focus against yet, and
+        // restarting would throw away a request already in flight. The read lands on
+        // `requestedFocus`, which the line above has just moved to this tap.
+        if (loadedFor == parentConversationId && _uiState.value.isLoadingIndex) return
         loadedFor = parentConversationId
         _uiState.value = SubagentThreadsUiState(isLoadingIndex = true)
         viewModelScope.launch {

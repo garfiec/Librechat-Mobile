@@ -1,0 +1,436 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Common actions -->
+    <string name="agents">Агенты</string>
+    <string name="start_chat">Начать чат</string>
+    <string name="edit">Изменить</string>
+    <string name="delete">Удалить</string>
+    <string name="cancel">Отмена</string>
+    <string name="duplicate">Дублировать</string>
+    <string name="save">Сохранить</string>
+    <string name="create">Создать</string>
+    <string name="apply">Применить</string>
+    <string name="add">Добавить</string>
+    <string name="remove">Удалить</string>
+    <string name="revert">Откатить</string>
+    <string name="close">Закрыть</string>
+
+    <!-- Content descriptions -->
+    <string name="cd_back">Назад</string>
+    <string name="cd_more_actions">Ещё действия</string>
+    <string name="cd_more_options">Дополнительно</string>
+    <string name="cd_collapse">Свернуть</string>
+    <string name="cd_expand">Развернуть</string>
+    <string name="cd_remove_item">Удалить %1$s</string>
+    <string name="cd_edit_action">Изменить действие</string>
+    <string name="cd_delete_action">Удалить действие</string>
+    <string name="cd_add_starter">Добавить начальную фразу</string>
+    <string name="cd_agent_avatar_tap">Аватар агента. Нажмите, чтобы изменить.</string>
+    <string name="cd_agent_avatar_name">Аватар %1$s</string>
+    <string name="cd_tool_icon">Значок %1$s</string>
+
+    <!-- Marketplace screen -->
+    <string name="search_agents_hint">Поиск агентов…</string>
+    <string name="no_agents_found">Агенты не найдены</string>
+    <string name="agents_not_available_title">Агенты недоступны</string>
+    <string name="agents_not_available_description">Администратор вашего сервера отключил агентов для вашего аккаунта.</string>
+    <string name="try_different_search">Попробуйте другой поисковый запрос</string>
+    <string name="check_back_later">Загляните позже за новыми агентами</string>
+    <string name="agents_chip_top_picks">Лучшее</string>
+    <string name="agents_chip_all">Все</string>
+    <string name="agents_chip_editable">Редактируемые</string>
+    <string name="agents_filter_mine">Мои агенты</string>
+    <string name="agents_sort_label">Сортировка</string>
+    <string name="agents_sort_newest">Сначала новые</string>
+    <string name="agents_sort_oldest">Сначала старые</string>
+    <string name="agents_sort_popular">Популярные</string>
+    <string name="agents_sort_author">По имени автора</string>
+    <string name="agents_mine_empty_title">Вы ещё не создали ни одного агента</string>
+    <string name="agents_top_pick">Рекомендуемый</string>
+    <string name="agents_new_agent">Новый агент</string>
+    <string name="agent_unnamed">Агент без названия</string>
+    <string name="agents_clear_search">Очистить поиск</string>
+    <string name="agents_no_matches_in">Нет совпадений в разделе «%1$s»</string>
+    <string name="agents_none_in">Нет агентов в разделе «%1$s»</string>
+    <string name="agents_search_all">Искать среди всех агентов</string>
+    <string name="agents_show_all">Показать всех агентов</string>
+    <string name="agents_empty_title">Агентов пока нет</string>
+    <string name="agents_empty_description_create">Создайте агента со своими инструкциями, моделью и инструментами.</string>
+    <string name="agents_load_failed">Не удалось загрузить агентов</string>
+    <string name="agents_load_more_failed">Не удалось загрузить больше агентов</string>
+    <string name="agents_retry">Повторить</string>
+    <string name="error_unknown">Произошла неизвестная ошибка</string>
+    <string name="unknown_author">Неизвестно</string>
+
+    <!-- Detail screen -->
+    <string name="agent_title">Агент</string>
+    <string name="delete_agent">Удалить агента</string>
+    <string name="delete_agent_confirm">Вы уверены, что хотите удалить "%1$s"? Это нельзя отменить.</string>
+    <string name="delete_this_agent">этого агента</string>
+    <string name="label_category">Категория</string>
+    <string name="label_model">Модель</string>
+    <string name="label_tools">Инструменты</string>
+    <string name="label_conversation_starters">Начальные фразы</string>
+
+    <!-- Editor screen -->
+    <string name="edit_agent">Изменить агента</string>
+    <string name="create_agent">Создать агента</string>
+    <string name="duplicate_agent">Дублировать агента</string>
+    <string name="delete_agent_editor_confirm">Вы уверены, что хотите удалить этого агента? Это действие нельзя отменить.</string>
+    <string name="duplicate_agent_confirm">Создать копию этого агента?</string>
+    <string name="version_history">История версий</string>
+    <string name="tap_to_change_avatar">Нажмите, чтобы изменить аватар</string>
+    <string name="remove_avatar">Удалить аватар</string>
+    <string name="agent_name_label">Имя *</string>
+    <string name="agent_name_placeholder">Необязательно: имя агента</string>
+    <string name="agent_description_label">Описание</string>
+    <string name="agent_description_placeholder">Необязательно: опишите вашего агента здесь</string>
+    <string name="agent_instructions_label">Инструкции</string>
+    <string name="agent_instructions_linked_prompt">Этот агент использует сохранённый промпт в качестве инструкций. Измените или отвяжите его в веб-версии; правки здесь не изменят то, что выполняет агент.</string>
+    <string name="agent_instructions_source_inline">Текст</string>
+    <string name="agent_instructions_source_prompt">Промпт</string>
+    <string name="agent_instructions_prompt_loading">Загрузка…</string>
+    <string name="agent_instructions_prompt_empty">Нет доступных промптов</string>
+    <string name="agent_instructions_prompt_select_placeholder">Выберите промпт</string>
+    <string name="agent_instructions_prompt_not_found">Промпт не найден</string>
+    <string name="agent_instructions_prompt_required">Выберите промпт для использования в качестве инструкций агента.</string>
+    <string name="agent_instructions_prompt_version_label">Версия</string>
+    <string name="agent_instructions_prompt_version_placeholder">Сначала выберите промпт</string>
+    <string name="agent_instructions_prompt_production">Рабочая</string>
+    <string name="agent_instructions_prompt_production_version">Рабочая (версия %1$d)</string>
+    <string name="agent_instructions_prompt_version_missing">Выбранная версия (больше недоступна)</string>
+    <string name="agent_instructions_prompt_langfuse_version_missing">Версия %1$d (больше недоступна)</string>
+    <string name="agent_instructions_prompt_source_langfuse">Управляется в Langfuse</string>
+    <string name="agent_instructions_prompt_forbidden">У вас нет доступа к библиотеке промптов.</string>
+    <string name="agent_instructions_prompt_load_error">Не удалось загрузить промпты.</string>
+    <string name="agent_instructions_prompt_source_unavailable">Источник этого промпта сейчас недоступен.</string>
+    <string name="agent_instructions_prompt_source_disabled">Привязка промптов Langfuse отключена. Этот агент работает без этих инструкций, пока её снова не включат.</string>
+    <string name="agent_instructions_placeholder">Системные инструкции, которые использует агент</string>
+    <string name="insert_variable">Вставить переменную</string>
+    <string name="cd_insert_variable">Вставить переменную</string>
+    <string name="special_var_current_date">Текущая дата</string>
+    <string name="special_var_current_user">Текущий пользователь</string>
+    <string name="special_var_iso_datetime">Дата и время ISO</string>
+    <string name="special_var_current_datetime">Текущие дата и время</string>
+    <string name="label_capabilities">Возможности</string>
+    <string name="label_tools_and_actions">Инструменты и действия</string>
+    <string name="add_tools">Добавить инструменты</string>
+    <string name="add_starter_hint">Добавить начальную фразу…</string>
+    <string name="save_changes">Сохранить изменения</string>
+
+    <!-- Actions panel -->
+    <string name="openapi_actions_count">Действия OpenAPI (%1$d)</string>
+    <string name="no_actions_configured">Действия не настроены. Добавьте действие OpenAPI для подключения внешних API.</string>
+    <string name="add_action">Добавить действие</string>
+    <string name="edit_action">Изменить действие</string>
+    <string name="auth_api_key">API-ключ</string>
+    <string name="auth_oauth">OAuth</string>
+    <string name="auth_none">Нет</string>
+    <string name="action_auth_info">Аутентификация: %1$s | %2$d функц.</string>
+    <string name="label_action">Действие</string>
+
+    <!-- Action editor dialog -->
+    <string name="label_authentication">Аутентификация</string>
+    <string name="auth_api_key_full">Аутентификация по API-ключу</string>
+    <string name="auth_oauth_full">Аутентификация OAuth</string>
+    <string name="auth_no_auth">Без аутентификации</string>
+    <string name="label_openapi_schema">Схема OpenAPI</string>
+    <string name="openapi_schema_hint">Вставьте вашу спецификацию OpenAPI в формате JSON или YAML.</string>
+    <string name="label_openapi_spec">Спецификация OpenAPI (JSON или YAML)</string>
+    <string name="validating">Проверка…</string>
+    <string name="domain_prefix">Домен: %1$s</string>
+    <string name="available_actions_count">Доступные действия (%1$d)</string>
+    <string name="label_privacy_policy_url">URL политики конфиденциальности</string>
+    <!-- Auth config dialog -->
+    <string name="label_authentication_type">Тип аутентификации</string>
+    <string name="label_api_key_settings">Настройки API-ключа</string>
+    <string name="label_api_key">API-ключ</string>
+    <string name="label_authorization_type">Тип авторизации</string>
+    <string name="auth_basic">Basic</string>
+    <string name="auth_bearer">Bearer</string>
+    <string name="auth_custom">Свой</string>
+    <string name="label_custom_auth_header">Свой заголовок авторизации</string>
+    <string name="label_oauth_settings">Настройки OAuth</string>
+    <string name="label_client_id">ID клиента</string>
+    <string name="label_client_secret">Секрет клиента</string>
+    <string name="label_authorization_url">URL авторизации</string>
+    <string name="label_token_url">URL токена</string>
+    <string name="label_scope">Область</string>
+    <string name="label_token_exchange_method">Способ обмена токенами</string>
+    <string name="token_default_post">По умолчанию (POST)</string>
+    <string name="token_basic_auth_header">Заголовок Basic Auth</string>
+
+    <!-- Function table -->
+    <string name="table_name">Имя</string>
+    <string name="table_method">Метод</string>
+    <string name="table_path">Путь</string>
+
+    <!-- Advanced panel -->
+    <string name="advanced_settings">Настройки модели</string>
+
+    <!-- Capabilities section -->
+    <string name="label_artifacts">Артефакты</string>
+    <string name="artifacts_description">Включить генерацию артефактов</string>
+    <string name="artifacts_mode_off">Выключено</string>
+    <string name="artifacts_mode_default">По умолчанию</string>
+    <string name="artifacts_mode_shadcnui">shadcn/ui</string>
+    <string name="artifacts_mode_custom">Свой</string>
+    <string name="label_end_after_tools">Завершать после инструментов</string>
+    <string name="end_after_tools_description">Останавливаться после завершения выполнения инструментов</string>
+    <string name="label_hide_sequential_outputs">Скрывать промежуточные результаты</string>
+    <string name="hide_sequential_description">Скрывать промежуточные результаты инструментов</string>
+    <string name="label_recursion_limit">Лимит рекурсии</string>
+    <string name="recursion_limit_description">Максимальное число рекурсивных вызовов инструментов</string>
+
+    <!-- Category selector -->
+    <string name="general">Общие</string>
+
+    <!-- Code Interpreter section -->
+    <string name="label_code_interpreter">Интерпретатор кода</string>
+    <string name="code_interpreter_description">Разрешить агенту писать и выполнять код для решения задач</string>
+
+    <!-- Web Search section -->
+    <string name="label_web_search">Веб-поиск</string>
+    <string name="web_search_description">Разрешить агенту искать в интернете актуальную информацию</string>
+
+    <!-- Tool auth dialog -->
+    <string name="tool_auth_revoke">Отозвать</string>
+    <string name="tool_auth_code_title">API-ключ интерпретатора кода</string>
+    <string name="tool_auth_code_description">Введите API-ключ, который сервер должен использовать для выполнения кода от вашего имени. Хранится в вашем аккаунте, а не в агенте.</string>
+    <string name="tool_auth_code_field">API-ключ LibreChat Code</string>
+    <!-- File Context section -->
+    <string name="label_file_context">Файловый контекст</string>
+    <string name="file_context_description">Прикрепите файлы, которые всегда включаются как контекст беседы</string>
+
+    <!-- File Search section -->
+    <string name="label_file_search">Поиск по файлам</string>
+    <string name="file_search_description">Разрешить агенту искать по загруженным файлам и документам</string>
+
+    <!-- Chain (sequential multi-agent) -->
+    <string name="chain_agents_count">Агенты в цепочке (%1$d)</string>
+    <string name="chain_description">Агенты, выполняющиеся последовательно после этого. Предел — %1$d.</string>
+    <string name="no_chain_agents">Агенты в цепочке не настроены.</string>
+    <string name="add_chain_agent">Добавить агента в цепочку</string>
+    <string name="chain_full">Достигнуто максимальное число агентов в цепочке.</string>
+    <!-- Handoffs (graph edges) -->
+    <string name="handoff_edges_count">Рёбра передачи (%1$d)</string>
+    <string name="handoff_edges_description">Рёбра маршрутизации графа для динамической передачи между агентами.</string>
+    <string name="no_handoff_edges">Рёбра передачи не настроены.</string>
+    <string name="add_handoff_edge">Добавить ребро передачи</string>
+    <string name="handoff_edge_from">От</string>
+    <string name="handoff_edge_to">К</string>
+    <string name="handoff_edge_description">Описание (необязательно)</string>
+    <string name="handoff_edge_prompt">Промпт передачи (необязательно)</string>
+    <string name="handoff_edge_prompt_key">Имя параметра промпта (необязательно)</string>
+    <string name="handoff_edge_exclude_results">Исключить предыдущие сообщения</string>
+    <string name="handoff_edge_arrow">%1$s → %2$s</string>
+    <string name="handoff_edge_multi">%1$d агентов → %2$d агентов</string>
+    <string name="no_more_agents">Больше нет агентов для добавления.</string>
+    <string name="select_agent">Выбрать агента</string>
+
+    <!-- MCP Tools selector -->
+
+    <!-- Model picker -->
+    <string name="model_required_label">Модель *</string>
+    <string name="select_model_hint">Выберите модель…</string>
+    <string name="no_models_found">Модели не найдены</string>
+
+    <!-- Sharing section -->
+    <string name="sharing_and_permissions">Доступ и разрешения</string>
+    <string name="label_visibility">Видимость</string>
+    <string name="label_collaborative">Совместный</string>
+    <string name="collaborative_description">Разрешить другим пользователям изменять этого агента</string>
+    <string name="collaborative_managed_server_side">В этой версии разрешения доступа управляются на стороне сервера.</string>
+
+    <!-- Visibility labels -->
+    <string name="visibility_private">Приватный</string>
+    <string name="visibility_public">Публичный</string>
+
+    <!-- Support contact section -->
+    <string name="label_support_contact">Контакт поддержки</string>
+    <string name="label_name">Имя</string>
+    <string name="support_contact_placeholder">Имя контакта поддержки</string>
+    <string name="label_email">Эл. почта</string>
+
+    <!-- Version history -->
+    <string name="no_version_history">История версий недоступна</string>
+    <string name="version_number">Версия %1$d</string>
+    <string name="version_current">Активная</string>
+    <string name="version_no_date">Дата недоступна</string>
+    <string name="version_snapshot_name">Имя</string>
+    <string name="version_snapshot_description">Описание</string>
+    <string name="version_snapshot_instructions">Инструкции</string>
+    <string name="version_snapshot_artifacts">Артефакты</string>
+    <string name="version_snapshot_capabilities">Возможности</string>
+    <string name="version_snapshot_tools">Инструменты</string>
+    <string name="version_snapshot_empty">—</string>
+    <!-- ACL sharing (v0.8.5+) -->
+    <string name="acl_sharing_title">Доступ и совместное использование</string>
+    <string name="acl_add_principal">Добавить пользователя или группу</string>
+    <string name="acl_no_grants">Доступ пока никому не предоставлен.</string>
+    <string name="acl_public_label">Публичный</string>
+    <string name="acl_public_description">Разрешить всем, у кого есть доступ к серверу</string>
+    <string name="acl_role">Роль</string>
+    <string name="acl_revoke_principal">Отозвать доступ для %1$s</string>
+    <string name="acl_search_hint">Поиск пользователей или групп…</string>
+    <string name="acl_search_empty">Совпадений нет</string>
+    <string name="acl_search_failed">Сейчас не удаётся выполнить поиск.</string>
+    <string name="acl_search_unavailable">Ваша роль не может искать людей или группы. Попросите администратора включить выбор людей для вашей роли.</string>
+    <string name="acl_roles_failed">Не удалось загрузить роли, поэтому пока никого нельзя добавить.</string>
+    <string name="acl_load_failed">Не удалось загрузить, у кого есть доступ.</string>
+    <string name="acl_share_check_failed">Не удалось проверить, можете ли вы поделиться этим агентом.</string>
+    <string name="acl_retry">Повторить</string>
+    <string name="acl_grant_dialog_title">Добавить пользователя или группу</string>
+    <string name="acl_principal_user">Пользователь</string>
+    <string name="acl_principal_group">Группа</string>
+    <string name="acl_principal_role">Роль</string>
+    <string name="acl_principal_unknown">Неизвестно</string>
+    <string name="acl_create_mode_notice">Управление доступом и совместным использованием доступно после сохранения агента.</string>
+
+    <!-- Tool select dialog -->
+    <string name="agent_tools_title">Инструменты агента</string>
+    <string name="select_tools_description">Выберите инструменты, которые сможет использовать ваш агент</string>
+    <string name="search_tools_hint">Поиск инструментов…</string>
+    <string name="no_tools_matching">Нет инструментов, соответствующих "%1$s"</string>
+    <string name="no_tools_available">Нет доступных инструментов</string>
+
+    <!-- Per-capability file attachments -->
+    <string name="add_file">Добавить файл</string>
+    <string name="agent_files_save_first">Сохраните агента перед прикреплением файлов</string>
+    <string name="agent_file_too_large">Файл должен быть не больше %1$d МБ</string>
+    <string name="agent_file_upload_failed">Не удалось загрузить файл</string>
+    <string name="agent_file_remove_failed">Не удалось удалить файл</string>
+    <string name="cd_remove_file">Удалить %1$s</string>
+    <string name="agent_file_remove_confirm_title">Удалить %1$s?</string>
+    <string name="agent_file_remove_confirm_title_generic">Удалить этот файл?</string>
+    <string name="agent_file_remove_confirm_message">Если этот файл не используется другими агентами, он будет удалён безвозвратно.</string>
+
+    <!-- Skills selector (v0.8.6) -->
+    <string name="label_skills">Навыки</string>
+    <string name="skills_disabled_hint">Навыки отключены для этого агента.</string>
+    <string name="skills_enabled_all_hint">Все доступные вам навыки доступны этому агенту.</string>
+    <string name="skills_enabled_allowlist_hint">Этому агенту доступны только выбранные навыки.</string>
+    <string name="add_skills">Добавить навыки</string>
+    <string name="select_skills">Выбрать навыки</string>
+    <string name="search_skills_hint">Поиск навыков…</string>
+    <string name="no_skills_matching">Нет навыков, соответствующих "%1$s"</string>
+    <string name="no_skills_available">Нет доступных навыков</string>
+    <string name="skills_done">Готово</string>
+
+    <!-- Subagents config (v0.8.6) -->
+    <string name="label_subagents">Субагенты</string>
+    <string name="subagents_description">Позвольте этому агенту делегировать работу другим агентам в изолированных контекстах.</string>
+    <string name="subagents_allow_self">Разрешить порождать самого себя</string>
+    <string name="add_subagent">Добавить субагента</string>
+    <string name="subagents_full">Достигнуто максимальное число субагентов.</string>
+    <string name="tools_marketplace_title">Инструменты</string>
+    <string name="tools_marketplace_description">Выберите, что сможет делать этот агент</string>
+    <string name="tools_marketplace_search_hint">Поиск инструментов, серверов и навыков…</string>
+    <string name="tools_marketplace_no_matches">Нет совпадений для "%1$s"</string>
+    <string name="tools_marketplace_no_favorites">Отметьте инструмент звёздочкой, чтобы закрепить его здесь</string>
+    <string name="tools_marketplace_empty">Пока ничего нет</string>
+    <string name="tools_filter_all">Все</string>
+    <string name="tools_filter_favorites">Избранное</string>
+    <string name="tools_filter_builtin">Встроенные</string>
+    <string name="tools_filter_tools">Инструменты</string>
+    <string name="tools_filter_mcp">MCP</string>
+    <string name="tools_filter_skills">Навыки</string>
+    <string name="tools_browse">Обзор инструментов</string>
+    <string name="cd_pin_tool">Закрепить</string>
+    <string name="cd_unpin_tool">Открепить</string>
+    <string name="builtin_code_interpreter">Интерпретатор кода</string>
+    <string name="builtin_code_interpreter_desc">Выполняет код в песочнице и возвращает результат и файлы.</string>
+    <string name="builtin_file_search">Поиск по файлам</string>
+    <string name="builtin_file_search_desc">Находит фрагменты в файлах, прикреплённых к этому агенту.</string>
+    <string name="builtin_web_search">Веб-поиск</string>
+    <string name="builtin_web_search_desc">Ищет в интернете и указывает использованные источники.</string>
+    <string name="builtin_file_context">Файловый контекст</string>
+    <string name="builtin_file_context_desc">Помещает прикреплённые файлы целиком в контекст агента.</string>
+    <string name="builtin_ask_user">Вопрос пользователю</string>
+    <string name="builtin_ask_user_desc">Приостанавливает выполнение, чтобы задать вам уточняющий вопрос.</string>
+    <string name="agent_category_hr">Кадры</string>
+    <string name="agent_category_rd">Исследования и разработки</string>
+    <string name="agent_category_finance">Финансы</string>
+    <string name="agent_category_it">ИТ</string>
+    <string name="agent_category_sales">Продажи</string>
+    <string name="agent_category_aftersales">Послепродажное обслуживание</string>
+    <string name="agent_category_idea">Идеи</string>
+    <string name="agent_category_travel">Путешествия</string>
+    <string name="agent_category_learning">Обучение</string>
+    <string name="agent_category_writing">Тексты</string>
+    <string name="agent_category_shopping">Покупки</string>
+    <string name="agent_category_code">Код</string>
+    <string name="agent_category_misc">Разное</string>
+    <string name="agent_category_roleplay">Ролевые игры</string>
+    <string name="visibility_team">Команда</string>
+    <string name="agent_contact_line">Контакт: %1$s</string>
+    <string name="agent_pin">Закрепить в меню моделей</string>
+    <string name="agent_unpin">Открепить из меню моделей</string>
+    <string name="agent_copy_link">Копировать ссылку</string>
+    <string name="agent_link_copied">Ссылка скопирована</string>
+    <string name="agent_updated_relative">Обновлено: %1$s</string>
+    <string name="agent_updated_on">Обновлено: %1$s</string>
+    <string name="agent_public">Публичный</string>
+    <string name="agent_try_asking">Попробуйте спросить</string>
+    <string name="agent_load_failed">Не удалось загрузить этого агента</string>
+    <string name="agent_delete_failed">Не удалось удалить этого агента</string>
+    <string name="agent_duplicate_failed">Не удалось дублировать этого агента</string>
+    <string name="agent_pin_failed">Не удалось обновить закреплённые</string>
+    <string name="agent_contact_send_email">Написать письмо</string>
+    <plurals name="agent_pin_limit">
+        <item quantity="one">Можно закрепить не более %1$d избранного.</item>
+        <item quantity="few">Можно закрепить не более %1$d избранных.</item>
+        <item quantity="many">Можно закрепить не более %1$d избранных.</item>
+        <item quantity="other">Можно закрепить не более %1$d избранного.</item>
+    </plurals>
+    <string name="tool_approval_mode_cd">Режим одобрения инструментов: %1$s</string>
+    <string name="tool_approval_inherit">Использовать унаследованную политику</string>
+    <string name="tool_approval_ask">Всегда спрашивать</string>
+    <string name="tool_approval_allow">Всегда одобрять</string>
+    <string name="tool_approval_chat">Спрашивать один раз за чат</string>
+    <string name="tool_approval_always">Спросить один раз, затем всегда одобрять</string>
+    <string name="tool_approval_admin_ask">Политика администратора требует одобрения.</string>
+    <string name="tool_approval_admin_deny">Политика администратора блокирует этот инструмент.</string>
+    <string name="tool_approval_reset">Сбросить мои запомненные одобрения</string>
+    <string name="tool_approval_reset_success">Ваши запомненные одобрения сброшены.</string>
+    <string name="tool_approval_reset_error">Не удалось сбросить запомненные одобрения. Повторите попытку.</string>
+    <string name="tool_approval_reset_forbidden">Вы не можете сбросить одобрения для этого агента.</string>
+    <string name="code_stateful_sessions">Сеансы кода с сохранением состояния</string>
+    <string name="code_stateful_sessions_info">Если включено, агент использует отдельный Code API с сохранением состояния вместо стандартного сервиса без состояния. Файлы в /mnt/data сохраняются между запусками, но каждый запуск начинается с нового процесса. Переменные оболочки, рабочий каталог, $HOME, временные файлы, глобальные установки и фоновые процессы не сохраняются. Среда может быть сброшена, поэтому храните важное в /mnt/data. Требуется интерпретатор кода и возможность сеансов с сохранением состояния.</string>
+    <string name="code_environment_unavailable_choice">Недоступная машина: %1$s (снимите отметку, чтобы удалить)</string>
+    <string name="code_environment">Среда выполнения</string>
+    <string name="code_environment_deployment_default">По умолчанию для развёртывания</string>
+    <string name="code_environment_attached_name">%1$s (подключённая ВМ)</string>
+    <string name="code_environment_info">Выберите управляемую среду или подключённую ВМ, которой принадлежит это рабочее пространство.</string>
+    <string name="code_environment_per_chat">Машины, доступные в новых чатах</string>
+    <string name="code_environment_per_chat_info">Выберите машины, которые может использовать агент. Каждый новый чат может выбрать одну из них, если у пользователя есть доступ. Машина по умолчанию и существующие чаты не меняются.</string>
+    <string name="code_environment_choice_limit">Выберите до %1$d дополнительных машин. Машина по умолчанию разрешена всегда.</string>
+    <string name="code_environment_default_machine">%1$s (по умолчанию)</string>
+    <string name="stateful_code_environment">Среда с сохранением состояния</string>
+    <string name="stateful_code_environment_user">Пространство пользователя (рекомендуется)</string>
+    <string name="stateful_code_environment_agent_user">Пространство агента и пользователя</string>
+    <string name="stateful_code_environment_conversation">Пространство чата</string>
+    <string name="stateful_code_environment_info">Выберите, кто делит рабочее пространство агента. Живые файлы не передаются в сеансы кода без состояния.</string>
+    <string name="code_workspace_default">Рабочее пространство по умолчанию для новых чатов</string>
+    <string name="code_workspace_last_used">Последнее использованное пространство</string>
+    <string name="code_workspace_default_info">Новые чаты используют это пространство. Без значения по умолчанию повторно используется ваш последний доступный выбор для этого агента и машины на этом устройстве. Существующие чаты сохраняют своё пространство.</string>
+    <string name="code_workspace_saved_loading">Загрузка рабочего пространства…</string>
+    <string name="code_workspace_saved_missing">Рабочее пространство отсутствует</string>
+    <string name="code_workspace_saved_unavailable">Рабочее пространство недоступно</string>
+    <string name="code_workspace_saved_unsupported">Обновите воркер для рабочих пространств</string>
+    <string name="repository_instructions">Инструкции репозитория</string>
+    <string name="repository_instructions_prefer">Предпочитать соглашения репозитория</string>
+    <string name="repository_instructions_defer">Предпочитать соглашения агента</string>
+    <string name="repository_instructions_off">Выкл.</string>
+    <string name="repository_instructions_info">Загружает AGENTS.md, а при его отсутствии CLAUDE.md, из выбранного рабочего пространства, если владелец разрешил обнаружение. Разрешения инструментов не меняются.</string>
+    <string name="agent_git_identity">Удостоверение Git</string>
+    <string name="agent_git_name">Имя для коммитов</string>
+    <string name="agent_git_email">Почта для коммитов</string>
+    <string name="agent_git_identity_both_required">Введите корректные имя и почту Git или оставьте оба поля пустыми.</string>
+    <string name="agent_git_identity_info">Используется как автор и коммиттер для команд Git, выполняемых агентом. Учётные данные настраиваются отдельно.</string>
+    <string name="code_background">Фоновое выполнение</string>
+    <string name="code_background_info">Модель может выполнять код в фоне: разговор продолжается, пока код работает, а модель получает результат позже. Вывод и файлы остаются привязанными к исходному запуску.</string>
+    <string name="web_search_keys_add_action">Добавить ключи поиска</string>
+    <string name="web_search_keys_manage_action">Управлять ключами поиска</string>
+    <string name="marketplace_set_up">Настроить</string>
+</resources>

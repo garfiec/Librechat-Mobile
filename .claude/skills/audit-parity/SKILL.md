@@ -7,7 +7,7 @@ description: >
   bugs (status codes and error codes we mishandle, request/response fields, pagination, repeats),
   behaviour gaps against the reference (gates, honoured settings, parsing, recovery, Android vs
   iOS) and dead wiring (unreachable screens, unread prefs, stubs, failures shown as empty data).
-  Finders loop until two rounds add nothing, every finding is verified adversarially, then the
+  Finders loop until a round adds little, every finding is verified adversarially, then the
   lead walks the user through filing them one at a time, as drafts on the Switchboard Roadmap
   board (a repo issue only when the user picks one). Use when asked "what's broken?",
   "where do we diverge from the web?", after a run of field reports, before a release, or for one
@@ -134,12 +134,13 @@ work, platform APIs) goes to `OS integration` whatever its area.
      no auto-jump", "app-bar model selector removed").
 4. **Batches.** The workflow runtime stops a run at 1000 agents, and the script splits its own cap
    (`agentCap`, default 950) evenly across the areas in that run. Eight areas per run gives each
-   about 118 agents, enough for 4 rounds and 30+ verified findings. So:
+   about 118 agents, enough for 3 rounds and 30+ verified findings. So:
    - full sweep: split the areas into batches of at most 8 (23 areas → 8, 8, 7);
    - `--areas` or `--feature`: one batch.
-5. **Estimate and launch.** Per area: one scoper, 3 finders and a dedupe per round for 2–4
-   rounds, 2–3 agents per new finding, one critic, one triage. That is about 20–60 agents per
-   area; a full sweep is roughly 500–1400 agents and a very large token bill. Tell the user the
+5. **Estimate and launch.** Per area: one scoper, 3 finders and a dedupe in round 1, then per
+   later round a planner and up to 3 aimed finders, for 1–3 rounds; about 1.3 agents per new
+   finding, one critic, one triage. That is about 20–60 agents per area; a full sweep is roughly
+   500–1200 agents and a very large token bill, several 5-hour usage windows. Tell the user the
    batches and estimate in one line, then launch. With `--plan`, show the areas and batches and
    stop.
 
@@ -151,7 +152,7 @@ Run the batches **one after another**. For each batch `n` of `N`, first write th
 ```
 Workflow({ name: "audit-parity", args: {
   repo: "<abs repo>", run: "<abs RUN>", pin: "<PIN>", ref: "web" | "<abs path>",
-  areas: <this batch's entries, parsed>, maxRounds: <--rounds, default 4>,
+  areas: <this batch's entries, parsed>, maxRounds: <--rounds, default 3>,
   report: <n == N>,
   // last batch of a multi-batch sweep only, from result-1..N-1.json:
   priorIndex: [...all earlier index], priorRuns: [...all earlier runs],
@@ -171,14 +172,19 @@ Per area, as a pipeline (areas don't wait for each other):
 - **Scope**: an agent writes `areas/<id>/scope.md`, mapping our files, the endpoints, the server
   handlers and middleware at the pin, the reference client's calls, hooks and components, and
   reference calls we make no equivalent of.
-- **Find**: three finders per round (contract, behaviour parity, dead wiring), with no cap. Each
-  round is told everything found so far, refuted findings included, so a refuted finding is not
-  re-examined. A dedupe step keeps only new defects. Missing features go to a leads list and are
-  not verified.
-- **Verify**: two refuters per new finding, one on our code and one on the server or reference;
-  findings with no upstream citation get two checks on our own code. A split goes to a judge.
-- The area stops after **two complete rounds in a row** (all three finders ran) add no surviving
-  finding, at `maxRounds`, or when its agent share can't fund another round.
+- **Find**: round 1 runs three finders over the whole area (contract, behaviour parity, dead
+  wiring), with no cap on findings. From round 2 a planner reads `scope.md` and what earlier rounds
+  traced, and gives each lens the flows nobody traced; a lens with nothing left gets no finder.
+  Each round is told everything found so far, refuted findings included, so a refuted finding is
+  not re-examined. A dedupe step keeps only new defects. Missing features go to a leads list and
+  are not verified. Only triage reads `known.md`.
+- **Verify**: one refuter per new finding, on our code (it also opens cited upstream lines). A
+  second, on the server or reference, runs only when the first doesn't confirm or the finding is
+  high; findings with no upstream citation get a second check on our own code instead. A split
+  goes to a judge.
+- The area stops after a **complete round adds fewer than 3 surviving findings** (`dryBelow`), when
+  the planner finds nothing left, at `maxRounds`, or when its agent share can't fund another
+  round.
 - **Critic**: checks what the rounds didn't trace. Its findings are verified the same way.
 - **Triage**: merges same-root findings, marks `duplicate_of` against `known.md` (open issue, board
   draft, or closed issue that regressed), and writes `areas/<id>/findings.json`.
@@ -212,8 +218,11 @@ of re-reading everything (`workLog: false` turns this off, only for runs launche
 existed). The cache is per session: a new session has to start the batch over, and first deletes
 `areas/*/log/`, or each finder takes the old session's log for its own cut-off attempt.
 
-**Cost.** Finders dominate (three per round, each about ten verifiers' worth). To spread a long
-batch over several usage windows, launch with `stopAt` and resume with a higher one each window.
+**Cost.** Finders dominate (each about ten verifiers' worth), and every agent turn rereads the
+whole context, so the prompts ask agents to batch tool calls. A 5-hour usage window runs roughly
+150–200 agents. Launch each batch with `stopAt` about 150 above the agents already run and raise
+it by about 150 on each resume, so the batch pauses at a round boundary instead of the limit
+cutting finders mid-trace.
 
 With `haltOnFailure: false`, or when the agent budget runs out, failures degrade instead, and
 are logged:

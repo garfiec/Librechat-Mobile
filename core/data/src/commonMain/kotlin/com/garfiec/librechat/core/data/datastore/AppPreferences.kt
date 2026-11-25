@@ -1,6 +1,8 @@
 package com.garfiec.librechat.core.data.datastore
 
-import com.garfiec.librechat.core.data.prefetch.PrefetchDepth
+import com.garfiec.librechat.core.model.preferences.ArtifactDisplayMode
+import com.garfiec.librechat.core.model.preferences.WebSearchPreference
+import com.garfiec.librechat.core.model.prefetch.PrefetchDepth
 
 /**
  * Registry of device-wide preferences read through [PreferenceStore]. A new preference is one entry

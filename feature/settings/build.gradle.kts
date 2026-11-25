@@ -9,15 +9,12 @@ android {
 kotlin {
     sourceSets {
         commonMain.dependencies {
+            api(project(":feature:settings:ui"))
             implementation(project(":core:network"))
             implementation(project(":core:logging"))
             implementation(project(":core:notifications"))
-            implementation(libs.coil3.compose)
             implementation(libs.coil3.network.ktor)
             implementation(libs.kermit)
-            implementation(libs.qrose)
-            // Release notes on What's new.
-            implementation(libs.markdown.renderer.m3)
         }
         androidMain.dependencies {
             implementation(libs.koin.android)

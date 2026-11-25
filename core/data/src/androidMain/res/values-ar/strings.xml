@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="gate_sign_in_channel">تسجيل الدخول</string>
+    <string name="gate_sign_in_title">جارٍ تسجيل الدخول إلى بوابة الخادم</string>
+    <string name="gate_sign_in_text">أكمل في المتصفح للعودة إلى Switchboard.</string>
+</resources>

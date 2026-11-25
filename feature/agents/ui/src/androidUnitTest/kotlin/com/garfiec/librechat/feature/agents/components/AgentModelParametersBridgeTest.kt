@@ -1,0 +1,131 @@
+package com.garfiec.librechat.feature.agents.components
+
+import com.garfiec.librechat.core.model.EndpointConfig
+import com.garfiec.librechat.core.ui.components.EndpointParameterRegistry
+import com.garfiec.librechat.feature.agents.components.model.AgentAdvancedSettings
+import com.garfiec.librechat.feature.agents.viewmodel.AgentEditorUiState
+import com.google.common.truth.Truth.assertThat
+import kotlinx.serialization.json.JsonPrimitive
+import org.junit.Test
+
+/**
+ * An agent saved with a value its model no longer offers — effort `minimal` from a model before a
+ * switch to gpt-6-sol — loses it on the next save. The editor shows it as "Unset", and `extras` is
+ * copied from the loaded agent, so without an explicit removal the stale value would be saved back.
+ */
+class AgentModelParametersBridgeTest {
+
+    private val gpt6SolDefs = EndpointParameterRegistry.getDefinitions(
+        endpoint = "agents",
+        provider = "openAI",
+        model = "gpt-6-sol",
+        extendedEffortSupported = true,
+    )
+    private val gpt6SolRemoved = EndpointParameterRegistry.modelRemovedOptions(
+        endpoint = "agents",
+        provider = "openAI",
+        model = "gpt-6-sol",
+    )
+
+    private fun resaved(effort: String): AgentAdvancedSettings {
+        val loaded = AgentAdvancedSettings(extras = mapOf("reasoning_effort" to JsonPrimitive(effort)))
+        return loaded.toModelParameters().toAgentAdvancedSettings(loaded, gpt6SolDefs, gpt6SolRemoved)
+    }
+
+    @Test
+    fun `a stale effort is removed on save`() {
+        assertThat(resaved("minimal").extras).doesNotContainKey("reasoning_effort")
+    }
+
+    @Test
+    fun `an effort the model offers survives the save`() {
+        assertThat(resaved("low").extras["reasoning_effort"]).isEqualTo(JsonPrimitive("low"))
+    }
+
+    @Test
+    fun `resend files switched off on a new agent is saved, and left unset when untouched`() {
+        val fresh = AgentAdvancedSettings()
+        val untouched = fresh.toModelParameters()
+        assertThat(untouched.toAgentAdvancedSettings(fresh, gpt6SolDefs, gpt6SolRemoved).extras)
+            .doesNotContainKey("resendFiles")
+        val off = untouched.copy(resendFiles = false).toAgentAdvancedSettings(fresh, gpt6SolDefs, gpt6SolRemoved)
+        assertThat(off.extras["resendFiles"]).isEqualTo(JsonPrimitive(false))
+    }
+
+    @Test
+    fun `a key outside the visible schema is still preserved`() {
+        val loaded = AgentAdvancedSettings(extras = mapOf("server_only" to JsonPrimitive("x")))
+        val saved = loaded.toModelParameters().toAgentAdvancedSettings(loaded, gpt6SolDefs, gpt6SolRemoved)
+        assertThat(saved.extras["server_only"]).isEqualTo(JsonPrimitive("x"))
+    }
+
+    /**
+     * The panel path, before the server version is detected: the options lack `max` (a version
+     * gate), and dropping on absence would delete it on any edit in the panel. Only a per-model rule
+     * removes a value.
+     */
+    @Test
+    fun `a version-gated effort survives a panel edit before the version is detected`() {
+        val undetectedDefs = EndpointParameterRegistry.getDefinitions(
+            endpoint = "agents",
+            provider = "anthropic",
+            model = "claude-opus-4-5",
+            extendedEffortSupported = false,
+        )
+        val removed = EndpointParameterRegistry.modelRemovedOptions(
+            endpoint = "agents",
+            provider = "anthropic",
+            model = "claude-opus-4-5",
+        )
+        val loaded = AgentAdvancedSettings(extras = mapOf("effort" to JsonPrimitive("max")))
+
+        val saved = loaded.toModelParameters().toAgentAdvancedSettings(loaded, undetectedDefs, removed)
+
+        assertThat(saved.extras["effort"]).isEqualTo(JsonPrimitive("max"))
+    }
+
+    /**
+     * An agent on a custom endpoint ("Groq") gets its type's parameter set, as web's agent panel
+     * resolves it, not the generic one the name falls through to, so its Top P saves as `top_p`.
+     */
+    @Test
+    fun `an agent on a custom endpoint gets OpenAI's parameter set`() {
+        val state = AgentEditorUiState(
+            provider = "Groq",
+            model = "llama-3.3-70b",
+            endpointConfigs = mapOf("Groq" to EndpointConfig(type = "custom")),
+        )
+
+        val keys = agentParameterDefinitions(
+            provider = state.provider,
+            model = state.model,
+            extendedEffortSupported = false,
+            dropParamsMap = null,
+            parameterProvider = state.parameterProvider,
+        ).map { it.key }
+
+        assertThat(state.parameterProvider).isEqualTo("custom")
+        assertThat(keys).containsAtLeast("top_p", "max_tokens", "reasoning_effort")
+        assertThat(keys).containsNoneOf("topP", "maxOutputTokens")
+    }
+
+    /** An agent an older build saved with the generic list's `topP` resaves under one spelling, `top_p`. */
+    @Test
+    fun `a custom-endpoint agent saved camelCased resaves snake-cased only`() {
+        val defs = agentParameterDefinitions(
+            provider = "Groq",
+            model = "llama-3.3-70b",
+            extendedEffortSupported = false,
+            dropParamsMap = null,
+            parameterProvider = "custom",
+        )
+        val loaded =
+            AgentAdvancedSettings(topP = 0.5f, topPKey = "topP", maxTokens = 900, maxTokensKey = "maxOutputTokens")
+
+        val saved = loaded.toModelParameters().toAgentAdvancedSettings(loaded, defs, emptyMap())
+
+        assertThat(saved.topPKey).isEqualTo("top_p")
+        assertThat(saved.maxTokensKey).isEqualTo("max_tokens")
+        assertThat(saved.extras.keys).containsNoneOf("topP", "top_p", "maxOutputTokens", "max_tokens")
+    }
+}

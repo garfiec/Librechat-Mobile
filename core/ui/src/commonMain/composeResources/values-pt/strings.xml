@@ -311,6 +311,8 @@
     <string name="acl_error_busy">Outra alteração neste acesso está em andamento. Tente novamente em instantes.</string>
     <string name="acl_error_unavailable">Não é possível alterar o acesso agora. Tente novamente em breve.</string>
     <string name="acl_error_audit_unavailable">O acesso não foi alterado porque o servidor não conseguiu registrar a alteração. Tente novamente em breve.</string>
+    <string name="acl_error_principal_preparation_failed">Não foi possível preparar as pessoas ou grupos para compartilhar. Tente novamente.</string>
+    <string name="acl_error_directory_unavailable">O diretório está indisponível. Tente novamente em instantes.</string>
     <string name="acl_error_load">Não foi possível carregar quem tem acesso.</string>
     <string name="bookmarks">Marcadores</string>
     <string name="bookmark_new">Novo marcador</string>

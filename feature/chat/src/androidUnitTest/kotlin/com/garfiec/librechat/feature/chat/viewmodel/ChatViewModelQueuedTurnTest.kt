@@ -9,13 +9,7 @@ import com.garfiec.librechat.core.common.identity.AccountState
 import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.common.identity.InMemoryActiveAccountProvider
 import com.garfiec.librechat.core.common.result.Result
-import com.garfiec.librechat.core.data.datastore.ChatFontSize
-import com.garfiec.librechat.core.data.datastore.ChatHeaderAlignment
-import com.garfiec.librechat.core.data.datastore.ChatHeaderContent
-import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
-import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.data.datastore.LastUsedSelection
-import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
 import com.garfiec.librechat.core.data.repository.CodeDecisionMove
 import com.garfiec.librechat.core.data.repository.CodeEnvironmentRepository
 import com.garfiec.librechat.core.data.repository.SavedCodeDecision
@@ -35,6 +29,12 @@ import com.garfiec.librechat.core.model.code.StatefulCodeSessionsConfig
 import com.garfiec.librechat.core.model.config.ModelSpec
 import com.garfiec.librechat.core.model.config.ModelSpecs
 import com.garfiec.librechat.core.model.config.StartupConfig
+import com.garfiec.librechat.core.model.preferences.ChatFontSize
+import com.garfiec.librechat.core.model.preferences.ChatHeaderAlignment
+import com.garfiec.librechat.core.model.preferences.ChatHeaderContent
+import com.garfiec.librechat.core.model.preferences.ContextBarPlacement
+import com.garfiec.librechat.core.model.preferences.DuringRunAction
+import com.garfiec.librechat.core.model.preferences.StarredModelsDisplay
 import com.garfiec.librechat.core.model.queuedturn.AgentQueuedTurnReceipt
 import com.garfiec.librechat.core.model.queuedturn.EnqueueQueuedTurnRequest
 import com.garfiec.librechat.core.model.queuedturn.QUEUED_TURN_RECONCILIATION_MS
@@ -678,6 +678,41 @@ class ChatViewModelQueuedTurnTest {
         assertThat(request.captured.parentMessageId).isEqualTo("server-user-1")
         assertThat(request.captured.parentMessageId).isNotEqualTo(optimisticId)
     }
+
+    /**
+     * A new chat's first turn reaches this ViewModel as the landing's optimistic seed, which stays
+     * the tail until the server saves the user row under an id of its own.
+     */
+    @Test
+    fun `a follow-up queued during a handed-off new chat's first reply anchors to the server's user message`() =
+        queuedTurnTest(
+            arrange = {
+                every { fixture.messageRepository.observeMessages(CONVERSATION_ID) } returns flowOf(emptyList())
+                coEvery { chatRepository.checkStreamStatus(eq(CONVERSATION_ID), any()) } returns
+                    ChatStatusResponse(
+                        active = true,
+                        createdAt = EPOCH,
+                        resumeState = StatusResumeState(
+                            userMessage = StatusResumeUserMessage(
+                                messageId = "server-user-1",
+                                conversationId = CONVERSATION_ID,
+                                text = "the turn in flight",
+                            ),
+                        ),
+                    )
+            },
+        ) { vm ->
+            assertThat(vm.uiState.value.isStreaming).isTrue()
+            assertThat(vm.uiState.value.displayMessages.last().message.messageId).isEqualTo(USER_MESSAGE_ID)
+
+            vm.onInputChanged(TEXT)
+            vm.queueMessage()
+            runCurrent()
+
+            val request = slot<EnqueueQueuedTurnRequest>()
+            coVerify(exactly = 1) { queuedTurnRepository.enqueue(capture(request)) }
+            assertThat(request.captured.parentMessageId).isEqualTo("server-user-1")
+        }
 
     /** A server without queued turns: every follow-up stays in the local queue. */
     private fun localQueueOnly() {

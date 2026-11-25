@@ -11,10 +11,21 @@ import com.garfiec.librechat.core.common.identity.AccountState
 import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.common.identity.currentAccountId
 import com.garfiec.librechat.core.common.identity.flatMapAccountOrEmpty
-import com.garfiec.librechat.core.data.prefetch.PrefetchRunOutcome
 import com.garfiec.librechat.core.data.prefetch.ScheduledRunRecord
 import com.garfiec.librechat.core.model.ArtifactsMode
 import com.garfiec.librechat.core.model.ModelRef
+import com.garfiec.librechat.core.model.preferences.ChatFontSize
+import com.garfiec.librechat.core.model.preferences.ChatHeaderAlignment
+import com.garfiec.librechat.core.model.preferences.ChatHeaderContent
+import com.garfiec.librechat.core.model.preferences.ContextBarPlacement
+import com.garfiec.librechat.core.model.preferences.DEFAULT_LANGUAGE
+import com.garfiec.librechat.core.model.preferences.DuringRunAction
+import com.garfiec.librechat.core.model.preferences.InlineArtifactPrefs
+import com.garfiec.librechat.core.model.preferences.LatexRenderer
+import com.garfiec.librechat.core.model.preferences.StarredModelsDisplay
+import com.garfiec.librechat.core.model.preferences.TTS_SOURCE_DEVICE
+import com.garfiec.librechat.core.model.preferences.UploadRoutingMode
+import com.garfiec.librechat.core.model.prefetch.PrefetchRunOutcome
 import com.garfiec.librechat.core.model.usage.ContextDetailPreset
 import com.garfiec.librechat.core.model.usage.ContextDetailSections
 import com.garfiec.librechat.core.model.usage.DEFAULT_COMPACT_NUDGE_THRESHOLD
@@ -856,13 +867,6 @@ class SettingsDataStore(
     }
 
     companion object {
-        /**
-         * Sentinel meaning "follow the device locale" — the default until the user picks a
-         * specific language. Maps to a null locale override at the app root, so formatting and
-         * resource resolution keep following the system (current behavior preserved).
-         */
-        const val DEFAULT_LANGUAGE = "system"
-
         /** The Skills toggle slot every new chat shares (web's `Constants.NEW_CONVO`). */
         const val SKILLS_TOGGLE_NEW_CHAT_SLOT = "new"
 
@@ -871,10 +875,6 @@ class SettingsDataStore(
          * `Constants.spec_defaults_key`), kept apart from [SKILLS_TOGGLE_NEW_CHAT_SLOT].
          */
         const val SKILLS_TOGGLE_SPEC_DEFAULTS_SLOT = "__defaults__"
-
-        /** The stored [ttsSource] values: the device's own engine, or the server's TTS route. */
-        const val TTS_SOURCE_DEVICE = "device"
-        const val TTS_SOURCE_SERVER = "server"
 
         private val KEY_SELECTED_LANGUAGE = stringPreferencesKey("selected_language")
         private val KEY_LATEX_RENDERER = stringPreferencesKey("latex_renderer")

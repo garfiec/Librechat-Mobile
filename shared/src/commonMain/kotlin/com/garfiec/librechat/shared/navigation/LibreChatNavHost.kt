@@ -49,6 +49,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -68,6 +69,7 @@ import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
 import com.garfiec.librechat.core.logging.Diag
 import com.garfiec.librechat.core.notifications.ReplySnackbars
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
+import com.garfiec.librechat.core.ui.components.AdaptiveDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
 import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
 import com.garfiec.librechat.core.ui.components.BackClaims
@@ -83,6 +85,7 @@ import com.garfiec.librechat.core.ui.components.windowUsesSidebarLayout
 import com.garfiec.librechat.core.ui.datetime.ProvideDateTimeFormat
 import com.garfiec.librechat.core.ui.glass.GlassBackdrop
 import com.garfiec.librechat.core.ui.glass.GlassSheetHost
+import com.garfiec.librechat.core.ui.glass.GlassSidebarPanel
 import com.garfiec.librechat.core.ui.glass.GlassStyle
 import com.garfiec.librechat.core.ui.glass.glassBackdropSource
 import com.garfiec.librechat.core.ui.glass.rememberGlassBackdrop
@@ -96,6 +99,9 @@ import com.garfiec.librechat.feature.auth.navigation.Terms
 import com.garfiec.librechat.feature.auth.navigation.authEntries
 import com.garfiec.librechat.feature.auth.navigation.isAddAccountFlowRoute
 import com.garfiec.librechat.feature.auth.navigation.signUpEntries
+import com.garfiec.librechat.feature.auth.screen.GatePageSignInOverlay
+import com.garfiec.librechat.feature.chat.components.LocalChatContentRenderers
+import com.garfiec.librechat.feature.chat.components.rememberPlatformChatContentRenderers
 import com.garfiec.librechat.feature.chat.navigation.Chat
 import com.garfiec.librechat.feature.chat.navigation.NewChat
 import com.garfiec.librechat.feature.chat.navigation.chatEntries
@@ -125,6 +131,8 @@ import com.garfiec.librechat.feature.skills.navigation.skillsEntries
 import com.garfiec.librechat.shared.resources.Res
 import com.garfiec.librechat.shared.resources.dismiss
 import com.garfiec.librechat.shared.resources.dont_warn_again
+import com.garfiec.librechat.shared.resources.gate_sign_in_expired_action
+import com.garfiec.librechat.shared.resources.gate_sign_in_expired_message
 import com.garfiec.librechat.shared.resources.session_banned_message
 import com.garfiec.librechat.shared.resources.session_banned_message_named
 import com.garfiec.librechat.shared.resources.session_banned_title
@@ -385,6 +393,7 @@ fun LibreChatNavHost(
             LocalUriHandler provides sharedLinkUriHandler,
             LocalExternalUriHandler provides platformUriHandler,
             LocalOpenSharedChat provides openSharedChat,
+            LocalChatContentRenderers provides rememberPlatformChatContentRenderers(),
         ) {
             // Date/time format + the app-wide relative-time ticker. Inside AppLocale, which is where
             // the language override reaches the configuration the format resolves its locale from.
@@ -424,6 +433,23 @@ fun LibreChatNavHost(
                             modifier = Modifier
                                 .align(Alignment.BottomCenter)
                                 .windowInsetsPadding(WindowInsets.safeDrawing),
+                        )
+                    }
+                }
+            }
+
+            val gatePage by navHostViewModel.gateSession.pageRequest.collectAsStateWithLifecycle()
+            gatePage?.let { request ->
+                AdaptiveDialog(
+                    onDismissRequest = navHostViewModel.gateSession::dismissPage,
+                    properties = DialogProperties(usePlatformDefaultWidth = false),
+                ) {
+                    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+                        GatePageSignInOverlay(
+                            portalUrl = request.portalUrl,
+                            serverUrl = request.serverUrl,
+                            onSignInComplete = navHostViewModel.gateSession::onPageSignedIn,
+                            onClose = navHostViewModel.gateSession::dismissPage,
                         )
                     }
                 }
@@ -567,6 +593,7 @@ fun PhoneLayout(
     val isLoggedIn by navHostViewModel.isLoggedIn.collectAsStateWithLifecycle()
     val banner by navHostViewModel.banner.collectAsStateWithLifecycle()
     val sessionRenewalBlocked by navHostViewModel.sessionRenewalBlocked.collectAsStateWithLifecycle()
+    val gateSignInRequired by navHostViewModel.gateSession.signInRequired.collectAsStateWithLifecycle()
 
     val glass = rememberGlassStyle()
     val drawerBackdrop = rememberGlassBackdrop()
@@ -690,9 +717,12 @@ fun PhoneLayout(
                 .glassBackdropSource(drawerBackdrop?.takeIf { drawerShowing }),
         ) {
             if (!navigator.isInAuthFlow) {
+                val gateHost = gateSignInRequired
                 SessionRenewalBlockedBanner(
-                    visible = sessionRenewalBlocked,
-                    onSignInAgain = navHostViewModel::signInAgain,
+                    visible = sessionRenewalBlocked || gateHost != null,
+                    onSignInAgain = if (gateHost != null) navHostViewModel.gateSession::signIn else navHostViewModel::signInAgain,
+                    message = gateHost?.let { stringResource(Res.string.gate_sign_in_expired_message, it) },
+                    actionLabel = gateHost?.let { stringResource(Res.string.gate_sign_in_expired_action) },
                 )
                 BannerDisplay(
                     banner = banner,
@@ -865,6 +895,9 @@ fun MainNavDisplay(
                 onNavigateToChat = { conversationId, isTemporary ->
                     navigator.navigateToChat(conversationId, isTemporary)
                 },
+                onLandingStartedChat = { conversationId, isTemporary ->
+                    navigator.navigateToStartedChat(conversationId, isTemporary)
+                },
                 onOpenDrawer = onMenuClick,
                 onNewChat = navigator::navigateToNewChat,
                 onNavigateToProviderKeys = { endpointName ->
@@ -948,6 +981,7 @@ fun MainNavDisplay(
                 // auth. Forcing navigateToAuth() here would wrongly leave the auth screen up after a
                 // successor was promoted.
                 onLogout = { navHostViewModel.logout() },
+                onSignInAgain = navHostViewModel::signInAgain,
                 onNavigateToArchive = { navigator.navigate(ArchivedConversations) },
                 onOpenConversation = { navigator.navigateToChat(it) },
                 onProviderKeyReturn = { message ->

@@ -3,12 +3,13 @@ package com.garfiec.librechat.feature.chat.viewmodel.delegate
 import com.garfiec.librechat.core.common.identity.AccountId
 import com.garfiec.librechat.core.common.identity.AccountState
 import com.garfiec.librechat.core.common.identity.InMemoryActiveAccountProvider
-import com.garfiec.librechat.core.data.endpoint.EndpointDispatch
 import com.garfiec.librechat.core.data.repository.QueuedTurnRepository
+import com.garfiec.librechat.core.model.endpoint.EndpointDispatch
 import com.garfiec.librechat.core.model.queuedturn.AgentQueuedTurnReceipt
 import com.garfiec.librechat.core.model.queuedturn.QueuedTurnOutcome
 import com.garfiec.librechat.core.model.queuedturn.QueuedTurnReceiptSource
 import com.garfiec.librechat.core.model.queuedturn.QueuedTurnStatus
+import com.garfiec.librechat.core.model.queuedturn.QueuedTurnSteer
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ModelChoice
@@ -100,6 +101,33 @@ class QueuedTurnFenceTest {
      * is left when the run's own `Final` lands moments later. A legacy follow-up draining into
      * that boundary is a second concurrent turn in the same conversation.
      */
+    @Test
+    fun `a promoted steer's re-homed row becomes the server's turn and never drains`() {
+        val delegate = QueuedTurnDelegate(
+            handle = QueueHandle(stateHandle),
+            repository = mockk<QueuedTurnRepository>(relaxed = true),
+            onSuccessorOwed = { true },
+            projectOrphan = { legacyRow("orphan") },
+            claimPromotedSteer = { steer -> "steer-row".takeIf { steer.clientSteerId == "local-1" } },
+            nowMillis = { NOW },
+        )
+        queueDelegate.enqueue(legacyRow("steer-row"))
+
+        delegate.applyReceipts(
+            listOf(
+                receipt(QueuedTurnStatus.QUEUED, clientRequestId = "steer-leftover:local-1")
+                    .copy(steer = QueuedTurnSteer(steerId = "st-1", clientSteerId = "local-1")),
+            ),
+            QueuedTurnReceiptSource.Enqueue,
+        )
+
+        val row = stateFlow.value.messageQueue.single()
+        assertThat(row.localId).isEqualTo("steer-row")
+        assertThat(row.server?.status).isEqualTo(QueuedTurnServerState.Status.Queued)
+        queueDelegate.drainNext(endedGenerationCreatedAt = EPOCH)
+        assertThat(sent).isEmpty()
+    }
+
     @Test
     fun `an admitted turn fences the run end it consumed`() {
         admitLegacyBehind()

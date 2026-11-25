@@ -305,7 +305,7 @@ class SseClient(
  * loop either raw or wrapped by whatever cancelled the byte channel — see the call site. Bounded, so
  * a looping cause chain cannot spin here.
  */
-private fun Throwable.accessGatewayCause(): AccessGatewayException? {
+internal fun Throwable.accessGatewayCause(): AccessGatewayException? {
     var current: Throwable? = this
     repeat(CAUSE_TRAVERSAL_LIMIT) {
         val error = current ?: return null

@@ -1,0 +1,192 @@
+package com.garfiec.librechat.feature.auth.screen
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.autofill.ContentType
+import androidx.compose.ui.semantics.contentType
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.ui.components.AdaptiveButton
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
+import com.garfiec.librechat.core.ui.components.IosTextContentType
+import com.garfiec.librechat.core.ui.components.VerbatimKeyboardOptions
+import com.garfiec.librechat.core.ui.components.withIosTextContentType
+import com.garfiec.librechat.feature.auth.resources.*
+import com.garfiec.librechat.feature.auth.resources.Res
+import com.garfiec.librechat.feature.auth.viewmodel.RegisterError
+import com.garfiec.librechat.feature.auth.viewmodel.RegisterUiState
+import org.jetbrains.compose.resources.stringResource
+
+@Composable
+fun RegisterContent(
+    uiState: RegisterUiState,
+    onNameChange: (String) -> Unit,
+    onUsernameChange: (String) -> Unit,
+    onEmailChange: (String) -> Unit,
+    onPasswordChange: (String) -> Unit,
+    onConfirmPasswordChange: (String) -> Unit,
+    onRegister: () -> Unit,
+    onNavigateToLogin: () -> Unit,
+    modifier: Modifier = Modifier,
+    /** The diagnostic-log export offered under a connection error; nothing by default. */
+    diagnosticLogLink: @Composable () -> Unit = {},
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            // No scaffold here: the screen keeps itself clear of the system bars and the keyboard.
+            .windowInsetsPadding(WindowInsets.safeDrawing),
+    ) {
+        AuthBanner(uiState.banner)
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Text(
+                text = stringResource(Res.string.register_title),
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.onBackground,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.semantics { heading() },
+            )
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            AdaptiveOutlinedTextField(
+                value = uiState.name,
+                onValueChange = onNameChange,
+                label = { Text(stringResource(Res.string.full_name_label)) },
+                modifier = Modifier.fillMaxWidth().semantics { contentType = ContentType.PersonFullName },
+                singleLine = true,
+                enabled = !uiState.isLoading,
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            AdaptiveOutlinedTextField(
+                value = uiState.username,
+                onValueChange = onUsernameChange,
+                label = { Text(stringResource(Res.string.username_optional_label)) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                keyboardOptions = VerbatimKeyboardOptions,
+                enabled = !uiState.isLoading,
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            AdaptiveOutlinedTextField(
+                value = uiState.email,
+                onValueChange = onEmailChange,
+                label = { Text(stringResource(Res.string.email_label)) },
+                // The email, not the username, is what Login asks for, so it is the one saved as the login.
+                modifier = Modifier.fillMaxWidth()
+                    .semantics { contentType = ContentType.NewUsername + ContentType.EmailAddress },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Email,
+                    autoCorrectEnabled = false,
+                ).withIosTextContentType(IosTextContentType.Username),
+                enabled = !uiState.isLoading,
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            AdaptiveOutlinedTextField(
+                value = uiState.password,
+                onValueChange = onPasswordChange,
+                label = { Text(stringResource(Res.string.password_label)) },
+                modifier = Modifier.fillMaxWidth().semantics { contentType = ContentType.NewPassword },
+                singleLine = true,
+                visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Password,
+                    autoCorrectEnabled = false,
+                ).withIosTextContentType(IosTextContentType.NewPassword),
+                enabled = !uiState.isLoading,
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            AdaptiveOutlinedTextField(
+                value = uiState.confirmPassword,
+                onValueChange = onConfirmPasswordChange,
+                label = { Text(stringResource(Res.string.confirm_password_label)) },
+                modifier = Modifier.fillMaxWidth().semantics { contentType = ContentType.NewPassword },
+                singleLine = true,
+                visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Password,
+                    autoCorrectEnabled = false,
+                ).withIosTextContentType(IosTextContentType.NewPassword),
+                enabled = !uiState.isLoading,
+            )
+
+            val errorText = uiState.registerError?.let { registerErrorText(it, uiState.minPasswordLength) }
+                ?: authErrorText(uiState.refusal, uiState.error)
+            if (errorText != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = errorText,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                if (uiState.offerDiagnosticLog) diagnosticLogLink()
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            AdaptiveButton(
+                onClick = onRegister,
+                modifier = Modifier.fillMaxWidth(),
+                loading = uiState.isLoading,
+            ) {
+                Text(stringResource(if (uiState.isLoading) Res.string.progress_creating_account else Res.string.sign_up))
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            TextButton(onClick = onNavigateToLogin) {
+                Text(stringResource(Res.string.have_account_sign_in))
+            }
+
+            PolicyLinksFooter(uiState.policyLinks, modifier = Modifier.padding(top = 16.dp))
+        }
+    }
+}
+
+@Composable
+private fun registerErrorText(error: RegisterError, minPasswordLength: Int): String = when (error) {
+    RegisterError.MissingFields -> stringResource(Res.string.register_error_missing_fields)
+    RegisterError.PasswordTooShort -> stringResource(Res.string.register_error_password_too_short, minPasswordLength)
+    RegisterError.PasswordMismatch -> stringResource(Res.string.register_error_password_mismatch)
+    RegisterError.EmailTaken -> stringResource(Res.string.register_error_email_taken)
+}

@@ -11,6 +11,8 @@ import com.garfiec.librechat.core.data.datastore.AccountRegistry
 import com.garfiec.librechat.core.data.datastore.AccountRoster
 import com.garfiec.librechat.core.data.datastore.RosterSnapshot
 import com.garfiec.librechat.core.data.util.SessionTaskRunner
+import com.garfiec.librechat.core.model.auth.AuthCookies
+import com.garfiec.librechat.core.model.auth.SessionCredentials
 import com.garfiec.librechat.core.network.api.AuthApi
 import com.garfiec.librechat.core.network.api.UserApi
 import com.garfiec.librechat.core.network.client.AuthInterceptorPlugin
@@ -30,11 +32,17 @@ import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
 import io.ktor.client.plugins.HttpResponseValidator
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.request.HttpRequestData
 import io.ktor.client.statement.bodyAsText
+import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.contentType
+import io.ktor.http.headersOf
 import io.ktor.http.isSuccess
+import io.ktor.serialization.kotlinx.json.json
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -45,8 +53,8 @@ import org.junit.Before
 import org.junit.Test
 
 /**
- * Server-side revocation on logout and account removal, over the real request plugins that apply a
- * pinned identity's server, bearer and gateway headers.
+ * Server-side revocation on logout and account removal, and the session rotation enabling 2FA, over
+ * the real request plugins that apply a pinned identity's server, bearer and gateway headers.
  */
 class AuthRepositoryImplLogoutTest {
 
@@ -69,8 +77,17 @@ class AuthRepositoryImplLogoutTest {
             if (baseUrl == SERVER_B) mapOf("X-Gateway" to "gw-b") else emptyMap()
     }
 
+    /** The account whose refreshes are held right now, as the token store's flight lock would. */
+    private var heldFor: String? = null
+    private val heldDuringRequest = mutableListOf<String?>()
+
     private var status = HttpStatusCode.OK
-    private val engine = MockEngine { respond("""{"message":"Logout successful"}""", status) }
+    private var responseBody = """{"message":"Logout successful"}"""
+    private var responseHeaders = headersOf()
+    private val engine = MockEngine {
+        heldDuringRequest += heldFor
+        respond(responseBody, status, responseHeaders)
+    }
 
     @Before
     fun setUp() {
@@ -78,6 +95,14 @@ class AuthRepositoryImplLogoutTest {
         coEvery { switchGate.captureSnapshot(any()) } returns
             RequestIdentity(baseUrl = SERVER_A, accountId = ACCOUNT_A, bearer = "bearer-a")
         coEvery { tokenManager.ensureFreshAccessToken(any(), any(), any()) } answers { thirdArg() }
+        coEvery { tokenManager.withRefreshesHeld<Any?>(any(), any()) } coAnswers {
+            heldFor = firstArg()
+            try {
+                secondArg<suspend () -> Any?>().invoke()
+            } finally {
+                heldFor = null
+            }
+        }
         coEvery { tokenManager.getAccessTokenFor(ACCOUNT_B) } returns "bearer-b"
         coEvery { roster.snapshot() } returns RosterSnapshot(
             entries = listOf(entry(ACCOUNT_A, SERVER_A), entry(ACCOUNT_B, SERVER_B)),
@@ -103,6 +128,8 @@ class AuthRepositoryImplLogoutTest {
             override fun getBaseUrl(): String = SERVER_A
         }
         val client = HttpClient(engine) {
+            install(ContentNegotiation) { json() }
+            defaultRequest { contentType(ContentType.Application.Json) }
             install(AuthInterceptorPlugin) {
                 this.tokenManager = this@AuthRepositoryImplLogoutTest.tokenManager
                 serverUrlProvider = liveServer
@@ -144,6 +171,7 @@ class AuthRepositoryImplLogoutTest {
                 roster = roster,
                 serverHeadersProvider = headersProvider,
             ),
+            refreshCookieCredentials = credentials,
         )
     }
 
@@ -286,6 +314,62 @@ class AuthRepositoryImplLogoutTest {
         assertThat(request.cookie()).containsExactly("refreshToken=rt-a")
         coVerify(exactly = 1) { accountSwitcher.remove(ACCOUNT_A) }
         coVerify(exactly = 1) { sessionManager.endCurrentSession() }
+    }
+
+    @Test
+    fun `enabling 2FA sends the session's cookie and stores the session the server rotated it into`() = runTest {
+        responseBody = """{"token":"bearer-a-2","user":{"_id":"u1","email":"a@example.com"}}"""
+        responseHeaders = headersOf(HttpHeaders.SetCookie, "refreshToken=rt-a-2; Path=/; HttpOnly")
+
+        val result = repo().confirmTwoFactor("123456")
+
+        assertThat(result).isEqualTo(Result.Success(true))
+        val request = engine.requestHistory.single()
+        assertThat(request.url.toString()).isEqualTo("$SERVER_A/api/auth/2fa/confirm")
+        assertThat(request.bearer()).isEqualTo("Bearer bearer-a")
+        assertThat(request.cookie()).containsExactly("refreshToken=rt-a")
+        coVerify(exactly = 1) {
+            tokenManager.replaceSession(ACCOUNT_A, "rt-a", SessionCredentials("bearer-a-2", AuthCookies("rt-a-2")))
+        }
+    }
+
+    @Test
+    fun `the account's refreshes are held from the confirmation until its rotated session is stored`() = runTest {
+        responseBody = """{"token":"bearer-a-2","user":{"_id":"u1","email":"a@example.com"}}"""
+        responseHeaders = headersOf(HttpHeaders.SetCookie, "refreshToken=rt-a-2; Path=/; HttpOnly")
+        val heldDuringReplace = mutableListOf<String?>()
+        coEvery { tokenManager.replaceSession(any(), any(), any()) } answers {
+            heldDuringReplace += heldFor
+            true
+        }
+
+        repo().confirmTwoFactor("123456")
+
+        assertThat(heldDuringRequest).containsExactly(ACCOUNT_A)
+        assertThat(heldDuringReplace).containsExactly(ACCOUNT_A)
+    }
+
+    @Test
+    fun `a server that answers enabling 2FA with an empty body keeps the session as it was`() = runTest {
+        responseBody = ""
+
+        val result = repo().confirmTwoFactor("123456")
+
+        assertThat(result).isEqualTo(Result.Success(false))
+        coVerify(exactly = 0) { tokenManager.replaceSession(any(), any(), any()) }
+    }
+
+    @Test
+    fun `a refused 2FA confirmation is reported without a refresh or a resend`() = runTest {
+        status = HttpStatusCode.Unauthorized
+        responseBody = """{"message":"Sign in again to enable 2FA"}"""
+
+        val result = repo().confirmTwoFactor("123456")
+
+        assertThat(result).isInstanceOf(Result.Error::class.java)
+        assertThat(engine.requestHistory).hasSize(1)
+        coVerify(exactly = 0) { tokenManager.refreshAccessToken(any()) }
+        coVerify(exactly = 0) { tokenManager.emitSessionExpired(any(), any()) }
     }
 
     private companion object {

@@ -1,14 +1,11 @@
 package com.garfiec.librechat.feature.settings.viewmodel
 
-import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.CodeEnvironmentRepository
 import com.garfiec.librechat.core.data.repository.CodeMachinesRepository
-import com.garfiec.librechat.core.data.repository.CodePairingError
 import com.garfiec.librechat.core.data.repository.CodePairingOutcome
-import com.garfiec.librechat.core.data.repository.CodeRemovalError
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
 import com.garfiec.librechat.core.model.code.CodeEnvironmentPermissionField
@@ -38,85 +35,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
 import kotlin.time.Instant
-
-enum class CodeMachineStatusLabel { CHECKING, UNAVAILABLE, OFFLINE, STARTING, READY }
-
-/** `fileWrite` or `commandExecution`. */
-enum class CodePermissionCategory { FILE_WRITE, COMMAND_EXECUTION }
-
-@Immutable
-data class CodePermissionControl(
-    val category: CodePermissionCategory,
-    /** `allow`, `ask`, `deny`: what the machine offers. */
-    val options: List<String>,
-    val selected: String,
-)
-
-@Immutable
-data class CodeMachineRow(
-    val id: String,
-    val name: String,
-    val status: CodeMachineStatusLabel,
-    /** `sandboxProfile · runtimes`, when the worker reports a profile. */
-    val detail: String?,
-    val canDelete: Boolean,
-    /** Empty when the machine offers none, or this user may not edit it. */
-    val permissions: List<CodePermissionControl>,
-)
-
-@Immutable
-data class CodeControlPlaneOption(val id: String, val name: String)
-
-/** The one-time worker command, shown until the pairing code expires. */
-@Immutable
-data class CodePairingView(val shell: CodeWorkerShell, val command: String)
-
-@Immutable
-data class CodeScopeSetting(
-    /** In upstream's order; a saved scope this deployment no longer allows is listed disabled. */
-    val options: List<String>,
-    val disallowed: String?,
-    val selected: String,
-    val saving: Boolean,
-)
-
-@Immutable
-data class CodeExecutionUiState(
-    /** Null until the user's saved scope has been read. */
-    val scope: CodeScopeSetting? = null,
-    val scopeLoaded: Boolean = false,
-    val scopeLoadFailed: Boolean = false,
-    val scopeSaving: Boolean = false,
-    val loading: Boolean = true,
-    val loadFailed: Boolean = false,
-    val machines: List<CodeMachineRow> = emptyList(),
-    /** Empty: this server doesn't offer self-service workers, so pairing is not offered. */
-    val controlPlanes: List<CodeControlPlaneOption> = emptyList(),
-    val pairName: String = "",
-    val pairPlaneId: String? = null,
-    val pairing: Boolean = false,
-    val pairingCommand: CodePairingView? = null,
-    val pendingRemoval: CodeMachineRow? = null,
-    val removingId: String? = null,
-    val savingPermissionsId: String? = null,
-    val setupLink: String = "",
-    val setupLinkInvalid: Boolean = false,
-) {
-    val canPair: Boolean get() = pairName.isNotBlank() && pairPlaneId != null && !pairing
-}
-
-/** One-shot outcomes, rendered as snackbars. */
-sealed interface CodeExecutionEvent {
-    data object PairingCreated : CodeExecutionEvent
-    data class PairingFailed(val error: CodePairingError) : CodeExecutionEvent
-    data object PermissionsSaved : CodeExecutionEvent
-    data object PermissionsFailed : CodeExecutionEvent
-    data object Removed : CodeExecutionEvent
-    data class RemoveFailed(val error: CodeRemovalError) : CodeExecutionEvent
-    data object PreferencesUpdated : CodeExecutionEvent
-    data object PreferencesFailed : CodeExecutionEvent
-    data class OpenSetup(val attemptId: String) : CodeExecutionEvent
-}
 
 /**
  * Settings › Code execution, web's `CodeEnvironments.tsx` and `StatefulWorkspaceDefault.tsx`: the
@@ -325,15 +243,15 @@ class CodeExecutionViewModel(
     }
 
     fun setPermission(machineId: String, category: CodePermissionCategory, decision: String) {
-        if (state.value.savingPermissionsId != null) return
+        if (machineId in state.value.savingPermissionIds) return
         val settings = when (category) {
             CodePermissionCategory.FILE_WRITE -> CodeEnvironmentPermissionSettings(fileWrite = decision)
             CodePermissionCategory.COMMAND_EXECUTION -> CodeEnvironmentPermissionSettings(commandExecution = decision)
         }
-        state.update { it.copy(savingPermissionsId = machineId) }
+        state.update { it.copy(savingPermissionIds = it.savingPermissionIds + machineId) }
         viewModelScope.launch {
             val saved = machines.updatePermissions(machineId, CodeEnvironmentUserSettings(settings))
-            state.update { it.copy(savingPermissionsId = null) }
+            state.update { it.copy(savingPermissionIds = it.savingPermissionIds - machineId) }
             _events.emit(if (saved) CodeExecutionEvent.PermissionsSaved else CodeExecutionEvent.PermissionsFailed)
             if (saved) load()
         }

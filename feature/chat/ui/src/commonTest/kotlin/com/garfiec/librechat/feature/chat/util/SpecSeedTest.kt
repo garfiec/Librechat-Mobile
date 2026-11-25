@@ -1,0 +1,359 @@
+package com.garfiec.librechat.feature.chat.util
+
+import com.garfiec.librechat.core.common.EndpointConstants
+import com.garfiec.librechat.core.model.Agent
+import com.garfiec.librechat.core.model.Preset
+import com.garfiec.librechat.core.model.config.InterfaceConfig
+import com.garfiec.librechat.core.model.config.ModelSpec
+import com.garfiec.librechat.core.model.config.ModelSpecs
+import com.garfiec.librechat.core.model.config.StartupConfig
+import com.garfiec.librechat.feature.chat.viewmodel.ModelChoice
+import kotlinx.serialization.json.Json
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
+
+/** Ported from upstream web: `getDefaultModelSpec` (`utils/endpoints.ts`) + `useNewConvo`'s apply gate. */
+class SpecSeedTest {
+
+    private fun config(
+        vararg specs: ModelSpec,
+        prioritize: Boolean? = null,
+        modelSelect: Boolean = true,
+    ) = StartupConfig(
+        modelSpecs = ModelSpecs(list = specs.toList(), prioritize = prioritize),
+        interfaceConfig = InterfaceConfig(modelSelect = modelSelect),
+    )
+
+    // The production entry point takes the two config fields it reads; this reads them as it does.
+    private fun resolve(config: StartupConfig?, lastSpec: String? = null) =
+        resolveDefaultModelSpec(config?.modelSpecs, config?.interfaceConfig?.modelSelect ?: true, lastSpec)
+
+    private fun agent(id: String, isDefault: Boolean = false, softDefault: Boolean = false) =
+        ModelSpec(name = id, preset = Preset(endpoint = "agents", agentId = id), isDefault = isDefault, softDefault = softDefault)
+
+    private fun model(name: String, endpoint: String?, model: String?) =
+        ModelSpec(name = name, preset = Preset(endpoint = endpoint, model = model))
+
+    @Test
+    fun no_config_or_no_specs_resolves_nothing() {
+        assertNull(resolve(null))
+        assertNull(resolve(StartupConfig()))
+        assertNull(resolve(config(prioritize = true)))
+    }
+
+    @Test
+    fun a_default_spec_applies_only_when_prioritized() {
+        val specs = arrayOf(agent("a"), agent("b", isDefault = true))
+        assertEquals(
+            SpecSeed(EndpointConstants.AGENTS, "b", prioritized = true, spec = "b"),
+            resolve(config(*specs, prioritize = true)),
+        )
+        assertNull(resolve(config(*specs, prioritize = false)))
+        assertNull(resolve(config(*specs, prioritize = null)))
+    }
+
+    @Test
+    fun without_a_default_the_first_spec_applies_when_prioritized() {
+        assertEquals(
+            SpecSeed(EndpointConstants.AGENTS, "a", prioritized = true, spec = "a"),
+            resolve(config(agent("a"), agent("b"), prioritize = true)),
+        )
+        assertNull(resolve(config(agent("a"), agent("b"), prioritize = false)))
+    }
+
+    @Test
+    fun the_menu_off_acts_as_prioritized() {
+        assertEquals(
+            SpecSeed(EndpointConstants.AGENTS, "a", prioritized = true, spec = "a"),
+            resolve(config(agent("a"), prioritize = false, modelSelect = false)),
+        )
+    }
+
+    @Test
+    fun a_soft_default_yields_unless_the_menu_is_off() {
+        val specs = arrayOf(agent("a"), agent("soft", softDefault = true))
+        assertEquals(
+            SpecSeed(EndpointConstants.AGENTS, "soft", prioritized = false, spec = "soft"),
+            resolve(config(*specs, prioritize = false)),
+        )
+        // prioritize does not upgrade a soft default: upstream checks the soft branch first.
+        assertEquals(
+            SpecSeed(EndpointConstants.AGENTS, "soft", prioritized = false, spec = "soft"),
+            resolve(config(*specs, prioritize = true)),
+        )
+        assertEquals(
+            SpecSeed(EndpointConstants.AGENTS, "soft", prioritized = true, spec = "soft"),
+            resolve(config(*specs, modelSelect = false)),
+        )
+    }
+
+    @Test
+    fun a_hard_default_outranks_a_soft_one() {
+        val specs = arrayOf(agent("soft", softDefault = true), agent("hard", isDefault = true))
+        assertEquals("hard", resolve(config(*specs, prioritize = true))?.model)
+        assertNull(resolve(config(*specs, prioritize = false)))
+    }
+
+    @Test
+    fun an_endpoint_model_preset_maps_to_its_pair_and_an_incomplete_one_to_nothing() {
+        assertEquals(
+            SpecSeed("openAI", "gpt-4.1", prioritized = true, spec = "fast"),
+            resolve(config(model("fast", "openAI", "gpt-4.1"), prioritize = true)),
+        )
+        assertNull(resolve(config(model("broken", "openAI", null), prioritize = true)))
+        assertNull(resolve(config(ModelSpec(name = "bare"), prioritize = true)))
+    }
+
+    @Test
+    fun the_wire_fields_decode() {
+        val json = Json { ignoreUnknownKeys = true }
+        val decoded = json.decodeFromString(
+            StartupConfig.serializer(),
+            """
+            {"modelSpecs":{"prioritize":true,"list":[
+              {"name":"claude","default":true,"preset":{"endpoint":"agents","agent_id":"agent_x"}},
+              {"name":"soft","softDefault":true,"preset":{"endpoint":"openAI","model":"gpt-4o"}}
+            ]}}
+            """.trimIndent(),
+        )
+        val specs = decoded.modelSpecs!!
+        assertEquals(true, specs.prioritize)
+        assertEquals(true, specs.list[0].isDefault)
+        assertEquals(true, specs.list[1].softDefault)
+        assertEquals(
+            SpecSeed(EndpointConstants.AGENTS, "agent_x", prioritized = true, spec = "claude"),
+            resolve(decoded),
+        )
+    }
+
+    @Test
+    fun specs_with_the_same_model_keep_distinct_names() {
+        val first = model("first", "custom", "shared-model").toSeed()
+        val second = model("second", "custom", "shared-model").toSeed()
+        assertEquals(first?.model, second?.model)
+        assertEquals("first", first?.spec)
+        assertEquals("second", second?.spec)
+    }
+
+    @Test
+    fun added_endpoints_limit_raw_rows_and_bare_enforce_hides_them_all() {
+        assertEquals(false, ModelSpecs(addedEndpoints = listOf("agents")).showsRawEndpoint("custom", modelSelect = true))
+        assertEquals(true, ModelSpecs(addedEndpoints = listOf("agents")).showsRawEndpoint("agents", modelSelect = true))
+        assertEquals(true, ModelSpecs(enforce = true, addedEndpoints = listOf("agents")).showsRawEndpoint("agents", modelSelect = true))
+        assertEquals(false, ModelSpecs(enforce = true).showsRawEndpoint("custom", modelSelect = true))
+        assertEquals(true, ModelSpecs().showsRawEndpoint("custom", modelSelect = true))
+        assertEquals(true, (null as ModelSpecs?).showsRawEndpoint("custom", modelSelect = true))
+    }
+
+    @Test
+    fun model_select_off_hides_every_raw_row() {
+        assertEquals(false, ModelSpecs().showsRawEndpoint("custom", modelSelect = false))
+        assertEquals(false, ModelSpecs(addedEndpoints = listOf("agents")).showsRawEndpoint("agents", modelSelect = false))
+        assertEquals(false, (null as ModelSpecs?).showsRawEndpoint("custom", modelSelect = false))
+    }
+
+    @Test
+    fun enforce_requires_a_spec_even_for_added_endpoints() {
+        val spec = model("fast", "openAI", "gpt-4.1")
+        assertEquals(true, ModelSpecs(list = listOf(spec), enforce = true, addedEndpoints = listOf("agents")).requiresSpec)
+        // The server checks the list too: enforce over an empty list enforces nothing.
+        assertEquals(false, ModelSpecs(enforce = true).requiresSpec)
+        assertEquals(false, ModelSpecs(list = listOf(spec)).requiresSpec)
+        assertEquals(false, (null as ModelSpecs?).requiresSpec)
+    }
+
+    @Test
+    fun last_spec_wins_unless_a_spec_is_marked_default() {
+        val specs = arrayOf(model("first", "openAI", "a"), model("picked", "openAI", "b"))
+        assertEquals("picked", resolve(config(*specs, prioritize = true), lastSpec = "picked")?.spec)
+        // Upstream applies a stored spec whatever `prioritize` says.
+        assertEquals("picked", resolve(config(*specs, prioritize = false), lastSpec = "picked")?.spec)
+        val marked = arrayOf(model("first", "openAI", "a").copy(isDefault = true), model("picked", "openAI", "b"))
+        assertEquals("first", resolve(config(*marked, prioritize = true), lastSpec = "picked")?.spec)
+        assertNull(resolve(config(*marked, prioritize = false), lastSpec = "picked"))
+    }
+
+    @Test
+    fun last_spec_beats_a_soft_default_but_equal_to_it_stays_soft() {
+        val specs = arrayOf(agent("soft", softDefault = true), model("picked", "openAI", "b"))
+        val last = resolve(config(*specs, prioritize = false), lastSpec = "picked")
+        assertEquals("picked", last?.spec)
+        assertEquals(true, last?.prioritized)
+        val soft = resolve(config(*specs, prioritize = false), lastSpec = "soft")
+        assertEquals("soft", soft?.spec)
+        assertEquals(false, soft?.prioritized)
+    }
+
+    @Test
+    fun the_preset_endpoint_decides_the_pair_as_on_the_server() {
+        // A stray agent_id on another endpoint is ignored: the server resolves `preset.endpoint` first.
+        assertEquals(
+            SpecSeed("openAI", "gpt-4.1", prioritized = false, spec = "stray"),
+            ModelSpec(name = "stray", preset = Preset(endpoint = "openAI", model = "gpt-4.1", agentId = "agent_x")).toSeed(),
+        )
+        assertEquals(
+            SpecSeed(EndpointConstants.AGENTS, "agent_x", prioritized = false, spec = "writer"),
+            ModelSpec(name = "writer", preset = Preset(endpoint = "agents", model = "gpt-4o", agentId = "agent_x")).toSeed(),
+        )
+        // The server writes an inferred endpoint into the served config, so one that arrives
+        // without an endpoint was an explicit `endpoint: null`, which opens nothing.
+        assertNull(ModelSpec(name = "no_endpoint", preset = Preset(agentId = "agent_x")).toSeed())
+        assertNull(ModelSpec(name = "blank_agent", preset = Preset(endpoint = "agents", agentId = "")).toSeed())
+    }
+
+    @Test
+    fun a_reopened_pick_follows_its_spec_to_the_current_pair() {
+        val specs = ModelSpecs(list = listOf(model("fast", "openAI", "gpt-4.1"), model("bare", "openAI", null)))
+        assertEquals(ModelChoice.Spec("fast", "openAI", "gpt-4.1"), specs.reopenedPick("openAI", "gpt-4o", "fast"))
+        assertEquals(ModelChoice.Spec("fast", "openAI", "gpt-4.1"), specs.reopenedPick("openAI", "gpt-4.1", "fast"))
+        assertEquals(ModelChoice.Raw("openAI", "gpt-4o"), specs.reopenedPick("openAI", "gpt-4o", "gone"))
+        assertEquals(ModelChoice.Raw("openAI", "gpt-4o"), specs.reopenedPick("openAI", "gpt-4o", "bare"))
+        assertEquals(ModelChoice.Raw("openAI", "gpt-4o"), specs.reopenedPick("openAI", "gpt-4o", null))
+        assertEquals(ModelChoice.Raw("openAI", "gpt-4o"), (null as ModelSpecs?).reopenedPick("openAI", "gpt-4o", "fast"))
+    }
+
+    @Test
+    fun a_last_spec_the_server_no_longer_lists_is_ignored() {
+        val specs = arrayOf(model("first", "openAI", "a"), model("second", "openAI", "b"))
+        assertEquals("first", resolve(config(*specs, prioritize = true), lastSpec = "gone")?.spec)
+    }
+
+    @Test
+    fun only_the_spec_refusals_open_the_picker() {
+        assertEquals(true, isSpecRefusal("Invalid model spec"))
+        assertEquals(true, isSpecRefusal("Model spec mismatch"))
+        assertEquals(true, isSpecRefusal("No model spec selected"))
+        assertEquals(false, isSpecRefusal("Illegal model request"))
+        assertEquals(false, isSpecRefusal(null))
+    }
+
+    @Test
+    fun only_a_single_matching_spec_is_inferred() {
+        val specs = ModelSpecs(
+            list = listOf(model("fast", "openAI", "gpt-4.1"), model("careful", "openAI", "gpt-4.1"), agent("agent_w")),
+        )
+        assertEquals("agent_w", specs.uniqueSpecFor(EndpointConstants.AGENTS, "agent_w"))
+        assertNull(specs.uniqueSpecFor("openAI", "gpt-4.1"))
+        assertNull(specs.uniqueSpecFor("openAI", "gpt-4o"))
+        assertNull((null as ModelSpecs?).uniqueSpecFor("openAI", "gpt-4.1"))
+    }
+
+    @Test
+    fun a_reopened_lane_b_finds_its_spec_by_label_on_its_pair() {
+        val fast = model("fast", "openAI", "gpt-4.1").copy(label = "Fast")
+        val careful = model("careful", "openAI", "gpt-4.1").copy(label = "Careful")
+        val elsewhere = model("careful-4o", "openAI", "gpt-4o").copy(label = "Careful")
+        val specs = ModelSpecs(list = listOf(fast, careful, elsewhere))
+
+        assertEquals("careful", specs.laneBSpecFor("openAI", "gpt-4.1", "Careful"))
+        assertEquals("careful-4o", specs.laneBSpecFor("openAI", "gpt-4o", "Careful"))
+        // No label match (a display label, or none) reopens raw where a raw lane was possible.
+        assertNull(specs.laneBSpecFor("openAI", "gpt-4o", "OpenAI"))
+        assertNull(specs.laneBSpecFor("openAI", "gpt-4o", null))
+        assertNull((null as ModelSpecs?).laneBSpecFor("openAI", "gpt-4.1", "Careful"))
+    }
+
+    @Test
+    fun a_reopened_lane_b_finds_a_spec_moved_to_another_model_on_its_endpoint() {
+        val careful = model("careful", "openAI", "gpt-5").copy(label = "Careful")
+        val specs = ModelSpecs(list = listOf(careful, model("other", "anthropic", "claude").copy(label = "Careful")))
+
+        assertEquals("careful", specs.laneBSpecFor("openAI", "gpt-4.1", "Careful"))
+        // On another endpoint the label names nothing the server would apply there.
+        assertNull(specs.laneBSpecFor("azureOpenAI", "gpt-4.1", "Careful"))
+    }
+
+    @Test
+    fun under_enforce_an_unmatched_lane_b_takes_the_one_spec_on_its_pair() {
+        val careful = model("careful-4o", "openAI", "gpt-4o").copy(label = "Careful")
+        val enforced = ModelSpecs(
+            list = listOf(careful, model("a", "openAI", "gpt-4.1"), model("b", "openAI", "gpt-4.1")),
+            enforce = true,
+        )
+
+        assertEquals("careful-4o", enforced.laneBSpecFor("openAI", "gpt-4o", null))
+        assertEquals("careful-4o", enforced.laneBSpecFor("openAI", "gpt-4o", "OpenAI"))
+        // Two specs on the pair and no label to tell them apart: the user picks.
+        assertNull(enforced.laneBSpecFor("openAI", "gpt-4.1", null))
+        // A label two specs on the pair share is no better.
+        val twins = ModelSpecs(
+            list = listOf(model("a", "openAI", "gpt-4.1").copy(label = "Same"), model("b", "openAI", "gpt-4.1").copy(label = "Same")),
+            enforce = true,
+        )
+        assertNull(twins.laneBSpecFor("openAI", "gpt-4.1", "Same"))
+    }
+
+    @Test
+    fun a_lane_b_sender_equal_to_its_endpoint_display_label_reopens_raw() {
+        // A raw lane on `Acme` saves the endpoint's modelDisplayLabel as its sender, which a spec
+        // labelled "Acme" on the same pair would also save: the sender names no spec.
+        val acme = model("acme-spec", "Acme", "acme-1").copy(label = "Acme")
+        val specs = ModelSpecs(list = listOf(acme))
+
+        assertNull(specs.laneBSpecFor("Acme", "acme-1", "Acme", displayLabel = "Acme"))
+        // A label the endpoint does not display is still the spec's own.
+        assertEquals("acme-spec", specs.laneBSpecFor("Acme", "acme-1", "Acme", displayLabel = "Acme Corp"))
+        assertEquals("acme-spec", specs.laneBSpecFor("Acme", "acme-1", "Acme", displayLabel = null))
+        // Under enforce only a spec lane can have been sent, so the label match stands.
+        val enforced = specs.copy(enforce = true)
+        assertEquals("acme-spec", enforced.laneBSpecFor("Acme", "acme-1", "Acme", displayLabel = "Acme"))
+        // Before the endpoint's config has loaded its label is unknown, so any sender may be it.
+        assertNull(specs.laneBSpecFor("Acme", "acme-1", "Acme", displayLabel = null, displayLabelKnown = false))
+        assertEquals(
+            "acme-spec",
+            enforced.laneBSpecFor("Acme", "acme-1", "Acme", displayLabel = null, displayLabelKnown = false),
+        )
+    }
+
+    @Test
+    fun visible_specs_sort_by_order_with_unordered_ones_after_in_list_order() {
+        val specs = ModelSpecs(
+            list = listOf(
+                model("c", "openAI", "c"),
+                model("b", "openAI", "b").copy(order = 2.0),
+                model("d", "openAI", "d"),
+                model("a", "openAI", "a").copy(order = 1.0),
+            ),
+        )
+        assertEquals(listOf("a", "b", "c", "d"), specs.visibleSpecs(emptyList(), agentsLoaded = false).map { it.name })
+    }
+
+    @Test
+    fun an_agent_spec_hides_only_once_the_agents_list_has_loaded_without_its_agent() {
+        val specs = ModelSpecs(list = listOf(agent("agent_w"), agent("agent_x"), model("fast", "openAI", "gpt-4.1")))
+        val loaded = listOf(Agent(id = "agent_w"))
+
+        assertEquals(
+            listOf("agent_w", "agent_x", "fast"),
+            specs.visibleSpecs(emptyList(), agentsLoaded = false).map { it.name },
+        )
+        assertEquals(listOf("agent_w", "fast"), specs.visibleSpecs(loaded, agentsLoaded = true).map { it.name })
+    }
+
+    @Test
+    fun an_agent_spec_on_an_ephemeral_agent_id_always_shows() {
+        val specs = ModelSpecs(list = listOf(agent("openAI__gpt-4.1"), agent("agent_gone")))
+        assertEquals(listOf("openAI__gpt-4.1"), specs.visibleSpecs(emptyList(), agentsLoaded = true).map { it.name })
+    }
+
+    @Test
+    fun hidden_and_unusable_specs_are_not_listed() {
+        val specs = ModelSpecs(
+            list = listOf(
+                model("hidden", "openAI", "a").copy(showInMenu = false),
+                model("no-model", "openAI", null),
+                model("shown", "openAI", "b"),
+            ),
+        )
+        assertEquals(listOf("shown"), specs.visibleSpecs(emptyList(), agentsLoaded = true).map { it.name })
+    }
+
+    @Test
+    fun a_loaded_list_of_100_agents_hides_an_agent_spec_missing_from_it() {
+        val specs = ModelSpecs(list = listOf(agent("agent_past_the_page")))
+        val loaded = List(100) { Agent(id = "agent_$it") }
+
+        assertEquals(emptyList<String?>(), specs.visibleSpecs(loaded, agentsLoaded = true).map { it.name })
+    }
+}

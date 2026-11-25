@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="gate_sign_in_channel">Anmeldung</string>
+    <string name="gate_sign_in_title">Anmeldung beim Gateway des Servers</string>
+    <string name="gate_sign_in_text">Schließe die Anmeldung im Browser ab, um zu Switchboard zurückzukehren.</string>
+</resources>

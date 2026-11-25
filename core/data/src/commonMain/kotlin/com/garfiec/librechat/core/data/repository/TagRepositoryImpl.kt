@@ -93,6 +93,8 @@ class TagRepositoryImpl(
     override suspend fun refreshTags(): Result<Unit> = safeApiCall {
         val account = activeAccountProvider.currentAccountId() ?: return@safeApiCall
         val tags = tagsApi.getTags().filterNot { it.tag.isNullOrBlank() }
+        // Answered after a switch, these are the next account's tags.
+        if (activeAccountProvider.currentAccountId() != account) return@safeApiCall
         // Scoped replace: only this account's tag rows are swapped, never another account's.
         tagDao.replaceAllForAccount(
             account.value,

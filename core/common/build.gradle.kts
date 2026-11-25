@@ -3,6 +3,7 @@ import java.util.Properties
 plugins {
     id("librechat.kmp.library")
     id("librechat.kmp.koin")
+    id("librechat.kmp.web")
 }
 
 // Short commit the build was cut from, baked into BuildConfig so the running app can show it

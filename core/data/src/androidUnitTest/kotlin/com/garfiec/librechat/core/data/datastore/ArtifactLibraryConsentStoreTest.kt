@@ -3,8 +3,9 @@ package com.garfiec.librechat.core.data.datastore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import com.garfiec.librechat.core.common.ChannelPolicy
 import com.garfiec.librechat.core.common.DistributionChannel
-import com.garfiec.librechat.core.data.datastore.ArtifactLibraryConsentStore.Decision
-import com.garfiec.librechat.core.data.datastore.ArtifactLibraryConsentStore.Subject
+import com.garfiec.librechat.core.model.preferences.ArtifactLibraryDecision
+import com.garfiec.librechat.core.model.preferences.ArtifactLibrarySubject
+import com.garfiec.librechat.core.model.preferences.FlaggedArtifactLibraries
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -26,8 +27,8 @@ class ArtifactLibraryConsentStoreTest {
     @get:Rule
     val tmpFolder = TemporaryFolder()
 
-    private val vaul = Subject("vaul", "unmaintained")
-    private val datGui = Subject("dat.gui", "unmaintained")
+    private val vaul = ArtifactLibrarySubject("vaul", "unmaintained")
+    private val datGui = ArtifactLibrarySubject("dat.gui", "unmaintained")
 
     private fun TestScope.newStore(
         file: String = "consent",
@@ -39,21 +40,21 @@ class ArtifactLibraryConsentStoreTest {
         return ArtifactLibraryConsentStore(PreferenceStore(ds, ChannelPolicy(DistributionChannel.OPEN_SOURCE)), scope)
     }
 
-    private suspend fun ArtifactLibraryConsentStore.decision(subject: Subject, artifact: String): Decision =
+    private suspend fun ArtifactLibraryConsentStore.decision(subject: ArtifactLibrarySubject, artifact: String): ArtifactLibraryDecision =
         snapshot.filterNotNull().first().decisionFor(subject, artifact)
 
     @Test
     fun `an unanswered library asks`() = runTest(UnconfinedTestDispatcher()) {
-        assertThat(newStore().decision(vaul, "a")).isEqualTo(Decision.ASK)
+        assertThat(newStore().decision(vaul, "a")).isEqualTo(ArtifactLibraryDecision.ASK)
     }
 
     @Test
     fun `a once answer holds for that artifact only`() = runTest(UnconfinedTestDispatcher()) {
         val store = newStore()
         store.decideOnce(vaul, "a", allow = false)
-        assertThat(store.decision(vaul, "a")).isEqualTo(Decision.DECLINE)
-        assertThat(store.decision(vaul, "b")).isEqualTo(Decision.ASK)
-        assertThat(store.decision(datGui, "a")).isEqualTo(Decision.ASK)
+        assertThat(store.decision(vaul, "a")).isEqualTo(ArtifactLibraryDecision.DECLINE)
+        assertThat(store.decision(vaul, "b")).isEqualTo(ArtifactLibraryDecision.ASK)
+        assertThat(store.decision(datGui, "a")).isEqualTo(ArtifactLibraryDecision.ASK)
     }
 
     @Test
@@ -61,8 +62,8 @@ class ArtifactLibraryConsentStoreTest {
         val store = newStore()
         store.decideOnce(vaul, "a", allow = false)
         store.remember(vaul, allow = true)
-        assertThat(store.decision(vaul, "a")).isEqualTo(Decision.ALLOW)
-        assertThat(store.decision(vaul, "b")).isEqualTo(Decision.ALLOW)
+        assertThat(store.decision(vaul, "a")).isEqualTo(ArtifactLibraryDecision.ALLOW)
+        assertThat(store.decision(vaul, "b")).isEqualTo(ArtifactLibraryDecision.ALLOW)
     }
 
     @Test
@@ -70,14 +71,14 @@ class ArtifactLibraryConsentStoreTest {
         val store = newStore()
         store.remember(vaul, allow = true)
         store.remember(vaul, allow = false)
-        assertThat(store.decision(vaul, "a")).isEqualTo(Decision.DECLINE)
+        assertThat(store.decision(vaul, "a")).isEqualTo(ArtifactLibraryDecision.DECLINE)
     }
 
     @Test
     fun `a yes to one advisory is not a yes to a worse one`() = runTest(UnconfinedTestDispatcher()) {
         val store = newStore()
         store.remember(datGui, allow = true)
-        assertThat(store.decision(Subject("dat.gui", "vulnerable"), "a")).isEqualTo(Decision.ASK)
+        assertThat(store.decision(ArtifactLibrarySubject("dat.gui", "vulnerable"), "a")).isEqualTo(ArtifactLibraryDecision.ASK)
     }
 
     @Test
@@ -87,12 +88,12 @@ class ArtifactLibraryConsentStoreTest {
             store.decideOnce(vaul, "a", allow = false)
             store.decideOnce(vaul, "b", allow = false)
             store.reconsider(vaul, "a")
-            assertThat(store.decision(vaul, "a")).isEqualTo(Decision.ASK)
-            assertThat(store.decision(vaul, "b")).isEqualTo(Decision.DECLINE)
+            assertThat(store.decision(vaul, "a")).isEqualTo(ArtifactLibraryDecision.ASK)
+            assertThat(store.decision(vaul, "b")).isEqualTo(ArtifactLibraryDecision.DECLINE)
 
             store.remember(datGui, allow = true)
             store.reconsider(datGui, "a")
-            assertThat(store.decision(datGui, "c")).isEqualTo(Decision.ASK)
+            assertThat(store.decision(datGui, "c")).isEqualTo(ArtifactLibraryDecision.ASK)
         }
 
     @Test
@@ -108,9 +109,9 @@ class ArtifactLibraryConsentStoreTest {
 
         val snapshot = store.snapshot.filterNotNull().first()
         assertThat(snapshot.remembered(vaul)).isNull()
-        assertThat(snapshot.decisionFor(vaul, "a")).isEqualTo(Decision.ALLOW)
-        assertThat(snapshot.decisionFor(vaul, "b")).isEqualTo(Decision.DECLINE)
-        assertThat(snapshot.decisionFor(vaul, "c")).isEqualTo(Decision.ASK)
+        assertThat(snapshot.decisionFor(vaul, "a")).isEqualTo(ArtifactLibraryDecision.ALLOW)
+        assertThat(snapshot.decisionFor(vaul, "b")).isEqualTo(ArtifactLibraryDecision.DECLINE)
+        assertThat(snapshot.decisionFor(vaul, "c")).isEqualTo(ArtifactLibraryDecision.ASK)
         assertThat(snapshot.remembered(datGui)).isTrue()
     }
 
@@ -133,7 +134,7 @@ class ArtifactLibraryConsentStoreTest {
         first.decideOnce(datGui, "a", allow = true)
         firstJob.cancelAndJoin()
         val second = newStore("persist")
-        assertThat(second.decision(vaul, "a")).isEqualTo(Decision.DECLINE)
-        assertThat(second.decision(datGui, "a")).isEqualTo(Decision.ASK)
+        assertThat(second.decision(vaul, "a")).isEqualTo(ArtifactLibraryDecision.DECLINE)
+        assertThat(second.decision(datGui, "a")).isEqualTo(ArtifactLibraryDecision.ASK)
     }
 }

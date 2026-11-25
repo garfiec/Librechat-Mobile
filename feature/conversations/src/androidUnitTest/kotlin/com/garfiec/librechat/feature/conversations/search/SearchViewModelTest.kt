@@ -11,21 +11,21 @@ import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.data.repository.MessageRepository
 import com.garfiec.librechat.core.data.repository.SearchCapabilityRepository
 import com.garfiec.librechat.core.data.repository.SearchRepository
-import com.garfiec.librechat.core.data.search.HighlightedSnippet
-import com.garfiec.librechat.core.data.search.HitSource
-import com.garfiec.librechat.core.data.search.MessageSearchHit
 import com.garfiec.librechat.core.data.search.MessageSearchRepository
-import com.garfiec.librechat.core.data.search.MessageSearchResult
-import com.garfiec.librechat.core.data.search.RemoteSearchStatus
-import com.garfiec.librechat.core.data.search.RoleFilter
-import com.garfiec.librechat.core.data.search.ScanCursor
-import com.garfiec.librechat.core.data.search.ScanProgress
-import com.garfiec.librechat.core.data.search.SearchFilterValues
-import com.garfiec.librechat.core.data.search.SearchOptions
-import com.garfiec.librechat.core.data.search.SearchSort
 import com.garfiec.librechat.core.model.Agent
 import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.Message
+import com.garfiec.librechat.core.model.search.HighlightedSnippet
+import com.garfiec.librechat.core.model.search.HitSource
+import com.garfiec.librechat.core.model.search.MessageSearchHit
+import com.garfiec.librechat.core.model.search.MessageSearchResult
+import com.garfiec.librechat.core.model.search.RemoteSearchStatus
+import com.garfiec.librechat.core.model.search.RoleFilter
+import com.garfiec.librechat.core.model.search.ScanCursor
+import com.garfiec.librechat.core.model.search.ScanProgress
+import com.garfiec.librechat.core.model.search.SearchFilterValues
+import com.garfiec.librechat.core.model.search.SearchOptions
+import com.garfiec.librechat.core.model.search.SearchSort
 import com.garfiec.librechat.feature.conversations.drawer.DrawerSearchSources
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
@@ -509,6 +509,39 @@ class SearchViewModelTest {
         advanceUntilIdle()
 
         assertThat(vm.state.value.agentNames).containsExactly("agent_pelican", "Pelican Pal")
+    }
+
+    @Test
+    fun `a forked agent chat's preview header names the agent, not the fork's model`() = runTest(dispatcher) {
+        every { conversationRepository.observeConversations(any()) } returns flowOf(
+            Result.Success(
+                listOf(Conversation(conversationId = "c-title", title = "Pelican facts", agentId = "agent_pelican", model = "gpt-4o-mini")),
+            ),
+        )
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        vm.selectConversation("c-title")
+        advanceUntilIdle()
+
+        assertThat(vm.state.value.chatPreview?.model).isEqualTo("agent_pelican")
+        assertThat(vm.state.value.agentNames).containsExactly("agent_pelican", "Pelican Pal")
+        assertThat(vm.state.value.chatPreview?.model.chatLabel(vm.state.value.agentNames)).isEqualTo("Pelican Pal")
+    }
+
+    @Test
+    fun `an agent chat's preview header shows no agent id while its name is unknown`() = runTest(dispatcher) {
+        every { conversationRepository.observeConversations(any()) } returns flowOf(
+            Result.Success(listOf(Conversation(conversationId = "c-title", title = "Pelican facts", agentId = "agent_gone"))),
+        )
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        vm.selectConversation("c-title")
+        advanceUntilIdle()
+
+        assertThat(vm.state.value.chatPreview?.model.chatLabel(vm.state.value.agentNames)).isNull()
+        assertThat("gpt-4o".chatLabel(emptyMap())).isEqualTo("gpt-4o")
     }
 
     @Test

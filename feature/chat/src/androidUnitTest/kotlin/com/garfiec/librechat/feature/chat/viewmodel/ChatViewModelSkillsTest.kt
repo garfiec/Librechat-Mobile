@@ -4,13 +4,8 @@ import androidx.lifecycle.viewModelScope
 import com.garfiec.librechat.core.common.EndpointConstants
 import com.garfiec.librechat.core.common.ToolConstants
 import com.garfiec.librechat.core.common.result.Result
-import com.garfiec.librechat.core.data.datastore.ChatFontSize
-import com.garfiec.librechat.core.data.datastore.ChatHeaderAlignment
-import com.garfiec.librechat.core.data.datastore.ChatHeaderContent
-import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.core.data.datastore.LastUsedSelection
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
-import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
 import com.garfiec.librechat.core.model.ContentType
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.Message
@@ -24,6 +19,11 @@ import com.garfiec.librechat.core.model.content.MessageContentPart
 import com.garfiec.librechat.core.model.permissions.Permission
 import com.garfiec.librechat.core.model.permissions.PermissionType
 import com.garfiec.librechat.core.model.permissions.UserRolePermissions
+import com.garfiec.librechat.core.model.preferences.ChatFontSize
+import com.garfiec.librechat.core.model.preferences.ChatHeaderAlignment
+import com.garfiec.librechat.core.model.preferences.ChatHeaderContent
+import com.garfiec.librechat.core.model.preferences.ContextBarPlacement
+import com.garfiec.librechat.core.model.preferences.StarredModelsDisplay
 import com.garfiec.librechat.core.model.request.EphemeralAgent
 import com.garfiec.librechat.core.model.request.MAX_MANUAL_SKILLS
 import com.garfiec.librechat.core.model.response.ChatStatusResponse
@@ -205,7 +205,7 @@ class ChatViewModelSkillsTest {
     }
 
     @Test
-    fun `a handed-off chat picking a spec before the carried write lands starts off`() {
+    fun `a handed-off chat picking a spec before the carried write lands keeps the carried value`() {
         val curated = ModelSpec(name = "curated", preset = Preset(endpoint = ENDPOINT, model = MODEL))
         serveSpecs(curated)
         fixture.selectionHandoff.put("conv-new", ModelChoice.Raw(ENDPOINT, MODEL), skillsToggle = true)
@@ -216,7 +216,7 @@ class ChatViewModelSkillsTest {
             vm.onSpecSelected(curated)
             runCurrent()
             assertThat(vm.uiState.value.selectedSpec).isEqualTo("curated")
-            assertThat(vm.uiState.value.skillsToggle).isFalse()
+            assertThat(vm.uiState.value.skillsToggle).isTrue()
         }
     }
 
@@ -229,8 +229,6 @@ class ChatViewModelSkillsTest {
             assertThat(vm.uiState.value.skillsToggle).isTrue()
 
             vm.onSpecSelected(curated)
-            runCurrent()
-            vm.toggleTool(ToolConstants.SKILLS)
             runCurrent()
             vm.toggleTool(ToolConstants.SKILLS)
             runCurrent()
@@ -316,28 +314,29 @@ class ChatViewModelSkillsTest {
     }
 
     @Test
-    fun `a new chat under a spec the config sends with skills carries nothing`() {
+    fun `a new chat under a spec that starts skills on hands its toggle to the created chat`() {
         val all = spec("all-skills", JsonPrimitive(true))
         serveSpecs(all)
         skillsTest { vm ->
             vm.onSpecSelected(all)
             runCurrent()
-            assertThat(vm.uiState.value.activeSpecSkills).isEqualTo(ModelSpecSkills.All)
+            assertThat(vm.uiState.value.activeSpecSkills).isEqualTo(ModelSpecSkills.On)
+            assertThat(vm.uiState.value.skillsToggle).isTrue()
 
             sendKeepingSelection(vm)
             streams.single().emit(created("conv-new"))
             runCurrent()
 
-            assertThat(fixture.skillsToggles.value).doesNotContainKey("conv-new")
+            assertThat(fixture.skillsToggles.value).containsEntry("conv-new", true)
             val handoff = fixture.selectionHandoff.take("conv-new")
             assertThat(handoff).isNotNull()
-            assertThat(handoff?.skillsToggle).isNull()
+            assertThat(handoff?.skillsToggle).isTrue()
         }
     }
 
     @Test
-    fun `a new chat under a spec without skills starts off and stores nothing`() {
-        // v0.8.8's shape: the spec carries no skills key, so it does not govern the toggle.
+    fun `a new chat under a spec without skills starts off and carries its value to the created chat`() {
+        // The spec carries no skills key, so it does not govern the toggle.
         val curated = ModelSpec(name = "curated", preset = Preset(endpoint = ENDPOINT, model = MODEL))
         serveSpecs(curated)
         fixture.skillsToggles.value = mapOf(SettingsDataStore.SKILLS_TOGGLE_NEW_CHAT_SLOT to true)
@@ -355,9 +354,10 @@ class ChatViewModelSkillsTest {
             streams.single().emit(created("conv-new"))
             runCurrent()
 
-            // Nothing written: not the created id, and the new-chat slot keeps what it held.
+            // The created id holds the session's value, which it restores under the spec; the
+            // new-chat slot keeps what it held.
             assertThat(fixture.skillsToggles.value)
-                .containsExactly(SettingsDataStore.SKILLS_TOGGLE_NEW_CHAT_SLOT, true)
+                .containsExactly(SettingsDataStore.SKILLS_TOGGLE_NEW_CHAT_SLOT, true, "conv-new", true)
             // The session's value still reaches the Chat(id) ViewModel through the handoff.
             assertThat(fixture.selectionHandoff.take("conv-new")?.skillsToggle).isTrue()
         }
@@ -460,6 +460,23 @@ class ChatViewModelSkillsTest {
     }
 
     @Test
+    fun `the created frame puts the server's resolved skills on the live user turn`() = skillsTest("c1") { vm ->
+        vm.addPendingManualSkill("pdf-tools")
+        runCurrent()
+        send(vm)
+        val turnId = vm.uiState.value.messages.last { it.isCreatedByUser }.messageId
+
+        streams.single().emit(
+            created("c1").copy(manualSkills = listOf("pdf-tools"), alwaysAppliedSkills = listOf("house-style")),
+        )
+        runCurrent()
+
+        val turn = vm.uiState.value.messages.single { it.messageId == turnId }
+        assertThat(turn.manualSkills).containsExactly("pdf-tools")
+        assertThat(turn.alwaysAppliedSkills).containsExactly("house-style")
+    }
+
+    @Test
     fun `a failed send puts its picks back beside the chips it held back`() {
         val only = spec("brand", JsonArray(listOf(JsonPrimitive("brand-voice"))))
         serveSpecs(only)
@@ -543,31 +560,12 @@ class ChatViewModelSkillsTest {
     }
 
     @Test
-    fun `a spec allowlist the config sends, picked after staging, sends only its names`() {
-        val only = spec("brand", JsonArray(listOf(JsonPrimitive("brand-voice"))))
-        serveSpecs(only)
-        skillsTest { vm ->
-            vm.addPendingManualSkill("pdf-tools")
-            vm.addPendingManualSkill("brand-voice")
-            vm.onSpecSelected(only)
-            runCurrent()
-
-            sendKeepingSelection(vm)
-
-            assertThat(sent.single().manualSkills).containsExactly("brand-voice")
-            assertThat(vm.uiState.value.pendingManualSkills).containsExactly("pdf-tools")
-            assertThat(vm.uiState.value.error).isEqualTo(ChatNotice.SKILLS_NOT_SENT.marker())
-        }
-    }
-
-    @Test
     fun `chips a new chat's first send held back stay staged on the created chat, with the notice`() {
-        val only = spec("brand", JsonArray(listOf(JsonPrimitive("brand-voice"))))
-        serveSpecs(only)
+        val off = spec("locked", JsonPrimitive(false))
+        serveSpecs(off)
         skillsTest { landing ->
             landing.addPendingManualSkill("pdf-tools")
-            landing.addPendingManualSkill("brand-voice")
-            landing.onSpecSelected(only)
+            landing.onSpecSelected(off)
             runCurrent()
             sendKeepingSelection(landing)
             assertThat(landing.uiState.value.error).isEqualTo(ChatNotice.SKILLS_NOT_SENT.marker())
@@ -735,11 +733,7 @@ class ChatViewModelSkillsTest {
     private fun spec(name: String, skills: kotlinx.serialization.json.JsonElement) =
         ModelSpec(name = name, preset = Preset(endpoint = ENDPOINT, model = MODEL), skills = skills)
 
-    /**
-     * Serves [specs]; the selection seeder, which publishes them to the chat, needs its inputs.
-     * A spec built with `skills` stands for a future server: v0.8.8's config route strips the key
-     * (`sanitizeModelSpecs`), so these cases cover forward-compatible handling, not today's wire.
-     */
+    /** Serves [specs]; the selection seeder, which publishes them to the chat, needs its inputs. */
     private fun serveSpecs(vararg specs: ModelSpec) {
         every { fixture.configRepository.startupConfig } returns
             MutableStateFlow(StartupConfig(modelSpecs = ModelSpecs(list = specs.toList())))

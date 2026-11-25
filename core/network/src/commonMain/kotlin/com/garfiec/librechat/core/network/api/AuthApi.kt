@@ -1,6 +1,7 @@
 package com.garfiec.librechat.core.network.api
 
 import com.garfiec.librechat.core.model.auth.AuthCookies
+import com.garfiec.librechat.core.model.auth.SessionCredentials
 import com.garfiec.librechat.core.model.request.LoginRequest
 import com.garfiec.librechat.core.model.request.OtpVerificationRequest
 import com.garfiec.librechat.core.model.request.PasswordResetRequest
@@ -25,11 +26,14 @@ import com.garfiec.librechat.core.network.api.dto.TwoFactorSetupRequest
 import com.garfiec.librechat.core.network.client.CookieHelper
 import com.garfiec.librechat.core.network.client.attachAuthCookies
 import com.garfiec.librechat.core.network.client.unauthorizedIsVerdict
+import com.garfiec.librechat.core.network.di.librechatJson
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.path
+import kotlinx.serialization.Serializable
 
 class AuthApi constructor(
     private val client: HttpClient,
@@ -136,12 +140,25 @@ class AuthApi constructor(
             }
         }.body()
 
-    // confirm2FA returns an empty 200 body (`res.status(200).json()`); there is nothing to decode.
-    suspend fun confirmTwoFactor(code: String) {
-        client.post {
+    /**
+     * The server rotates the session [cookies] name in place and answers the replacement, signing out
+     * every other session; without a live refresh cookie its 401 is the verdict, not an expired bearer.
+     * Null when the server answers an empty 200 and keeps the session as it was.
+     */
+    suspend fun confirmTwoFactor(code: String, cookies: AuthCookies?): SessionCredentials? {
+        val httpResponse = client.post {
             url { path("api/auth/2fa/confirm") }
+            cookies?.let { attachAuthCookies(it) }
             setBody(TwoFactorConfirmRequest(token = code))
+            unauthorizedIsVerdict()
         }
+        if (cookies == null) return null
+        val text = httpResponse.bodyAsText()
+        val token = text.takeIf { it.isNotBlank() }
+            ?.let { librechatJson.decodeFromString<ConfirmTwoFactorBody>(it).token }
+            ?.takeIf { it.isNotBlank() }
+            ?: return null
+        return SessionCredentials(token, CookieHelper.update(cookies, httpResponse.headers))
     }
 
     /**
@@ -203,6 +220,14 @@ class AuthApi constructor(
         return LoginResult(body, refreshToken)
     }
 
+    /** Discards the staged secret and backup codes; accepts a setup token past its expiry. */
+    suspend fun cancelTwoFactorSetup(tempToken: String) {
+        client.post {
+            url { path("api/auth/2fa/setup/cancel") }
+            setBody(TwoFactorSetupRequest(tempToken = tempToken))
+        }
+    }
+
     suspend fun regenerateBackupCodes(token: String? = null, backupCode: String? = null): BackupCodesResponse =
         client.post {
             url { path("api/auth/2fa/backup/regenerate") }
@@ -221,3 +246,7 @@ class AuthApi constructor(
         }
     }
 }
+
+/** `{ token, user }`; only the bearer is read, the profile is reloaded the usual way. */
+@Serializable
+private class ConfirmTwoFactorBody(val token: String? = null)

@@ -1,41 +1,17 @@
 package com.garfiec.librechat.feature.settings.viewmodel.delegate
 
-import androidx.compose.runtime.Immutable
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.UserRepository
 import com.garfiec.librechat.core.data.repository.retryAfterSeconds
 import com.garfiec.librechat.core.data.repository.toEmailChangeError
 import com.garfiec.librechat.core.model.auth.EMAIL_CHANGE_COOLDOWN_SECONDS
 import com.garfiec.librechat.core.model.auth.EmailChangeError
-import com.garfiec.librechat.core.model.auth.EmailChangeField
 import com.garfiec.librechat.core.model.auth.MAX_EMAIL_CHANGE_PASSWORD_LENGTH
 import com.garfiec.librechat.feature.settings.viewmodel.AccountSettingsUiState
 import com.garfiec.librechat.feature.settings.viewmodel.SettingsStateHandle
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-
-/** The "Change email address" dialog while it is open. The password lives only here, in memory. */
-@Immutable
-data class EmailChangeDialogState(
-    val newEmail: String = "",
-    val password: String = "",
-    val isSending: Boolean = false,
-    val error: EmailChangeError? = null,
-    /** Bumped when the password is cleared after a refusal, so the screen can refocus it. */
-    val passwordResets: Int = 0,
-) {
-    val emailError: EmailChangeError? get() = error?.takeIf { it.field == EmailChangeField.Email }
-    val passwordError: EmailChangeError? get() = error?.takeIf { it.field == EmailChangeField.Password }
-    val dialogError: EmailChangeError? get() = error?.takeIf { it.field == null }
-}
-
-/** One-shot page notices of the email change, shown as a snackbar and then consumed. */
-@Immutable
-sealed interface EmailChangeNotice {
-    data class LinkSent(val newEmail: String) : EmailChangeNotice
-    data object Updated : EmailChangeNotice
-}
 
 /**
  * `POST /api/user/email/change` (v0.8.9-rc1). The request only mails a link to the new address;

@@ -43,7 +43,7 @@ data class ModelParameters(
     val customInstructions: String = "",
     val maxContextTokens: Int? = null,
     val topK: Int? = null,
-    val resendFiles: Boolean = false,
+    val resendFiles: Boolean = true,
     /**
      * Null until set: the providers that offer thinking default it to on (Anthropic, Bedrock), so a
      * `false` default would show the switch off over a run that thinks, and an explicit off would
@@ -164,6 +164,8 @@ fun ModelParameterContent(
     extendedEffortSupported: Boolean = false,
     /** See [EndpointParameterRegistry.getDefinitions]; offers thinkingDisplay `updates` (v0.8.8+). */
     thinkingDisplayUpdatesSupported: Boolean = false,
+    /** See [EndpointParameterRegistry.getDefinitions]; offers Gemini Hydrogen's `xhigh` (v0.8.9+). */
+    thinkingLevelXhighSupported: Boolean = false,
     selectedProvider: String? = null,
     selectedModel: String? = null,
     /** Resolved `/api/config.endpointsDropParamsMap` entry: controls for parameters this server
@@ -193,6 +195,7 @@ fun ModelParameterContent(
         dynamicParameterDefinitions,
         extendedEffortSupported,
         thinkingDisplayUpdatesSupported,
+        thinkingLevelXhighSupported,
         selectedProvider,
         selectedModel,
         dropParams,
@@ -208,6 +211,7 @@ fun ModelParameterContent(
                 model = selectedModel,
                 dropParams = dropParams,
                 thinkingDisplayUpdatesSupported = thinkingDisplayUpdatesSupported,
+                thinkingLevelXhighSupported = thinkingLevelXhighSupported,
             )
         }.filter { it.key !in hiddenKeys }
     }
@@ -287,6 +291,8 @@ fun ModelParameterContent(
                             ?: definition.default?.ifEmpty { null }
                             ?: stringResource(Res.string.param_default),
                         description = definition.localizedDescription(),
+                        min = definition.min,
+                        max = definition.max,
                     )
                 }
 

@@ -1,7 +1,6 @@
 package com.garfiec.librechat.feature.chat.viewmodel
 
 import com.garfiec.librechat.core.common.AppInfo
-import com.garfiec.librechat.core.data.datastore.McpAppLocationConsent
 import com.garfiec.librechat.core.data.datastore.McpAppLocationConsentStore
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.McpAppFailure
@@ -11,6 +10,7 @@ import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.core.model.config.StartupConfig
 import com.garfiec.librechat.core.model.mcp.McpAppsPolicy
 import com.garfiec.librechat.core.model.mcp.selectToolCallUiResources
+import com.garfiec.librechat.core.model.preferences.McpAppLocationConsent
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
 import io.mockk.every

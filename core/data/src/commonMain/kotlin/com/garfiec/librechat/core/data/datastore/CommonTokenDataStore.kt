@@ -1236,6 +1236,21 @@ abstract class CommonTokenDataStore(
         ) { "User chose to sign in again after a blocked renewal" }
     }
 
+    override suspend fun replaceSession(accountId: String, sentRefreshToken: String, session: SessionCredentials): Boolean =
+        stateMutex.withLock {
+            if (sessions.readSession(accountId)?.cookies?.refreshToken != sentRefreshToken) return@withLock false
+            // A refresh in flight on the replaced token must discard its answer.
+            bumpEpoch(accountId)
+            sessions.writeSession(accountId, session)
+            if (accountId == activeAccountKey) cachedAuth = RequestAuth(session.accessToken, session.cookies.openId)
+            clearRejectedRefresh(slotKey(accountId))
+            true
+        }
+
+    // The flight lock is not reentrant: a refresh of the same slot inside [block] would deadlock.
+    override suspend fun <T> withRefreshesHeld(accountId: String?, block: suspend () -> T): T =
+        flightFor(accountId).withLock { block() }
+
     // Under [stateMutex] so a switch can't land between the active-binding check and the latch, which
     // would latch the incoming account's report instead.
     override suspend fun beginSignOut(accountId: String?) = stateMutex.withLock {

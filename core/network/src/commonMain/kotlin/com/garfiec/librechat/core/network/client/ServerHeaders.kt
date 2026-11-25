@@ -1,5 +1,6 @@
 package com.garfiec.librechat.core.network.client
 
+import com.garfiec.librechat.core.model.server.HeaderRejection
 import io.ktor.http.HeadersBuilder
 import io.ktor.http.HttpHeaders
 
@@ -39,23 +40,6 @@ object EmptyServerHeadersProvider : ServerHeadersProvider {
     override fun headersFor(baseUrl: String): Map<String, String> = emptyMap()
 }
 
-/**
- * Why a header a user typed can't be trusted verbatim.
- *
- * Rejection is deliberately loud rather than silent-sanitising: a gateway credential that is *almost*
- * right fails as an opaque redirect to a login page, so the user has to be told at entry time.
- */
-enum class HeaderRejection {
-    /** Blank, or contains a character outside the RFC 7230 `token` set. */
-    InvalidName,
-
-    /** Contains a character outside printable US-ASCII (plus HTAB). */
-    InvalidValue,
-
-    /** A header the transport or the app itself owns; see [CustomHeaderRules.RESERVED_NAMES]. */
-    ReservedName,
-}
-
 /** A rejected pair, as its position in the caller's list plus the reason. */
 data class IndexedRejection(val index: Int, val reason: HeaderRejection)
 
@@ -79,7 +63,8 @@ object CustomHeaderRules {
      *   UAs on first contact, and that ban outlives the bad config.
      * - `Accept`, `Accept-Encoding`, `Content-Type` — the iOS SSE transport hand-writes `Accept` and
      *   `Accept-Encoding`; a user value emits a second, ambiguous line rather than replacing them.
-     * - `Expect`, `Proxy-Authorization` — engine-level semantics the client does not model.
+     * - `Expect` — engine-level semantics the client does not model.
+     * - `Proxy-Authorization` — carries the app's own access-gate token ([GateCredentialPlugin]).
      * - `Origin`, `Sec-Fetch-*` — the server's same-origin guard rejects sign-in when they don't match
      *   it, so the app never sends them (see `UserAgentGuardTest`).
      *

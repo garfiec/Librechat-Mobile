@@ -315,6 +315,8 @@
     <string name="acl_error_busy">Другое изменение этого доступа уже выполняется. Повторите попытку через мгновение.</string>
     <string name="acl_error_unavailable">Сейчас нельзя изменить доступ. Повторите попытку чуть позже.</string>
     <string name="acl_error_audit_unavailable">Доступ не изменён: сервер не смог зарегистрировать изменение. Повторите попытку чуть позже.</string>
+    <string name="acl_error_principal_preparation_failed">Не удалось подготовить пользователей или группы для общего доступа. Попробуйте ещё раз.</string>
+    <string name="acl_error_directory_unavailable">Каталог недоступен. Повторите попытку чуть позже.</string>
     <string name="acl_error_load">Не удалось загрузить список пользователей с доступом.</string>
     <string name="bookmarks">Закладки</string>
     <string name="bookmark_new">Новая закладка</string>

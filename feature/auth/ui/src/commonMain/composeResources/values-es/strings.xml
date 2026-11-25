@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Server URL -->
+    <string name="server_url_label">URL del servidor</string>
+    <string name="server_url_placeholder">https://tu-servidor.com</string>
+    <string name="server_url_connect">Conectar</string>
+    <string name="connect_to_librechat">Conectar a LibreChat</string>
+    <string name="enter_server_url_hint">Introduce la URL de tu servidor para empezar</string>
+    <string name="insecure_connection_title">Conexión no segura</string>
+    <string name="insecure_connection_message">Te estás conectando mediante HTTP. Tus credenciales de inicio de sesión y mensajes se enviarán sin cifrar y podrían ser interceptados por otras personas en la red.\n\nUsa HTTP solo para servidores de desarrollo local.</string>
+    <string name="connect_anyway">Conectar de todos modos</string>
+    <string name="cancel">Cancelar</string>
+
+    <!-- Login -->
+    <string name="login_title">Iniciar sesión</string>
+    <string name="login_title_server">Iniciar sesión en %1$s</string>
+    <string name="email_label">Correo electrónico</string>
+    <string name="password_label">Contraseña</string>
+    <string name="cd_show_password">Mostrar contraseña</string>
+    <string name="cd_hide_password">Ocultar contraseña</string>
+    <string name="continue_button">Continuar</string>
+    <string name="forgot_password">¿Olvidaste tu contraseña?</string>
+    <string name="no_account_sign_up">¿No tienes una cuenta? Regístrate</string>
+    <string name="or_continue_with">O continúa con</string>
+
+    <!-- Register -->
+    <string name="register_title">Crear cuenta</string>
+    <string name="full_name_label">Nombre completo</string>
+    <string name="username_label">Nombre de usuario</string>
+    <string name="username_optional_label">Nombre de usuario (opcional)</string>
+    <string name="register_error_missing_fields">Escribe tu nombre, tu correo y una contraseña.</string>
+    <string name="register_error_password_too_short">La contraseña debe tener al menos %1$d caracteres.</string>
+    <string name="register_error_password_mismatch">Las contraseñas no coinciden.</string>
+    <string name="register_error_email_taken">Ya existe una cuenta con este correo. Inicia sesión en su lugar.</string>
+    <string name="confirm_password_label">Confirmar contraseña</string>
+    <string name="sign_up">Regístrate</string>
+    <string name="have_account_sign_in">¿Ya tienes una cuenta? Inicia sesión</string>
+
+    <!-- Forgot Password -->
+    <string name="reset_password_title">Restablecer contraseña</string>
+    <string name="forgot_your_password">¿Olvidaste tu contraseña?</string>
+    <string name="enter_email_for_reset">Introduce tu correo para recibir un enlace de restablecimiento</string>
+    <string name="send_reset_link">Enviar enlace de restablecimiento</string>
+    <string name="check_your_email">Revisa tu correo</string>
+    <string name="reset_link_sent">Hemos enviado un enlace para restablecer la contraseña a %1$s</string>
+    <string name="reset_password_unavailable">El envío de correo no está configurado. Contacta con tu administrador para restablecer tu contraseña.</string>
+    <string name="back_to_sign_in">Volver a iniciar sesión</string>
+
+    <!-- Reset Password -->
+    <string name="reset_password_screen_title">Restablecer contraseña</string>
+    <string name="password_reset_successful">Contraseña restablecida correctamente</string>
+    <string name="password_reset_message">Tu contraseña se ha actualizado. Ahora puedes iniciar sesión con tu nueva contraseña.</string>
+    <string name="password_reset_incomplete">Tu nueva contraseña ya está activa, pero algunas otras sesiones pueden seguir iniciadas hasta que caduquen. Inicia sesión con la nueva contraseña y solicita otro enlace de restablecimiento para cerrarlas.</string>
+    <string name="set_new_password">Establecer nueva contraseña</string>
+    <string name="enter_new_password_hint">Introduce tu nueva contraseña a continuación</string>
+    <string name="new_password_label">Nueva contraseña</string>
+    <string name="confirm_new_password_label">Confirmar nueva contraseña</string>
+    <string name="reset_password_button">Restablecer contraseña</string>
+
+    <!-- Two-Factor -->
+    <string name="two_factor_title">Autenticación de dos factores</string>
+    <string name="enter_verification_code">Introduce el código de verificación</string>
+    <string name="enter_backup_code">Introduce el código de respaldo</string>
+    <string name="authenticator_prompt">Introduce el código de 6 dígitos de tu app de autenticación</string>
+    <string name="backup_code_prompt">Introduce uno de tus códigos de respaldo</string>
+    <string name="verify">Verificar</string>
+    <string name="use_authenticator_code">Usar código de autenticación</string>
+    <string name="use_backup_code">Usar código de respaldo</string>
+    <string name="backup_code_label">Código de respaldo</string>
+
+    <!-- Verify Email -->
+    <string name="verify_email_title">Verificar correo</string>
+    <string name="verification_link_sent">Hemos enviado un enlace de verificación a</string>
+    <string name="click_link_to_verify">Haz clic en el enlace del correo para verificar tu cuenta.</string>
+    <string name="verification_email_sent">¡Correo de verificación enviado!</string>
+    <string name="resend_verification_email">Reenviar correo de verificación</string>
+    <string name="resend_in_seconds">Reenviar en %1$ds</string>
+
+    <!-- Terms -->
+    <string name="terms_title">Términos del servicio</string>
+    <string name="terms_no_content">Este servidor no incluyó el texto de sus términos del servicio.</string>
+    <string name="i_accept">Acepto</string>
+    <string name="terms_decline">Rechazar</string>
+    <string name="privacy_policy">Política de privacidad</string>
+    <string name="terms_of_service">Términos del servicio</string>
+    <string name="retry">Reintentar</string>
+
+    <!-- Common -->
+    <string name="back">Atrás</string>
+
+    <!-- Custom server headers (issue #287) -->
+    <string name="server_headers_advanced">Avanzado</string>
+    <!-- SSO (in-app WebView) -->
+    <string name="sso_risk_title">¿Iniciar sesión en un navegador dentro de la app?</string>
+    <string name="sso_risk_body">Algunos proveedores, incluido Google, no admiten esto oficialmente y pueden bloquearlo en cualquier momento. Úsalo bajo tu propia responsabilidad.</string>
+    <string name="sso_sign_in_failed">Error al iniciar sesión. Inténtalo de nuevo.</string>
+    <string name="diagnostic_log_export">Exportar registros de diagnóstico</string>
+    <string name="diagnostic_log_exported">Registro exportado. Adjúntalo cuando informes del problema.</string>
+    <string name="diagnostic_log_failed">No se pudo exportar el registro.</string>
+    <string name="user_ca_notice">El certificado de este servidor es de confianza a través de una autoridad de certificación instalada en este dispositivo, no de una integrada en Android. Continúa solo si la instalaste tú o tu organización.</string>
+    <string name="continue_with_provider">Continuar con %1$s</string>
+    <string name="two_factor_setup_title">Configurar la autenticación de dos factores</string>
+    <string name="two_factor_setup_required_description">Este servidor requiere autenticación de dos factores. Configúrala para continuar.</string>
+    <string name="two_factor_setup_begin">Empezar configuración</string>
+    <string name="two_factor_setup_authenticator_heading">Añade esta cuenta a tu app de autenticación</string>
+    <string name="two_factor_setup_authenticator_body">Ábrela en tu app de autenticación, introduce la clave de configuración o escanea el código QR desde otro dispositivo.</string>
+    <string name="two_factor_setup_open_authenticator">Abrir app de autenticación</string>
+    <string name="two_factor_setup_no_authenticator">Ninguna app de autenticación de este dispositivo pudo abrir el enlace. Introduce la clave de configuración en su lugar.</string>
+    <string name="two_factor_setup_key">Clave de configuración</string>
+    <string name="two_factor_setup_show_qr">Mostrar código QR</string>
+    <string name="two_factor_setup_hide_qr">Ocultar código QR</string>
+    <string name="two_factor_setup_qr_description">Código QR para tu app de autenticación</string>
+    <string name="two_factor_setup_next">Siguiente</string>
+    <string name="two_factor_setup_verify_heading">Introduce el código de tu app de autenticación</string>
+    <string name="two_factor_setup_backup_heading">Guarda tus códigos de respaldo</string>
+    <string name="two_factor_setup_backup_body">Cada código te permite iniciar sesión una vez si pierdes tu app de autenticación. Guárdalos en un lugar seguro; no se volverán a mostrar.</string>
+    <string name="two_factor_setup_save_codes">Guardar en un archivo</string>
+    <string name="two_factor_setup_codes_saved">Códigos de respaldo guardados.</string>
+    <string name="two_factor_setup_codes_acknowledged">He guardado estos códigos</string>
+    <string name="two_factor_setup_complete">Completar configuración</string>
+    <string name="two_factor_setup_expired">Tu sesión de configuración ha caducado. Vuelve a iniciar sesión para continuar.</string>
+    <string name="two_factor_setup_sessions_incomplete">La autenticación de dos factores está activada, pero algunas otras sesiones pueden seguir iniciadas hasta que caduquen. Vuelve a iniciar sesión para continuar.</string>
+    <string name="two_factor_setup_back_to_sign_in">Volver a iniciar sesión</string>
+    <string name="two_factor_setup_error_start">No se pudo iniciar la configuración. Inténtalo de nuevo.</string>
+    <string name="two_factor_setup_error_invalid">Ese código no coincide. Introduce el código actual de tu app de autenticación.</string>
+    <string name="two_factor_setup_error_rate_limited">Demasiados intentos. Espera un momento e inténtalo de nuevo.</string>
+    <string name="two_factor_setup_error_finalize">No se pudo completar la configuración. Inténtalo de nuevo.</string>
+    <string name="two_factor_setup_error_connection">No se pudo conectar con el servidor. Comprueba tu conexión e inténtalo de nuevo.</string>
+    <string name="login_error_federated_blocked">Esta cuenta inicia sesión con su proveedor de identidad. Usa esa opción de inicio de sesión.</string>
+    <string name="auth_error_tenant_required">Este servidor necesita saber a qué organización perteneces. Usa la dirección de tu organización para este servidor.</string>
+    <string name="auth_error_cross_origin">El servidor rechazó este inicio de sesión porque parece venir de otro sitio. Es posible que un proxy delante del servidor esté modificando la solicitud.</string>
+    <string name="auth_error_banned">Esta cuenta o red tiene bloqueado el inicio de sesión. Contacta con un administrador.</string>
+    <string name="auth_error_rate_limited">Demasiados intentos de inicio de sesión. Espera unos minutos y vuelve a intentarlo.</string>
+    <string name="login_error_wrong_credentials">Correo electrónico o contraseña incorrectos.</string>
+    <string name="login_error_wrong_credentials_username">Nombre de usuario o contraseña incorrectos.</string>
+    <string name="login_error_other_sign_in_method">Esta cuenta inicia sesión de otra forma. Usa la opción con la que iniciaste sesión por primera vez.</string>
+    <string name="login_error_email_login_disabled">Este servidor no permite iniciar sesión con correo electrónico y contraseña.</string>
+    <string name="login_error_email_not_verified">Verifica tu correo antes de iniciar sesión.</string>
+    <string name="login_error_missing_fields">Introduce tu correo electrónico y tu contraseña.</string>
+    <string name="login_error_missing_fields_username">Introduce tu nombre de usuario y tu contraseña.</string>
+    <string name="login_error_invalid_email">Introduce una dirección de correo electrónico válida.</string>
+    <string name="login_error_password_too_short">Las contraseñas de este servidor tienen al menos %1$d caracteres.</string>
+    <string name="login_error_password_too_long">Las contraseñas no pueden tener más de %1$d caracteres.</string>
+    <string name="sso_error_exchange_rejected">No se completó el inicio de sesión. Vuelve a intentarlo.</string>
+    <string name="auth_error_session_cookie_missing">El servidor inició tu sesión, pero su cookie de sesión nunca llegó a la app, así que no puedes mantener la sesión. Puede que un proxy delante del servidor la esté eliminando. Consulta al administrador del servidor.</string>
+    <string name="login_two_factor_setup_required">Este servidor ahora requiere autenticación de dos factores para %1$s. Inicia sesión para configurarla.</string>
+    <string name="use_another_account">Usar otra cuenta</string>
+    <string name="server_url_known_servers">Tus servidores</string>
+    <string name="server_url_known_server_cd">Conectar con %1$s</string>
+    <plurals name="server_url_known_server_accounts">
+        <item quantity="one">%1$d cuenta</item>
+        <item quantity="other">%1$d cuentas</item>
+    </plurals>
+    <string name="progress_connecting">Conectando…</string>
+    <string name="progress_signing_in">Iniciando sesión…</string>
+    <string name="progress_creating_account">Creando cuenta…</string>
+    <string name="progress_sending">Enviando…</string>
+    <string name="progress_resetting_password">Restableciendo contraseña…</string>
+    <string name="progress_verifying">Verificando…</string>
+    <string name="progress_accepting">Aceptando…</string>
+    <string name="progress_starting">Iniciando…</string>
+    <string name="progress_finishing">Finalizando…</string>
+    <!-- Sign-in gate (Authelia forward-auth) in front of the server -->
+    <string name="gate_title_authelia">Protegido por Authelia</string>
+    <string name="gate_title_generic">Protegido por una barrera de inicio de sesión</string>
+    <string name="gate_body">Primero inicia sesión en %1$s. Después viene tu inicio de sesión en LibreChat.</string>
+    <string name="gate_sign_in_authelia">Iniciar sesión con Authelia</string>
+    <string name="gate_sign_in_generic">Inicia sesión para continuar</string>
+    <string name="gate_page_instead">Iniciar sesión en la página de la barrera</string>
+    <string name="gate_unknown_client_title">Authelia no reconoce esta app</string>
+    <string name="gate_unknown_client_body">%1$s no tiene ningún cliente llamado «%2$s». Introduce en Avanzado el ID de cliente que registró tu administrador, o pídele que añada Switchboard.</string>
+    <string name="gate_redirect_title">No se permite el callback de esta app</string>
+    <string name="gate_redirect_body">El cliente «%2$s» en %1$s no incluye http://127.0.0.1/callback como URI de redirección. Pide a tu administrador que lo añada.</string>
+    <string name="gate_refused_title">%1$s rechazó el inicio de sesión</string>
+    <string name="gate_failed_body">No se pudo completar el inicio de sesión. Comprueba tu conexión e inténtalo de nuevo.</string>
+    <string name="gate_setup_guide">Guía de configuración para administradores</string>
+    <string name="gate_client_id_label">ID de cliente de Authelia</string>
+    <string name="gate_page_close">Cerrar</string>
+</resources>

@@ -193,6 +193,7 @@ class CodeWorkspaceDelegate(
                     resolution, d.mode, b, b?.let { st[it] }, open, att,
                     transitionChoices = choices,
                     moving = isMoving,
+                    streaming = inputs.isStreaming,
                     confirming = confirming,
                 )
                 val requested = requestedApprovalMode(

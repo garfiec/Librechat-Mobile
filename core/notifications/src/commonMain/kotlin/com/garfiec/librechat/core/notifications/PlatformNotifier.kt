@@ -3,6 +3,7 @@ package com.garfiec.librechat.core.notifications
 import androidx.compose.runtime.Composable
 import com.garfiec.librechat.core.data.datastore.AppPreferences
 import com.garfiec.librechat.core.data.datastore.PreferenceSpec
+import com.garfiec.librechat.core.model.notifications.NotificationPermissionStatus
 import kotlinx.coroutines.flow.StateFlow
 
 /** The kinds of notification, each with its own toggle (and, on Android, its own channel). */
@@ -30,17 +31,6 @@ interface PlatformNotifier {
 
     /** Removes every notification of [topic], or of every topic when null. */
     fun cancelAll(topic: NotificationTopic? = null)
-}
-
-enum class NotificationPermissionStatus {
-    /** Notifications are shown (and, on Android, the Replies channel isn't blocked). */
-    Allowed,
-
-    /** Not shown, and the app may still ask. */
-    NotAsked,
-
-    /** Not shown, and only the system settings can change that. */
-    Off,
 }
 
 interface NotificationPermission {

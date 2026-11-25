@@ -323,6 +323,8 @@
     <string name="acl_error_busy">يوجد تغيير آخر على هذا الوصول قيد التنفيذ. حاول مرة أخرى بعد قليل.</string>
     <string name="acl_error_unavailable">لا يمكن تغيير الوصول الآن. حاول مرة أخرى قريبًا.</string>
     <string name="acl_error_audit_unavailable">لم يتم تغيير الوصول لأن الخادم لم يتمكن من تسجيل التغيير. حاول مرة أخرى قريبًا.</string>
+    <string name="acl_error_principal_preparation_failed">تعذّر تجهيز الأشخاص أو المجموعات للمشاركة معهم. حاول مرة أخرى.</string>
+    <string name="acl_error_directory_unavailable">الدليل غير متاح. حاول مرة أخرى بعد قليل.</string>
     <string name="acl_error_load">تعذّر تحميل قائمة من لديهم حق الوصول.</string>
     <string name="bookmarks">الإشارات المرجعية</string>
     <string name="bookmark_new">إشارة مرجعية جديدة</string>

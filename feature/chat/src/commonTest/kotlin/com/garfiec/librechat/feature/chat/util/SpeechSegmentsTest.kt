@@ -30,6 +30,18 @@ class SpeechSegmentsTest {
     }
 
     @Test
+    fun theFirstPieceTakesItsOwnSmallerLimit() {
+        val sentence = "This sentence is exactly forty chars...."
+        val text = sentence.repeat(300)
+
+        val segments = splitForSpeech(text, maxChars = 400, firstMaxChars = 100)
+
+        assertEquals(text, segments.joinToString(""))
+        assertEquals(sentence.repeat(2), segments.first())
+        assertTrue(segments.drop(1).dropLast(1).all { it.length == 400 })
+    }
+
+    @Test
     fun withoutSeparatorsItCutsAtASpace() {
         val text = "word ".repeat(30)
 

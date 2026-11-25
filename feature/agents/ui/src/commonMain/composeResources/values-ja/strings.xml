@@ -1,0 +1,433 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Common actions -->
+    <string name="agents">エージェント</string>
+    <string name="start_chat">チャットを開始</string>
+    <string name="edit">編集</string>
+    <string name="delete">削除</string>
+    <string name="cancel">キャンセル</string>
+    <string name="duplicate">複製</string>
+    <string name="save">保存</string>
+    <string name="create">作成</string>
+    <string name="apply">適用</string>
+    <string name="add">追加</string>
+    <string name="remove">削除</string>
+    <string name="revert">元に戻す</string>
+    <string name="close">閉じる</string>
+
+    <!-- Content descriptions -->
+    <string name="cd_back">戻る</string>
+    <string name="cd_more_actions">その他の操作</string>
+    <string name="cd_more_options">その他のオプション</string>
+    <string name="cd_collapse">折りたたむ</string>
+    <string name="cd_expand">展開</string>
+    <string name="cd_remove_item">%1$s を削除</string>
+    <string name="cd_edit_action">アクションを編集</string>
+    <string name="cd_delete_action">アクションを削除</string>
+    <string name="cd_add_starter">スターターを追加</string>
+    <string name="cd_agent_avatar_tap">エージェントのアバター。タップして変更します。</string>
+    <string name="cd_agent_avatar_name">%1$s のアバター</string>
+    <string name="cd_tool_icon">%1$s のアイコン</string>
+
+    <!-- Marketplace screen -->
+    <string name="search_agents_hint">エージェントを検索…</string>
+    <string name="no_agents_found">エージェントが見つかりません</string>
+    <string name="agents_not_available_title">エージェントを利用できません</string>
+    <string name="agents_not_available_description">サーバー管理者がお使いのアカウントでエージェントを無効にしています。</string>
+    <string name="try_different_search">別の検索語をお試しください</string>
+    <string name="check_back_later">新しいエージェントについては後でもう一度ご確認ください</string>
+    <string name="agents_chip_top_picks">おすすめ</string>
+    <string name="agents_chip_all">すべて</string>
+    <string name="agents_chip_editable">編集可能</string>
+    <string name="agents_filter_mine">自分のエージェント</string>
+    <string name="agents_sort_label">並べ替え</string>
+    <string name="agents_sort_newest">新しい順</string>
+    <string name="agents_sort_oldest">古い順</string>
+    <string name="agents_sort_popular">人気順</string>
+    <string name="agents_sort_author">作成者名順</string>
+    <string name="agents_mine_empty_title">まだエージェントを作成していません</string>
+    <string name="agents_top_pick">おすすめ</string>
+    <string name="agents_new_agent">新しいエージェント</string>
+    <string name="agent_unnamed">名前のないエージェント</string>
+    <string name="agents_clear_search">検索をクリア</string>
+    <string name="agents_no_matches_in">%1$sでは一致するエージェントが見つかりません</string>
+    <string name="agents_none_in">%1$sにエージェントはありません</string>
+    <string name="agents_search_all">すべてのエージェントを検索</string>
+    <string name="agents_show_all">すべてのエージェントを表示</string>
+    <string name="agents_empty_title">エージェントはまだありません</string>
+    <string name="agents_empty_description_create">独自の指示、モデル、ツールを持つエージェントを作成しましょう。</string>
+    <string name="agents_load_failed">エージェントを読み込めませんでした</string>
+    <string name="agents_load_more_failed">続きのエージェントを読み込めませんでした</string>
+    <string name="agents_retry">再試行</string>
+    <string name="error_unknown">不明なエラーが発生しました</string>
+    <string name="unknown_author">不明</string>
+
+    <!-- Detail screen -->
+    <string name="agent_title">エージェント</string>
+    <string name="delete_agent">エージェントを削除</string>
+    <string name="delete_agent_confirm">「%1$s」を削除してもよろしいですか？この操作は取り消せません。</string>
+    <string name="delete_this_agent">このエージェント</string>
+    <string name="label_category">カテゴリ</string>
+    <string name="label_model">モデル</string>
+    <string name="label_tools">ツール</string>
+    <string name="label_conversation_starters">会話のきっかけ</string>
+
+    <!-- Editor screen -->
+    <string name="edit_agent">エージェントを編集</string>
+    <string name="create_agent">エージェントを作成</string>
+    <string name="duplicate_agent">エージェントを複製</string>
+    <string name="delete_agent_editor_confirm">このエージェントを削除してもよろしいですか？この操作は取り消せません。</string>
+    <string name="duplicate_agent_confirm">このエージェントのコピーを作成しますか？</string>
+    <string name="version_history">バージョン履歴</string>
+    <string name="tap_to_change_avatar">タップしてアバターを変更</string>
+    <string name="remove_avatar">アバターを削除</string>
+    <string name="agent_name_label">名前 *</string>
+    <string name="agent_name_placeholder">任意: エージェントの名前</string>
+    <string name="agent_description_label">説明</string>
+    <string name="agent_description_placeholder">任意: ここにエージェントの説明を入力</string>
+    <string name="agent_instructions_label">指示</string>
+    <string name="agent_instructions_linked_prompt">このエージェントは保存済みのプロンプトを指示として使用しています。変更やリンク解除はウェブで行ってください。ここで編集しても、エージェントが実行する内容は変わりません。</string>
+    <string name="agent_instructions_source_inline">インライン</string>
+    <string name="agent_instructions_source_prompt">プロンプト</string>
+    <string name="agent_instructions_prompt_loading">読み込み中…</string>
+    <string name="agent_instructions_prompt_empty">利用できるプロンプトがありません</string>
+    <string name="agent_instructions_prompt_select_placeholder">プロンプトを選択</string>
+    <string name="agent_instructions_prompt_not_found">プロンプトが見つかりません</string>
+    <string name="agent_instructions_prompt_required">エージェントの指示として使用するプロンプトを選択してください。</string>
+    <string name="agent_instructions_prompt_version_label">バージョン</string>
+    <string name="agent_instructions_prompt_version_placeholder">先にプロンプトを選択してください</string>
+    <string name="agent_instructions_prompt_production">プロダクション</string>
+    <string name="agent_instructions_prompt_production_version">プロダクション（バージョン %1$d）</string>
+    <string name="agent_instructions_prompt_version_missing">選択したバージョン（利用できなくなりました）</string>
+    <string name="agent_instructions_prompt_langfuse_version_missing">バージョン %1$d（利用できなくなりました）</string>
+    <string name="agent_instructions_prompt_source_langfuse">Langfuse で管理</string>
+    <string name="agent_instructions_prompt_forbidden">プロンプトライブラリへのアクセス権がありません。</string>
+    <string name="agent_instructions_prompt_load_error">プロンプトを読み込めませんでした。</string>
+    <string name="agent_instructions_prompt_source_unavailable">このプロンプトのソースは現在利用できません。</string>
+    <string name="agent_instructions_prompt_source_disabled">Langfuse プロンプトのリンクはオフになっています。再びオンになるまで、このエージェントはこれらの指示なしで動作します。</string>
+    <string name="agent_instructions_placeholder">エージェントが使用するシステム指示</string>
+    <string name="insert_variable">変数を挿入</string>
+    <string name="cd_insert_variable">変数を挿入</string>
+    <string name="special_var_current_date">現在の日付</string>
+    <string name="special_var_current_user">現在のユーザー</string>
+    <string name="special_var_iso_datetime">ISO日時</string>
+    <string name="special_var_current_datetime">現在の日時</string>
+    <string name="label_capabilities">機能</string>
+    <string name="label_tools_and_actions">ツールとアクション</string>
+    <string name="add_tools">ツールを追加</string>
+    <string name="add_starter_hint">スターターを追加…</string>
+    <string name="save_changes">変更を保存</string>
+
+    <!-- Actions panel -->
+    <string name="openapi_actions_count">OpenAPIアクション（%1$d）</string>
+    <string name="no_actions_configured">アクションが設定されていません。OpenAPIアクションを追加して外部APIに接続します。</string>
+    <string name="add_action">アクションを追加</string>
+    <string name="edit_action">アクションを編集</string>
+    <string name="auth_api_key">APIキー</string>
+    <string name="auth_oauth">OAuth</string>
+    <string name="auth_none">なし</string>
+    <string name="action_auth_info">認証: %1$s | %2$d 個の関数</string>
+    <string name="label_action">アクション</string>
+
+    <!-- Action editor dialog -->
+    <string name="label_authentication">認証</string>
+    <string name="auth_api_key_full">APIキー認証</string>
+    <string name="auth_oauth_full">OAuth認証</string>
+    <string name="auth_no_auth">認証なし</string>
+    <string name="label_openapi_schema">OpenAPIスキーマ</string>
+    <string name="openapi_schema_hint">OpenAPI仕様をJSONまたはYAML形式で貼り付けてください。</string>
+    <string name="label_openapi_spec">OpenAPI仕様（JSONまたはYAML）</string>
+    <string name="validating">検証中…</string>
+    <string name="domain_prefix">ドメイン: %1$s</string>
+    <string name="available_actions_count">利用可能なアクション（%1$d）</string>
+    <string name="label_privacy_policy_url">プライバシーポリシーのURL</string>
+    <!-- Auth config dialog -->
+    <string name="label_authentication_type">認証の種類</string>
+    <string name="label_api_key_settings">APIキーの設定</string>
+    <string name="label_api_key">APIキー</string>
+    <string name="label_authorization_type">認可の種類</string>
+    <string name="auth_basic">Basic</string>
+    <string name="auth_bearer">Bearer</string>
+    <string name="auth_custom">カスタム</string>
+    <string name="label_custom_auth_header">カスタム認証ヘッダー</string>
+    <string name="label_oauth_settings">OAuthの設定</string>
+    <string name="label_client_id">クライアントID</string>
+    <string name="label_client_secret">クライアントシークレット</string>
+    <string name="label_authorization_url">認可URL</string>
+    <string name="label_token_url">トークンURL</string>
+    <string name="label_scope">スコープ</string>
+    <string name="label_token_exchange_method">トークン交換方式</string>
+    <string name="token_default_post">デフォルト（POST）</string>
+    <string name="token_basic_auth_header">Basic認証ヘッダー</string>
+
+    <!-- Function table -->
+    <string name="table_name">名前</string>
+    <string name="table_method">メソッド</string>
+    <string name="table_path">パス</string>
+
+    <!-- Advanced panel -->
+    <string name="advanced_settings">モデル設定</string>
+
+    <!-- Capabilities section -->
+    <string name="label_artifacts">アーティファクト</string>
+    <string name="artifacts_description">アーティファクトの生成を有効にする</string>
+    <string name="artifacts_mode_off">オフ</string>
+    <string name="artifacts_mode_default">デフォルト</string>
+    <string name="artifacts_mode_shadcnui">shadcn/ui</string>
+    <string name="artifacts_mode_custom">カスタム</string>
+    <string name="label_end_after_tools">ツール後に終了</string>
+    <string name="end_after_tools_description">ツールの実行完了後に停止します</string>
+    <string name="label_hide_sequential_outputs">連続した出力を非表示</string>
+    <string name="hide_sequential_description">中間的なツールの出力を非表示にします</string>
+    <string name="label_recursion_limit">再帰の上限</string>
+    <string name="recursion_limit_description">再帰的なツール呼び出しの最大回数</string>
+
+    <!-- Category selector -->
+    <string name="general">一般</string>
+
+    <!-- Code Interpreter section -->
+    <string name="label_code_interpreter">コードインタープリター</string>
+    <string name="code_interpreter_description">問題を解決するためにエージェントがコードを記述・実行できるようにします</string>
+
+    <!-- Web Search section -->
+    <string name="label_web_search">ウェブ検索</string>
+    <string name="web_search_description">最新情報をウェブで検索することをエージェントに許可します</string>
+
+    <!-- Tool auth dialog -->
+    <string name="tool_auth_revoke">取り消す</string>
+    <string name="tool_auth_code_title">コードインタープリターのAPIキー</string>
+    <string name="tool_auth_code_description">サーバーがあなたの代わりにコードを実行するために使用するAPIキーを入力してください。エージェントではなくアカウントに保存されます。</string>
+    <string name="tool_auth_code_field">LibreChat Code APIキー</string>
+    <!-- File Context section -->
+    <string name="label_file_context">ファイルコンテキスト</string>
+    <string name="file_context_description">常に会話のコンテキストに含めるファイルを添付します</string>
+
+    <!-- File Search section -->
+    <string name="label_file_search">ファイル検索</string>
+    <string name="file_search_description">アップロードされたファイルや文書をエージェントが検索できるようにします</string>
+
+    <!-- Chain (sequential multi-agent) -->
+    <string name="chain_agents_count">チェーンエージェント（%1$d）</string>
+    <string name="chain_description">このエージェントの後に順番に実行されるエージェント。上限は %1$d です。</string>
+    <string name="no_chain_agents">チェーンエージェントが設定されていません。</string>
+    <string name="add_chain_agent">チェーンエージェントを追加</string>
+    <string name="chain_full">チェーンエージェントの最大数に達しました。</string>
+    <!-- Handoffs (graph edges) -->
+    <string name="handoff_edges_count">引き継ぎエッジ（%1$d）</string>
+    <string name="handoff_edges_description">動的なマルチエージェント引き継ぎのためのグラフルーティングエッジ。</string>
+    <string name="no_handoff_edges">引き継ぎエッジが設定されていません。</string>
+    <string name="add_handoff_edge">引き継ぎエッジを追加</string>
+    <string name="handoff_edge_from">送信元</string>
+    <string name="handoff_edge_to">送信先</string>
+    <string name="handoff_edge_description">説明（任意）</string>
+    <string name="handoff_edge_prompt">転送プロンプト（任意）</string>
+    <string name="handoff_edge_prompt_key">プロンプトのパラメータ名（任意）</string>
+    <string name="handoff_edge_exclude_results">以前のメッセージを除外</string>
+    <string name="handoff_edge_arrow">%1$s → %2$s</string>
+    <string name="handoff_edge_multi">%1$d 個のエージェント → %2$d 個のエージェント</string>
+    <string name="no_more_agents">追加できるエージェントがありません。</string>
+    <string name="select_agent">エージェントを選択</string>
+
+    <!-- MCP Tools selector -->
+
+    <!-- Model picker -->
+    <string name="model_required_label">モデル *</string>
+    <string name="select_model_hint">モデルを選択…</string>
+    <string name="no_models_found">モデルが見つかりません</string>
+
+    <!-- Sharing section -->
+    <string name="sharing_and_permissions">共有と権限</string>
+    <string name="label_visibility">公開範囲</string>
+    <string name="label_collaborative">共同編集</string>
+    <string name="collaborative_description">他のユーザーがこのエージェントを変更できるようにします</string>
+    <string name="collaborative_managed_server_side">このバージョンではアクセス権限はサーバー側で管理されます。</string>
+
+    <!-- Visibility labels -->
+    <string name="visibility_private">非公開</string>
+    <string name="visibility_public">公開</string>
+
+    <!-- Support contact section -->
+    <string name="label_support_contact">サポート連絡先</string>
+    <string name="label_name">名前</string>
+    <string name="support_contact_placeholder">サポート連絡先の名前</string>
+    <string name="label_email">メールアドレス</string>
+
+    <!-- Version history -->
+    <string name="no_version_history">利用可能なバージョン履歴がありません</string>
+    <string name="version_number">バージョン %1$d</string>
+    <string name="version_current">有効</string>
+    <string name="version_no_date">日付がありません</string>
+    <string name="version_snapshot_name">名前</string>
+    <string name="version_snapshot_description">説明</string>
+    <string name="version_snapshot_instructions">指示</string>
+    <string name="version_snapshot_artifacts">アーティファクト</string>
+    <string name="version_snapshot_capabilities">機能</string>
+    <string name="version_snapshot_tools">ツール</string>
+    <string name="version_snapshot_empty">—</string>
+    <!-- ACL sharing (v0.8.5+) -->
+    <string name="acl_sharing_title">共有とアクセス</string>
+    <string name="acl_add_principal">ユーザーまたはグループを追加</string>
+    <string name="acl_no_grants">まだ誰にもアクセスが許可されていません。</string>
+    <string name="acl_public_label">公開</string>
+    <string name="acl_public_description">サーバーにアクセスできるすべての人に許可します</string>
+    <string name="acl_role">ロール</string>
+    <string name="acl_revoke_principal">%1$s のアクセスを取り消す</string>
+    <string name="acl_search_hint">ユーザーまたはグループを検索…</string>
+    <string name="acl_search_empty">一致するものがありません</string>
+    <string name="acl_search_failed">現在検索できません。</string>
+    <string name="acl_search_unavailable">あなたのロールではユーザーやグループを検索できません。管理者にロールのユーザー選択を有効にするよう依頼してください。</string>
+    <string name="acl_roles_failed">ロールを読み込めなかったため、まだ誰も追加できません。</string>
+    <string name="acl_load_failed">アクセスできるユーザーを読み込めませんでした。</string>
+    <string name="acl_share_check_failed">このエージェントを共有できるか確認できませんでした。</string>
+    <string name="acl_retry">再試行</string>
+    <string name="acl_grant_dialog_title">ユーザーまたはグループを追加</string>
+    <string name="acl_principal_user">ユーザー</string>
+    <string name="acl_principal_group">グループ</string>
+    <string name="acl_principal_role">ロール</string>
+    <string name="acl_principal_unknown">不明</string>
+    <string name="acl_create_mode_notice">共有とアクセス制御はエージェントの保存後に利用できます。</string>
+
+    <!-- Tool select dialog -->
+    <string name="agent_tools_title">エージェントツール</string>
+    <string name="select_tools_description">エージェントが使用するツールを選択します</string>
+    <string name="search_tools_hint">ツールを検索…</string>
+    <string name="no_tools_matching">「%1$s」に一致するツールがありません</string>
+    <string name="no_tools_available">利用可能なツールがありません</string>
+
+    <!-- Per-capability file attachments -->
+    <string name="add_file">ファイルを追加</string>
+    <string name="agent_files_save_first">ファイルを添付する前にエージェントを保存してください</string>
+    <string name="agent_file_too_large">ファイルは %1$d MB 以下にしてください</string>
+    <string name="agent_file_upload_failed">ファイルのアップロードに失敗しました</string>
+    <string name="agent_file_remove_failed">ファイルの削除に失敗しました</string>
+    <string name="cd_remove_file">%1$s を削除</string>
+    <string name="agent_file_remove_confirm_title">%1$sを削除しますか？</string>
+    <string name="agent_file_remove_confirm_title_generic">このファイルを削除しますか？</string>
+    <string name="agent_file_remove_confirm_message">このファイルを使用している他のエージェントがない場合、完全に削除されます。</string>
+
+    <!-- Skills selector (v0.8.6) -->
+    <string name="label_skills">スキル</string>
+    <string name="skills_disabled_hint">このエージェントではスキルがオフになっています。</string>
+    <string name="skills_enabled_all_hint">アクセスできるすべてのスキルがこのエージェントで利用できます。</string>
+    <string name="skills_enabled_allowlist_hint">選択したスキルのみがこのエージェントで利用できます。</string>
+    <string name="add_skills">スキルを追加</string>
+    <string name="select_skills">スキルを選択</string>
+    <string name="search_skills_hint">スキルを検索…</string>
+    <string name="no_skills_matching">「%1$s」に一致するスキルがありません</string>
+    <string name="no_skills_available">利用可能なスキルがありません</string>
+    <string name="skills_done">完了</string>
+
+    <!-- Subagents config (v0.8.6) -->
+    <string name="label_subagents">サブエージェント</string>
+    <string name="subagents_description">このエージェントが分離されたコンテキストで他のエージェントに作業を委任できるようにします。</string>
+    <string name="subagents_allow_self">自分自身の生成を許可</string>
+    <string name="add_subagent">サブエージェントを追加</string>
+    <string name="subagents_full">サブエージェントの最大数に達しました。</string>
+    <string name="tools_marketplace_title">ツール</string>
+    <string name="tools_marketplace_description">このエージェントができることを選択</string>
+    <string name="tools_marketplace_search_hint">ツール、サーバー、スキルを検索…</string>
+    <string name="tools_marketplace_no_matches">「%1$s」に一致するものはありません</string>
+    <string name="tools_marketplace_no_favorites">ツールにスターを付けるとここにピン留めされます</string>
+    <string name="tools_marketplace_empty">利用できるものはまだありません</string>
+    <string name="tools_filter_all">すべて</string>
+    <string name="tools_filter_favorites">お気に入り</string>
+    <string name="tools_filter_builtin">組み込み</string>
+    <string name="tools_filter_tools">ツール</string>
+    <string name="tools_filter_mcp">MCP</string>
+    <string name="tools_filter_skills">スキル</string>
+    <string name="tools_browse">ツールを探す</string>
+    <string name="cd_pin_tool">ピン留め</string>
+    <string name="cd_unpin_tool">ピン留めを解除</string>
+    <string name="builtin_code_interpreter">コードインタープリター</string>
+    <string name="builtin_code_interpreter_desc">サンドボックスでコードを実行し、その出力とファイルを返します。</string>
+    <string name="builtin_file_search">ファイル検索</string>
+    <string name="builtin_file_search_desc">このエージェントに添付されたファイルから該当箇所を取得します。</string>
+    <string name="builtin_web_search">ウェブ検索</string>
+    <string name="builtin_web_search_desc">ウェブを検索し、使用した情報の出典を示します。</string>
+    <string name="builtin_file_context">ファイルコンテキスト</string>
+    <string name="builtin_file_context_desc">添付ファイル全体をエージェントのコンテキストに含めます。</string>
+    <string name="builtin_ask_user">ユーザーに質問</string>
+    <string name="builtin_ask_user_desc">実行を一時停止して、確認のための質問をします。</string>
+    <string name="agent_category_hr">人事</string>
+    <string name="agent_category_rd">研究開発</string>
+    <string name="agent_category_finance">財務</string>
+    <string name="agent_category_it">IT</string>
+    <string name="agent_category_sales">営業</string>
+    <string name="agent_category_aftersales">アフターサービス</string>
+    <string name="agent_category_idea">アイデア</string>
+    <string name="agent_category_travel">旅行</string>
+    <string name="agent_category_learning">学習</string>
+    <string name="agent_category_writing">文章作成</string>
+    <string name="agent_category_shopping">ショッピング</string>
+    <string name="agent_category_code">コード</string>
+    <string name="agent_category_misc">その他</string>
+    <string name="agent_category_roleplay">ロールプレイ</string>
+    <string name="visibility_team">チーム</string>
+    <string name="agent_contact_line">連絡先：%1$s</string>
+    <string name="agent_pin">モデルメニューにピン留め</string>
+    <string name="agent_unpin">モデルメニューのピン留めを外す</string>
+    <string name="agent_copy_link">リンクをコピー</string>
+    <string name="agent_link_copied">リンクをコピーしました</string>
+    <string name="agent_updated_relative">更新: %1$s</string>
+    <string name="agent_updated_on">更新日: %1$s</string>
+    <string name="agent_public">公開</string>
+    <string name="agent_try_asking">質問の例</string>
+    <string name="agent_load_failed">このエージェントを読み込めませんでした</string>
+    <string name="agent_delete_failed">このエージェントを削除できませんでした</string>
+    <string name="agent_duplicate_failed">このエージェントを複製できませんでした</string>
+    <string name="agent_pin_failed">ピン留めを更新できませんでした</string>
+    <string name="agent_contact_send_email">メールを送信</string>
+    <plurals name="agent_pin_limit">
+        <item quantity="other">お気に入りは最大%1$d件までピン留めできます。</item>
+    </plurals>
+    <string name="tool_approval_mode_cd">ツールの承認モード: %1$s</string>
+    <string name="tool_approval_inherit">継承されたポリシーを使用</string>
+    <string name="tool_approval_ask">毎回確認</string>
+    <string name="tool_approval_allow">常に承認</string>
+    <string name="tool_approval_chat">チャットごとに1回確認</string>
+    <string name="tool_approval_always">1回確認し、以降は常に承認</string>
+    <string name="tool_approval_admin_ask">管理者ポリシーにより承認が必要です。</string>
+    <string name="tool_approval_admin_deny">管理者ポリシーによりこのツールはブロックされています。</string>
+    <string name="tool_approval_reset">記憶された承認をリセット</string>
+    <string name="tool_approval_reset_success">記憶された承認をリセットしました。</string>
+    <string name="tool_approval_reset_error">記憶された承認をリセットできませんでした。もう一度お試しください。</string>
+    <string name="tool_approval_reset_forbidden">このエージェントの承認はリセットできません。</string>
+    <string name="code_stateful_sessions">ステートフルなコードセッション</string>
+    <string name="code_stateful_sessions_info">有効にすると、このエージェントは既定のステートレスなサービスではなく、専用のステートフル Code API を使います。/mnt/data に保存したファイルは実行をまたいで残りますが、各実行は新しいプロセスで始まります。シェル変数、作業ディレクトリ、$HOME、一時ファイル、グローバルインストール、バックグラウンドプロセスは保持されません。ランタイムはリセットされることがあるため、重要なものは /mnt/data に保存してください。コードインタープリターとステートフルセッション機能が必要です。</string>
+    <string name="code_environment_unavailable_choice">利用できないマシン: %1$s(チェックを外すと削除)</string>
+    <string name="code_environment">実行環境</string>
+    <string name="code_environment_deployment_default">デプロイの既定</string>
+    <string name="code_environment_attached_name">%1$s(接続済み VM)</string>
+    <string name="code_environment_info">このワークスペースを持つマネージドランタイムまたは接続済み VM を選択します。</string>
+    <string name="code_environment_per_chat">新しいチャットで使えるマシン</string>
+    <string name="code_environment_per_chat_info">このエージェントが使えるマシンを選びます。ユーザーにアクセス権があれば、新しいチャットごとにいずれかを選べます。既定と既存のチャットは変わりません。</string>
+    <string name="code_environment_choice_limit">追加のマシンを %1$d 台まで選択できます。既定のマシンは常に許可されます。</string>
+    <string name="code_environment_default_machine">%1$s(既定)</string>
+    <string name="stateful_code_environment">ステートフル環境</string>
+    <string name="stateful_code_environment_user">ユーザーのワークスペース(推奨)</string>
+    <string name="stateful_code_environment_agent_user">エージェント + ユーザーのワークスペース</string>
+    <string name="stateful_code_environment_conversation">チャットのワークスペース</string>
+    <string name="stateful_code_environment_info">このエージェントのステートフルなワークスペースを共有する範囲を選びます。ステートレスなコードセッションとはライブファイルを共有しません。</string>
+    <string name="code_workspace_default">新しいチャットの既定のワークスペース</string>
+    <string name="code_workspace_last_used">前回使ったワークスペース</string>
+    <string name="code_workspace_default_info">新しいチャットはこのワークスペースを使います。既定がない場合は、このデバイスでこのエージェントとマシンに最後に選んだ利用可能なものを使います。既存のチャットはワークスペースを維持します。</string>
+    <string name="code_workspace_saved_loading">ワークスペースを読み込み中…</string>
+    <string name="code_workspace_saved_missing">ワークスペースが見つかりません</string>
+    <string name="code_workspace_saved_unavailable">ワークスペースを利用できません</string>
+    <string name="code_workspace_saved_unsupported">ワークスペースを使うにはワーカーを更新してください</string>
+    <string name="repository_instructions">リポジトリの指示</string>
+    <string name="repository_instructions_prefer">リポジトリの規約を優先</string>
+    <string name="repository_instructions_defer">エージェントの規約を優先</string>
+    <string name="repository_instructions_off">オフ</string>
+    <string name="repository_instructions_info">所有者が検出を許可している場合、選択したワークスペースから AGENTS.md(ない場合は CLAUDE.md)を読み込みます。ツールの権限は変わりません。</string>
+    <string name="agent_git_identity">Git の ID</string>
+    <string name="agent_git_name">コミット名</string>
+    <string name="agent_git_email">コミット用メール</string>
+    <string name="agent_git_identity_both_required">有効な Git の名前とメールを入力するか、両方とも空欄にしてください。</string>
+    <string name="agent_git_identity_info">このエージェントが実行する Git コマンドの作成者とコミッターとして使われます。認証情報は別途設定します。</string>
+    <string name="code_background">バックグラウンド実行</string>
+    <string name="code_background_info">モデルがバックグラウンドでコードを実行できるようにします。実行中も会話は続き、モデルは後で結果を受け取ります。出力とファイルは元の実行に添付されたままです。</string>
+    <string name="web_search_keys_add_action">検索キーを追加</string>
+    <string name="web_search_keys_manage_action">検索キーを管理</string>
+    <string name="marketplace_set_up">設定する</string>
+</resources>

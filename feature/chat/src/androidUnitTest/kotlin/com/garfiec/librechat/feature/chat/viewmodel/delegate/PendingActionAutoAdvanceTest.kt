@@ -72,6 +72,8 @@ class PendingActionAutoAdvanceTest {
             fingerprintRejectedMessage = { "rejected" },
             restoreAnswer = {},
             resumePinStore = ResumePinStore(),
+            pauseExpiredMessage = { "expired" },
+            pauseGoneMessage = { "gone" },
         )
         return delegate to flow
     }

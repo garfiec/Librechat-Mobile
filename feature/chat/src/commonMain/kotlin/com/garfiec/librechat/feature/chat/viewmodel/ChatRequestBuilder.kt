@@ -1,7 +1,8 @@
 package com.garfiec.librechat.feature.chat.viewmodel
 
 import com.garfiec.librechat.core.common.ToolConstants
-import com.garfiec.librechat.core.data.endpoint.EndpointDispatch
+import com.garfiec.librechat.core.model.config.ModelSpecSkills
+import com.garfiec.librechat.core.model.endpoint.EndpointDispatch
 import com.garfiec.librechat.core.model.request.EphemeralAgent
 import com.garfiec.librechat.feature.chat.util.WebSearchRoute
 import kotlinx.serialization.json.JsonObject
@@ -37,39 +38,55 @@ class ChatRequestBuilder(
     /**
      * Builds an [EphemeralAgent] from the tools in use ([ModelSelectionState.effectiveTools] and
      * [ModelSelectionState.effectiveMcpServerNames]). Under a spec that is the spec's own tools,
-     * sent explicitly as web does (the server ORs them in anyway), plus the chat's additions;
-     * under `hideBadgeRow`, the spec's alone. Returns null when there is nothing to send.
+     * sent explicitly as web does, plus the chat's additions; under `hideBadgeRow`, the spec's alone.
+     * A spec tool the user turned off goes out as an explicit off ([ModelSelectionState.specToolsTurnedOff]).
+     * Returns null when there is nothing to send.
      */
+    @Suppress("CyclomaticComplexMethod")
     fun buildEphemeralAgent(): EphemeralAgent? {
         val state = stateProvider()
         // A saved agent uses its own configured tools; the backend ignores client-supplied
         // ephemeral tools for agent runs. Mirror web's `showEphemeralBadges` (ChatForm.tsx)
         // and never serialize leftover UI selections on the agents endpoint.
         if (!state.showEphemeralTools) return null
-        val mcpServers = state.effectiveMcpServerNames.toList().ifEmpty { null }
+        val mcpSelection = state.effectiveMcpServerNames.toList()
+        val mcpServers = if (state.selection.sendsSpecMcpSelection) mcpSelection else mcpSelection.ifEmpty { null }
         // Web search rides here only as LibreChat's search; the built-in one is a parameter.
         val webSearchEnabled = state.webSearchRoute == WebSearchRoute.LIBRECHAT
         val inUse = state.selection.effectiveTools
+        val turnedOff = state.selection.specToolsTurnedOff
         val tools = inUse - ToolConstants.URL_CONTEXT - ToolConstants.ARTIFACTS
         val enabledTools = if (webSearchEnabled) tools else tools - ToolConstants.WEB_SEARCH
-        // The conversation's own toggle, sent only where it is offered: a model spec that
-        // configures skills overrides it server-side, and without the capability or role the
-        // server ignores it.
+        // The conversation's own toggle, sent only where it is offered: without the capability or
+        // role the server ignores it. Off goes out explicitly where the spec would turn it on.
         val skillsOn = state.skillsToggle && state.isSkillsToolAvailable
-        // A spec's mode wins over the user's.
-        val artifacts = state.activeSpec?.artifactsMode
-            ?: state.selection.artifactsMode.wire.takeIf {
-                ToolConstants.ARTIFACTS in inUse && state.toolGateOpen(ToolConstants.ARTIFACTS)
-            }
+        val skills = when {
+            skillsOn -> true
+            state.activeSpecSkills == ModelSpecSkills.On && !state.specGovernsSkills -> false
+            else -> null
+        }
+        // A spec's mode wins over the user's; `""` turns the spec's off.
+        val artifacts = when {
+            ToolConstants.ARTIFACTS in inUse -> state.activeSpec?.artifactsMode
+                ?: state.selection.artifactsMode.wire.takeIf { state.toolGateOpen(ToolConstants.ARTIFACTS) }
+            ToolConstants.ARTIFACTS in turnedOff -> ""
+            else -> null
+        }
 
-        val hasAnything = mcpServers != null || enabledTools.isNotEmpty() || skillsOn || artifacts != null
+        val hasAnything = mcpServers != null || enabledTools.isNotEmpty() || skills != null ||
+            artifacts != null || turnedOff.isNotEmpty()
         if (!hasAnything) return null
 
+        fun flag(vararg keys: String): Boolean? = when {
+            keys.any { it in enabledTools } -> true
+            keys.any { it in turnedOff } -> false
+            else -> null
+        }
         return EphemeralAgent(
             mcp = mcpServers,
-            webSearch = if (webSearchEnabled) true else null,
-            fileSearch = if (ToolConstants.FILE_SEARCH in enabledTools) true else null,
-            executeCode = if (ToolConstants.CODE_INTERPRETER in enabledTools || ToolConstants.EXECUTE_CODE in enabledTools) true else null,
+            webSearch = if (webSearchEnabled) true else flag(ToolConstants.WEB_SEARCH),
+            fileSearch = flag(ToolConstants.FILE_SEARCH),
+            executeCode = flag(ToolConstants.CODE_INTERPRETER, ToolConstants.EXECUTE_CODE),
             // Re-check availability rather than trusting the toggle alone: the flag can survive a
             // config/permission change that has since withdrawn memory, and the server would then
             // silently drop the tools from a run the user believes is remembering. A spec's own
@@ -80,9 +97,9 @@ class ChatRequestBuilder(
             ) {
                 true
             } else {
-                null
+                flag(ToolConstants.MEMORY)?.takeIf { !it }
             },
-            skills = if (skillsOn) true else null,
+            skills = skills,
             artifacts = artifacts,
         )
     }

@@ -72,6 +72,7 @@ class StreamingManagerGenerationEpochTest {
             restoreAnswer = {},
             resumePinStore = ResumePinStore(),
             pauseExpiredMessage = { "expired" },
+            pauseGoneMessage = { "gone" },
             nowMillis = { 0L },
         )
         val connectivity = mockk<ConnectivityObserver>(relaxed = true)

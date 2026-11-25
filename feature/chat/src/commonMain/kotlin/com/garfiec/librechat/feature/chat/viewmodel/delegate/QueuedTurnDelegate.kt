@@ -8,6 +8,7 @@ import com.garfiec.librechat.core.model.queuedturn.QueuedTurnFileRef
 import com.garfiec.librechat.core.model.queuedturn.QueuedTurnOutcome
 import com.garfiec.librechat.core.model.queuedturn.QueuedTurnReceiptSource
 import com.garfiec.librechat.core.model.queuedturn.QueuedTurnStatus
+import com.garfiec.librechat.core.model.queuedturn.QueuedTurnSteer
 import com.garfiec.librechat.core.model.queuedturn.isQueuedTurnSuccessorOwed
 import com.garfiec.librechat.core.model.queuedturn.shouldPollQueuedTurns
 import com.garfiec.librechat.feature.chat.util.reconcileServerQueuedTurns
@@ -60,6 +61,12 @@ class QueuedTurnDelegate(
     private val onServerRowsCleared: () -> Unit = {},
     /** Called after every projection is folded in: a row being edited may have just left. */
     private val onReceiptsApplied: () -> Unit = {},
+    /**
+     * Retires the steer a promoted turn names (`receipt.steer`) and returns the local queue row its
+     * words were already re-homed into, if any. That row becomes the server's turn, so the words
+     * are never sent twice.
+     */
+    private val claimPromotedSteer: (QueuedTurnSteer) -> String? = { null },
     private val nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) {
 
@@ -148,6 +155,9 @@ class QueuedTurnDelegate(
      */
     fun applyReceipts(receipts: List<AgentQueuedTurnReceipt>, source: QueuedTurnReceiptSource) {
         val hadServerRows = hasServerRows()
+        val promotedRows = receipts.mapNotNull { receipt ->
+            receipt.steer?.let(claimPromotedSteer)?.let { localId -> localId to receipt.clientRequestId }
+        }.toMap()
         handle.update {
             val bySettled = queue.settledQueuedTurns.associateBy { it.clientRequestId }.toMutableMap()
             for (receipt in receipts) {
@@ -170,7 +180,7 @@ class QueuedTurnDelegate(
             queue = queue.copy(
                 settledQueuedTurns = retainedEvidence,
                 messageQueue = reconcileServerQueuedTurns(
-                    previous = queue.messageQueue,
+                    previous = queue.messageQueue.withPromotedRows(promotedRows),
                     receipts = receipts,
                     settledByRequestId = bySettled,
                     authoritativeSnapshot = source == QueuedTurnReceiptSource.Snapshot,
@@ -208,6 +218,24 @@ class QueuedTurnDelegate(
     }
 
     private fun hasServerRows(): Boolean = handle.state.messageQueue.any { it.server != null }
+
+    /** Hands each still-local row in [promoted] (local id to request id) to the server turn it became. */
+    private fun List<QueuedMessage>.withPromotedRows(promoted: Map<String, String>): List<QueuedMessage> =
+        if (promoted.isEmpty()) {
+            this
+        } else {
+            map { item ->
+                val requestId = promoted[item.localId]
+                if (requestId == null || item.server != null) {
+                    item
+                } else {
+                    item.copy(
+                        clientRequestId = requestId,
+                        server = QueuedTurnServerState(status = QueuedTurnServerState.Status.Sending),
+                    )
+                }
+            }
+        }
 
     /**
      * Withdraws a queued turn. Returns false when it could not be, leaving the row in place.
@@ -380,8 +408,7 @@ class QueuedTurnDelegate(
             val server = item.server ?: return@any false
             server.status == QueuedTurnServerState.Status.Uncertain &&
                 !server.reconciliationExpired &&
-                server.uncertainSince != null &&
-                server.uncertainSince + window <= now
+                server.uncertainSince.let { since -> since != null && since + window <= now }
         }
         if (!expired) return
         handle.update {
@@ -390,8 +417,7 @@ class QueuedTurnDelegate(
                     val server = item.server ?: return@map item
                     if (server.status != QueuedTurnServerState.Status.Uncertain ||
                         server.reconciliationExpired ||
-                        server.uncertainSince == null ||
-                        server.uncertainSince + window > now
+                        server.uncertainSince.let { since -> since == null || since + window > now }
                     ) {
                         item
                     } else {

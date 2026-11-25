@@ -3,6 +3,7 @@ package com.garfiec.librechat.feature.chat.components.mcpapp
 import android.annotation.SuppressLint
 import android.graphics.Color
 import android.net.http.SslError
+import android.view.View
 import android.view.ViewGroup
 import android.webkit.SslErrorHandler
 import android.webkit.WebChromeClient
@@ -18,7 +19,7 @@ import com.garfiec.librechat.feature.chat.components.web.safelyDestroyWebView
 
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
-internal actual fun LegacyUiResourceWebView(page: LegacyUiPage, host: LegacyUiFrameHost, modifier: Modifier) {
+internal actual fun LegacyUiResourceWebView(page: LegacyUiPage, host: LegacyUiFrameHost, modifier: Modifier, fullView: Boolean) {
     AndroidView(
         modifier = modifier,
         factory = { context ->
@@ -27,8 +28,9 @@ internal actual fun LegacyUiResourceWebView(page: LegacyUiPage, host: LegacyUiFr
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT,
                 )
-                // In the thread's lazy list: see configureLazyListWebView.
-                configureLazyListWebView(this)
+                // In the thread's lazy list: see configureLazyListWebView. The full view draws in
+                // hardware: a screen-sized software layer squashes the page.
+                if (fullView) setLayerType(View.LAYER_TYPE_NONE, null) else configureLazyListWebView(this)
                 setBackgroundColor(Color.TRANSPARENT)
                 settings.javaScriptEnabled = true
                 settings.domStorageEnabled = false
@@ -36,7 +38,7 @@ internal actual fun LegacyUiResourceWebView(page: LegacyUiPage, host: LegacyUiFr
                 settings.allowContentAccess = false
                 settings.setSupportMultipleWindows(false)
                 settings.javaScriptCanOpenWindowsAutomatically = false
-                isVerticalScrollBarEnabled = false
+                isVerticalScrollBarEnabled = fullView
                 webChromeClient = WebChromeClient()
                 webViewClient = object : WebViewClient() {
                     override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean =
@@ -62,7 +64,11 @@ internal actual fun LegacyUiResourceWebView(page: LegacyUiPage, host: LegacyUiFr
         onRelease = { webView ->
             host.send = null
             (webView.tag as? RelayBridge)?.release()
+            // Back on software before destroy: a hardware-path view can crash in teardown (see configureLazyListWebView).
+            if (webView.layerType != View.LAYER_TYPE_SOFTWARE) configureLazyListWebView(webView)
             safelyDestroyWebView(webView)
         },
     )
 }
+
+internal actual val legacyUiInlineCapped: Boolean = true

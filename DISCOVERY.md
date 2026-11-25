@@ -122,22 +122,30 @@ POST /api/auth/login        → { token, user } or { twoFAPending, tempToken }
 POST /api/auth/register     → { status, message }
 POST /api/auth/logout       → { status }
 POST /api/auth/refresh      → { token, user } (refresh token in cookies)
-POST /api/auth/requestPasswordReset
-POST /api/auth/resetPassword
+POST /api/auth/requestPasswordReset   (0.8.9: no link at all while /api/config emailEnabled is false)
+POST /api/auth/resetPassword          (0.8.9: 500 CREDENTIAL_RETIREMENT_INCOMPLETE = password changed,
+                                       some sessions not signed out)
 GET  /api/auth/2fa/enable   → { secret, qrCode }
 POST /api/auth/2fa/verify
-POST /api/auth/2fa/confirm  → { confirmed, backupCodes }
+POST /api/auth/2fa/confirm  { token } + bearer + refreshToken cookie
+  ≤ 0.8.9-rc1: empty 200. 0.8.9: rotates the cookie's session (new Set-Cookie), deletes every other
+  session, → { token, user }. The old bearer and refresh token die mid-request, so no refresh of that
+  account may run until the rotated pair is stored. 401 "Sign in again to enable 2FA" without a live cookie session (not an
+  expired bearer: never refresh-and-retry); 500 CREDENTIAL_RETIREMENT_INCOMPLETE = 2FA on, no session back.
 POST /api/auth/2fa/disable
 POST /api/auth/2fa/verify-temp → { token, user }
 
 # Required 2FA enrollment (v0.8.9-rc1, ENFORCE_TWO_FACTOR_AUTHENTICATION). No bearer: each step is
-# authorised by the body credential the previous one returned. All four are in AUTH_SKIP_PATHS.
+# authorised by the body credential the previous one returned. All five are in AUTH_SKIP_PATHS.
 POST /api/auth/2fa/setup             { tempToken }                 → { otpauthUrl, backupCodes }
 POST /api/auth/2fa/setup/confirm     { tempToken, token }          → { backupCodes, acknowledgementToken }
 POST /api/auth/2fa/setup/acknowledge { acknowledgementToken }      → { finalizationToken }
 POST /api/auth/2fa/setup/finalize    { finalizationToken }         → { token, user } + refreshToken cookie
+POST /api/auth/2fa/setup/cancel      { tempToken }                 → { message }   (0.8.9)
   401/403 = setup credential dead (restart at sign-in); 400 on confirm = wrong code;
-  400 on acknowledge/finalize = single-use credential already spent.
+  400 on acknowledge/finalize = single-use credential already spent; 500 CREDENTIAL_RETIREMENT_INCOMPLETE
+  on finalize = 2FA on, no session handed back (sign in again). cancel accepts a tempToken past its
+  expiry (up to REFRESH_TOKEN_EXPIRY) and discards the staged secret and backup codes.
 # The setup tempToken arrives as:
 #   login 200   { code: TWO_FACTOR_ENROLLMENT_REQUIRED, twoFAPending, twoFASetupRequired, tempToken }
 #   refresh 200 { same, NO token } after deleting the session and clearing the refreshToken cookie
@@ -1965,7 +1973,8 @@ DELETE /api/pull-requests/oauth                                204, removes ever
   `{ title, titleSetByUser: true, titleRevision }` or 500 `title_read_failed`.
 - Messages: `isUserSubmitted` (a host wake-up row is not user text; Room 13 → 14) (BUILT);
   `privacyRevision`, `reasoningOverride`, `subagentContent` (BUILT: `Message`, `StreamEvent`).
-- Agents: `instructionsPrompt` (link to a prompt group; read-only in the editor) (BUILT);
+- Agents: `instructionsPrompt` (link to a prompt group; read-only in the editor below 0.8.9, and a saved
+  Langfuse link while the Langfuse switch is off) (BUILT);
   `tool_options.approval_mode` / `approval_revision` (BUILT: agent editor, `ToolApprovalModes`). Create/update 400 on an
   undeclared `model_parameters` key (BUILT, see Configuration).
 - Prompt groups: `source` (`native` or an external store such as `langfuse`); external groups are
@@ -2101,13 +2110,176 @@ version gate: the code path is the same either way.
   `ConversationRepository.importConversation` refuse such a file client-side
   (`ToolCallPreviewImportException`).
 
+### v0.8.9 sync (tag v0.8.9, commit d4e85d22, 2026-11-17) — endpoint index
+
+Range `8d3da9bb..d4e85d22`; dev builds before the release commit report v0.8.9-rc1. The sections below
+and the Authentication block carry each change in detail; this is the index.
+
+**Removed endpoints: none.** Every `-router.*` line in the range re-registers the same path with a
+new handler or middleware: `GET /api/convos/:conversationId`, `POST /api/convos/archive`,
+`GET /api/mcp/:serverName/oauth/initiate` and pulls `GET /oauth/connect` (now behind the terms gate),
+`/oauth/error`, and `/api/agents/v1/responses` `POST /` and `GET /:id`.
+
+**New endpoints**
+```
+POST /api/auth/2fa/setup/cancel { tempToken }      sign out of required 2FA enrollment (BUILT, skipped
+                                                   only when 0.8.9 / 2026-11-09 is ABSENT)
+GET  /api/prompts/groups/:groupId/revisions        Langfuse / native prompt revisions (BUILT: agent editor)
+GET|POST /api/agents/responses/:id/review, POST /api/agents/responses/:id/cancel
+                                                   background-response review page (web-only, not built)
+POST /api/agents/v1/responses/:id/cancel           remote-agent API (not used by mobile)
+/api/agents/:agentId/channels/*, /api/channels/*   Slack Agent Channels, channel identity links and the
+                                                   Slack service routes (web-only, not built)
+```
+`GET /api/models` and `GET /api/endpoints/token-config` take a new `?endpoint=` filter (not used).
+
+**Revised response shapes**
+```
+POST /api/auth/2fa/confirm        empty 200 -> { token, user } + rotated refreshToken cookie (Authentication)
+POST /api/auth/resetPassword, /2fa/confirm, /2fa/setup/finalize  500 CREDENTIAL_RETIREMENT_INCOMPLETE
+GET  /api/balance                 + allotment, allottedAt; lastRefill always sent
+GET  /api/config                  + clientLimits, interface.messageAuthor; landingFooter boolean|"composer";
+                                  modelSpecs.list[].skills boolean
+GET  /api/endpoints               + azureOpenAI.modelReasoningEfforts, agents.linkedInstructions
+GET  /api/convos/:conversationId  200 synthetic "New Chat" for an unsaved agents chat (was 404); 500
+                                  conversation_load_failed
+POST /api/convos/archive          retention-aware (expiredAt, isTemporary); 400 / 500 { error }
+POST /api/agents/chat/:endpoint   start ack + responseMessageId; 409/503 admission codes
+POST /api/agents/chat/resume      404 for responses jobs; 503 resume_context_unavailable
+SSE final                         + promotedSteers; error without conversation.lastResponseAt = unsaved
+SSE                               MCP sign-in run step, on_summarize_delta reset, created skills,
+                                  model_rate_limit / model_not_found info
+POST /api/agents/:id/revert, /duplicate  400/403/404 { error } (MCP tool authorization, sdk_runtime)
+message files, attachments        + textPreview on text/plain TFiles
+```
+
+### v0.8.9 sync — config, models and spec contract changes
+```
+GET /api/config
+  clientLimits { refreshMs?, ttsMs?, sharepointMs?, cloudfrontMs?, uploadConcurrency? }  pre-login and
+    signed in; absent when unset (invalid values are dropped server-side). Web defaults: refresh 30s,
+    TTS 60s, upload concurrency 3. (BUILT: refresh + TTS deadlines; absent, mobile keeps 15s / 30s)
+  interface.landingFooter: boolean | "composer" (a Boolean decode of it failed the whole config; not decoded)
+  interface.messageAuthor: "always" (default) | "whenDifferent" (BUILT: author row hidden for the
+    header's agent while the model selector shows)
+  modelSpecs.list[].skills: boolean (a list is narrowed to true; before 0.8.9 the key was stripped)
+GET /api/endpoints
+  azureOpenAI.modelReasoningEfforts { [deployment model]: string[] }  per-deployment reasoning
+    efforts, appended as a reasoning_effort definition for the override (BUILT)
+  agents.linkedInstructions.langfuse.enabled  Langfuse prompt links in the agent builder; off unless
+    the admin opts in (BUILT: adds Langfuse groups, badges and revisions to the 0.8.9 linked-instructions
+    editor, which offers native groups without it)
+GET /api/prompts/groups/:groupId/revisions  → { source, groupId, revisions: [{ source: "native",
+    promptId, version, isProduction } | { source: "langfuse", version }] }  VIEW on the group;
+    metadata only, rate limited, read live for Langfuse. Errors: 403; 404 { code: not_available }
+    (Langfuse switch off), 409 not_configured / source_changed, 422 unsupported_type (all "source
+    unavailable"); 404 not_found (BUILT: agent editor version picker)
+Agent create/update instructionsPrompt: { source: "native", groupId, selection: { type: "production" }
+    | { type: "exact", promptId } } or { source: "langfuse", groupId, selection: { type: "production" }
+    | { type: "exact", version } }; null removes the link, absent keeps it. Rejected writes answer
+    400/403/500 { error, code: instructions_prompt_unavailable | _forbidden | _validation_failed };
+    the editor shows the server's `error` sentence (BUILT)
+GET /api/models?endpoint=<name>, GET /api/endpoints/token-config?endpoint=<name>  one endpoint's
+    entry; 400 for an empty value, 404 for an endpoint the user isn't served; without the parameter
+    the response is unchanged (not used). /api/models' 500 body is now generic.
+```
+- Spec tool flags (`webSearch`, `fileSearch`, `executeCode`, `memory`), `mcpServers`, `artifacts` and
+  `skills` are defaults: an explicit `ephemeralAgent` value wins (`false`, `mcp: []`, `artifacts: ""`),
+  except under `hideBadgeRow`/`showInMenu: false`, which keep the spec's values for every capability
+  they configure. Spec `skills: false` stays a hard off. Before 0.8.9 the flags were ORed with the
+  request's and MCP servers added to it. (BUILT, gated supportsFeature 0.8.9 / 2026-11-09)
+- `reasoningOverride` on Bedrock resolves a bare `claude-*` model id as Anthropic (getModelKey).
+  (BUILT, gated supportsFeature 0.8.9 / 2026-11-14)
+
+### v0.8.9 sync — chat transport contract changes
+```
+POST /api/agents/chat/:endpoint  start ack adds responseMessageId (the reply's reserved id; not read)
+  409 ACCOUNT_DELETION_IN_PROGRESS / 503 GENERATION_ADMISSION_UNAVAILABLE  { error|message, code }
+    from generation admission (agents and Assistants starts) (BUILT: localized start-failure copy)
+POST /api/agents/chat/resume  404 { error } also for a job whose endpoint is `responses`;
+  503 { error: "resume_context_unavailable" } when the paused context can't be read (retryable)
+  (BUILT: a 404 dismisses the pause card; a 503 keeps it for a retry)
+POST /api/agents/chat/steer  + promoteLeftover?: true, codeApprovalMode?  honoured only for a
+  generation protocol v2 steer with a clientSteerId; a run that completes without applying it
+  promotes it to a queued turn (clientRequestId "steer-leftover:<clientSteerId>")
+  (BUILT, gated supportsFeature 0.8.9 / 2026-11-11; inert for this v1 client)
+final frame  + promotedSteers: [{ steerId, clientSteerId?, receipt }]  (not in pendingSteers)
+  error + no conversation.lastResponseAt = a settled error the server never saved (BUILT: kept
+  out of Room, only on v0.8.9-rc1+, the first version that stamps lastResponseAt)
+queued-turn receipt  + steer?: { steerId, clientSteerId, owned?: true }  on a promoted turn (BUILT)
+GET /api/convos/:conversationId  200 read-only { conversationId, endpoint: "agents", agent_id,
+  model, title: "New Chat", user, createdAt, updatedAt } with Cache-Control: no-store for an
+  unsaved agents chat whose first turn waits on an MCP sign-in (was 404); createdAt == updatedAt
+  (both the run's start) and no _id; 500 { error: "conversation_load_failed" } on a lookup failure
+  (BUILT: never cached; recognised by no-store + "New Chat" + equal timestamps, not no-store alone)
+SSE
+  MCP re-authentication: its own run step (id step_oauth_login_<server>:oauth:<call>, tool call
+    { id: "oauth:<toolCallId|stepId|runId>", name: "oauth_mcp_<server>" }) + an auth
+    on_run_step_delta; success, timeout and cancel emit on_run_step_completed with output
+    "OAuth authentication ended" (BUILT: the card is retired)
+  on_summarize_delta { id, reset?, delta: { summary } }  streams while the provider responds;
+    reset replaces the text (BUILT: live summary in the streaming bubble)
+  created.message + manualSkills, alwaysAppliedSkills  as the server resolved them (BUILT)
+  model_rate_limit / model_not_found payloads + info (the provider's message; absent under a
+    content policy) (BUILT: shown under the headline)
+  A background subagent child streams through its own job; abort/steer on it answer 409
+    CHILD_THREAD_READ_ONLY (not built: mobile aborts and steers the parent only)
+```
+
+### v0.8.9 sync — files, conversations, agents and web routes
+```
+POST /api/files, /api/files/images*, /api/convos/import  multipart filename is decodeURIComponent'd
+  (busboy reads it as latin1): send it percent-encoded, or a raw "%" is a 400 "Invalid filename
+  encoding" and non-ASCII arrives garbled. Predates rc1. (BUILT: FilesApi.uploadFile; the import
+  sends the fixed ASCII name "conversation.json", which needs no encoding)
+POST /api/skills/import, /api/skills/:id/files  read the filename as UTF-8 with no decode step:
+  send it raw (BUILT)
+Local-storage filepath  a segment holding % # ? \ or a control character is percent-encoded
+  (encodeURIComponent); other names unchanged. Nested names are rejected. (BUILT: a filepath-derived
+  display name is decoded)
+POST /api/convos/archive  retention-aware save: under retentionMode all|ephemeral it stamps
+  expiredAt, and under ephemeral isTemporary: true, which hides the chat from every list,
+  archived included. 400 { error } for a non-string or empty conversationId or a non-boolean
+  isArchived; 500 when the save fails. (BUILT: a returned isTemporary chat leaves the cache)
+POST /api/agents/:id/revert  drops the version's MCP tools the caller may not use before writing,
+  so the reverted agent can hold fewer tools than the version (mobile applies the response); its
+  refusals are 400/403/404 { error }, not only 500
+Agent sdk_runtime  operator SDK binding (agents endpoint sdkRuntimes). update leaves it alone when
+  absent (mobile never sends it); duplicate and revert re-validate it: 400 { error } for a bad
+  binding. A run refuses an SDK agent with subagents on (sdk_runtime_composition_unsupported).
+GET /api/messages  pageSize clamped to librechat.yaml messages.maxPageSize (default 1000, not
+  served), then MEILI_SEARCH_LIMIT
+Web-only (not built): /api/channels*, /api/agents/:id/channels, /api/agents/responses/:id/
+  review|cancel. Web routes /channels/link and /responses/:id/review are stripped by
+  cleanServerUrl.
+```
+
+### v0.8.9 sync — agent writes, token-config and Gemini Hydrogen
+```
+POST /api/agents/actions/:agent_id, DELETE /api/agents/actions/:agent_id/:action_id
+  409 { message } (the same generic "Trouble updating/deleting the Agent Action") when the agent
+  changed during the write (AgentRevisionConflictError); was always 500. Retryable after a reload.
+PATCH /api/agents/:id  409 { error, details } also when the agent's MCP server index changed
+  between read and write (expectedMCPAccess); an update that names tools always re-asserts
+  mcpServerNames, so tools retained from an unindexed server are no longer authorized
+GET /api/endpoints/token-config  native Vertex models are listed under a `vertexai` key (Google's
+  models, Vertex rates by GOOGLE_LOC) beside `google`, unless a custom endpoint is named vertexai;
+  ?endpoint=vertexai resolves through Google. Web keys an agent's catalog lookup by `vertexai`
+  itself (BUILT: context gauge)
+Gemini Hydrogen (isGeminiHydrogen, gemini-4-hydrogen in google defaultModels)  no thinkingBudget,
+  temperature, topP, topK; own maxOutputTokens default/max; thinkingLevel "", low, medium, high,
+  xhigh (ThinkingLevel.xhigh is new; an older server refuses it, so the level list is gated at
+  supportsFeature 0.8.9 / 2026-11-17 and older servers get Google's shared list) (BUILT: parameter panel
+  and Thinking chip)
+```
+
 ### Other
 ```
 GET/POST/DELETE /api/presets
 GET/POST/PUT/DELETE /api/prompts
 GET/POST/DELETE /api/tags
 GET/POST/PATCH/DELETE /api/share
-GET /api/balance
+GET /api/balance            (0.8.9 adds allotment + allottedAt, always sends lastRefill)
 GET /api/search
 GET /api/user
 GET /api/banner
@@ -2273,8 +2445,9 @@ data: {"sync":true,"resumeState":{"runSteps":[...],"aggregatedContent":[...]}}
   on v1. (BUILT)
 - **TTS input cap** (698ee25fe): `POST /api/files/speech/tts/manual` synthesizes only the first
   `speech.tts.maxInputChars` (default 20,000, not in startup config) characters and drops the rest
-  silently. Android's server read-aloud sends sentence-cut segments of at most 4,000 characters and
-  plays them in turn. iOS's server path only probes the route and speaks on-device. (BUILT)
+  silently. It streams the provider's audio as it arrives (`audio/mpeg`, chunked). Server read-aloud
+  (Android and iOS) sends sentence-cut segments, the first at most 300 characters and the rest at
+  most 4,000, and plays each while the next is requested. (BUILT)
 - **Encrypted reasoning** (50324a0ba): THINK text may be a provider's base64 payload; it is filtered
   at render (`reasoningDisplay`), not in the SSE mapper, so persisted parts are covered too. (BUILT)
 - **`on_ptc_tool_call`**: `{ tool_call_id, call_id, name, status: running|success|error, args?,
@@ -2290,7 +2463,17 @@ data: {"sync":true,"resumeState":{"runSteps":[...],"aggregatedContent":[...]}}
 - **File tools** `read_file` / `create_file` / `edit_file` (sandbox, skills and attached machines):
   args `{ path | file_path, content }` / `{ path, edits: [{ old_text, new_text }] }` (or a single
   `old_text`/`new_text`); `create_file` output opens `Created ` or `Updated ` and may carry a unified
-  diff, as `edit_file`'s does. Rendered as file cards (BUILT, `FileToolCalls.kt`).
+  diff, as `edit_file`'s does. Rendered as file cards (BUILT, `FileToolCalls.kt`); a one-line
+  `Created|Updated|Edited …` output is not repeated under the preview unless the call failed.
+- **Branch reasoning**: a fresh turn sent without `reasoningOverride` runs at, and is stored with,
+  the override of the nearest user message on its branch that carries one (edit, regenerate,
+  continue and resume excepted; skipped when `thinking: false` and the key turns thinking on, or
+  when the target no longer takes it). A Thinking pick therefore lasts the conversation; returning
+  to the chat's own level takes an explicit override. (BUILT, gated supportsFeature 0.8.9 /
+  2026-10-29)
+- **`textPreview`** on a text/plain `TFile` in message `files`, attachments, steer and queued-turn
+  file refs: the first 240 characters of its text, display only (`text` itself is still stripped).
+  Shown on message file chips (BUILT, `FileReference.textPreview`).
 
 ---
 

@@ -1,0 +1,62 @@
+package com.garfiec.librechat.feature.settings.screen
+
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.ui.components.adaptiveSection
+import com.garfiec.librechat.feature.settings.resources.Res
+import com.garfiec.librechat.feature.settings.resources.date_time_title
+import com.garfiec.librechat.feature.settings.resources.language
+import com.garfiec.librechat.feature.settings.resources.language_system_default
+import com.garfiec.librechat.feature.settings.viewmodel.GeneralSettingsUiState
+import org.jetbrains.compose.resources.stringResource
+
+@Composable
+fun LanguageSettingsContent(
+    uiState: GeneralSettingsUiState,
+    onNavigateToDateTime: () -> Unit,
+    onShowLanguageDialog: () -> Unit,
+    onLanguageSelect: (String) -> Unit,
+    onDismissLanguageDialog: () -> Unit,
+    modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = PaddingValues(),
+) {
+    SettingsListPage(contentPadding = contentPadding, modifier = modifier) {
+        item(key = "top_gap") { Spacer(modifier = Modifier.height(16.dp)) }
+        adaptiveSection {
+            row(key = "language_row") {
+                SettingsRow(
+                    icon = Icons.Default.Language,
+                    title = stringResource(Res.string.language),
+                    summary = languageDisplayName(
+                        uiState.selectedLanguage,
+                        stringResource(Res.string.language_system_default),
+                    ),
+                    onClick = onShowLanguageDialog,
+                )
+            }
+            row(key = "date_time_row") {
+                SettingsRow(
+                    icon = Icons.Default.Schedule,
+                    title = stringResource(Res.string.date_time_title),
+                    summary = dateTimeSummary(),
+                    onClick = onNavigateToDateTime,
+                )
+            }
+        }
+    }
+
+    if (uiState.showLanguageDialog) {
+        LanguageSelectorDialog(
+            selectedLanguage = uiState.selectedLanguage,
+            onLanguageSelect = onLanguageSelect,
+            onDismiss = onDismissLanguageDialog,
+        )
+    }
+}

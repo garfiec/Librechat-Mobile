@@ -1,8 +1,6 @@
 package com.garfiec.librechat.feature.chat.components.mcpapp
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,16 +10,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.outlined.OpenInFull
-import androidx.compose.material.icons.outlined.Widgets
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,33 +23,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalWindowInfo
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.model.mcp.McpAppOccurrence
 import com.garfiec.librechat.core.ui.components.AdaptiveCard
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
-import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
 import com.garfiec.librechat.feature.chat.resources.Res
-import com.garfiec.librechat.feature.chat.resources.mcp_app_close_named
-import com.garfiec.librechat.feature.chat.resources.mcp_app_expand
 import com.garfiec.librechat.feature.chat.resources.mcp_app_in_panel
 import com.garfiec.librechat.feature.chat.resources.mcp_app_return
-import com.garfiec.librechat.feature.chat.resources.mcp_app_show_full
-import com.garfiec.librechat.feature.chat.resources.mcp_app_tap_to_resume
-import com.garfiec.librechat.feature.chat.resources.mcp_app_waiting
 import com.garfiec.librechat.feature.chat.viewmodel.McpAppSession
 import com.garfiec.librechat.feature.chat.viewmodel.McpAppSessionRules
 import com.garfiec.librechat.feature.chat.viewmodel.McpAppsState
@@ -69,7 +45,6 @@ import org.jetbrains.compose.resources.stringResource
 private val CARD_SHAPE = RoundedCornerShape(12.dp)
 private val FADE_HEIGHT = 40.dp
 private val HEADER_SUBTITLE_PADDING = PaddingValues(start = 12.dp, end = 12.dp, bottom = 8.dp)
-private val EVICTED_HEIGHT = McpAppSessionRules.MIN_INLINE_HEIGHT_DP.dp
 
 /**
  * An open App in its place in the thread: a header (tool · server · Expand · Close) over the App's
@@ -100,7 +75,7 @@ internal fun McpAppInlineCard(session: McpAppSession, state: McpAppsState, await
     ) {
         Column {
             McpAppCardHeader(
-                session = session,
+                occurrence = session.occurrence,
                 awaiting = awaiting,
                 onExpand = { viewModel.expand(session.id) },
                 onClose = { viewModel.close(session.id) },
@@ -174,63 +149,7 @@ private fun InlineBody(session: McpAppSession, frozenHeightDp: Int?, controller:
                 )
             }
         }
-        // Under the App, never over it: a button on the web view hides the App's content and takes its taps.
-        if (wantsMore) {
-            AdaptiveTextButton(
-                onClick = { viewModel.expand(session.id) },
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.OpenInFull,
-                    contentDescription = null,
-                    modifier = Modifier.padding(end = 8.dp).size(18.dp),
-                )
-                Text(stringResource(Res.string.mcp_app_show_full))
-            }
-        }
-    }
-}
-
-@Composable
-private fun McpAppCardHeader(session: McpAppSession, awaiting: Boolean, onExpand: () -> Unit, onClose: () -> Unit) {
-    val resource = session.occurrence.resource
-    val toolName = resource.toolName.orEmpty()
-    val waitingLabel = stringResource(Res.string.mcp_app_waiting)
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(start = 12.dp, top = 4.dp, end = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Icon(
-            imageVector = Icons.Outlined.Widgets,
-            contentDescription = null,
-            modifier = Modifier.size(20.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(
-            text = toolName,
-            style = MaterialTheme.typography.bodyMedium,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
-        )
-        if (awaiting) {
-            Box(
-                modifier = Modifier
-                    .size(8.dp)
-                    .background(MaterialTheme.colorScheme.primary, CircleShape)
-                    .semantics { contentDescription = waitingLabel },
-            )
-        }
-        IconButton(onClick = onExpand) {
-            Icon(Icons.Outlined.OpenInFull, contentDescription = stringResource(Res.string.mcp_app_expand))
-        }
-        IconButton(onClick = onClose) {
-            Icon(
-                Icons.Default.Close,
-                contentDescription = stringResource(Res.string.mcp_app_close_named, toolName, session.occurrence.ordinal),
-            )
-        }
+        if (wantsMore) ShowFullAppButton(onClick = { viewModel.expand(session.id) })
     }
 }
 
@@ -241,43 +160,5 @@ private fun McpAppCardHeader(session: McpAppSession, awaiting: Boolean, onExpand
 @Composable
 internal fun McpAppEvictedCard(occurrence: McpAppOccurrence, controller: McpAppsController, onOpen: () -> Unit) {
     val snapshot = remember(occurrence.key, controller) { controller.pool.snapshot(occurrence.key) }
-    val toolName = occurrence.resource.toolName.orEmpty()
-    AdaptiveCard(
-        modifier = Modifier.fillMaxWidth(),
-        shape = CARD_SHAPE,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(if (snapshot != null) EVICTED_HEIGHT * 2 else EVICTED_HEIGHT)
-                .clickable(role = Role.Button, onClick = onOpen),
-            contentAlignment = Alignment.Center,
-        ) {
-            if (snapshot != null) {
-                Image(
-                    bitmap = snapshot,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    alignment = Alignment.TopCenter,
-                    modifier = Modifier.fillMaxSize().alpha(0.4f),
-                )
-            }
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(text = toolName, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(
-                    text = stringResource(Res.string.mcp_app_tap_to_resume),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun windowHeightDp(): Int {
-    val density = LocalDensity.current
-    val height = LocalWindowInfo.current.containerSize.height
-    return with(density) { height.toDp().value.toInt() }
+    McpAppEvictedCardContent(occurrence = occurrence, snapshot = snapshot, onOpen = onOpen)
 }

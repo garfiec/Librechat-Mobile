@@ -62,6 +62,7 @@ internal class CertificateTrustOkHttp(
         config {
             eventListener(listener)
             addInterceptor(ReplayableUploadBodies)
+            addNetworkInterceptor(GateChallengeInterceptor)
         }
     }
 }

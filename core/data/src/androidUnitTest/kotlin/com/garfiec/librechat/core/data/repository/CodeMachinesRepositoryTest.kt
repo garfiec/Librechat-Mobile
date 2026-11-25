@@ -4,6 +4,8 @@ import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.model.code.CodeEnvironmentPermissionSettings
 import com.garfiec.librechat.core.model.code.CodeEnvironmentUserSettings
+import com.garfiec.librechat.core.model.code.CodePairingError
+import com.garfiec.librechat.core.model.code.CodeRemovalError
 import com.garfiec.librechat.core.network.api.CodeEnvironmentsApi
 import com.garfiec.librechat.core.network.di.librechatJson
 import com.google.common.truth.Truth.assertThat

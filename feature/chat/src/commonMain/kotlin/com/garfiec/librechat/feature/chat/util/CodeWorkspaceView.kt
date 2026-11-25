@@ -40,8 +40,9 @@ import com.garfiec.librechat.feature.chat.viewmodel.CodeWorkspaceUiState
  * The composer row and sheet for [resolution], as web's `CodeWorkspaceMenu.tsx` lays them out.
  * [browsingMachineId] is a machine the user picked from the machine chip that the decision does
  * not use yet; [browsingStatus] is its poll. [transitionChoices] are the picks drafted for the
- * resolution's transition, [moving] says one is being written, and [confirming] replaces the
- * whole row with the decision check web shows after a failed turn.
+ * resolution's transition, [moving] says one is being written, [streaming] that a reply is
+ * running (the transition waits for it), and [confirming] replaces the whole row with the
+ * decision check web shows after a failed turn.
  */
 @Suppress("CyclomaticComplexMethod", "LongMethod", "ComplexCondition") // web's menu layout in one mapping
 internal fun codeWorkspaceUiState(
@@ -53,11 +54,13 @@ internal fun codeWorkspaceUiState(
     attention: Boolean,
     transitionChoices: Map<String, CodeWorkspaceSelection> = emptyMap(),
     moving: Boolean = false,
+    streaming: Boolean = false,
     confirming: CodeConfirming? = null,
 ): CodeWorkspaceUiState {
     if (confirming != null) return CodeWorkspaceUiState(visible = true, holdsSend = true, confirming = confirming)
-    if (!resolution.visible && !mayFold(resolution)) return CodeWorkspaceUiState()
-    val transition = resolution.transition?.let { transitionView(it, transitionChoices, moving) }
+    if (!resolution.visible && !mayFold(resolution)) return CodeWorkspaceUiState(holdsSend = resolution.submission == null)
+    // Not `folded`: a folded chip would unfold on every run.
+    val transition = resolution.transition?.let { transitionView(it, transitionChoices, moving || streaming) }
     val environments = resolution.environments
     val only = environments.singleOrNull()
     val onlyDescriptor = only?.workspaces?.firstOrNull { it.id == only.selected?.workspaceId }

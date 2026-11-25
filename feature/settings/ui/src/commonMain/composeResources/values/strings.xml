@@ -1,0 +1,1142 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Common actions -->
+    <string name="action_add">Add</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_clear">Clear</string>
+    <string name="action_copy">Copy</string>
+    <string name="action_creating">Creating…</string>
+    <string name="action_create">Create</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_done">Done</string>
+    <string name="action_retry">Retry</string>
+    <string name="action_save">Save</string>
+    <string name="action_sign_out">Sign out</string>
+    <string name="action_upload">Upload</string>
+    <string name="action_uploading">Uploading…</string>
+    <string name="action_verify">Verify</string>
+    <string name="action_verifying">Verifying…</string>
+
+    <!-- Content descriptions -->
+    <string name="cd_add_server">Add server</string>
+    <string name="cd_back">Back</string>
+    <string name="cd_change_avatar">Change avatar</string>
+    <string name="cd_choose_image">Choose image</string>
+    <string name="cd_copy_api_key">Copy API key</string>
+    <string name="shared_chats_copy_link">Copy link</string>
+    <string name="cd_create_api_key">Create API key</string>
+    <string name="cd_current_avatar">Current avatar</string>
+    <string name="cd_delete_api_key">Delete API key</string>
+    <string name="cd_delete_preset">Delete preset</string>
+    <string name="memory_redacted_key">Hidden entry</string>
+    <string name="memory_redacted_value">This server's content policy hides what's stored here. You can still delete it.</string>
+    <string name="memory_redacted_value_no_delete">This server's content policy hides what's stored here.</string>
+    <string name="cd_loading_profile">Loading profile</string>
+    <string name="account_profile_load_failed">Couldn't load your profile.</string>
+    <string name="cd_preview_voice">Preview voice</string>
+    <string name="cd_avatar_preview">Avatar preview</string>
+    <string name="cd_selected">Selected</string>
+    <string name="cd_selected_avatar">Selected avatar</string>
+    <string name="cd_stop_voice_preview">Stop voice preview</string>
+    <string name="cd_user_avatar">User avatar</string>
+    <string name="cd_view_all_tools">View all tools</string>
+
+    <!-- Section headers -->
+    <string name="section_about">About</string>
+    <string name="section_updates">Updates</string>
+    <string name="section_appearance">Appearance</string>
+    <!-- The switch in the interface style previews: an in-joke, "go outside". -->
+    <string name="ui_style_preview_switch">Touch grass</string>
+    <string name="section_balance">Balance</string>
+    <string name="section_conversations">Conversations</string>
+    <string name="section_danger_zone">Danger zone</string>
+    <string name="section_language_region">Language &amp; region</string>
+    <string name="section_search">Search</string>
+    <string name="advanced_search">Advanced search</string>
+    <string name="advanced_search_desc">For power users. Adds match case, whole word, regex, and role, model and date filters to the Search screen.</string>
+    <string name="section_prefetch">Background prefetch</string>
+    <string name="prefetch_enabled">Prefetch conversations</string>
+    <string name="prefetch_enabled_desc">Load recent and pinned conversations ahead of time so they open instantly. Runs while the app is idle, and periodically while charging.</string>
+    <string name="prefetch_on_metered">Use mobile data</string>
+    <string name="prefetch_on_metered_desc">Allow prefetching on metered connections.</string>
+    <string name="prefetch_depth">Depth</string>
+    <string name="prefetch_depth_value">%1$d conversations</string>
+    <string name="prefetch_depth_desc">How many recent conversations to keep cached. Pinned conversations are always included, however old.</string>
+    <string name="prefetch_attachments">Prefetch images</string>
+    <string name="prefetch_attachments_desc">Also download images and attachments. Uses considerably more data.</string>
+    <string name="prefetch_activity">Activity</string>
+    <string name="prefetch_activity_title">Prefetch activity</string>
+    <string name="prefetch_summary_status">Status</string>
+    <string name="prefetch_summary_last_run">Last run</string>
+    <string name="prefetch_summary_last_run_never">Never</string>
+    <string name="prefetch_summary_scheduled_run">Last background run</string>
+    <string name="prefetch_run_outcome_disabled">prefetch was off</string>
+    <string name="prefetch_run_outcome_no_session">not signed in</string>
+    <string name="prefetch_run_outcome_constraints">conditions not met</string>
+    <string name="prefetch_run_outcome_budget">ran out of time</string>
+    <string name="prefetch_run_outcome_stopped">server not answering</string>
+    <string name="prefetch_run_outcome_interrupted">interrupted</string>
+    <string name="prefetch_summary_warmed">Warmed</string>
+    <string name="prefetch_summary_warmed_value">%1$d of %2$d</string>
+    <string name="prefetch_status_off">Off</string>
+    <string name="prefetch_status_working">Working…</string>
+    <string name="prefetch_status_warming">Warming conversations (%1$d of %2$d)</string>
+    <string name="prefetch_status_rate_limited">Waiting — the server asked us to slow down</string>
+    <string name="prefetch_status_stopped">Stopped — repeated request failures</string>
+    <string name="prefetch_status_up_to_date">Up to date</string>
+    <string name="prefetch_status_waiting">Idle — %1$d waiting</string>
+    <string name="prefetch_status_paused_network">Paused — waiting for Wi-Fi</string>
+    <string name="prefetch_status_paused_offline">Paused — no connection</string>
+    <string name="prefetch_condition_enabled">Prefetch enabled</string>
+    <string name="prefetch_condition_enabled_unmet">Switched off</string>
+    <string name="prefetch_condition_network_offline">No connection</string>
+    <string name="prefetch_status_paused_power">Paused — battery saver is on</string>
+    <string name="prefetch_status_paused_busy">Paused — app is busy</string>
+    <string name="prefetch_status_paused_background">Paused — app is in the background</string>
+    <string name="prefetch_conditions_header">Conditions</string>
+    <string name="prefetch_condition_app_available">App ready</string>
+    <string name="prefetch_condition_network">Network</string>
+    <string name="prefetch_condition_network_met">Connection allowed</string>
+    <string name="prefetch_condition_network_unmet">On mobile data</string>
+    <string name="prefetch_condition_power">Battery</string>
+    <string name="prefetch_condition_power_met">Not restricted</string>
+    <string name="prefetch_condition_power_unmet">Battery saver is on</string>
+    <string name="prefetch_condition_idle">App idle</string>
+    <string name="prefetch_condition_idle_met">No requests in flight</string>
+    <string name="prefetch_condition_idle_unmet">A request is in flight</string>
+    <string name="prefetch_condition_server">Server</string>
+    <string name="prefetch_condition_server_met">Responding</string>
+    <string name="prefetch_condition_server_unmet">Stopped after repeated failures</string>
+    <string name="prefetch_warm_now">Warm now</string>
+    <string name="prefetch_warm_now_desc">Run a pass immediately instead of waiting for the next idle moment.</string>
+    <string name="prefetch_warmed_header">Cached conversations</string>
+    <string name="prefetch_warmed_empty">Nothing has been prefetched yet.</string>
+    <string name="prefetch_pending_header">Waiting to be cached</string>
+    <string name="prefetch_pending_empty">Everything eligible is up to date.</string>
+    <string name="prefetch_row_never_warmed">Not cached yet</string>
+    <string name="prefetch_row_pinned">Pinned</string>
+    <string name="prefetch_cache_header">Cache</string>
+    <string name="prefetch_cache_messages">Cached messages</string>
+    <string name="prefetch_cache_messages_value">%1$d messages</string>
+    <string name="prefetch_cache_images">Images and files</string>
+    <string name="section_profile">Profile</string>
+    <string name="section_security">Security</string>
+    <!-- Screen titles -->
+    <string name="title_api_keys">API keys</string>
+    <string name="title_memories">Memories</string>
+    <string name="title_mcp_servers">MCP Servers</string>
+    <string name="title_presets">Presets</string>
+    <string name="title_settings">Settings</string>
+
+    <!-- Tabbed settings tabs -->
+    <string name="category_account">Account</string>
+
+    <!-- Theme -->
+    <string name="theme_system">System default</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+
+    <!-- Accent color -->
+    <string name="accent_color">Accent color</string>
+    <string name="accent_color_custom">Custom</string>
+    <string name="accent_color_hex">Hex</string>
+    <string name="use_wallpaper_colors">Use wallpaper colors</string>
+    <string name="use_wallpaper_colors_desc">Match the app accent to your system wallpaper (Material You)</string>
+    <string name="colors_from_server">From your server</string>
+    <string name="colors_switchboard_detail">Your colors</string>
+    <string name="accent_set_by_server">Set by your server (%1$s)</string>
+    <string name="accent_set_by_server_note">Pick Switchboard under Colors to use your own accent.</string>
+    <string name="ui_style_material">Material</string>
+    <string name="ui_style_liquid_glass">Liquid Glass</string>
+    <string name="ui_style_note_simulated">Liquid Glass is simulated on this iOS version. iOS 26 or later draws it natively.</string>
+    <string name="ui_style_note_blur_only">This device shows Liquid Glass as a blur, without refraction. Android 13 or later shows the full effect.</string>
+    <string name="ui_style_note_flat">This device shows Liquid Glass as a flat translucent surface.</string>
+
+    <!-- Settings rows -->
+    <string name="language">Language</string>
+    <string name="language_system_default">System default</string>
+    <string name="status_enabled">Enabled</string>
+    <string name="status_disabled">Disabled</string>
+    <string name="api_keys">API keys</string>
+    <string name="api_keys_subtitle">Manage API keys for programmatic access</string>
+    <string name="presets">Presets</string>
+    <string name="presets_subtitle">Manage conversation presets</string>
+    <string name="favorites">Favorites</string>
+    <string name="favorites_subtitle">Manage pinned agents and models</string>
+    <string name="favorites_title">Favorites</string>
+    <string name="favorites_empty_title">No favorites yet</string>
+    <string name="favorites_empty_message">Pin agents or models from the model selector to see them here.</string>
+    <string name="favorites_count_of">%1$d of %2$d</string>
+    <string name="favorites_unpin_cd">Unpin favorite</string>
+
+    <!-- About info -->
+    <string name="app_version_label">App version</string>
+    <string name="app_build_label">Build</string>
+    <string name="server_label">Server</string>
+    <string name="server_not_configured">Not configured</string>
+    <string name="server_version_label">Server version</string>
+    <string name="server_version_unknown">Unknown</string>
+    <string name="server_build_commit_label">Server commit</string>
+    <string name="server_build_branch_label">Server branch</string>
+    <string name="server_build_date_label">Server build date</string>
+
+    <!-- App updates -->
+    <string name="update_check">Check for updates</string>
+    <string name="update_check_desc">Look for a newer release on GitHub</string>
+    <string name="update_checking">Checking…</string>
+    <string name="update_up_to_date">You're on the latest version</string>
+    <string name="update_available">Version %1$s is available</string>
+    <string name="update_see_whats_new">See what's new</string>
+    <string name="update_check_failed">Couldn't reach GitHub</string>
+    <string name="update_auto_check">Check for updates daily</string>
+    <string name="update_auto_check_desc">Checks GitHub for new releases once a day while the app is open. GitHub sees your IP address.</string>
+    <string name="whats_new_title">What's new</string>
+    <string name="whats_new_installed">You have version %1$s</string>
+    <string name="whats_new_full_changelog">Full changelog</string>
+    <string name="whats_new_download_apk">Download APK</string>
+    <string name="whats_new_view_on_github">View on GitHub</string>
+    <string name="whats_new_open_obtainium">Open Obtainium</string>
+    <string name="whats_new_open_fdroid">Open F-Droid</string>
+    <string name="whats_new_hint_obtainium">Obtainium installed this app and delivers its updates.</string>
+    <string name="whats_new_hint_fdroid">F-Droid installed this app and delivers its updates. A new release can take a few days to appear there.</string>
+    <string name="whats_new_error">Couldn't load the release notes</string>
+    <string name="release_notes_title">Release notes</string>
+    <string name="release_notes_desc">What changed in version %1$s</string>
+    <string name="privacy_policy_title">Privacy policy</string>
+    <string name="privacy_policy_desc">What the app does with your data</string>
+    <string name="release_notes_not_found">No release notes for %1$s</string>
+    <string name="release_notes_not_found_desc">This build has no published release on GitHub.</string>
+    <string name="release_notes_previous">Previous versions</string>
+    <string name="release_notes_load_older">Load older versions</string>
+
+    <!-- Tablet settings -->
+    <string name="sidebar_swipe_gesture">Sidebar swipe gesture</string>
+    <string name="sidebar_swipe_gesture_desc">Swipe from the left edge to open the sidebar on tablet layouts</string>
+
+    <!-- Balance -->
+    <string name="token_credits">Token credits</string>
+    <string name="balance_credit_conversion">1,000 credits = $0.001</string>
+    <string name="balance_load_error">Couldn't load balance</string>
+    <string name="auto_refill_title">Auto-refill</string>
+    <string name="auto_refill_off">Off</string>
+    <string name="auto_refill_unavailable">Details unavailable</string>
+    <string name="auto_refill_last">Last refill</string>
+    <string name="auto_refill_amount">Refill amount</string>
+    <string name="auto_refill_interval">Interval</string>
+    <string name="auto_refill_next">Next refill</string>
+    <string name="auto_refill_next_info">A refill happens only after this time, and only when a message would take your balance below zero.</string>
+    <string name="balance_usage_limit">Usage limit</string>
+    <string name="balance_used">%1$s used</string>
+    <string name="balance_usage_unavailable">Usage unavailable</string>
+    <string name="balance_out_of_credits">Out of credits</string>
+    <string name="cd_balance_reading">%1$s: %2$s</string>
+    <string name="auto_reset_title">Automatic reset</string>
+    <string name="auto_reset_last">Last reset</string>
+    <string name="auto_reset_amount">Reset allowance</string>
+    <string name="auto_reset_next">Next reset</string>
+    <string name="auto_reset_next_info">Once the interval has passed, reading your balance or sending a request replaces it with the allowance. Unused credits don't carry over, and requests in progress still count against it.</string>
+    <plurals name="auto_refill_every_seconds">
+        <item quantity="one">Every %1$s second</item>
+        <item quantity="other">Every %1$s seconds</item>
+    </plurals>
+    <plurals name="auto_refill_every_minutes">
+        <item quantity="one">Every %1$s minute</item>
+        <item quantity="other">Every %1$s minutes</item>
+    </plurals>
+    <plurals name="auto_refill_every_hours">
+        <item quantity="one">Every %1$s hour</item>
+        <item quantity="other">Every %1$s hours</item>
+    </plurals>
+    <plurals name="auto_refill_every_days">
+        <item quantity="one">Every %1$s day</item>
+        <item quantity="other">Every %1$s days</item>
+    </plurals>
+    <plurals name="auto_refill_every_weeks">
+        <item quantity="one">Every %1$s week</item>
+        <item quantity="other">Every %1$s weeks</item>
+    </plurals>
+    <plurals name="auto_refill_every_months">
+        <item quantity="one">Every %1$s month</item>
+        <item quantity="other">Every %1$s months</item>
+    </plurals>
+    <string name="cd_token_balance">Token balance: %1$s credits</string>
+
+    <!-- Chat settings -->
+    <string name="chat_group_display">Display</string>
+    <string name="chat_layout_thread">Thread</string>
+    <string name="chat_layout_two_sided">Two-sided</string>
+    <string name="chat_layout_thread_desc">All messages aligned left with avatar and name</string>
+    <string name="chat_layout_two_sided_desc">User messages on right, agent on left</string>
+    <string name="show_bubbles">Show bubbles</string>
+    <string name="show_bubbles_desc">Add rounded bubble backgrounds to messages</string>
+    <string name="show_avatars">Show avatars</string>
+    <string name="show_avatars_desc">Display user and agent avatars next to messages</string>
+    <string name="starred_models_title">Starred models</string>
+    <string name="starred_models_desc">Show your pinned models and agents at the top of the model picker</string>
+    <string name="starred_models_off">Off</string>
+    <string name="starred_models_grouped">Collapsible group at top</string>
+    <string name="starred_models_top">At top, no grouping</string>
+    <string name="new_chat_start_title">Start new chats on</string>
+    <string name="new_chat_start_desc">When your server picks a model for new chats, choose whether to use it or the model you used last. Ignored when the server hides the model picker. If the server requires one of its own models, your last model counts only if it was one of those.</string>
+    <string name="new_chat_start_server">Server's choice</string>
+    <string name="new_chat_start_last_used">My last-used model</string>
+    <string name="web_search_first_title">Web search</string>
+    <string name="web_search_first_desc">Which search a chat's web search switch runs when both could. If your choice can't run in a chat, the other one is used. A model spec's own search wins, and Compare uses LibreChat search when it can, so both models search.</string>
+    <string name="web_search_first_librechat">LibreChat search first</string>
+    <string name="web_search_first_librechat_desc">Your server's search, with sources. Uses the model's built-in search when the server has none set up.</string>
+    <string name="web_search_first_built_in">Built-in search first</string>
+    <string name="web_search_first_built_in_desc">The model provider's own search (OpenAI, Claude, Gemini, OpenRouter). Uses LibreChat search for other models.</string>
+    <string name="chat_header_content_title_option">Title</string>
+    <string name="chat_header_content_model">Model</string>
+    <string name="chat_header_content_none">Nothing</string>
+    <string name="chat_header_alignment_left">Left</string>
+    <string name="chat_header_alignment_center">Center</string>
+    <string name="chat_header_alignment_fill">Full width</string>
+    <string name="font_size_small">Small</string>
+    <string name="font_size_medium">Medium</string>
+    <string name="font_size_large">Large</string>
+    <string name="latex_renderer">Math rendering</string>
+    <string name="latex_katex">KaTeX (rendered)</string>
+    <string name="latex_katex_desc">Full LaTeX rendering via WebView</string>
+    <string name="latex_native">Plain text (fast)</string>
+    <string name="latex_native_desc">Shows raw LaTeX source for better scroll performance</string>
+    <string name="thinking_open_by_default">Open thinking by default</string>
+    <string name="thinking_open_by_default_desc">Start a reply's reasoning expanded instead of collapsed</string>
+    <string name="collapse_long_user_messages">Collapse long user messages</string>
+    <string name="collapse_long_user_messages_desc">Show long messages you sent as a preview with Show more</string>
+    <string name="client_image_resize">Resize images before upload</string>
+    <string name="client_image_resize_desc">Scale large images down before sending them, for faster uploads that use less data</string>
+    <string name="client_image_resize_enforced">Your server’s administrator manages this setting</string>
+    <string name="context_bar_title">Context usage</string>
+    <string name="context_bar_hidden">Hidden</string>
+    <string name="context_bar_above_input">In the message box</string>
+    <string name="context_bar_options_sheet">Chat options menu</string>
+    <string name="context_bar_overflow_menu">Top bar menu (⋮)</string>
+    <string name="show_image_descriptions">Show image descriptions</string>
+    <string name="show_image_descriptions_desc">Display AI-generated image prompts below images</string>
+    <string name="dismiss_keyboard_on_send">Dismiss keyboard after sending</string>
+    <string name="dismiss_keyboard_on_send_desc">Automatically hide the keyboard after sending a message</string>
+
+    <!-- Artifacts -->
+    <string name="section_artifacts">Artifacts</string>
+    <string name="artifacts_open_in">Artifacts open in</string>
+    <string name="artifact_mode_bottom_sheet">Bottom sheet</string>
+    <string name="artifact_mode_fullscreen">Full screen</string>
+    <string name="artifact_mode_automatic">Automatic</string>
+    <string name="artifact_mode_split">Side by side</string>
+    <!-- %1$s is how artifacts open in this window: artifact_mode_split, artifact_mode_bottom_sheet or artifact_mode_fullscreen. -->
+    <string name="artifact_mode_here">%1$s here</string>
+    <string name="artifact_mode_automatic_here">Automatic · %1$s here</string>
+    <string name="artifact_inline_title">Render inline</string>
+    <string name="artifact_inline_enabled_count">%1$d of %2$d enabled</string>
+    <string name="artifact_libraries_title">Flagged libraries</string>
+    <string name="artifact_libraries_desc">Artifacts can use a few libraries that are no longer maintained or have known problems. Choose whether each one loads, or have each artifact ask. They run sandboxed, with no access to your files or account.</string>
+    <string name="artifact_libraries_none_set">Ask each time</string>
+    <string name="artifact_libraries_some_set">%1$d of %2$d set</string>
+    <string name="artifact_libraries_ask">Ask</string>
+    <string name="artifact_libraries_allow">Load</string>
+    <string name="artifact_libraries_decline">Don't load</string>
+    <string name="artifact_libraries_unmaintained">No longer maintained</string>
+    <string name="artifact_libraries_deprecated">Deprecated by its authors</string>
+    <string name="artifact_libraries_vulnerable">Has a known security advisory</string>
+    <string name="artifacts_section_desc">Render artifacts directly in the chat instead of behind a tap-to-open card. Tap an inline artifact to open the fullscreen view.</string>
+    <string name="inline_artifact_mermaid">Mermaid diagrams</string>
+    <string name="inline_artifact_mermaid_desc">Render Mermaid flowcharts and diagrams inline</string>
+    <string name="inline_artifact_svg">SVG images</string>
+    <string name="inline_artifact_svg_desc">Render SVG vector graphics inline</string>
+    <string name="inline_artifact_html">HTML</string>
+    <string name="inline_artifact_html_desc">Render HTML pages inline</string>
+    <string name="inline_artifact_react">React components</string>
+    <string name="inline_artifact_react_desc">Render React components inline</string>
+    <string name="inline_artifact_markdown">Markdown documents</string>
+    <string name="inline_artifact_markdown_desc">Render Markdown artifacts inline with syntax-highlighted code blocks</string>
+
+    <!-- Security -->
+    <string name="two_factor_auth">Two-factor authentication</string>
+    <string name="enable_two_factor">Enable two-factor authentication</string>
+    <string name="disable_two_factor">Disable two-factor authentication</string>
+    <string name="regenerate_backup_codes">Regenerate backup codes</string>
+    <string name="two_factor_required_by_server">This server requires two-factor authentication, so it can't be turned off.</string>
+
+    <!-- 2FA setup dialog -->
+    <string name="dialog_title_enable_2fa">Enable two-factor authentication</string>
+    <string name="dialog_title_disable_2fa">Disable two-factor authentication</string>
+    <string name="twofa_enroll_instructions">Add this account to your authenticator app, then enter the 6-digit code it shows.</string>
+    <string name="action_open_authenticator">Open in authenticator app</string>
+    <string name="twofa_no_authenticator">No authenticator app found. Add the setup key below manually, or scan the QR code from another device.</string>
+    <string name="twofa_setup_key">Setup key</string>
+    <string name="cd_copy_setup_key">Copy setup key</string>
+    <string name="action_show_qr">Show QR code</string>
+    <string name="action_hide_qr">Hide QR code</string>
+    <string name="cd_twofa_qr">QR code for enrolling on another device</string>
+    <string name="twofa_disable_instructions">Enter your authenticator code to disable 2FA.</string>
+
+    <!-- OTP verification dialogs -->
+    <string name="otp_title_verify_identity">Verify identity</string>
+    <string name="otp_desc_delete_account">Enter your 2FA code to delete your account.</string>
+    <string name="otp_desc_reenroll_2fa">Enter your current 2FA code to re-enroll.</string>
+    <string name="otp_desc_regenerate_backup_codes">Enter your 2FA code to regenerate backup codes.</string>
+    <string name="otp_verify">Verify</string>
+    <string name="otp_cancel">Cancel</string>
+    <string name="otp_backup_code_label">Backup code</string>
+    <string name="otp_use_backup_code">Use a backup code instead</string>
+    <string name="otp_use_otp_code">Use OTP code instead</string>
+
+    <!-- Backup codes dialog -->
+    <string name="dialog_title_backup_codes">Backup codes</string>
+    <string name="backup_codes_instructions">Save these backup codes in a safe place. Each code can only be used once.</string>
+    <string name="twofa_sessions_incomplete">Two-factor authentication is on, but some other sessions may stay signed in until they expire. Save your backup codes, then sign in again.</string>
+    <string name="twofa_other_sessions_signed_out">Two-factor authentication is on. Every other device signed in to this account has been signed out.</string>
+    <string name="twofa_sign_in_again_to_enable">Sign in again to enable two-factor authentication.</string>
+    <string name="dialog_title_regenerate_backup_codes">Regenerate backup codes?</string>
+    <string name="regenerate_backup_codes_warning">Your current backup codes will stop working. You'll get a new set to save.</string>
+    <string name="action_regenerate">Regenerate</string>
+    <string name="backup_codes_saved_ack">I've saved these codes</string>
+
+    <!-- Danger zone -->
+    <string name="delete_account">Delete account</string>
+    <string name="dialog_title_sign_out">Sign out</string>
+    <string name="dialog_sign_out_message">Are you sure you want to sign out?</string>
+    <string name="dialog_title_delete_account">Delete account</string>
+    <string name="dialog_delete_account_message">This action cannot be undone. All your data will be permanently deleted.</string>
+
+    <!-- Clear cache dialog -->
+    <string name="dialog_title_clear_cache">Clear cache</string>
+    <string name="dialog_clear_cache_message">This will clear cached images and temporary data. Your account data will not be affected.</string>
+
+    <!-- Revoke keys dialog -->
+
+    <!-- Data settings -->
+    <string name="clear_all_conversations">Delete all chats</string>
+    <string name="clearing">Clearing…</string>
+    <string name="archive_all_conversations">Archive all chats</string>
+    <string name="archiving_all">Archiving…</string>
+    <string name="dialog_title_archive_all">Archive all conversations?</string>
+    <string name="dialog_archive_all_message">Every conversation moves to Archived. You can still open them there, and you can unarchive any of them later.</string>
+    <string name="action_archive_all">Archive all</string>
+    <plurals name="archived_all_count">
+        <item quantity="one">Archived %1$d conversation</item>
+        <item quantity="other">Archived %1$d conversations</item>
+    </plurals>
+    <string name="archived_conversations">Archived chats</string>
+    <string name="clear_cache">Clear cache</string>
+    <string name="dialog_title_clear_conversations">Clear all conversations</string>
+    <string name="dialog_clear_conversations_message">This will permanently delete all your conversations. This action cannot be undone.</string>
+    <string name="clear_all">Clear all</string>
+    <!-- Diagnostic logs (issue #96) -->
+    <string name="export_diagnostic_logs">Export diagnostic logs</string>
+    <string name="exporting_logs">Exporting…</string>
+    <string name="clear_diagnostic_logs">Clear diagnostic logs</string>
+    <string name="clearing_logs">Clearing…</string>
+    <string name="logs_exported">Diagnostic logs exported</string>
+    <string name="dialog_title_clear_logs">Clear diagnostic logs</string>
+    <string name="dialog_clear_logs_message">This will permanently delete all stored diagnostic logs from this device. This action cannot be undone.</string>
+
+    <!-- Speech settings -->
+    <string name="auto_send_after_speech">Send after I stop speaking</string>
+    <string name="auto_send_after_speech_desc">Send the message as soon as dictation ends</string>
+    <string name="auto_read_responses">Read replies aloud</string>
+    <string name="auto_read_responses_desc">Read each new reply aloud when it finishes</string>
+    <string name="no_server_tts_voices">No server TTS voices available. Speech features may not be configured on the server.</string>
+
+    <!-- STT detail dialog -->
+    <string name="stt_engine_label">Recognition engine</string>
+    <string name="stt_language_label">Speech language</string>
+    <string name="stt_engine_browser">Built-in</string>
+    <string name="stt_engine_external">Server</string>
+    <string name="stt_hint_browser">Uses your device's built-in speech recognizer for live transcription.</string>
+    <string name="stt_hint_external">Uploads audio to your server for speech-to-text (Whisper). Your server must have STT enabled.</string>
+    <string name="stt_on_device_toggle">On-device recognition</string>
+    <string name="stt_on_device_toggle_desc">Transcribe on this device instead of the cloud. Falls back to the cloud recognizer if unavailable.</string>
+    <string name="stt_end_of_speech_toggle">Stop when I pause</string>
+    <string name="stt_end_of_speech_toggle_desc">End dictation once you stop talking, instead of waiting for you to tap stop. With Send after I stop speaking on, it's hands-free.</string>
+    <string name="stt_auto_detect">Auto-detect</string>
+
+    <!-- TTS detail dialog -->
+    <string name="tts_source_label">Voice source</string>
+    <string name="tts_source_device">Device (built-in)</string>
+    <string name="tts_source_server">Server</string>
+    <string name="tts_voice_label">Voice</string>
+    <string name="tts_system_default">System default</string>
+    <string name="tts_speech_rate">Speed: %1$sx</string>
+    <string name="tts_pitch">Pitch: %1$s</string>
+    <string name="tts_preview_text">This is a preview of the selected voice.</string>
+    <string name="tts_stop_preview">Stop preview</string>
+    <string name="tts_preview_voice">Preview voice</string>
+
+    <!-- Memories -->
+    <string name="add_memory">Add memory</string>
+    <string name="edit_memory">Edit memory</string>
+    <string name="dialog_title_delete_memory">Delete memory</string>
+    <string name="dialog_delete_memory_message">Are you sure you want to delete the memory “%1$s”?</string>
+    <string name="memory_key_label">Key</string>
+    <string name="memory_value_label">Value</string>
+    <string name="memory_key_hint">Use only lowercase letters a–z and underscores</string>
+    <string name="memory_key_invalid">Keys can only contain lowercase letters a–z and underscores</string>
+    <string name="memory_key_exists">A memory with this key already exists</string>
+    <string name="memory_key_reserved">This key is reserved. Choose another.</string>
+    <string name="memory_key_too_long">Keys can be at most %1$s characters.</string>
+    <string name="memory_error_forbidden">You don't have permission to change memories.</string>
+    <string name="memory_error_toggle_forbidden">Your role can't turn memories on or off.</string>
+    <string name="memory_error_content_filtered">Blocked by your server's content filter.</string>
+    <string name="memory_error_agent">This agent's memories can't be changed.</string>
+    <string name="memory_error_network">Couldn't reach the server. Check your connection.</string>
+    <string name="memory_error_save">Couldn't save the memory.</string>
+    <string name="memory_error_delete">Couldn't delete the memory.</string>
+    <string name="memory_error_toggle">Couldn't change the memory setting.</string>
+    <string name="memory_error_not_found">This memory was deleted elsewhere.</string>
+    <string name="memory_error_not_found_readd">This memory was deleted elsewhere. Save to add it again.</string>
+    <!-- Memories index -->
+    <string name="memories_use_title">Use saved memories</string>
+    <string name="memories_use_desc">Chats can read and save memories</string>
+    <string name="memories_use_load_failed">Couldn't load this setting.</string>
+    <string name="memories_use_loading">Loading</string>
+    <string name="memories_usage_percent">%1$s%</string>
+    <plurals name="memories_usage_tokens">
+        <item quantity="one">%1$s / %2$s token</item>
+        <item quantity="other">%1$s / %2$s tokens</item>
+    </plurals>
+    <plurals name="memories_usage_a11y">
+        <item quantity="one">Memory usage: %1$s, %2$s of %3$s token</item>
+        <item quantity="other">Memory usage: %1$s, %2$s of %3$s tokens</item>
+    </plurals>
+    <plurals name="memory_token_count">
+        <item quantity="one">%1$s token</item>
+        <item quantity="other">%1$s tokens</item>
+    </plurals>
+    <string name="memory_agent_fallback">Agent memory</string>
+    <string name="memory_agent_numbered">%1$s (%2$s)</string>
+    <string name="memories_search_hint">Search memories</string>
+    <string name="memories_no_match">No memories match “%1$s”</string>
+    <string name="memories_personal_empty">No personal memories yet</string>
+    <string name="memories_filter_all">All</string>
+    <string name="memories_filter_personal">Personal</string>
+    <string name="memories_empty_title">No memories yet</string>
+    <string name="memories_empty_desc">Chats save things worth remembering here. You can also add one yourself.</string>
+    <string name="memories_empty_desc_no_create">Chats save things worth remembering here.</string>
+    <string name="memories_view_only">Your role can view memories but not add or change them.</string>
+    <string name="memories_no_access_title">No access to memories</string>
+    <string name="memories_no_access_desc">Your role doesn't have permission to view memories.</string>
+    <string name="memory_action_edit">Edit</string>
+    <string name="cd_memory_options">Options for %1$s</string>
+    <!-- Memory sheet -->
+    <string name="view_memory">View memory</string>
+    <string name="action_close">Close</string>
+    <string name="memory_value_counter">%1$s / %2$s</string>
+    <plurals name="memory_token_share">
+        <item quantity="one">%1$s token · %2$s% of your memory</item>
+        <item quantity="other">%1$s tokens · %2$s% of your memory</item>
+    </plurals>
+    <string name="memory_updated_at">Updated %1$s</string>
+
+    <!-- MCP -->
+    <string name="add_mcp_server">Add MCP Server</string>
+    <string name="edit_mcp_server">Edit MCP Server</string>
+    <string name="mcp_name_label">Name</string>
+    <string name="mcp_description_label">Description</string>
+    <string name="mcp_description_optional">Optional</string>
+    <string name="mcp_url_label">URL</string>
+    <string name="mcp_type_sse">SSE</string>
+    <string name="mcp_type_streamable_http">Streamable HTTP</string>
+    <string name="mcp_auth_none">None</string>
+    <string name="mcp_auth_api_key">API Key</string>
+    <string name="mcp_auth_oauth">OAuth</string>
+    <string name="mcp_auth_key_type">Key Type</string>
+    <string name="mcp_auth_bearer">Bearer</string>
+    <string name="mcp_auth_basic">Basic</string>
+    <string name="mcp_auth_custom">Custom</string>
+    <string name="mcp_header_name_label">Header Name</string>
+    <string name="mcp_header_name_placeholder">X-API-Key</string>
+    <string name="mcp_api_key_label">API Key</string>
+    <string name="mcp_api_key_user_provides">Each user provides their own key</string>
+    <string name="mcp_oauth_client_id">Client ID</string>
+    <string name="mcp_oauth_client_secret">Client Secret</string>
+    <string name="mcp_oauth_auth_url">Authorization URL</string>
+    <string name="mcp_oauth_token_url">Token URL</string>
+    <string name="mcp_oauth_scope">Scope</string>
+    <string name="mcp_oauth_scope_placeholder">read execute</string>
+    <string name="dialog_title_delete_server">Delete Server</string>
+    <string name="dialog_delete_server_message">Are you sure you want to delete "%1$s"?</string>
+    <string name="error_failed_to_load_servers">Failed to load servers</string>
+    <string name="no_tools_available">No tools available</string>
+    <!-- Fork settings -->
+
+    <!-- Language selector -->
+    <string name="hint_search_languages">Search languages</string>
+
+    <!-- Personalization dialog -->
+
+    <!-- Avatar upload dialog -->
+    <string name="dialog_title_update_avatar">Update avatar</string>
+    <string name="avatar_choose_hint">Tap the camera icon to choose an image</string>
+
+    <!-- API Keys screen -->
+    <string name="api_keys_not_available">API keys not available</string>
+    <string name="api_keys_not_supported">This feature is not supported on your server version.</string>
+    <string name="no_api_keys">No API keys</string>
+    <string name="no_api_keys_desc">Create an API key to access the API programmatically.</string>
+    <string name="dialog_title_delete_api_key">Delete API key</string>
+    <string name="dialog_delete_api_key_message">Are you sure you want to delete the API key "%1$s"? This action cannot be undone.</string>
+    <string name="created_prefix">Created: %1$s</string>
+
+    <!-- API Key create dialog -->
+    <string name="dialog_title_create_api_key">Create API key</string>
+    <string name="api_key_name_hint">Give your API key a descriptive name to help identify its purpose.</string>
+    <string name="hint_key_name">Key name</string>
+    <string name="hint_key_name_placeholder">e.g. My App</string>
+    <string name="dialog_title_api_key_created">API key created</string>
+    <string name="api_key_created_warning">Your API key has been created. Copy it now — you won't be able to see it again.</string>
+    <string name="copied_to_clipboard">Copied to clipboard</string>
+
+    <!-- Preset manager -->
+    <string name="no_presets">No presets</string>
+    <string name="no_presets_desc">Save presets from the chat screen to manage them here</string>
+    <string name="dialog_title_delete_preset">Delete preset</string>
+    <string name="dialog_delete_preset_message">Are you sure you want to delete "%1$s"?</string>
+
+    <!-- Shared links -->
+    <string name="mcp_oauth_secret_reentry_required">The OAuth endpoints changed, so the saved secret no longer applies. Enter it again.</string>
+    <string name="mcp_api_key_reentry_required">The connection settings changed, so the saved API key no longer applies. Enter it again.</string>
+    <string name="dialog_title_delete_shared_link">Delete Shared Link</string>
+    <string name="dialog_delete_shared_link_message">This will remove the shared link for "%1$s". Anyone with the link will no longer be able to access it.</string>
+    <string name="error_failed_to_load_memories">Failed to load memories</string>
+
+    <!-- Provider API Keys -->
+    <string name="provider_keys_title">Provider API keys</string>
+    <string name="provider_keys_subtitle">Set your own keys for endpoints that require them</string>
+    <string name="provider_keys_status_unset">Not set</string>
+    <string name="provider_keys_status_unknown">Couldn't check</string>
+    <string name="provider_keys_status_loading">Checking key status…</string>
+    <string name="provider_keys_field_api_key_label">Key</string>
+    <string name="provider_keys_field_base_url_label">Base URL</string>
+    <string name="provider_keys_field_base_url_optional_suffix">(Optional)</string>
+    <string name="provider_keys_field_api_key_for_endpoint">%1$s API Key</string>
+    <string name="provider_keys_field_api_url_for_endpoint">%1$s API URL</string>
+
+    <string name="provider_keys_field_azure_api_key">Azure OpenAI API Key</string>
+    <string name="provider_keys_field_azure_instance">Azure Instance Name</string>
+    <string name="provider_keys_field_azure_deployment">Azure Deployment Name</string>
+    <string name="provider_keys_field_azure_api_version">Azure API Version</string>
+
+    <string name="provider_keys_field_google_api_key">Google API Key</string>
+    <string name="provider_keys_field_google_gemini_api">(Gemini API)</string>
+    <string name="provider_keys_field_google_service_key">Google Service Account Key</string>
+    <string name="provider_keys_field_google_import">Import Service Account JSON Key.</string>
+    <string name="provider_keys_field_google_invalid">Invalid Service Account JSON Key, Did you import the correct file?</string>
+    <string name="provider_keys_field_google_imported">Successfully Imported Service Account JSON Key</string>
+    <string name="provider_keys_field_google_paste_label">Or paste service account JSON</string>
+    <string name="provider_keys_field_google_paste_only_hint">Paste the service-account JSON below.</string>
+
+    <string name="provider_keys_field_bedrock_access_key_id">Access Key ID</string>
+    <string name="provider_keys_field_bedrock_secret_access_key">Secret Access Key</string>
+    <string name="provider_keys_field_bedrock_session_token">Session Token</string>
+    <string name="provider_keys_field_bedrock_session_token_optional_suffix">(Optional)</string>
+    <string name="provider_keys_field_bedrock_bearer_token">Bearer Token</string>
+    <string name="provider_keys_field_bedrock_bearer_token_placeholder">Bedrock API key</string>
+    <string name="provider_keys_field_required">Required</string>
+    <string name="provider_keys_bedrock_or_access_keys">Or use access keys instead</string>
+    <string name="provider_keys_field_google_either_required">Add a service key or a Gemini API key</string>
+
+    <string name="provider_keys_revoke">Revoke</string>
+    <string name="provider_keys_revoke_failed">Failed to revoke API key. Please try again.</string>
+    <string name="provider_keys_revoke_success">API key revoked successfully</string>
+    <string name="provider_keys_revoke_all_confirm">Are you sure you want to revoke all keys?</string>
+    <string name="provider_keys_revoke_all_failed">Failed to revoke all keys</string>
+    <string name="provider_keys_save_failed">Failed to save API key. Please try again.</string>
+    <string name="provider_keys_save_success">API key saved successfully</string>
+
+    <string name="provider_keys_expiry_label">New key expires</string>
+    <string name="provider_keys_expiry_30m">30 min</string>
+    <string name="provider_keys_expiry_2h">2 h</string>
+    <string name="provider_keys_expiry_12h">12 h</string>
+    <string name="provider_keys_expiry_1d">1 day</string>
+    <string name="provider_keys_expiry_7d">7 days</string>
+    <string name="provider_keys_expiry_30d">30 days</string>
+    <string name="provider_keys_expiry_never">Never</string>
+
+    <string name="provider_keys_empty_title">No endpoints require user-provided keys</string>
+    <string name="provider_keys_empty_desc">Endpoints that need your own API key will appear here.</string>
+    <string name="provider_keys_load_failed_title">Couldn't load your providers</string>
+    <string name="provider_keys_load_failed_desc">Check your connection and try again.</string>
+    <string name="provider_keys_status_never_expires">Never expires</string>
+    <string name="provider_keys_status_expires_at">Expires %1$s</string>
+    <string name="provider_keys_status_expires_at_time">Expires at %1$s</string>
+    <string name="provider_keys_retry_check_cd">Check %1$s again</string>
+    <string name="provider_keys_status_unset_needs">Not set · %1$s</string>
+    <string name="provider_keys_needs_azure">key, instance, deployment, version</string>
+    <string name="provider_keys_needs_key_and_url">key, base URL</string>
+    <string name="provider_keys_needs_base_url">base URL</string>
+    <string name="provider_keys_needs_google">service key or Gemini key</string>
+    <string name="provider_keys_needs_access_keys">access keys</string>
+    <string name="provider_keys_needs_bearer_or_access_keys">bearer token or access keys</string>
+    <string name="provider_keys_summary_note">Keys are stored on your server and deleted when they expire.</string>
+    <string name="provider_keys_revoke_all_button">Remove all keys</string>
+    <plurals name="provider_keys_status_expires_in_minutes">
+        <item quantity="one">Expires in %1$d min</item>
+        <item quantity="other">Expires in %1$d min</item>
+    </plurals>
+    <plurals name="provider_keys_summary">
+        <item quantity="one">%1$d of %2$d key set.</item>
+        <item quantity="other">%1$d of %2$d keys set.</item>
+    </plurals>
+    <plurals name="provider_keys_row_summary">
+        <item quantity="one">%1$d of %2$d set</item>
+        <item quantity="other">%1$d of %2$d set</item>
+    </plurals>
+
+    <!-- Admin: role skill access -->
+    <string name="role_skills_settings_row">Skill permissions</string>
+    <string name="role_skills_title">Skill permissions</string>
+    <string name="role_skills_description">Control which skill capabilities each role has. Changes apply to all users with the selected role.</string>
+    <string name="role_permissions_role_label">Role</string>
+    <string name="role_skills_use">Use skills</string>
+    <string name="role_skills_create">Create &amp; edit skills</string>
+    <string name="role_skills_share">Share skills</string>
+    <string name="role_skills_share_public">Share skills publicly</string>
+    <string name="role_memories_settings_row">Memory permissions</string>
+    <string name="role_memories_title">Memory permissions</string>
+    <string name="role_memories_description">Control which memory capabilities each role has. Changes apply to all users with the selected role.</string>
+    <string name="role_memories_use">Allow using memories</string>
+    <string name="role_memories_create">Allow creating memories</string>
+    <string name="role_memories_update">Allow updating memories</string>
+    <string name="role_memories_read">Allow reading memories</string>
+    <string name="role_memories_opt_out">Allow users to turn memories off</string>
+    <string name="role_permissions_saved">Saved</string>
+    <string name="role_permissions_load_failed">Couldn't load this role's permissions.</string>
+    <string name="role_permissions_save_failed">Couldn't save the permissions. Try again.</string>
+    <string name="role_permissions_admin_lockout_warning">Saving this turns off %1$s for every admin, including you, and hides these settings. Only someone with access to the server configuration can turn it back on.</string>
+    <string name="role_permissions_admin_lockout_title">Turn off %1$s for admins?</string>
+    <string name="role_permissions_admin_lockout_confirm_label">Type %1$s to confirm</string>
+    <string name="role_permissions_admin_lockout_confirm">Turn off for admins</string>
+    <string name="role_skills_section">Skills</string>
+
+    <!-- Home-screen artifact shortcuts -->
+    <string name="artifact_shortcuts_title">Home-screen shortcuts</string>
+    <string name="artifact_shortcuts_empty">No artifacts pinned to the home screen yet.</string>
+    <string name="artifact_shortcuts_disabled_message">This artifact shortcut was removed.</string>
+    <string name="cd_artifact_shortcut_delete">Delete shortcut</string>
+    <!-- Post-login editor for the active server's gateway headers (issue #287) -->
+    <string name="section_server_connection">Server connection</string>
+    <string name="server_headers_scope">Sent to %1$s</string>
+    <string name="server_headers_save">Save headers</string>
+    <string name="server_headers_saved">Headers saved</string>
+    <string name="server_connection_subtitle">Request headers for access gateways</string>
+    <string name="server_headers_discard_title">Discard changes?</string>
+    <string name="server_headers_discard_message">Your unsaved header changes will be lost.</string>
+    <string name="server_headers_discard_confirm">Discard</string>
+    <string name="server_headers_keep_editing">Keep editing</string>
+
+    <!-- Mid-run steering (v0.8.8): what send does while a reply is still generating -->
+    <string name="during_run_action_title">While generating</string>
+    <string name="during_run_action_desc">What sending a message does while a reply is still being written. The send menu can override this per message.</string>
+    <string name="during_run_action_queue">Add to queue</string>
+    <string name="during_run_action_queue_desc">Send it as the next message once the reply finishes.</string>
+    <string name="during_run_action_steer">Steer the reply</string>
+    <string name="during_run_action_steer_desc">Joins the reply after the current step finishes, so the assistant changes course without starting over. Needs a server that supports steering; otherwise it queues.</string>
+    <string name="during_run_action_interrupt">Interrupt and steer</string>
+    <string name="during_run_action_interrupt_desc">Stops the current tool or thinking step, keeps what’s written, and continues with your message. Actions a tool already took can’t be undone. Falls back to steering when a reply can’t be interrupted.</string>
+    <string name="upload_routing_title">Attachments</string>
+    <string name="upload_routing_desc">Files can be sent to the model as-is, or read on the server and sent as text. Not every model accepts every file type.</string>
+    <string name="upload_routing_auto">Choose for me</string>
+    <string name="upload_routing_auto_desc">Send the file to the model when it can read that type, otherwise send the text inside it.</string>
+    <string name="upload_routing_manual">Ask each time</string>
+    <string name="upload_routing_manual_desc">Ask before attaching, whenever both are possible. Images are always sent to the model.</string>
+
+    <!-- MCP OAuth consent (v0.8.8) -->
+    <string name="mcp_oauth_title">Sign in to %1$s</string>
+    <string name="mcp_app_location_setting">Location for apps</string>
+    <string name="mcp_app_location_allowed">Allowed: this server's apps can receive your approximate location</string>
+    <string name="mcp_app_location_not_allowed">Not allowed</string>
+    <string name="mcp_oauth_message">This server needs your permission before it can be used. You will be sent to the provider to authorize access, then you can come back and reconnect.</string>
+    <string name="mcp_oauth_continue">Continue</string>
+    <!-- Snackbar after the in-app MCP sign-in reached the server's success page -->
+    <string name="mcp_oauth_signed_in">Signed in. Connecting…</string>
+    <!-- Snackbar when an MCP sign-in could not start or the server refused it; Retry reconnects -->
+    <string name="mcp_oauth_failed">Sign-in didn't complete. Reconnect to try again.</string>
+    <string name="mcp_connection_deferred">Connecting in the background \u2014 tools appear once it is ready.</string>
+    <string name="show_site_icons">Show website icons</string>
+    <string name="show_site_icons_desc">Load icons for web search results from Google and other websites</string>
+    <string name="context_settings_where">Where it shows</string>
+    <string name="context_settings_detail">Detail</string>
+    <string name="context_settings_compacting">Compacting</string>
+    <string name="context_settings_preview">Preview</string>
+    <string name="context_settings_custom_in_use">Custom mix in use. Turn off Advanced to use a preset.</string>
+    <string name="context_settings_advanced">Advanced</string>
+    <string name="context_settings_advanced_desc">Choose each part of the breakdown yourself</string>
+    <string name="context_preset_simple">Simple</string>
+    <string name="context_preset_standard">Standard</string>
+    <string name="context_preset_detailed">Detailed</string>
+    <string name="context_preset_custom">Custom</string>
+    <string name="context_preset_simple_desc">How much of the window is used and how much is free.</string>
+    <string name="context_preset_standard_desc">What fills the window, by category, and the cost of the conversation.</string>
+    <string name="context_preset_detailed_desc">Everything: tool types, cache, warnings, token totals and cost per branch.</string>
+    <string name="context_section_breakdown">Category breakdown</string>
+    <string name="context_section_breakdown_desc">Messages, tool calls, system prompt and tools</string>
+    <string name="context_section_tool_types">Tool types</string>
+    <string name="context_section_tool_types_desc">System tools, MCP tools, skills and subagents separately</string>
+    <string name="context_section_cache">Cache detail</string>
+    <string name="context_section_cache_desc">How much of the prompt came from the cache</string>
+    <string name="context_section_insights">Warnings and insights</string>
+    <string name="context_section_insights_desc">The filling-up warning and the ⓘ tips</string>
+    <string name="context_section_totals">Token totals</string>
+    <string name="context_section_totals_desc">Input, output and cache tokens used so far</string>
+    <string name="context_section_cost">Cost</string>
+    <string name="context_section_cost_unavailable">This server doesn't report cost, so none is shown here.</string>
+    <string name="context_cost_off">Off</string>
+    <string name="context_cost_whole">Conversation</string>
+    <string name="context_cost_both">Branch + all</string>
+    <string name="context_settings_compact_at">Suggest compacting at</string>
+    <string name="context_settings_compact_off">Off</string>
+    <string name="context_settings_compact_desc">The gauge shows a quiet suggestion when the conversation fills up. It always asks before compacting.</string>
+    <string name="context_settings_pill_label">Context</string>
+    <string name="context_settings_summary">%1$s · %2$s</string>
+    <!-- Date &amp; time settings (#445). The dialog previews each date format with a live sample -->
+    <string name="date_time_title">Date &amp; time</string>
+    <string name="date_time_timestamps">Message timestamps</string>
+    <string name="date_time_style_relative">Relative</string>
+    <string name="date_time_style_smart">Smart</string>
+    <string name="date_time_style_absolute">Absolute</string>
+    <string name="date_time_clock">Clock</string>
+    <string name="date_time_clock_system">System</string>
+    <string name="date_time_clock_12h">12-hour</string>
+    <string name="date_time_clock_24h">24-hour</string>
+    <string name="date_time_system_is_24h">Your device uses a 24-hour clock</string>
+    <string name="date_time_system_is_12h">Your device uses a 12-hour clock</string>
+    <string name="date_time_date_format">Date format</string>
+    <string name="date_format_system">System</string>
+    <string name="date_format_system_numeric">System (numeric)</string>
+    <string name="date_format_dmy_dot">Day.Month.Year</string>
+    <string name="date_format_dmy_slash">Day/Month/Year</string>
+    <string name="date_format_dmy_dash">Day-Month-Year</string>
+    <string name="date_format_mdy_slash">Month/Day/Year</string>
+    <string name="date_format_ymd_dash">Year-Month-Day</string>
+    <string name="date_format_ymd_slash">Year/Month/Day</string>
+    <string name="date_format_long">Long</string>
+    <string name="date_time_style_relative_desc">“3 hours ago” for the first month, then the date. Tap a timestamp to see the exact time.</string>
+    <string name="date_time_style_smart_desc">The time today, then Yesterday or the weekday, then the date. Tap a timestamp to see the exact time.</string>
+    <string name="date_time_style_absolute_desc">Always the full date and time.</string>
+    <string name="date_time_date_format_note">Also used for dates in your chat list and on cards.</string>
+    <string name="server_user_ca_notice">Trusted via a certificate authority installed on this device</string>
+    <string name="mcp_tools_all">All MCP Tools</string>
+    <string name="mcp_server_unknown">Unknown</string>
+    <plurals name="mcp_tool_count">
+        <item quantity="one">%1$d tool</item>
+        <item quantity="other">%1$d tools</item>
+    </plurals>
+    <string name="mcp_action_sign_in">Sign in</string>
+    <string name="mcp_action_connect">Connect</string>
+    <!-- Opens the sheet for the values a server needs from the user (a personal token) -->
+    <string name="mcp_action_set_up">Set up</string>
+    <!-- Opens the same sheet for a server that is already set up, to change or remove the values -->
+    <string name="mcp_action_variables">Variables</string>
+    <string name="mcp_action_reconnect">Reconnect</string>
+    <string name="mcp_action_edit">Edit</string>
+    <string name="mcp_view_only">View only</string>
+    <string name="mcp_filter_all">All</string>
+    <string name="mcp_filter_needs_attention">Needs attention (%1$d)</string>
+    <string name="mcp_search_hint">Search servers</string>
+    <string name="mcp_search_no_results">No servers match</string>
+    <string name="mcp_empty_title">Give your chats tools</string>
+    <string name="mcp_empty_body">An MCP server lets models search, read and act in another app, such as GitHub or your calendar. Add one with its URL.</string>
+    <string name="mcp_empty_body_no_create">An MCP server lets models search, read and act in another app, such as GitHub or your calendar. Ask an admin to add one.</string>
+    <string name="mcp_tools_title">Tools</string>
+    <string name="mcp_tools_filter_hint">Filter tools</string>
+    <string name="mcp_tools_no_match">No tools match</string>
+    <string name="mcp_needs_setup_detail">This server needs details only you can give it, such as your own API key, before it can connect.</string>
+    <string name="mcp_editor_section_about">About</string>
+    <string name="mcp_editor_section_connection">Connection</string>
+    <string name="mcp_editor_section_sign_in">Sign-in</string>
+    <string name="mcp_editor_load_failed">Couldn't load this server.</string>
+    <string name="mcp_trust_label">I trust this server</string>
+    <string name="mcp_trust_sublabel">It can read what you send it and act for you in the app it connects to. Only add servers you trust.</string>
+    <string name="memory_error_key_route_shadowed">This server can't edit a memory with this key. Delete it and add it again under another key.</string>
+    <string name="shared_chats_title">Shared chats</string>
+    <string name="shared_chats_summary">Links to chats you've shared</string>
+    <string name="shared_chats_untitled">Untitled chat</string>
+    <string name="shared_chats_shared_on">Shared · %1$s</string>
+    <string name="shared_chats_options">Options for %1$s</string>
+    <string name="shared_chats_open_chat">Open chat</string>
+    <string name="shared_chats_view_shared">View shared version</string>
+    <string name="shared_chats_link_copied">Link copied</string>
+    <string name="shared_chats_search">Search shared chats</string>
+    <string name="shared_chats_clear_search">Clear search</string>
+    <string name="shared_chats_sort_label">Sort</string>
+    <string name="shared_chats_sort_newest">Newest</string>
+    <string name="shared_chats_sort_oldest">Oldest</string>
+    <string name="shared_chats_sort_title">Title A–Z</string>
+    <string name="shared_chats_empty">No shared chats yet</string>
+    <string name="shared_chats_empty_description">Open a chat and choose Share from its menu to create a link. Your links show up here.</string>
+    <string name="shared_chats_load_failed">Couldn't load your shared chats</string>
+    <string name="shared_chats_load_failed_description">Check your connection and try again.</string>
+    <string name="shared_chats_load_more_failed">Couldn't load more</string>
+    <string name="shared_chats_no_match">No links match "%1$s"</string>
+    <string name="shared_chats_refresh_failed">Couldn't refresh your shared chats</string>
+    <string name="shared_chats_delete_failed">Couldn't delete the link</string>
+
+    <!-- Passkeys (v0.8.9-rc1, management only) -->
+    <string name="passkeys_title">Passkeys</string>
+    <string name="passkeys_row_subtitle">Manage passkeys added on the web</string>
+    <plurals name="passkeys_row_count">
+        <item quantity="one">%1$d passkey</item>
+        <item quantity="other">%1$d passkeys</item>
+    </plurals>
+    <string name="passkeys_description">Sign in without a password using your device screen lock or a security key.</string>
+    <string name="passkeys_empty">You have not added any passkeys yet</string>
+    <string name="passkeys_load_failed">Your passkeys could not be loaded.</string>
+    <string name="passkeys_add_in_browser">To add a passkey, sign in at %1$s in a browser.</string>
+    <string name="passkeys_synced">Synced</string>
+    <string name="passkeys_dates">%1$s · %2$s</string>
+    <string name="passkeys_added_on">Added %1$s</string>
+    <string name="passkeys_last_used_on">Last used %1$s</string>
+    <string name="passkeys_never_used">Never used</string>
+    <string name="passkeys_row_description_synced">%1$s, synced, %2$s</string>
+    <string name="passkeys_row_description">%1$s, %2$s</string>
+    <string name="passkeys_more_options">More options for %1$s</string>
+    <string name="passkeys_action_rename">Rename</string>
+    <string name="passkeys_action_remove">Remove</string>
+    <string name="passkeys_rename_title">Rename passkey</string>
+    <string name="passkeys_name_label">Passkey name</string>
+    <string name="passkeys_rename_failed">Could not rename the passkey</string>
+    <string name="passkeys_remove_title">Remove “%1$s”?</string>
+    <string name="passkeys_remove_message">This passkey will no longer be available for sign-in.</string>
+    <string name="passkeys_confirm_password">Confirm your password</string>
+    <string name="passkeys_incorrect_password">Incorrect password. Please try again.</string>
+    <string name="passkeys_remove_failed">Could not remove the passkey</string>
+    <string name="passkeys_already_removed">That passkey was already removed.</string>
+    <string name="passkeys_too_many_attempts">Too many attempts. Try again in a few minutes.</string>
+
+    <!-- Change email (v0.8.9-rc1) -->
+    <string name="email_change_row_title">Email address</string>
+    <string name="email_change_title">Change email address</string>
+    <string name="email_change_body">Enter your new email address and your current password. We'll send a link to the new address. The change takes effect when you open that link.</string>
+    <string name="email_change_current">Current: %1$s</string>
+    <string name="email_change_new_email">New email address</string>
+    <string name="email_change_current_password">Current password</string>
+    <string name="email_change_show_password">Show password</string>
+    <string name="email_change_hide_password">Hide password</string>
+    <string name="email_change_send">Send link</string>
+    <string name="email_change_sending">Sending…</string>
+    <string name="email_change_link_sent">Check %1$s for a verification link.</string>
+    <string name="email_change_updated">Email address updated.</string>
+    <string name="email_change_error_invalid_request">Enter a valid email address and your current password.</string>
+    <string name="email_change_error_same_email">The new email address must be different from your current one.</string>
+    <string name="email_change_error_disabled">Your server's administrator has turned off email changes.</string>
+    <string name="email_change_error_local_account_required">Only accounts that sign in with email and password can change their email here.</string>
+    <string name="email_change_error_password_invalid">Your current password is incorrect.</string>
+    <string name="email_change_error_domain_not_allowed">This server doesn't accept addresses from that domain.</string>
+    <string name="email_change_error_email_in_use">That email address is already linked to another account.</string>
+    <string name="email_change_error_account_modified">Your account changed while this was sending. Try again.</string>
+    <string name="email_change_error_request_in_progress">Another email change request finished first. Use the link from that email, or try again.</string>
+    <string name="email_change_error_delivery_failed">The verification email couldn't be sent. Try again.</string>
+    <string name="email_change_error_service_unavailable">This server can't send email right now, so the address can't be changed.</string>
+    <string name="email_change_error_rate_limited">Too many attempts. Try again in a few minutes.</string>
+    <string name="email_change_error_network">Couldn't reach the server. Check your connection and try again.</string>
+    <string name="email_change_error_unknown">The email change request failed. Try again.</string>
+    <string name="code_execution_title">Code execution</string>
+    <string name="code_execution_summary">Machines, pairing and workspace defaults</string>
+    <string name="code_environments">Code environments</string>
+    <string name="code_environments_description">Connect a sandboxed librechat-code worker running on a VM you control. The worker connects outbound and must be configured with its own sandbox and network policy.</string>
+    <string name="default_stateful_workspace">Default stateful workspace</string>
+    <string name="default_stateful_workspace_description">Applied when you create a new agent. Existing agents keep their current workspace scope.</string>
+    <string name="stateful_code_environment_user">User workspace (recommended)</string>
+    <string name="stateful_code_environment_agent_user">Agent + user workspace</string>
+    <string name="stateful_code_environment_conversation">Conversation workspace</string>
+    <string name="code_preferences_updated">Preferences updated successfully</string>
+    <string name="code_preferences_error">Error updating preferences</string>
+    <string name="code_environment_status_checking">Checking</string>
+    <string name="code_environment_status_unavailable">Status unavailable</string>
+    <string name="code_environment_status_offline">Offline</string>
+    <string name="code_environment_status_starting">Starting</string>
+    <string name="code_environment_status_ready">Ready</string>
+    <string name="code_environment_file_write">File changes</string>
+    <string name="code_environment_command_execution">Commands and code</string>
+    <string name="code_environment_permission_allow">Allow</string>
+    <string name="code_environment_permission_ask">Ask every time</string>
+    <string name="code_environment_permission_deny">Deny</string>
+    <string name="code_environment_permissions_saved">Code environment permissions saved</string>
+    <string name="code_environment_permissions_error">Could not save code environment permissions</string>
+    <string name="code_environment_delete">Delete</string>
+    <string name="code_environment_cancel">Cancel</string>
+    <string name="code_environment_remove_title">Remove code environment?</string>
+    <string name="code_environment_remove_description">This revokes the worker before removing it from LibreChat. Its sandbox files remain on your VM.</string>
+    <string name="code_environment_removed">Code environment removed</string>
+    <string name="code_environment_remove_error">Could not revoke the code environment</string>
+    <string name="code_environment_remove_in_use">An agent still uses this machine. Change that agent's machine first.</string>
+    <string name="code_environment_pair">Connect VM</string>
+    <string name="code_environment_name">Name</string>
+    <string name="code_environment_name_placeholder">My development VM</string>
+    <string name="code_environment_control_plane">Code control plane</string>
+    <string name="code_environment_unavailable">This LibreChat instance has not enabled self-service code workers.</string>
+    <string name="code_environment_load_error">Code environments could not be loaded. Try again shortly.</string>
+    <string name="code_environment_retry">Retry</string>
+    <string name="code_environment_pairing_created">Code environment created</string>
+    <string name="code_environment_pairing_error">Could not create the code environment</string>
+    <string name="code_environment_pairing_error_name">Use a name between 1 and 100 characters.</string>
+    <string name="code_environment_pairing_error_disabled">Personal code workers are turned off for your account.</string>
+    <string name="code_environment_pairing_error_plane">That control plane is no longer available. Pick another one.</string>
+    <string name="code_environment_pairing_error_limit">You already have as many code environments as you're allowed. Remove one first.</string>
+    <string name="code_environment_pairing_error_rate">Too many pairing attempts. Try again later.</string>
+    <string name="code_environment_pairing_ready">One-time worker command</string>
+    <string name="code_environment_pairing_description">Run these commands on your machine to pair the worker and start a persistent default workspace with the native sandbox. The pairing code expires shortly and is shown only once.</string>
+    <string name="code_environment_shell_posix">macOS / Linux / WSL2</string>
+    <string name="code_environment_shell_powershell">Windows PowerShell</string>
+    <string name="code_environment_copy_command">Copy to clipboard</string>
+    <string name="code_setup_title">Approve machine setup</string>
+    <string name="code_setup_link_info">When your machine prints a setup link, paste it here to review and approve the setup.</string>
+    <string name="code_setup_link">Setup link</string>
+    <string name="code_setup_link_invalid">That isn't a machine setup link.</string>
+    <string name="code_setup_open">Review setup</string>
+    <string name="code_setup_account">Signed in as %1$s</string>
+    <string name="code_setup_unavailable">This setup request is unavailable for this account. Check the link and signed-in account, or start a new setup from your machine.</string>
+    <string name="code_setup_loading">Loading setup details…</string>
+    <string name="code_setup_load_failed">Could not load setup details. Retry to check the current state.</string>
+    <string name="code_setup_action_failed">Could not confirm your decision. The current setup state has been checked. Retry only if an action is still available.</string>
+    <string name="code_setup_pending">Review this request. Nothing is approved until you choose Approve setup.</string>
+    <string name="code_setup_provisioning">Provisioning the approved setup. Keep the setup command running on your machine.</string>
+    <string name="code_setup_approved">Setup approved. Waiting for your machine to finish.</string>
+    <string name="code_setup_completed">Setup completed. This does not mean the worker is online or the workspace is ready. Check its status before use.</string>
+    <string name="code_setup_denied">Setup denied. This request cannot be approved.</string>
+    <string name="code_setup_cancelled">Setup cancelled. Start a new setup from your machine if needed.</string>
+    <string name="code_setup_expired">This setup request expired. Start a new setup from your machine.</string>
+    <string name="code_setup_failed">Setup failed and cannot be retried. Start a new setup from your machine.</string>
+    <string name="code_setup_retryable">Setup failed. Review the details and explicitly approve to retry before this request expires.</string>
+    <string name="code_setup_machine">Machine name</string>
+    <string name="code_setup_code">Verification code</string>
+    <string name="code_setup_fingerprint">Public key fingerprint (SHA-256, DER SPKI)</string>
+    <string name="code_setup_workspace">Workspace</string>
+    <string name="code_setup_private">Private workspace</string>
+    <string name="code_setup_directory">Directory workspace (local path not shared)</string>
+    <string name="code_setup_expires">Request expires</string>
+    <string name="code_setup_writes">Workspace file writes</string>
+    <string name="code_setup_commands">Workspace commands</string>
+    <string name="code_setup_enabled">Enabled</string>
+    <string name="code_setup_disabled">Disabled</string>
+    <string name="code_setup_plane">Authorized control plane</string>
+    <string name="code_setup_plane_unavailable">The selected control plane is no longer available.</string>
+    <string name="code_setup_verify">Only approve a setup you started. Compare the verification code and public key fingerprint with those shown on your machine.</string>
+    <string name="code_setup_command_warning">Commands can modify files independently of the workspace file-write setting. Disabling file writes does not make commands read-only.</string>
+    <string name="code_setup_trust_warning">Pairing is not host trust and does not grant tool approvals. Those checks remain separate.</string>
+    <string name="code_setup_no_planes">No authorized control planes are available. You can deny this request.</string>
+    <string name="code_setup_saving">Saving your decision…</string>
+    <string name="code_setup_approve">Approve setup</string>
+    <string name="code_setup_deny">Deny setup</string>
+    <string name="section_connected_accounts">Connected accounts</string>
+    <string name="pr_account_title">Pull request account</string>
+    <string name="pr_account_description">Look up pull requests with your own account</string>
+    <string name="pr_account_unused_description">Pull requests no longer use this account. Disconnect it to remove it.</string>
+    <string name="pr_account_checking">Checking connection</string>
+    <string name="pr_account_not_connected">Not connected</string>
+    <string name="pr_account_connected">Connected</string>
+    <string name="pr_account_not_in_use">Not in use</string>
+    <string name="pr_account_status_error">Couldn't check the connection</string>
+    <string name="pr_account_connect">Connect</string>
+    <string name="pr_account_disconnect">Disconnect</string>
+    <string name="pr_account_disconnect_title">Disconnect %1$s?</string>
+    <string name="pr_account_disconnect_description">Pull requests will no longer be looked up with your account. You can connect it again at any time.</string>
+    <string name="pr_account_disconnect_error">Couldn't disconnect. Try again.</string>
+    <string name="pr_account_connect_error">Couldn't start connecting. Try again.</string>
+    <string name="pr_account_not_available">Connecting an account isn't available on this server.</string>
+    <string name="speech_error_voice_preview">Couldn't preview the voice. Try again.</string>
+    <string name="speech_error_playback">Couldn't play the audio.</string>
+    <string name="accent_name_blue">Blue</string>
+    <string name="accent_name_indigo">Indigo</string>
+    <string name="accent_name_lavender">Lavender</string>
+    <string name="accent_name_cyan">Cyan</string>
+    <string name="accent_name_turquoise">Turquoise</string>
+    <string name="accent_name_green">Green</string>
+    <string name="accent_name_amber">Amber</string>
+    <string name="accent_name_orange">Orange</string>
+    <string name="accent_name_red">Red</string>
+    <string name="accent_name_pink">Pink</string>
+    <string name="accent_name_slate">Slate</string>
+    <string name="category_chats">Chats</string>
+    <string name="category_privacy_data">Privacy &amp; data</string>
+    <string name="category_administration">Administration</string>
+    <string name="settings_home_admin_summary">Skill and memory permissions</string>
+    <string name="settings_home_offline_reading">Offline reading: %1$s</string>
+    <string name="settings_home_about_summary">%1$s · Server %2$s</string>
+    <string name="appearance_section_theme">Theme</string>
+    <string name="appearance_section_style">Style</string>
+    <string name="appearance_section_color">Color</string>
+    <string name="appearance_chat_appearance">Chat appearance</string>
+    <string name="chat_appearance_layout">Layout</string>
+    <string name="chat_appearance_text_size">Text size</string>
+    <string name="chat_appearance_title_bar">Title bar shows</string>
+    <string name="chat_appearance_title_position">Title position</string>
+    <string name="chat_appearance_sample_title">A day in Lisbon</string>
+    <string name="chat_appearance_sample_agent">Trip planner</string>
+    <string name="chat_appearance_sample_you">You</string>
+    <string name="chat_appearance_sample_question">What should I see in Lisbon in one day?</string>
+    <string name="chat_appearance_sample_answer">Start in Belém with a custard tart, ride tram 28 up to Alfama, and end at a viewpoint for the sunset.</string>
+    <string name="chat_appearance_sample_thanks">Perfect, thanks!</string>
+    <string name="appearance_section_tablet_layout">Tablet layout</string>
+    <string name="accent_using_wallpaper">Using wallpaper colors</string>
+    <string name="admin_panel">Admin panel</string>
+    <string name="admin_panel_desc">Opens in your browser</string>
+    <string name="api_keys_load_failed">Couldn't load API keys</string>
+    <string name="category_voice">Voice</string>
+    <string name="category_models_keys">Models &amp; keys</string>
+    <string name="category_advanced">Advanced</string>
+    <string name="settings_home_models_summary">Favorites, provider keys, starred models</string>
+    <string name="settings_home_thinking_open">Thinking open</string>
+    <string name="settings_home_thinking_closed">Thinking closed</string>
+    <string name="settings_home_artifacts">Artifacts: %1$s</string>
+    <string name="settings_home_read_aloud_on">Read replies aloud: on</string>
+    <string name="settings_home_read_aloud_off">Read replies aloud: off</string>
+    <string name="settings_home_provider_keys">Provider keys: %1$s</string>
+    <string name="settings_home_advanced_summary">Rendering, uploads, server, logs</string>
+    <string name="advanced_intro">For power users. The defaults suit most people.</string>
+    <string name="advanced_chat_settings">Advanced chat settings</string>
+    <string name="advanced_chat_settings_summary">While generating, uploads, presets</string>
+    <string name="advanced_data_settings">Advanced data settings</string>
+    <string name="section_listening">Listening</string>
+    <string name="section_speaking">Speaking</string>
+    <string name="advanced_voice_settings">Advanced voice settings</string>
+    <string name="advanced_voice_settings_summary">Recognition engine, on-device recognition</string>
+    <string name="section_messages">Messages</string>
+    <string name="section_your_chats">Your chats</string>
+    <string name="section_on_this_phone">On this phone</string>
+    <string name="section_privacy">Privacy</string>
+    <string name="section_server">Server</string>
+    <string name="section_developer">Developer</string>
+    <string name="section_troubleshooting">Troubleshooting</string>
+    <string name="about_copy_diagnostics">Copy diagnostics</string>
+    <string name="about_copy_diagnostics_desc">App, server and device versions for a bug report</string>
+    <string name="offline_reading">Offline reading</string>
+    <string name="clear_cache_summary">%1$s of images and temporary files</string>
+    <string name="report_problem_title">Report a problem</string>
+    <string name="report_problem_row_summary">Email us what went wrong. No account needed.</string>
+    <string name="report_kind_problem">Something's wrong</string>
+    <string name="report_kind_suggestion">Suggestion</string>
+    <string name="report_what_happened_label">What happened?</string>
+    <string name="report_what_happened_hint">What you did, what you expected, what happened</string>
+    <string name="report_sent_with_header">Sent with your report</string>
+    <string name="report_details_title">App and device details</string>
+    <string name="report_details_summary">App, server and device versions. Never the server address.</string>
+    <string name="report_view">View</string>
+    <string name="report_log_title">Diagnostic log</string>
+    <string name="report_log_summary">%1$s · Recent app events and errors. Your messages are never in it.</string>
+    <string name="report_continue_email">Continue in email</string>
+    <string name="report_nothing_sent_note">Nothing is sent until you tap Send in your mail app.</string>
+    <string name="report_sheet_title">What's sent</string>
+    <string name="report_log_description">The diagnostic log is a file of recent app events, such as failed requests, crashes and app start-ups, from the last 7 days. Messages, conversations and server replies are never written to it, and email addresses, server names and IDs are replaced with codes.</string>
+    <string name="report_save_copy">Save a copy of the log</string>
+    <string name="report_another_way_title">Send another way</string>
+    <string name="report_another_way_body">Your email app couldn't be opened from here. Email your report to this address from any account, or share it with another app.</string>
+    <string name="report_tap_to_copy">Tap to copy</string>
+    <string name="report_share_with_log">Share report and log</string>
+    <string name="report_share_text">Share report</string>
+    <string name="report_copy_text">Copy report text</string>
+    <string name="report_address_copied">Address copied</string>
+    <string name="category_notifications">Notifications</string>
+    <string name="notifications_permission">Notifications</string>
+    <string name="notifications_on">On</string>
+    <string name="notifications_off">Off</string>
+    <string name="notifications_replies">Replies</string>
+    <string name="notifications_replies_description">When a reply finishes while you're away</string>
+    <string name="notifications_replies_server_off">Turned off by your server</string>
+    <string name="notifications_system_settings">Notification settings</string>
+    <string name="notifications_system_settings_description">Sound, lock screen and more, in your device's settings</string>
+    <string name="notifications_scheduled">Scheduled chats</string>
+    <string name="notifications_scheduled_description">When a scheduled chat runs, or your server pauses one</string>
+</resources>

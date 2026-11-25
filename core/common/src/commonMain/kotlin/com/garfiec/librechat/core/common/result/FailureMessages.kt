@@ -8,6 +8,11 @@ package com.garfiec.librechat.core.common.result
  */
 class AccessGatewayException(
     cause: Throwable? = null,
+    /**
+     * The gateway's sign-in page, when it named one (a forward-auth `Location` such as Authelia's
+     * `https://auth.example.com/?rd=…`). Kept off [message]: it carries the request URL.
+     */
+    val portalUrl: String? = null,
 ) : Exception("Access gateway rejected the request", cause)
 
 /**

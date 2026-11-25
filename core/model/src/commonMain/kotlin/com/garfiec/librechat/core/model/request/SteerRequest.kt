@@ -45,6 +45,14 @@ data class SteerRequest(
      * ordinary steer, so its body is unchanged.
      */
     val preempt: Boolean? = null,
+    /**
+     * `true` lets the server turn this steer into a durable queued turn if the run ends without
+     * applying it (v0.8.9); the final frame then lists it in `promotedSteers` instead of
+     * `pendingSteers`. Omitted on older servers.
+     */
+    val promoteLeftover: Boolean? = null,
+    /** With [promoteLeftover]: the code approval mode a promoted turn starts under. */
+    val codeApprovalMode: String? = null,
 )
 
 /**

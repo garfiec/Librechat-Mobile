@@ -101,8 +101,13 @@ class PullRequestDelegate(
             .stateIn(handle.scope, SharingStarted.Eagerly, emptyMap())
         val eligible = eligibleConversation().stateIn(handle.scope, SharingStarted.Eagerly, null)
 
-        // A sheet left open on one chat must not reappear over the next one's pull request.
-        handle.scope.launch { eligible.collect { sheetOpen.value = false } }
+        // A sheet closes for good when its pull request goes away (a chat switch, or an answer with none),
+        // so it never reappears without a tap.
+        handle.scope.launch {
+            combine(eligible, entries) { id, all -> id?.takeIf { all[it]?.pullRequest != null } }
+                .distinctUntilChanged()
+                .collect { sheetOpen.value = false }
+        }
 
         handle.scope.launch {
             combine(eligible, entries, seen, sheetOpen) { id, all, seenKeys, sheet ->

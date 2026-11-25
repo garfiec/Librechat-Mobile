@@ -129,6 +129,8 @@ class IosFileHandler(
                         height = image?.height,
                         onProgress = { pct -> updateTrayEntry(key) { it.copy(uploadProgress = pct) } },
                         pdfPassword = pdfPassword,
+                        conversationId = state.conversationId,
+                        isTemporary = state.isTemporaryChat,
                     )
                 }
 

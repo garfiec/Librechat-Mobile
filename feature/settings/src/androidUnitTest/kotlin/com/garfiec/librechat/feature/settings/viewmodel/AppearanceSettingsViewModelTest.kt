@@ -1,9 +1,9 @@
 package com.garfiec.librechat.feature.settings.viewmodel
 
-import com.garfiec.librechat.core.data.datastore.ServerTheme
 import com.garfiec.librechat.core.data.datastore.ThemeDataStore
-import com.garfiec.librechat.core.data.datastore.ThemeMode
 import com.garfiec.librechat.core.model.config.theme.ServerThemeDefinition
+import com.garfiec.librechat.core.model.preferences.ServerTheme
+import com.garfiec.librechat.core.model.preferences.ThemeMode
 import com.garfiec.librechat.core.model.ui.UiStyle
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coVerify

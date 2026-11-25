@@ -25,6 +25,8 @@ class AccountLabelBackfillSessionTask(
     override suspend fun run() {
         val active = activeAccountProvider.currentAccountId() ?: return
         val user = (userRepository.getUser() as? Result.Success)?.data ?: return
+        // Answered after a switch, the profile is the next account's.
+        if (activeAccountProvider.currentAccountId() != active) return
         accountRoster.updateDisplay(
             accountId = active.value,
             displayLabel = user.displayLabel(serverUrlProvider.awaitBaseUrl()),

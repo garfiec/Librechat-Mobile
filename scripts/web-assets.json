@@ -61,9 +61,9 @@
   ],
   "version": 1,
   "dest": "feature/chat/src/commonMain/composeResources/files/web",
-  "manifest_kt": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/web/VendoredWebAssets.kt",
+  "manifest_kt": "feature/chat/ui/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/web/VendoredWebAssets.kt",
   "manifest_package": "com.garfiec.librechat.feature.chat.components.web",
-  "consent_catalog_kt": "core/data/src/commonMain/kotlin/com/garfiec/librechat/core/data/datastore/FlaggedArtifactLibraries.kt",
+  "consent_catalog_kt": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/preferences/FlaggedArtifactLibraries.kt",
   "assets": [
     {
       "id": "katex",
@@ -287,7 +287,7 @@
       "modules": ["react-router-dom", "react-router"],
       "used_by": ["commonMain/components/artifact/ArtifactWebContent.kt"],
       "why": "Routing inside a React artifact (MemoryRouter / HashRouter tabs). In web's Sandpack dependencies, not advertised by the prompt.",
-      "pin_reason": "AHEAD of web (^6.11.2) on purpose. Every 6.x is covered by two advisories fixed only in 7.x, and 7.x still publishes react-router-dom as a re-export of react-router, so imports written for 6 keep resolving.",
+      "pin_reason": "Web's ^7.18.5. Stay on 7.x: every 6.x is covered by two advisories fixed only in 7.x, and 7.x still publishes react-router-dom as a re-export of react-router, so imports written for 6 keep resolving.",
       "sandbox_risk": "GHSA-wrjc-x8rr-h8h6 (open redirect via a backslash in <Link>/useNavigate) only lets a link navigate somewhere unexpected; an artifact can already set location.href, and the WebView refuses every remote main-frame navigation. GHSA-337j-9hxr-rhxg (constructor injection in deserializeErrors) is on the SSR hydration path, which a browser-only page never takes. Neither reaches anything here, so 7.x is taken because it is free, not because 6.x was dangerous in this sandbox."    },
     {
       "id": "dat-gui",

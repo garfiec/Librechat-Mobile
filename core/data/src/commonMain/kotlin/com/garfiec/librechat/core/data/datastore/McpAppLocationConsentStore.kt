@@ -7,6 +7,7 @@ import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.identity.AccountState
 import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.common.identity.currentAccountId
+import com.garfiec.librechat.core.model.preferences.McpAppLocationConsent
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
@@ -17,9 +18,6 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
-
-/** What the user said about an MCP server's Apps using the device's approximate location. */
-enum class McpAppLocationConsent { NOT_ASKED, ALLOWED, REFUSED }
 
 /**
  * Per MCP server, whether its Apps may have the device's approximate location. Asked the first time

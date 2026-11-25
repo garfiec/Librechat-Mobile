@@ -2,7 +2,9 @@ package com.garfiec.librechat.core.model.mcp
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class McpOAuthServerNameTest {
 
@@ -27,5 +29,37 @@ class McpOAuthServerNameTest {
         assertNull(mcpOAuthServerName("search", actionUrl))
         assertNull(mcpOAuthServerName("oauth_mcp_", null))
         assertNull(mcpOAuthServerName(null, null))
+    }
+
+    @Test
+    fun redirectUriNamesTheAction() {
+        val url = "https://auth.example.com/authorize?client_id=x&redirect_uri=" +
+            "https%3A%2F%2Fchat.example.com%2Fapi%2Factions%2Fact_abc%2Foauth%2Fcallback&state=s"
+        assertEquals("act_abc", actionOAuthId(url))
+    }
+
+    @Test
+    fun anMcpCallbackOrNoRedirectIsNoAction() {
+        val mcpUrl = "https://idp/authorize?redirect_uri=https%3A%2F%2Fhost%2Fapi%2Fmcp%2Fgithub%2Foauth%2Fcallback"
+        assertNull(actionOAuthId(mcpUrl))
+        assertNull(actionOAuthId("https://idp/authorize?state=s"))
+        assertNull(actionOAuthId(null))
+    }
+
+    @Test
+    fun aSignInPromptIsKnownByItsIdOrName() {
+        assertTrue(isMcpOAuthPromptCall("oauth:call_1", "oauth_mcp_github"))
+        assertTrue(isMcpOAuthPromptCall("oauth:step_1", null))
+        assertTrue(isMcpOAuthPromptCall("u1:github:123", "oauth_mcp_github"))
+        assertFalse(isMcpOAuthPromptCall("call_1", "list_repos_mcp_github"))
+        assertFalse(isMcpOAuthPromptCall(null, null))
+    }
+
+    @Test
+    fun aSignInPromptNamesTheIdItWasBuiltFrom() {
+        assertEquals("call_1", mcpOAuthPromptOwnerId("oauth:call_1"))
+        assertNull(mcpOAuthPromptOwnerId("oauth:"))
+        assertNull(mcpOAuthPromptOwnerId("u1:github:123"))
+        assertNull(mcpOAuthPromptOwnerId(null))
     }
 }

@@ -15,9 +15,14 @@ import com.garfiec.librechat.core.common.datetime.TimestampStyle
 import com.garfiec.librechat.core.common.identity.AccountId
 import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.common.identity.InMemoryActiveAccountProvider
-import com.garfiec.librechat.core.data.prefetch.PrefetchDepth
 import com.garfiec.librechat.core.model.ArtifactsMode
 import com.garfiec.librechat.core.model.ModelRef
+import com.garfiec.librechat.core.model.preferences.ArtifactDisplayMode
+import com.garfiec.librechat.core.model.preferences.ChatFontSize
+import com.garfiec.librechat.core.model.preferences.LatexRenderer
+import com.garfiec.librechat.core.model.preferences.ThemeMode
+import com.garfiec.librechat.core.model.preferences.UploadRoutingMode
+import com.garfiec.librechat.core.model.prefetch.PrefetchDepth
 import com.garfiec.librechat.core.model.usage.ContextDetailPreset
 import com.garfiec.librechat.core.model.usage.ModelTokenomics
 import com.garfiec.librechat.core.network.client.ServerUrlProvider

@@ -169,6 +169,7 @@ fun rememberMcpApps(
             onClose = viewModel::close,
             onRetry = viewModel::retry,
             onHostContext = viewModel::updateHostContext,
+            snackbarHostState = snackbarHostState,
             dialogs = dialogs,
         )
     } else {

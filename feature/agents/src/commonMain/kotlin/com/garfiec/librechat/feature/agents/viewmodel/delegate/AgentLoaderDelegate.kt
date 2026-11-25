@@ -49,6 +49,7 @@ class AgentLoaderDelegate(
         loadCategories()
         loadModels()
         loadMcpTools()
+        loadMcpServerTitles()
         loadAllAgents()
     }
 
@@ -110,7 +111,7 @@ class AgentLoaderDelegate(
     /**
      * Runs one best-effort reference-data fetch: applies [onSuccess] on success
      * and silently ignores errors so a single failed section leaves the rest of
-     * the form usable. Each fetch launches independently, so the five reference
+     * the form usable. Each fetch launches independently, so the reference
      * loads run concurrently.
      */
     private fun <T> launchBestEffort(fetch: suspend () -> Result<T>, onSuccess: (T) -> Unit) {
@@ -143,6 +144,12 @@ class AgentLoaderDelegate(
         // has not loaded yet, `loadedAgentTools` is null and this is a no-op — applyAgentData
         // will then see a populated list and resolve on its own.
         stateHandle.update { copy(mcpTools = catalog.tools).remergeMcpServerNames(loadedAgentTools) }
+    }
+
+    private fun loadMcpServerTitles() = launchBestEffort(mcpRepository::listServers) { servers ->
+        stateHandle.update {
+            copy(mcpServerTitles = servers.mapNotNull { s -> s.title?.takeIf { it.isNotBlank() }?.let { s.name to it } }.toMap())
+        }
     }
 
     private fun loadAllAgents() = launchBestEffort(agentRepository::getAgents) { agents ->

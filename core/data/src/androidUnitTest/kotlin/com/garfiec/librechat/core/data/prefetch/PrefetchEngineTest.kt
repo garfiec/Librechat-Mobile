@@ -24,6 +24,7 @@ import com.garfiec.librechat.core.model.ContentType
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.content.AgentToolCall
 import com.garfiec.librechat.core.model.content.MessageContentPart
+import com.garfiec.librechat.core.model.prefetch.PrefetchDepth
 import com.garfiec.librechat.core.network.client.ServerUrlProvider
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery

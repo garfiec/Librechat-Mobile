@@ -6,9 +6,9 @@ import com.garfiec.librechat.core.common.extensions.RelativeTimeReference
 import com.garfiec.librechat.core.common.extensions.dayBoundaryReferences
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.ConversationRepository
-import com.garfiec.librechat.core.data.search.TitleMatch
 import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.ConversationListFilters
+import com.garfiec.librechat.core.model.search.TitleMatch
 import com.garfiec.librechat.feature.conversations.viewmodel.groupedByDateBucket
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.FlowPreview
@@ -23,6 +23,8 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
+import kotlin.time.Clock
+import kotlin.time.Duration.Companion.minutes
 
 class ConversationListStateHolder(
     private val conversationRepository: ConversationRepository,
@@ -37,6 +39,10 @@ class ConversationListStateHolder(
      * section's job.
      */
     private val remoteTitleSearch: (suspend (String) -> List<Conversation>?)? = null,
+    /** Whether a filtered list may ask the server; a server that can't search answers 500. */
+    private val serverSearchEnabled: suspend () -> Boolean = { false },
+    /** Wall clock, not `TimeSource.Monotonic`: that one stops while the device sleeps. */
+    private val nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) {
 
     companion object {
@@ -44,6 +50,8 @@ class ConversationListStateHolder(
 
         /** Shorter queries stay local: upstream doesn't rate-limit search, so the client does. */
         private const val MIN_REMOTE_QUERY_CHARS = 3
+
+        private val STALE_AFTER = 5.minutes
     }
 
     /** Server title hits for the current query. Cleared whenever the query changes. */
@@ -93,6 +101,10 @@ class ConversationListStateHolder(
     /** The last filtered load failed, so an empty list is not "nothing matches". */
     private val _filterLoadFailed = MutableStateFlow(false)
     val filterLoadFailed: StateFlow<Boolean> = _filterLoadFailed.asStateFlow()
+
+    /** When the unfiltered first page last loaded; a failed load leaves it. */
+    private var page1LoadedAtMillis: Long? = null
+    private var staleReload: Job? = null
 
     /** The ids Room held on its last emission, so a row that leaves it leaves the filtered list too. */
     private var roomIds: Set<String> = emptySet()
@@ -174,7 +186,10 @@ class ConversationListStateHolder(
         return if (result is Result.Success) {
             nextCursor = result.data
             _hasMore.value = result.data != null
-            if (cursor == null) _listLoad.value = ListLoad.LOADED
+            if (cursor == null) {
+                _listLoad.value = ListLoad.LOADED
+                page1LoadedAtMillis = nowMillis()
+            }
             true
         } else {
             Logger.w((result as? Result.Error)?.exception) { "Failed to load conversations page" }
@@ -283,8 +298,37 @@ class ConversationListStateHolder(
             coroutineScope {
                 launch { loadPage(cursor = null) }
                 launch { conversationRepository.syncFavoritesFromServer() }
+                launch { conversationRepository.syncPinnedFromServer() }
             }
             _isRefreshing.value = false
+        }
+    }
+
+    /**
+     * Re-reads the unfiltered first page when its last successful load is older than [STALE_AFTER]
+     * or there has been none since launch or an account switch, so chats started elsewhere reach the cache. No spinner, and once the list has loaded it never
+     * moves the cursor: rewinding it would re-page rows already scrolled past.
+     */
+    fun refreshIfStale() {
+        if (_filters.value != null) return
+        if (_searchQuery.value.isNotBlank()) return
+        if (_listLoad.value == ListLoad.PENDING) return
+        if (_isRefreshing.value) return
+        if (staleReload?.isActive == true) return
+        val age = page1LoadedAtMillis?.let { nowMillis() - it }
+        if (age != null && age in 0 until STALE_AFTER.inWholeMilliseconds) return
+        staleReload = scope.launch {
+            val result = conversationRepository.loadNextPage(cursor = null)
+            if (result !is Result.Success) {
+                Logger.w((result as? Result.Error)?.exception) { "Failed to reload conversations page" }
+                return@launch
+            }
+            page1LoadedAtMillis = nowMillis()
+            if (_listLoad.value != ListLoad.LOADED && _filters.value == null) {
+                nextCursor = result.data
+                _hasMore.value = result.data != null
+                _listLoad.value = ListLoad.LOADED
+            }
         }
     }
 
@@ -319,6 +363,7 @@ class ConversationListStateHolder(
                         remoteTitleSearch ?: return@collectLatest
                     }
                     if (query.trim().length < MIN_REMOTE_QUERY_CHARS) return@collectLatest
+                    if (filters != null && !serverSearchEnabled()) return@collectLatest
                     val remote = search(query.trim()) ?: return@collectLatest
                     if (_filters.value != filters) return@collectLatest
                     // A reply for a query the user has since changed (or that a reset blanked on an
@@ -338,6 +383,8 @@ class ConversationListStateHolder(
         conversations.filter { TitleMatch.matches(it.title, query) }
 
     fun reset() {
+        staleReload?.cancel()
+        page1LoadedAtMillis = null
         searchObserverJob?.cancel()
         searchObserverJob = null
         remoteTitleHits = emptyList()
@@ -366,6 +413,3 @@ class ConversationListStateHolder(
      */
     private fun List<Conversation>.withoutPinned(): List<Conversation> = filterNot { it.pinned == true }
 }
-
-/** The unfiltered drawer list's first page: not answered yet, answered, or failed. */
-enum class ListLoad { PENDING, LOADED, FAILED }

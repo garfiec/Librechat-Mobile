@@ -13,6 +13,7 @@ import com.garfiec.librechat.core.common.identity.currentAccountId
 import com.garfiec.librechat.core.common.network.ConnectivityObserver
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.bookmarks.BookmarkPickerController
+import com.garfiec.librechat.core.data.repository.AgentRepository
 import com.garfiec.librechat.core.data.repository.ChatRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.ConversationRepository
@@ -38,6 +39,7 @@ import com.garfiec.librechat.core.model.permissions.canCreateSharedLinks
 import com.garfiec.librechat.core.model.permissions.canReachMemoriesSettings
 import com.garfiec.librechat.core.model.permissions.hasAccessOrPermissive
 import com.garfiec.librechat.core.model.pullrequest.ConversationPullRequest
+import com.garfiec.librechat.feature.conversations.components.AgentNameLookup
 import com.garfiec.librechat.feature.conversations.components.message
 import com.garfiec.librechat.feature.conversations.export.ConversationExporter
 import com.garfiec.librechat.feature.conversations.export.ExportFormat
@@ -69,6 +71,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
@@ -89,7 +92,7 @@ import kotlin.time.TimeSource
  * (registered as a plain `viewModelOf`), so a single instance is shared by the phone drawer, the
  * tablet sidebar, and the nav host's active-conversation tracking.
  */
-@Suppress("LongParameterList", "TooManyFunctions") // debt: 13 parameters, 37 functions
+@Suppress("LongParameterList", "TooManyFunctions") // debt: 15 parameters, 37 functions
 class DrawerViewModel(
     private val conversationRepository: ConversationRepository,
     private val roleRepository: RoleRepository,
@@ -102,6 +105,7 @@ class DrawerViewModel(
     private val preferences: DrawerPreferences,
     private val chatRepository: ChatRepository,
     private val pullRequestRepository: PullRequestRepository,
+    agentRepository: AgentRepository,
     private val search: DrawerSearchSources,
     connectivityObserver: ConnectivityObserver,
     /** Holds the applied filters through process death; a cold start begins unfiltered. */
@@ -112,6 +116,7 @@ class DrawerViewModel(
         conversationRepository = conversationRepository,
         scope = viewModelScope,
         remoteTitleSearch = search::remoteTitles,
+        serverSearchEnabled = search::serverSearchOn,
     )
 
     private val messageSearch: Flow<DrawerMessageSearch> =
@@ -205,13 +210,16 @@ class DrawerViewModel(
         val specs: ModelSpecs?,
         val serverUrl: String,
         val pullRequests: Map<String, ConversationPullRequest> = emptyMap(),
+        val agentNames: Map<String, String> = emptyMap(),
     ) {
         fun display(convo: Conversation, activeId: String?, runningIds: Set<String> = emptySet()) =
-            convo.toDrawerDisplayData(activeId, endpoints, serverUrl, specs, runningIds, pullRequests)
+            convo.toDrawerDisplayData(activeId, endpoints, serverUrl, specs, runningIds, pullRequests, agentNames)
     }
 
     /** The rows' pull request marks and the lookups behind them. */
     private val pullRequests = DrawerPullRequests(configRepository, pullRequestRepository, viewModelScope)
+
+    private val agentNames = AgentNameLookup(agentRepository, viewModelScope)
 
     private val drawerModelConfig = combine(
         configRepository.endpointConfigs,
@@ -219,7 +227,8 @@ class DrawerViewModel(
         configRepository.startupConfig.map { it?.modelSpecs }.distinctUntilChanged(),
         configRepository.serverUrl,
         pullRequests.marks,
-    ) { endpoints, specs, serverUrl, marks -> DrawerModelConfig(endpoints, specs, serverUrl, marks) }
+        agentNames.names,
+    ) { endpoints, specs, serverUrl, marks, names -> DrawerModelConfig(endpoints, specs, serverUrl, marks, names) }
 
     val inlineProjectChats: StateFlow<InlineProjectChatsState> = combine(
         _expandedProjectId,
@@ -230,7 +239,7 @@ class DrawerViewModel(
     ) { expandedId, convos, (loading, failed), activeId, modelConfig ->
         InlineProjectChatsState(
             expandedProjectId = expandedId,
-            conversations = convos.map { modelConfig.display(it, activeId) },
+            conversations = convos.also(agentNames::request).map { modelConfig.display(it, activeId) },
             isLoading = loading,
             loadFailed = failed,
         )
@@ -352,6 +361,7 @@ class DrawerViewModel(
         conversationListStateHolder.activeConversationId,
         drawerModelConfig,
     ) { (grouped, running), favConvos, pinnedConvos, activeId, modelConfig ->
+        agentNames.request(grouped.flatMap { it.second } + favConvos + pinnedConvos)
         DrawerDisplaySnapshot(
             grouped = grouped.map { (group, convos) ->
                 group to convos.map { modelConfig.display(it, activeId, running) }
@@ -536,6 +546,9 @@ class DrawerViewModel(
                 fetchUnlistedRunning()
             }
         }
+        viewModelScope.launch {
+            drawerVisible.filter { it }.collect { conversationListStateHolder.refreshIfStale() }
+        }
         // Filters apply once the server is known to take them; the ones restored after process
         // death reload here, and a server that turns out older drops them.
         viewModelScope.launch {
@@ -579,6 +592,7 @@ class DrawerViewModel(
                 _activeJobIds.value = emptySet()
                 _fetchedUnlisted.value = emptyMap()
                 pullRequests.onAccountSwitched()
+                agentNames.clear()
                 unlistedInFlight.clear()
                 // Filters name the outgoing account's bookmarks and endpoints.
                 setFilters(DrawerFilters.None)

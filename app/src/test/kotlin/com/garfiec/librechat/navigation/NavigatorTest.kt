@@ -142,6 +142,41 @@ class NavigatorTest {
     }
 
     @Test
+    fun `navigateToStartedChat leaves a bare landing under the chat an agent landing started`() {
+        val navigator = createNavigator(NewChat(agentId = "agent_X"))
+        navigator.navigateToStartedChat("c1", isTemporary = false)
+        assertEquals(listOf(NewChat(), Chat("c1")), navigator.backStack.toList())
+        navigator.navigateToTopLevel(NewChat(agentId = "agent_X"))
+        assertEquals(listOf(NewChat(agentId = "agent_X")), navigator.backStack.toList())
+    }
+
+    @Test
+    fun `navigateToStartedChat leaves a bare landing under the chat a model shortcut landing started`() {
+        val navigator =
+            createNavigator(NewChat(endpoint = "Mock", model = "mock-fast", spec = "s", accountScope = "acct"))
+        navigator.navigateToStartedChat("c1", isTemporary = true)
+        assertEquals(
+            listOf(NewChat(accountScope = "acct"), Chat("c1", isTemporary = true)),
+            navigator.backStack.toList(),
+        )
+    }
+
+    @Test
+    fun `navigateToStartedChat replaces a project landing`() {
+        val project = NewChat(chatProjectId = "p", chatProjectName = "P")
+        val navigator = createNavigator(ProjectChats("p", "P"), project)
+        navigator.navigateToStartedChat("c1", isTemporary = false)
+        assertEquals(listOf(ProjectChats("p", "P"), Chat("c1")), navigator.backStack.toList())
+    }
+
+    @Test
+    fun `navigateToChat from an unsent agent landing keeps it`() {
+        val navigator = createNavigator(NewChat(agentId = "agent_X"))
+        navigator.navigateToChat("c1")
+        assertEquals(listOf(NewChat(agentId = "agent_X"), Chat("c1")), navigator.backStack.toList())
+    }
+
+    @Test
     fun `a new chat in a project is pushed, and replaces a project landing already on top`() {
         val navigator = createNavigator(NewChat(), SettingsTabbed)
         navigator.navigateToNewChatInProject("p1", "Thesis")

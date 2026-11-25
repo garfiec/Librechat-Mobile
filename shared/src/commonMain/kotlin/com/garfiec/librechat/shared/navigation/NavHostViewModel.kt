@@ -14,6 +14,7 @@ import com.garfiec.librechat.core.common.result.suspendRunCatching
 import com.garfiec.librechat.core.data.datastore.AccountEntry
 import com.garfiec.librechat.core.data.datastore.AccountRoster
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
+import com.garfiec.librechat.core.data.gate.GateAccess
 import com.garfiec.librechat.core.data.repository.AccountSwitcher
 import com.garfiec.librechat.core.data.repository.AuthRepository
 import com.garfiec.librechat.core.data.repository.BackgroundTaskRepository
@@ -116,7 +117,11 @@ class NavHostViewModel(
     private val accountRoster: AccountRoster,
     private val accountSwitcher: AccountSwitcher,
     private val userRepository: UserRepository,
+    gateAccess: GateAccess,
 ) : ViewModel() {
+
+    internal val gateSession =
+        GateSessionStateHolder(gateAccess, serverUrlProvider, activeAccountProvider, viewModelScope)
 
     private val bannerStateHolder =
         BannerStateHolder(bannerRepository, serverUrlProvider, viewModelScope)

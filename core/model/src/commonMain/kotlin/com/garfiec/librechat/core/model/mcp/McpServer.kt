@@ -30,6 +30,8 @@ data class McpServer(
     val dbId: String? = null,
     /** Reachable only through an agent that uses it, not shared with the user directly. */
     val consumeOnly: Boolean = false,
+    /** False: the operator keeps it out of the chat's MCP picker (YAML `chatMenu: false`). */
+    val chatMenu: Boolean = true,
     /**
      * Connects only inside a chat request (its config reads request placeholders), so it is
      * legitimately disconnected the rest of the time.

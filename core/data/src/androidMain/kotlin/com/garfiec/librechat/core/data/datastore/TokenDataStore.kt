@@ -17,7 +17,10 @@ class TokenDataStore(
     context: Context,
     refreshClient: Lazy<HttpClient>,
     ioDispatcher: CoroutineDispatcher,
-) : CommonTokenDataStore(refreshClient, ioDispatcher) {
+) : CommonTokenDataStore(refreshClient, ioDispatcher), SecureValueStore {
+
+    override fun readSecure(key: String): String? = readValue(key)
+    override fun writeSecure(key: String, value: String) = writeValue(key, value)
 
     private val appContext: Context = context.applicationContext
 

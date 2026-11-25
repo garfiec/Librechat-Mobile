@@ -254,10 +254,14 @@ class StreamingManagerDelegate(
      * The id a queued turn may anchor to when [messageId] is the visible branch tail, or null
      * when the server's id for it is not known yet. The tail of a run this client started is
      * the optimistic user message, an id the server never stored: a queued turn anchored there is
-     * dead-lettered `PARENT_NOT_FOUND` when the run ends instead of being sent.
+     * dead-lettered `PARENT_NOT_FOUND` when the run ends instead of being sent. A seed handed off
+     * from the landing is such a message too; its server id is the attached run's request id.
      */
-    fun queueAnchorFor(messageId: String): String? =
-        if (messageId in serverUserMessageIds) serverUserMessageIds[messageId] else messageId
+    fun queueAnchorFor(messageId: String): String? {
+        if (messageId in serverUserMessageIds) return serverUserMessageIds[messageId]
+        val content = handle.state.content
+        return if (messageId == content.pendingResumeUserMessage?.messageId) content.attachedRun?.requestId else messageId
+    }
 
     /**
      * Whether this turn reached the server's `created` milestone. Below that line nothing is
@@ -453,7 +457,9 @@ class StreamingManagerDelegate(
             is StreamEvent.ThinkingDelta -> buffer.appendThinking(event.chunk)
             is StreamEvent.Final -> {
                 // Claim-on-read: the server dropped its copy writing this frame. Claimed here,
-                // outside handleFinal, so none of its early returns can skip it.
+                // outside handleFinal, so none of its early returns can skip it. Promoted steers
+                // first: the server runs those, so no re-home may touch them.
+                steeringDelegate.adoptPromoted(event.promotedSteers)
                 if (event.aborted) {
                     steeringDelegate.reclaimAborted(event.pendingSteers)
                 } else {
@@ -486,11 +492,6 @@ class StreamingManagerDelegate(
                 buffer.flush()
             }
             is StreamEvent.Step -> { /* no-op */ }
-            is StreamEvent.ContextSummary -> {
-                // Server compacted earlier turns into a summary. The compacted text is
-                // persisted to the final message as a SUMMARY content part and rendered
-                // there; nothing extra to do during streaming.
-            }
             is StreamEvent.PendingActionRequested -> {
                 // The run stopped and is waiting on the user. Deliberately no state change to
                 // isStreaming: the stream is still open and still ours, so tearing down here
@@ -523,6 +524,8 @@ class StreamingManagerDelegate(
             is StreamEvent.ContextUsageUpdate,
             is StreamEvent.TokenUsageUpdate,
             is StreamEvent.UsageBackfill,
+            is StreamEvent.SummaryDelta,
+            is StreamEvent.ContextSummary,
             -> liveReply.apply(event)
         }
     }
@@ -538,16 +541,18 @@ class StreamingManagerDelegate(
         // Read before the id lands: a forced-temporary new chat is temporary only while it has no
         // id (ChatUiState.isTemporaryChat), so the flag is latched into the slice here.
         val temporary = handle.state.isTemporaryChat
-        val privateTurnId = currentTurnOptimisticUserMessageId.takeIf { event.privacyRevision != null }
+        val marksTurn = event.privacyRevision != null || event.manualSkills != null || event.alwaysAppliedSkills != null
+        val createdTurnId = currentTurnOptimisticUserMessageId.takeIf { marksTurn }
         handle.update {
             conversation = conversation.copy(conversationId = event.conversationId, isTemporaryChat = temporary)
             if (content.retryInfo != null) {
                 content = content.copy(retryInfo = null)
             }
-            // The live turn says its private details were hidden from the model. In memory only,
-            // node for node: no Room write, no path rebuild, so the streaming anchor stands.
-            if (privateTurnId != null) {
-                content = content.withPrivacyRevision(privateTurnId, event.privacyRevision)
+            // What the server resolved for the live turn: its private details hidden from the model,
+            // the skills it applied. In memory only, node for node: no Room write, no path rebuild,
+            // so the streaming anchor stands.
+            if (createdTurnId != null) {
+                content = content.withCreatedTurn(createdTurnId, event)
             }
         }
         // The conversation now has an id to key the resume pin by. A brand-new chat had none at
@@ -1325,8 +1330,16 @@ private fun StatusResumeUserMessage.toMessage(): Message? {
 }
 
 /** [messageId] marked redacted at [revision], in both the tree and the displayed path. */
-private fun MessagesState.withPrivacyRevision(messageId: String, revision: String?): MessagesState {
-    fun Message.marked() = if (this.messageId == messageId) copy(privacyRevision = revision) else this
+private fun MessagesState.withCreatedTurn(messageId: String, created: StreamEvent.Created): MessagesState {
+    fun Message.marked() = if (this.messageId == messageId) {
+        copy(
+            privacyRevision = created.privacyRevision ?: privacyRevision,
+            manualSkills = created.manualSkills ?: manualSkills,
+            alwaysAppliedSkills = created.alwaysAppliedSkills ?: alwaysAppliedSkills,
+        )
+    } else {
+        this
+    }
     return copy(
         messages = messages.map { it.marked() },
         displayMessages = displayMessages.map { node ->

@@ -51,18 +51,22 @@ class AgentCapabilitiesSkillPagingTest {
     }
 
     /**
-     * Drives the delegate through its public entry point with the skills gate open.
+     * Drives the delegate through its public entry point with [agentsConfig] as the agents entry,
+     * runs [act] on it, and returns the editor state.
      *
      * The availability observers collect StateFlows that never complete, so the delegate gets a
      * scope of its own: on the test's own scope `runTest` fails the test over the still-live
      * collectors, and `TestScope.backgroundScope` is not drained by `advanceUntilIdle` here.
      * Sharing the scheduler is what matters; the scope is cancelled before returning.
      */
-    private fun loadedSkillIds(scope: TestScope): List<String> {
+    private fun editorState(
+        scope: TestScope,
+        agentsConfig: EndpointConfig,
+        act: AgentCapabilitiesDelegate.() -> Unit = {},
+    ): AgentEditorUiState {
         val flow = MutableStateFlow(AgentEditorUiState())
         val configRepository = mockk<ConfigRepository>(relaxed = true)
-        every { configRepository.endpointConfigs } returns
-            MutableStateFlow(mapOf("agents" to EndpointConfig(capabilities = listOf("skills"))))
+        every { configRepository.endpointConfigs } returns MutableStateFlow(mapOf("agents" to agentsConfig))
         every { configRepository.detectedBackendVersion } returns MutableStateFlow(null)
         every { configRepository.detectedBackend } returns MutableStateFlow(null)
         // Every StateFlow the delegate collects has to be stubbed, not left relaxed: `collect`
@@ -73,15 +77,51 @@ class AgentCapabilitiesSkillPagingTest {
         every { roleRepository.userPermissions } returns MutableStateFlow<UserRolePermissions?>(null)
 
         val delegateScope = CoroutineScope(StandardTestDispatcher(scope.testScheduler))
-        AgentCapabilitiesDelegate(
+        val delegate = AgentCapabilitiesDelegate(
             stateHandle = AgentEditorStateHandle(flow, delegateScope),
             configRepository = configRepository,
             roleRepository = roleRepository,
             skillsRepository = skillsRepository,
-        ).observeAvailability()
+        )
+        delegate.observeAvailability()
         scope.advanceUntilIdle()
+        delegate.act()
         delegateScope.cancel()
-        return flow.value.availableSkills.map { it.id }
+        return flow.value
+    }
+
+    private fun loadedSkillIds(scope: TestScope): List<String> =
+        editorState(scope, EndpointConfig(capabilities = listOf("skills"))).availableSkills.map { it.id }
+
+    private fun subagentsConfig(maxSubagents: Int?) =
+        EndpointConfig(capabilities = listOf("subagents"), maxSubagents = maxSubagents)
+
+    @Test
+    fun `stops adding subagents at the server's lowered cap`() = runTest(StandardTestDispatcher()) {
+        val state = editorState(this, subagentsConfig(maxSubagents = 2)) {
+            listOf("a", "b", "c").forEach(::addSubagent)
+        }
+
+        assertThat(state.maxSubagents).isEqualTo(2)
+        assertThat(state.selectedSubagentIds).containsExactly("a", "b").inOrder()
+    }
+
+    @Test
+    fun `allows subagents up to the server's raised cap`() = runTest(StandardTestDispatcher()) {
+        val state = editorState(this, subagentsConfig(maxSubagents = 12)) {
+            (1..11).forEach { addSubagent("agent-$it") }
+        }
+
+        assertThat(state.selectedSubagentIds).hasSize(11)
+    }
+
+    @Test
+    fun `falls back to ten when the server sends no cap`() = runTest(StandardTestDispatcher()) {
+        val state = editorState(this, subagentsConfig(maxSubagents = null)) {
+            (1..11).forEach { addSubagent("agent-$it") }
+        }
+
+        assertThat(state.selectedSubagentIds).hasSize(10)
     }
 
     @Test

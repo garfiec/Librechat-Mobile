@@ -44,6 +44,28 @@ class DrawerDisplayMappingTest {
     }
 
     @Test
+    fun agentChatShowsNeitherItsIdNorAStrayModelUntilItsNameIsKnown() {
+        for (model in listOf("agent_x", "gpt-4o-mini")) {
+            val convo = Conversation(conversationId = "c1", endpoint = "agents", agentId = "agent_x", model = model)
+            assertThat(convo.toDrawerDisplayData(null, emptyMap(), "").modelLabel).isNull()
+        }
+    }
+
+    @Test
+    fun agentChatShowsItsAgentsName() {
+        val names = mapOf("agent_x" to "Pelican Pal")
+        for (model in listOf(null, "agent_x", "gpt-4o-mini")) {
+            val convo = Conversation(conversationId = "c1", endpoint = "agents", agentId = "agent_x", model = model)
+            assertThat(convo.toDrawerDisplayData(null, emptyMap(), "", agentNames = names).modelLabel).isEqualTo("Pelican Pal")
+        }
+        val specs = ModelSpecs(list = listOf(ModelSpec(name = "pal", label = "Pal Spec")))
+        val specChat = Conversation(conversationId = "c1", endpoint = "agents", agentId = "agent_x", spec = "pal")
+        assertThat(specChat.toDrawerDisplayData(null, emptyMap(), "", specs, agentNames = names).modelLabel).isEqualTo("Pal Spec")
+        val ephemeral = Conversation(conversationId = "c1", agentId = "ephemeral", model = "gpt-4o")
+        assertThat(ephemeral.toDrawerDisplayData(null, emptyMap(), "", agentNames = names).modelLabel).isEqualTo("gpt-4o")
+    }
+
+    @Test
     fun iconURLPrefersConversationOverEndpointConfig() {
         val convo = Conversation(
             conversationId = "c1",

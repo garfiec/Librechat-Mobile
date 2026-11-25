@@ -179,6 +179,32 @@ class StreamErrorTypeTest {
         assertNull(StreamErrorType.parse(changed))
     }
 
+    /** `PROJECT_CONTEXT_CHANGED_REASON` / `PROJECT_CONTEXT_CHANGED_RESPONSE` (`packages/api/src/projects/resume.ts`). */
+    @Test
+    fun the_resume_project_context_reason_maps_to_its_marker() {
+        val reason = "Project context changed before approval could be resumed"
+        val conflict = """{"code":"PROJECT_CONTEXT_CHANGED","error":"Project context changed; start a new turn."}"""
+
+        assertEquals("stream_error:PROJECT_CONTEXT_CHANGED", StreamErrorType.markerOrText(reason))
+        assertNull(StreamErrorType.parse(reason))
+        // The resume 409's code is read at that one site, never from a run's error text.
+        assertEquals(conflict, StreamErrorType.markerOrText(conflict))
+    }
+
+    /** `GenerationAdmissionDeniedError` / `GenerationAdmissionUnavailableError` (IJobStore.ts). */
+    @Test
+    fun a_start_post_refused_at_generation_admission_maps_to_its_marker() {
+        val deleting = """{"error":"Account deletion is in progress","code":"ACCOUNT_DELETION_IN_PROGRESS"}"""
+        val unavailable = """{"error":"Generation admission could not be verified","code":"GENERATION_ADMISSION_UNAVAILABLE"}"""
+
+        assertEquals(StreamErrorType.ACCOUNT_DELETION_IN_PROGRESS.marker, StreamErrorType.startFailureMarker(deleting, 409))
+        assertEquals(
+            StreamErrorType.GENERATION_ADMISSION_UNAVAILABLE.marker,
+            StreamErrorType.startFailureMarker(unavailable, 503),
+        )
+        assertNull(StreamErrorType.parse(deleting))
+    }
+
     /** `getInitializationFailure` + `getAgentErrorMetadata` (api/server/controllers/agents/request.js). */
     @Test
     fun a_start_post_refused_for_mcp_auth_maps_to_its_marker_only_at_that_site() {
@@ -302,6 +328,16 @@ class StreamErrorTypeTest {
     }
 
     @Test
+    fun a_classified_rate_limit_or_unknown_model_carries_the_gateway_info() {
+        val info = "Budget exhausted. Waiting will not help."
+        assertEquals(info, StreamErrorType.classifiedProviderInfo("""{"type":"model_rate_limit","info":"$info"}"""))
+        assertEquals(info, StreamErrorType.classifiedProviderInfo("""{"type":"model_not_found","info":"$info"}"""))
+        // Withheld under a content policy, and never sent by older servers.
+        assertNull(StreamErrorType.classifiedProviderInfo("""{"type":"model_rate_limit"}"""))
+        assertNull(StreamErrorType.classifiedProviderInfo("""{"type":"upstream_model_error","info":"$info"}"""))
+    }
+
+    @Test
     fun upstream_model_error_detail_tolerates_a_missing_message_or_status() {
         // Pre-rc4 servers, and rc4 with a content policy active, send no message.
         assertEquals(
@@ -379,5 +415,16 @@ class StreamErrorTypeTest {
             StreamErrorType.markerOrText("""{"code":"code_workspace_unavailable"}"""),
         )
         assertNull(StreamErrorType.codeWorkspaceReasonOfMarker(StreamErrorType.CODE_WORKSPACE_UNAVAILABLE.marker))
+    }
+
+    /** `checkBalance` (packages/api/src/middleware) and the saved init failure in request.js. */
+    @Test
+    fun a_saved_balance_or_missing_mcp_tools_turn_maps_to_its_marker() {
+        val balance = """{"type":"token_balance","balance":1722.2,"tokenCost":2826,"promptTokens":12,"generations":[]}"""
+        val mcp = """{"status":503,"code":"AGENT_EXPECTED_MCP_TOOLS_UNAVAILABLE",""" +
+            """"error":"Agent \"M\" is configured to use MCP tools, but none are available."}"""
+
+        assertEquals(StreamErrorType.TOKEN_BALANCE.marker, StreamErrorType.markerOrText(balance))
+        assertEquals(StreamErrorType.AGENT_EXPECTED_MCP_TOOLS_UNAVAILABLE.marker, StreamErrorType.markerOrText(mcp))
     }
 }

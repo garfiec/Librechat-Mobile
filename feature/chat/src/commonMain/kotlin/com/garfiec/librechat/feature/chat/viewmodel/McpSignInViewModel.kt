@@ -1,6 +1,5 @@
 package com.garfiec.librechat.feature.chat.viewmodel
 
-import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.garfiec.librechat.core.common.result.Result
@@ -12,20 +11,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-
-@Immutable
-data class McpSignInUiState(
-    /** The server whose sign-in is being bound; its card's button shows progress meanwhile. */
-    val preparingServer: String? = null,
-    /** A bound sign-in to open: the sign-in dialog, or the system browser on an older server. */
-    val launch: McpOAuthLaunch? = null,
-    /** The last attempt failed; the screen shows it once and calls [McpSignInViewModel.dismissFailure]. */
-    val failed: Boolean = false,
-    /** The sign-in went to the system browser; the next return to the app ends it ([McpSignInViewModel.onReturned]). */
-    val awaitingReturn: Boolean = false,
-    /** A sign-in ended, however it ended: the chat re-reads its MCP statuses once and calls [McpSignInViewModel.consumeEnded]. */
-    val ended: Boolean = false,
-)
 
 /**
  * Drives the Sign in action on a live tool call that is waiting on an MCP OAuth
@@ -49,11 +34,18 @@ class McpSignInViewModel(
      * Returns false, opening nothing, while another sign-in is binding or on screen; no
      * [McpSignInUiState.ended] will come for this one, so the caller reloads itself.
      */
-    fun signIn(serverName: String, authorizationUrl: String): Boolean {
+    fun signIn(serverName: String, authorizationUrl: String): Boolean =
+        start(serverName) { launcher.prepare(serverName, authorizationUrl) }
+
+    /** [signIn] for an agent action's OAuth prompt; [McpSignInUiState.preparingServer] holds [actionId] meanwhile. */
+    fun signInAction(actionId: String, authorizationUrl: String): Boolean =
+        start(actionId) { launcher.prepareAction(actionId, authorizationUrl) }
+
+    private fun start(key: String, prepare: suspend () -> Result<McpOAuthLaunch>): Boolean {
         if (_uiState.value.preparingServer != null || _uiState.value.launch != null) return false
-        _uiState.update { it.copy(preparingServer = serverName, failed = false, awaitingReturn = false) }
+        _uiState.update { it.copy(preparingServer = key, failed = false, awaitingReturn = false) }
         viewModelScope.launch {
-            when (val result = launcher.prepare(serverName, authorizationUrl)) {
+            when (val result = prepare()) {
                 is Result.Success -> _uiState.update { it.copy(preparingServer = null, launch = result.data) }
                 is Result.Error -> _uiState.update {
                     it.copy(preparingServer = null, failed = true, ended = true)

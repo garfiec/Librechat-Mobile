@@ -24,6 +24,7 @@ import com.garfiec.librechat.core.model.response.ArchiveAllConversationsResponse
 import com.garfiec.librechat.core.model.response.ConversationListResponse
 import com.garfiec.librechat.core.model.response.ConvoSeenResponse
 import com.garfiec.librechat.core.model.response.ConvoUnreadResponse
+import com.garfiec.librechat.core.model.response.DuplicateConversationResponse
 import com.garfiec.librechat.core.model.response.ForkConversationResponse
 import com.garfiec.librechat.core.model.response.GenerateTitleResponse
 import io.ktor.client.HttpClient
@@ -54,6 +55,7 @@ class ConversationsApi constructor(
         sortDirection: String? = null,
         projectId: String? = null,
         filters: ConversationListFilters = ConversationListFilters.None,
+        pinned: Boolean = false,
     ): ConversationListResponse =
         client.get {
             url { path("api/convos") }
@@ -69,6 +71,8 @@ class ConversationsApi constructor(
             sortBy?.let { parameter("sortBy", it) }
             sortDirection?.let { parameter("sortDirection", it) }
             appendFilters(filters)
+            // v0.8.8-rc2: pinned chats only. An older server ignores the param and lists everything.
+            if (pinned) parameter("pinned", true)
         }.body()
 
     /**
@@ -104,12 +108,19 @@ class ConversationsApi constructor(
 
     /**
      * The full conversation document. Stamped [asFullDocument], since only here does a missing code
-     * field mean "none" rather than "not projected".
+     * field mean "none" rather than "not projected", and [Conversation.provisional] when the answer is
+     * marked `no-store`.
      */
-    suspend fun getConversation(conversationId: String): Conversation =
-        client.get {
+    suspend fun getConversation(conversationId: String): Conversation {
+        val response = client.get {
             url { path("api/convos/$conversationId") }
-        }.body<Conversation>().asFullDocument()
+        }
+        val conversation = response.body<Conversation>().asFullDocument()
+        val noStore = response.headers.getAll(HttpHeaders.CacheControl).orEmpty()
+            .flatMap { it.split(',') }
+            .any { it.trim().equals("no-store", ignoreCase = true) }
+        return if (noStore) conversation.copy(provisional = true) else conversation
+    }
 
     suspend fun updateTitle(conversationId: String, title: String): Conversation =
         client.post {
@@ -211,7 +222,7 @@ class ConversationsApi constructor(
             url { path("api/convos/duplicate") }
             withToolCallPreviews()
             setBody(DuplicateConversationRequest(conversationId = conversationId, title = title))
-        }.body()
+        }.body<DuplicateConversationResponse>().conversation
 
     /** GET /api/convos/:conversationId/background-tasks (v0.8.8). */
     suspend fun getBackgroundTasks(conversationId: String): BackgroundTaskIndex =

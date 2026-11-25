@@ -70,7 +70,7 @@ skie = "0.10.16"
 # Testing
 junit = "4.13.2"
 turbine = "1.2.1"
-mockk = "1.14.11"
+mockk = "1.14.12"
 truth = "1.4.5"
 espresso = "3.7.0"
 androidx-concurrent-futures = "1.2.0"
@@ -81,7 +81,7 @@ robolectric = "4.17"
 
 # Code Quality
 detekt = "1.23.8"
-compose-lint-checks = "1.5.2"
+compose-lint-checks = "1.6.1"
 kover = "0.9.11"
 
 # Build
@@ -129,6 +129,7 @@ ktor-serialization-kotlinx-json = { group = "io.ktor", name = "ktor-serializatio
 ktor-client-logging = { group = "io.ktor", name = "ktor-client-logging", version.ref = "ktor" }
 ktor-client-auth = { group = "io.ktor", name = "ktor-client-auth", version.ref = "ktor" }
 ktor-client-mock = { group = "io.ktor", name = "ktor-client-mock", version.ref = "ktor" }
+ktor-http = { group = "io.ktor", name = "ktor-http", version.ref = "ktor" }
 
 # Kotlinx Serialization
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinx-serialization" }

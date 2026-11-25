@@ -84,6 +84,8 @@ class FileRepositoryImpl(
         height: Int?,
         onProgress: ((Float) -> Unit)?,
         pdfPassword: String?,
+        conversationId: String?,
+        isTemporary: Boolean,
     ): Result<FileObject> =
         withUploadBytes(bytes, filename, type, pdfPassword) { uploadBytes ->
             filesApi.uploadFile(
@@ -99,6 +101,8 @@ class FileRepositoryImpl(
                 width = width,
                 height = height,
                 onProgress = onProgress,
+                conversationId = conversationId,
+                isTemporary = isTemporary,
             )
         }
 

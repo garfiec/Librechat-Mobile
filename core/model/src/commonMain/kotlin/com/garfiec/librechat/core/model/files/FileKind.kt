@@ -102,6 +102,43 @@ fun fileExtension(filename: String): String? {
 }
 
 /**
+ * The file name at the end of a stored `filepath`, percent-decoded: local storage encodes a segment
+ * holding `%`, `#`, `?`, `\` or a control character. A segment that doesn't decode cleanly (a legacy
+ * raw `50%.png`) is kept as recorded.
+ */
+fun filepathLeaf(filepath: String): String {
+    val leaf = filepath.substringAfterLast('/')
+    return if ('%' in leaf) percentDecodeOrNull(leaf) ?: leaf else leaf
+}
+
+private const val HEX_RADIX = 16
+private const val ASCII_LIMIT = 0x80
+
+/** Null unless [value] is ASCII with well-formed escapes of valid UTF-8, as the server's encoder emits. */
+private fun percentDecodeOrNull(value: String): String? {
+    val bytes = ByteArray(value.length)
+    var size = 0
+    var i = 0
+    while (i < value.length) {
+        val c = value[i]
+        if (c.code >= ASCII_LIMIT) return null
+        if (c == '%') {
+            val hex = value.substring(i + 1, minOf(i + 3, value.length))
+            if (hex.length != 2 || !hex.all { it.isHexDigit() }) return null
+            bytes[size++] = hex.toInt(HEX_RADIX).toByte()
+            i += 3
+        } else {
+            bytes[size++] = c.code.toByte()
+            i++
+        }
+    }
+    val decoded = runCatching { bytes.decodeToString(0, size, throwOnInvalidSequence = true) }.getOrNull()
+    return decoded?.takeIf { '/' !in it }
+}
+
+private fun Char.isHexDigit(): Boolean = this in '0'..'9' || this in 'a'..'f' || this in 'A'..'F'
+
+/**
  * Undoes the code sandbox's dotfile rename: `_.config-abcdef.txt` → `.config.txt`,
  * `_.dirkeep-88b30b` → `.dirkeep`. Anything else (incl. `report-deadbe.csv`) passes through.
  * Upstream `getDisplayFileName` / `SANITIZED_DOTFILE_PATTERN`; string ops rather than a regex.
