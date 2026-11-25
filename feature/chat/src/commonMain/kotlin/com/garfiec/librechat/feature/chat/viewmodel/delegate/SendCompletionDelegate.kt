@@ -206,7 +206,7 @@ class SendCompletionDelegate(
         if (conversationId != null) {
             if (isTemporary || unsaved) {
                 // SECURITY: do not remove — temp-chat data-at-rest guard.
-                // Temp chats are never persisted: don't round-trip through the Room
+                // Temp chats are never written to Room: don't round-trip through the Room
                 // read-through (which would upsert the message rows to disk). Drive the
                 // display from the final event in memory instead. Title generation is
                 // also skipped server-side for temp chats, so there's nothing to refresh.
