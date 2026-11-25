@@ -3813,6 +3813,48 @@
       "failure_mode": "A copied reply diverges from what the web copies for the same message."
     },
     {
+      "id": "message-clipboard-part-types",
+      "upstream": {
+        "file": "client/src/hooks/Messages/useCopyToClipboard.ts",
+        "symbol": "getPartText",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/ui/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/MessageClipboard.kt",
+        "symbol": "clipboardTextOf"
+      },
+      "why": "Which content parts Copy puts on the clipboard: text parts only, so reasoning, tool calls and media stay out. getMessageParts calls this, so a change to the filter does not show up in its block.",
+      "failure_mode": "Copy pastes parts the web leaves out (reasoning, tool JSON) or drops parts the web copies."
+    },
+    {
+      "id": "message-clipboard-parts",
+      "upstream": {
+        "file": "client/src/hooks/Messages/useCopyToClipboard.ts",
+        "symbol": "getMessageParts",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/ui/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/MessageClipboard.kt",
+        "symbol": "serializeMessageForClipboard"
+      },
+      "why": "How a message's copyable parts are gathered: message.text when it has no content parts, otherwise each non-empty text part.",
+      "failure_mode": "A copied reply diverges from what the web copies for the same message."
+    },
+    {
+      "id": "message-clipboard-wakeup-source",
+      "upstream": {
+        "file": "client/src/hooks/Messages/useCopyToClipboard.ts",
+        "symbol": "getMessageClipboardSource",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/ui/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/MessageClipboard.kt",
+        "symbol": "serializeMessageForClipboard (systemEventFor branch)"
+      },
+      "why": "Copy on a subagent or background-task wake-up puts its tasks' results on the clipboard, joined by a blank line, never the hidden host prompt the message is stored as.",
+      "failure_mode": "Copy on a wake-up row pastes the hidden prompt, or results joined differently from the web."
+    },
+    {
       "id": "web-search-card-phases",
       "upstream": {
         "file": "packages/chat/src/components/parts/WebSearch.tsx",
