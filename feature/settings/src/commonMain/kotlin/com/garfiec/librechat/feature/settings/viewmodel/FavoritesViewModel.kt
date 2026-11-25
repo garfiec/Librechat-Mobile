@@ -4,11 +4,16 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.data.repository.AgentRepository
+import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.FavoritesRepository
+import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.UserFavorite
+import com.garfiec.librechat.core.model.endpoint.endpointDisplayName
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -23,20 +28,50 @@ import kotlinx.coroutines.launch
  */
 class FavoritesViewModel(
     private val favoritesRepository: FavoritesRepository,
+    private val agentRepository: AgentRepository,
+    private val configRepository: ConfigRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FavoritesUiState())
     val uiState: StateFlow<FavoritesUiState> = _uiState.asStateFlow()
 
+    /** Agent id to name, for pinned agents the server could name. */
+    private val agentNames = MutableStateFlow<Map<String, String>>(emptyMap())
+
     init {
         observeFavorites()
+        resolveAgentNames()
         refresh()
     }
 
     private fun observeFavorites() {
         viewModelScope.launch {
+            combine(
+                favoritesRepository.favorites,
+                agentNames,
+                configRepository.startupConfig,
+                configRepository.endpointConfigs,
+            ) { list, names, config, endpoints ->
+                val specLabels = config?.modelSpecs?.list.orEmpty().associate { it.name to (it.label ?: it.name) }
+                list.mapNotNull { fav -> fav.toDisplay(names, specLabels, endpoints) }
+            }.collect { rows -> _uiState.update { it.copy(favorites = rows) } }
+        }
+    }
+
+    /** Names pinned agents from the agent list, then by id for any it lacks; an unnamed agent keeps its id. */
+    private fun resolveAgentNames() {
+        viewModelScope.launch {
             favoritesRepository.favorites.collect { list ->
-                _uiState.update { it.copy(favorites = list.mapNotNull { fav -> fav.toDisplay() }) }
+                val unnamed = list.mapNotNull { it.agentId?.takeIf(String::isNotBlank) }
+                    .filterNot { it in agentNames.value }
+                if (unnamed.isEmpty()) return@collect
+                val listed = (agentRepository.getAgents() as? Result.Success)?.data.orEmpty()
+                    .associate { it.id to it.name }
+                val named = unnamed.mapNotNull { id ->
+                    val name = if (id in listed) listed[id] else (agentRepository.getAgent(id) as? Result.Success)?.data?.name
+                    name?.takeIf(String::isNotBlank)?.let { id to it }
+                }
+                agentNames.update { it + named }
             }
         }
     }
@@ -99,12 +134,16 @@ class FavoritesViewModel(
      * unambiguously derive the kind from which field is populated. Returns null
      * for malformed entries from older clients so the UI just skips them.
      */
-    private fun UserFavorite.toDisplay(): FavoriteDisplayData? {
+    private fun UserFavorite.toDisplay(
+        agentNames: Map<String, String> = emptyMap(),
+        specLabels: Map<String, String> = emptyMap(),
+        endpoints: Map<String, EndpointConfig> = emptyMap(),
+    ): FavoriteDisplayData? {
         val a = agentId
         if (!a.isNullOrBlank()) {
             return FavoriteDisplayData(
-                label = "Agent",
-                subtitle = a,
+                label = agentNames[a] ?: a,
+                subtitle = "",
                 kind = FavoriteKind.AGENT,
                 agentId = a,
             )
@@ -114,7 +153,7 @@ class FavoritesViewModel(
         if (!m.isNullOrBlank() && !e.isNullOrBlank()) {
             return FavoriteDisplayData(
                 label = m,
-                subtitle = e,
+                subtitle = endpointDisplayName(e, endpoints[e]),
                 kind = FavoriteKind.MODEL,
                 model = m,
                 endpoint = e,
@@ -123,8 +162,8 @@ class FavoritesViewModel(
         val s = spec
         if (!s.isNullOrBlank()) {
             return FavoriteDisplayData(
-                label = "Spec",
-                subtitle = s,
+                label = specLabels[s] ?: s,
+                subtitle = "",
                 kind = FavoriteKind.SPEC,
                 spec = s,
             )

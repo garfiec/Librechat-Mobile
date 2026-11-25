@@ -15,6 +15,7 @@ import com.garfiec.librechat.core.data.datastore.ThemeDataStore
 import com.garfiec.librechat.core.data.prefetch.AttachmentWarmer
 import com.garfiec.librechat.core.data.prefetch.PrefetchController
 import com.garfiec.librechat.core.data.prefetch.PrefetchStatusReporter
+import com.garfiec.librechat.core.data.repository.AgentRepository
 import com.garfiec.librechat.core.data.repository.ApiKeyRepository
 import com.garfiec.librechat.core.data.repository.AuthRepository
 import com.garfiec.librechat.core.data.repository.BalanceRepository
@@ -74,6 +75,7 @@ class SettingsModuleVerificationTest {
                 CodeMachinesRepository::class,
                 CodeEnvironmentRepository::class,
                 AuthRepository::class,
+                AgentRepository::class,
                 ConfigRepository::class,
                 CertificateTrustRegistry::class,
                 ConversationRepository::class,

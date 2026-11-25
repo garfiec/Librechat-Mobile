@@ -36,6 +36,7 @@ import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.viewmodel.FavoriteDisplayData
+import com.garfiec.librechat.feature.settings.viewmodel.FavoriteKind
 import com.garfiec.librechat.feature.settings.viewmodel.FavoritesUiState
 import org.jetbrains.compose.resources.stringResource
 
@@ -127,10 +128,15 @@ private fun FavoriteRow(
                 text = favorite.label,
                 style = MaterialTheme.typography.bodyLarge,
             )
-            if (favorite.subtitle.isNotBlank()) {
+            val subtitle = when (favorite.kind) {
+                FavoriteKind.AGENT -> stringResource(Res.string.favorites_kind_agent)
+                FavoriteKind.SPEC -> stringResource(Res.string.favorites_kind_spec)
+                FavoriteKind.MODEL -> favorite.subtitle
+            }
+            if (subtitle.isNotBlank()) {
                 Spacer(Modifier.size(2.dp))
                 Text(
-                    text = favorite.subtitle,
+                    text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

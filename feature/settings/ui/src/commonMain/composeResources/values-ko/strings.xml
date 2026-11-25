@@ -160,6 +160,8 @@
     <string name="favorites_empty_message">모델 선택기에서 에이전트나 모델을 고정하면 여기에 표시됩니다.</string>
     <string name="favorites_count_of">%2$d개 중 %1$d개</string>
     <string name="favorites_unpin_cd">즐겨찾기 고정 해제</string>
+    <string name="favorites_kind_agent">에이전트</string>
+    <string name="favorites_kind_spec">모델 사양</string>
 
     <!-- About info -->
     <string name="app_version_label">앱 버전</string>
