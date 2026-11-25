@@ -108,6 +108,18 @@ class PreferenceMigrationRunnerTest {
     }
 
     @Test
+    fun shippedMigrations_moveEveryFilesViewChoiceToTheGridDefault() = runTest(testDispatcher) {
+        withStore(migrations = null) { store ->
+            store.edit { it[SettingsDataStore.KEY_FILES_VIEW_MODE] = "list" }
+        }
+
+        val prefs = withStore(PreferenceMigrations.all) { it.data.first() }
+
+        assertThat(prefs[SettingsDataStore.KEY_FILES_VIEW_MODE]).isNull()
+        assertThat(prefs[PreferenceMigrationRunner.LEDGER]).contains("20261124-files-grid")
+    }
+
+    @Test
     fun aRecordedMigrationNeverRunsAgain() = runTest(testDispatcher) {
         seedExistingUser()
         val migrations = listOf(migration("20270101-a"))

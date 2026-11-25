@@ -407,19 +407,19 @@ class FilesViewModelTest {
     }
 
     @Test
-    fun `toggleViewMode switches between list and grid`() = runTest {
+    fun `view mode starts on grid and toggles to list and back`() = runTest {
         viewModel = createViewModel()
         advanceUntilIdle()
 
-        assertThat(viewModel.uiState.value.viewMode).isEqualTo(FileViewMode.LIST)
-
-        viewModel.toggleViewMode()
-        advanceUntilIdle()
         assertThat(viewModel.uiState.value.viewMode).isEqualTo(FileViewMode.GRID)
 
         viewModel.toggleViewMode()
         advanceUntilIdle()
         assertThat(viewModel.uiState.value.viewMode).isEqualTo(FileViewMode.LIST)
+
+        viewModel.toggleViewMode()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.viewMode).isEqualTo(FileViewMode.GRID)
     }
 
     @Test
@@ -430,17 +430,17 @@ class FilesViewModelTest {
         viewModel.toggleViewMode()
         advanceUntilIdle()
 
-        coVerify { settingsDataStore.setFilesViewMode(FileViewMode.GRID.toStorageString()) }
+        coVerify { settingsDataStore.setFilesViewMode(FileViewMode.LIST.toStorageString()) }
     }
 
     @Test
     fun `persisted view mode hydrates initial state`() = runTest {
-        filesViewModeFlow.value = FileViewMode.GRID.toStorageString()
+        filesViewModeFlow.value = FileViewMode.LIST.toStorageString()
 
         viewModel = createViewModel()
         advanceUntilIdle()
 
-        assertThat(viewModel.uiState.value.viewMode).isEqualTo(FileViewMode.GRID)
+        assertThat(viewModel.uiState.value.viewMode).isEqualTo(FileViewMode.LIST)
     }
 
     @Test

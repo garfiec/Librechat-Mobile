@@ -40,6 +40,8 @@ object PreferenceMigrations {
     val all: List<PreferenceMigration> = listOf(
         // Automatic arrived as the new default: everyone starts on it once, whatever they chose before.
         PreferenceMigration("20261112-artifacts-automatic") { it.reset(AppPreferences.ArtifactDisplay) },
+        // Grid arrived as the Files screen's new default: everyone starts on it once.
+        PreferenceMigration("20261124-files-grid") { it.remove(SettingsDataStore.KEY_FILES_VIEW_MODE) },
     )
 }
 
