@@ -167,4 +167,23 @@ class MessageEditingTest {
         assertThat(findRerunParent(emptyList(), null)).isNull()
         assertThat(findRerunParent(emptyList(), "missing")).isNull()
     }
+
+    // ── Whether a reply can be regenerated ───────────────────────────
+
+    @Test
+    fun `regenerate needs a user turn behind a reply that is not a manual compaction`() {
+        val user = Message(messageId = "u1", conversationId = "c1", text = "ask", isCreatedByUser = true)
+        val earlierReply = Message(messageId = "u1", conversationId = "c1", text = "first")
+        val otherUser = user.copy(messageId = "u0")
+        val manualSummary = reply(
+            MessageContentPart(type = ContentType.SUMMARY, text = "summary", initiatedBy = "user"),
+        )
+
+        assertThat(canRegenerate(reply(text("answer")), user)).isTrue()
+        assertThat(canRegenerate(reply(text("answer")), earlierReply)).isFalse()
+        assertThat(canRegenerate(reply(text("answer")), null)).isFalse()
+        assertThat(canRegenerate(reply(text("answer")), otherUser)).isFalse()
+        assertThat(canRegenerate(manualSummary, user)).isFalse()
+        assertThat(canRegenerate(user.copy(messageId = "u2", parentMessageId = "u1"), user)).isFalse()
+    }
 }

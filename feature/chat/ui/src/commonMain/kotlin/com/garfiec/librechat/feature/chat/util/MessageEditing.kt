@@ -2,6 +2,7 @@ package com.garfiec.librechat.feature.chat.util
 
 import com.garfiec.librechat.core.model.ContentType
 import com.garfiec.librechat.core.model.Message
+import com.garfiec.librechat.core.model.content.Compaction
 import com.garfiec.librechat.core.model.content.MessageContentPart
 import com.garfiec.librechat.core.model.content.stripOpaqueReasoning
 import com.garfiec.librechat.feature.chat.components.artifact.ArtifactSegment
@@ -129,3 +130,16 @@ fun findRerunParent(messages: List<Message>, parentMessageId: String?): Message?
     if (parentMessageId == null) return null
     return messages.firstOrNull { it.messageId == parentMessageId }?.takeIf { it.isCreatedByUser }
 }
+
+/**
+ * Whether Regenerate may be offered on [reply], given the message resolved as its [parent].
+ *
+ * Regenerate replays the parent as the user turn, so the parent must be the user's own turn, and a
+ * manual compaction (finished or failed) is not a reply to replay. Checked at render and at submit.
+ */
+fun canRegenerate(reply: Message, parent: Message?): Boolean =
+    !reply.isCreatedByUser &&
+        parent != null &&
+        parent.messageId == reply.parentMessageId &&
+        parent.isCreatedByUser &&
+        !Compaction.isUserInitiatedCompaction(reply)

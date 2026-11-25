@@ -946,6 +946,20 @@
       "failure_mode": "The shape changes and a compacted branch stops being recognised, so the affordance is offered on a branch that was just compacted -- or withheld on one that needs it. Nothing decodes wrong."
     },
     {
+      "id": "user-initiated-compaction",
+      "upstream": {
+        "file": "packages/data-provider/src/messages.ts",
+        "symbol": "isUserInitiatedCompaction",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/content/Compaction.kt",
+        "symbol": "isUserInitiatedCompaction"
+      },
+      "why": "Recognises a manual compaction (finished summary or failed error part) from the initiatedBy marker on its content, which is what withholds Regenerate on it. Derived from the content shape rather than a served flag.",
+      "failure_mode": "The marker or the part types change and a manual compaction stops being recognised, so Regenerate is offered on it again and replays the turn above it as an ordinary reply. Nothing decodes wrong."
+    },
+    {
       "id": "mcp-discovery-authorization-state",
       "upstream": {
         "file": "client/src/hooks/MCP/polling.ts",

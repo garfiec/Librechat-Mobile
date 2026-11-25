@@ -57,6 +57,7 @@ import com.garfiec.librechat.feature.chat.components.sendflight.LocalSendFlight
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.util.MessageNode
 import com.garfiec.librechat.feature.chat.util.attachmentRecoveries
+import com.garfiec.librechat.feature.chat.util.canRegenerate
 import com.garfiec.librechat.feature.chat.util.hasEditablePart
 import com.garfiec.librechat.feature.chat.util.withLiveSubagentFilesAdopted
 import com.garfiec.librechat.feature.chat.util.withPreviews
@@ -662,6 +663,16 @@ fun MessageList(
                     val editable = remember(node.message.content, node.message.text) {
                         hasEditablePart(node.message)
                     }
+                    // The list is the active path, so a reply's parent is the row above it.
+                    val pathParent = displayMessages.getOrNull(index - 1)?.message
+                    val regenerable = remember(
+                        node.message.content,
+                        node.message.parentMessageId,
+                        pathParent?.messageId,
+                        pathParent?.isCreatedByUser,
+                    ) {
+                        canRegenerate(node.message, pathParent)
+                    }
                     val editSession = if (editing.editingMessageId == node.message.messageId) {
                         rememberMessageEditSession(
                             message = node.message,
@@ -724,7 +735,7 @@ fun MessageList(
                         } else {
                             null
                         },
-                        onRegenerate = if (resubmit && !node.message.isCreatedByUser) {
+                        onRegenerate = if (resubmit && regenerable) {
                             { onRegenerateMessage(node.message.messageId) }
                         } else {
                             null
