@@ -111,6 +111,18 @@ class ConversationRepositoryImplTest {
     }
 
     @Test
+    fun `loadNextPage stores the archived list's rows as archived when the server omits isArchived`() = runTest {
+        coEvery { conversationsApi.getConversations(any(), any(), any(), any(), any(), any(), any()) } returns
+            ConversationListResponse(conversations = listOf(Conversation(conversationId = "a")), nextCursor = null)
+        val captured = slot<List<ConversationEntity>>()
+        coEvery { conversationDao.upsertPreservingTags(account.value, capture(captured)) } answers {}
+
+        repository.loadNextPage(cursor = null, isArchived = true)
+
+        assertThat(captured.captured.single().isArchived).isTrue()
+    }
+
+    @Test
     fun `getConversationsForTag asks for that tag and returns the page as the server sent it`() = runTest {
         val serverConvo = Conversation(conversationId = "convo-1", title = "Server Title")
         coEvery {

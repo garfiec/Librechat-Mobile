@@ -93,9 +93,11 @@ class ConversationRepositoryImpl(
                 sortDirection = sortDirection,
             )
             if (accountId != null) {
+                // The list omits isArchived before v0.8.8-rc3; the server filters by the requested
+                // variant, so stamp it.
                 conversationDao.upsertPreservingTags(
                     accountId,
-                    response.conversations.map { it.toEntity().copy(accountId = accountId) },
+                    response.conversations.map { it.toEntity().copy(accountId = accountId, isArchived = isArchived) },
                 )
             }
             response.nextCursor
