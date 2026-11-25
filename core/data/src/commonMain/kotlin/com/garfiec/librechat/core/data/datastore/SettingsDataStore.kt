@@ -919,7 +919,7 @@ class SettingsDataStore(
         private val KEY_STT_ON_DEVICE = booleanPreferencesKey("stt_on_device")
         private val KEY_STT_END_OF_SPEECH = booleanPreferencesKey("stt_end_of_speech")
         private val KEY_CHAT_LAYOUT_STYLE = stringPreferencesKey("chat_layout_style")
-        private val KEY_FILES_VIEW_MODE = stringPreferencesKey("files_view_mode")
+        internal val KEY_FILES_VIEW_MODE = stringPreferencesKey("files_view_mode")
         private val KEY_FILES_SORT_FIELD = stringPreferencesKey("files_sort_field")
         private val KEY_FILES_SORT_ORDER = stringPreferencesKey("files_sort_order")
         private val KEY_DRAWER_LIBRARY_TAB = stringPreferencesKey("drawer_library_tab")

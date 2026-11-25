@@ -132,7 +132,7 @@ class FilesViewModel(
             previewFile = transient.previewFile,
             mediaPreview = transient.mediaPreview,
             hasFiles = list.hasFiles,
-            viewMode = mode ?: FileViewMode.LIST,
+            viewMode = mode ?: FileViewMode.GRID,
             pdfPasswordPrompt = transient.pdfPasswordPrompt,
             pickerMimeTypes = pickerMimeTypes,
         )
@@ -362,7 +362,7 @@ class FilesViewModel(
 
     fun toggleViewMode() {
         // Read-then-set is synchronous here (no async gap), so back-to-back taps can't lose a toggle.
-        val next = when (_viewMode.value ?: FileViewMode.LIST) {
+        val next = when (_viewMode.value ?: FileViewMode.GRID) {
             FileViewMode.LIST -> FileViewMode.GRID
             FileViewMode.GRID -> FileViewMode.LIST
         }

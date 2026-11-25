@@ -85,8 +85,8 @@ enum class FileViewMode {
 
     companion object {
         fun fromString(value: String?): FileViewMode = when (value) {
-            "grid" -> GRID
-            else -> LIST
+            "list" -> LIST
+            else -> GRID
         }
     }
 
@@ -117,7 +117,7 @@ data class FilesUiState(
     val previewFile: FilePreviewDisplayData? = null,
     val mediaPreview: MediaPreviewState? = null,
     val hasFiles: Boolean = false,
-    val viewMode: FileViewMode = FileViewMode.LIST,
+    val viewMode: FileViewMode = FileViewMode.GRID,
     /**
      * MIME types to filter the system file picker to, derived from the server's
      * `supportedMimeTypes` allowlist. Empty means "show everything" — either the server
