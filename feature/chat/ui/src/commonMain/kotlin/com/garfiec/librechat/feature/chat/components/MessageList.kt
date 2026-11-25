@@ -659,8 +659,8 @@ fun MessageList(
                     // Memoized: the artifact check parses markdown, and this subtree recomposes on
                     // every streaming flush. Everything else in this file that scans content parts is
                     // wrapped the same way.
-                    val editable = remember(node.message.content, node.message.text) {
-                        hasEditablePart(node.message)
+                    val editable = remember(node.message.content, node.message.text, node.laneView) {
+                        !node.laneView && hasEditablePart(node.message)
                     }
                     val editSession = if (editing.editingMessageId == node.message.messageId) {
                         rememberMessageEditSession(

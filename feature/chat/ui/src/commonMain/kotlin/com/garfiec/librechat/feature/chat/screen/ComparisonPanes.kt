@@ -66,7 +66,8 @@ internal fun ComparisonPanes(
     paneBottomInset: Dp,
     /** Where the jump-to-bottom button floats over the composer; see ChatScreen. */
     scrollToBottomPadding: Dp?,
-    onCopyMessage: (String) -> Unit,
+    /** Copy on either pane's bubble; `secondary` names pane B, so a Compare reply copies the lane shown. */
+    onCopyMessage: (messageId: String, secondary: Boolean) -> Unit,
     onShowSecondaryModelSheet: () -> Unit,
     onComparisonTabChange: (Int) -> Unit,
     /** Side by side (≥ [ComparisonWideBreakpoint]) rather than tabs; measured once by the screen. */
@@ -200,7 +201,7 @@ internal fun ComparisonPanes(
                 onSiblingNavigation = actions::switchBranch,
                 onEditMessage = actions::startEditing,
                 onRegenerateMessage = actions::regenerateMessage,
-                onCopyMessage = onCopyMessage,
+                onCopyMessage = { messageId -> onCopyMessage(messageId, false) },
                 onFeedback = actions::submitFeedback,
                 feedbackEnabled = uiState.gates.feedbackEnabled,
                 canResubmit = uiState.canStartRun,
@@ -264,6 +265,7 @@ internal fun ComparisonPanes(
                 isStreaming = comparisonState.secondaryIsStreaming,
                 justSettledMessageId = uiState.justSettledMessageId,
                 streamingContent = { streamingText().secondary },
+                onCopyMessage = { messageId -> onCopyMessage(messageId, true) },
                 activeToolCalls = comparisonState.secondaryActiveToolCalls,
                 sandboxStartingToolCallIds = uiState.sandboxStartingToolCallIds,
                 streamingAttachments = uiState.streamingAttachments,

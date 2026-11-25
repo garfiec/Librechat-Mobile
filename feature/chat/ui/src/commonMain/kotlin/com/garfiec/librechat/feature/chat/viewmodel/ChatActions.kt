@@ -58,7 +58,8 @@ interface ChatActions {
 
     fun branchWithoutFiles(failedReplyId: String)
 
-    fun copyMessage(messageId: String, write: (String) -> Unit)
+    /** Copies [messageId] as shown: a Compare reply's [secondary] lane, or its primary one. */
+    fun copyMessage(messageId: String, secondary: Boolean = false, write: (String) -> Unit)
 
     fun requestToolPart(key: ToolPartKey)
 

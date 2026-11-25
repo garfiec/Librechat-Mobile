@@ -52,6 +52,18 @@ class MessageEditingTest {
         assertThat(hasEditablePart(reply(tool()))).isFalse()
     }
 
+    @Test
+    fun `editShapeOf is NONE for a Compare reply whose lane B comes first`() {
+        // A pane renders a lane-filtered copy, so its field positions aren't the stored indices an
+        // edit writes: the field would hold the other model's part.
+        val compareReply = reply(
+            text("Mock reply (mock-fast) to: Hello again").copy(agentId = "Mock__mock-fast____1", groupId = 1),
+            text("1. item number 1").copy(agentId = "Mock__mock-slow", groupId = 1),
+        )
+        assertThat(editShapeOf(compareReply)).isEqualTo(MessageEditShape.NONE)
+        assertThat(hasEditablePart(compareReply)).isFalse()
+    }
+
     // ── Which parts get a field ──────────────────────────────────────
 
     @Test

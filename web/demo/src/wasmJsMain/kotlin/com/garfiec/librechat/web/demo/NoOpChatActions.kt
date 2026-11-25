@@ -48,7 +48,7 @@ internal open class NoOpChatActions : ChatActions {
     override fun retryWithoutFiles(failedReplyId: String) {}
     override fun retryOwnerTexts() {}
     override fun branchWithoutFiles(failedReplyId: String) {}
-    override fun copyMessage(messageId: String, write: (String) -> Unit) {}
+    override fun copyMessage(messageId: String, secondary: Boolean, write: (String) -> Unit) {}
     override fun requestToolPart(key: ToolPartKey) {}
     override fun retainToolPart(identity: ToolPartIdentity) {}
     override fun releaseToolPart(identity: ToolPartIdentity) {}

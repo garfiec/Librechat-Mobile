@@ -34,7 +34,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.ActiveToolCall
 /**
  * Simplified message list for the secondary comparison pane.
  * Does not support editing, forking, sibling navigation, or search highlighting.
- * Just displays messages and streaming content for the comparison model.
+ * Displays messages and streaming content for the comparison model; its one action is Copy.
  */
 @Composable
 fun SecondaryMessageList(
@@ -42,6 +42,8 @@ fun SecondaryMessageList(
     isStreaming: Boolean,
     /** The lane's live text; read only inside the streaming item, so a flush recomposes that alone. */
     streamingContent: () -> String,
+    /** Copy on a bubble: the lane-B message, which the caller copies as this pane shows it. */
+    onCopyMessage: (messageId: String) -> Unit,
     modifier: Modifier = Modifier,
     justSettledMessageId: String? = null,
     activeToolCalls: List<ActiveToolCall> = emptyList(),
@@ -149,9 +151,8 @@ fun SecondaryMessageList(
                         LocalExpansionScope provides
                             expansionScope(ExpansionPane.SECONDARY, node.message.parentMessageId),
                     ) {
-                    // Same branch as MessageList; this pane never edits. Its bubbles take no
-                    // actions and no sibling navigation (their callbacks are no-ops), so neither
-                    // does the row.
+                    // Same branch as MessageList; this pane never edits. Its bubbles copy only, with
+                    // no sibling navigation; the row takes no actions.
                     val systemEvent = wakeups.wakeupOf(node, isEditing = false)
                     if (systemEvent != null) {
                         SystemEventRow(
@@ -165,9 +166,9 @@ fun SecondaryMessageList(
                         message = node.message,
                         siblingIndex = node.siblingIndex,
                         siblingCount = node.siblingCount,
-                        onSiblingNavigation = { /* no-op for secondary */ },
-                        onEdit = {},
-                        onCopy = {},
+                        onSiblingNavigation = null,
+                        onEdit = null,
+                        onCopy = { onCopyMessage(node.message.messageId) },
                         baseUrl = baseUrl,
                         fontSizeMultiplier = fontSizeMultiplier,
                         userAvatarUrl = userAvatarUrl,

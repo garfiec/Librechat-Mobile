@@ -41,6 +41,7 @@ fun buildComparisonDisplayMessages(
                 }
                 node.copy(
                     avatar = if (secondary) secondaryAvatar else node.avatar,
+                    laneView = true,
                     message = message.forPane(
                         newContent = content,
                         paneAttachments = message.attachments?.let {
@@ -110,18 +111,24 @@ internal fun attachmentsForPane(
  */
 fun collapseParallelToPrimary(displayMessages: List<MessageNode>): List<MessageNode> =
     displayMessages.map { node ->
-        val message = node.message
-        if (hasParallelParts(message)) {
-            val primaryParts = partsForPane(message, secondary = false)
-            node.copy(
-                message = message.copy(
-                    content = primaryParts,
-                    attachments = message.attachments?.let {
-                        attachmentsForPane(it, primaryParts, message.content.orEmpty(), secondary = false)
-                    },
-                ),
-            )
+        if (hasParallelParts(node.message)) {
+            node.copy(message = messageForLane(node.message, secondary = false), laneView = true)
         } else {
             node
         }
     }
+
+/**
+ * [message] as one Compare lane shows it: that lane's parts ([partsForPane]) and attachments
+ * ([attachmentsForPane]). A message without parallel parts comes back unchanged.
+ */
+fun messageForLane(message: Message, secondary: Boolean): Message {
+    if (!hasParallelParts(message)) return message
+    val laneParts = partsForPane(message, secondary)
+    return message.copy(
+        content = laneParts,
+        attachments = message.attachments?.let {
+            attachmentsForPane(it, laneParts, message.content.orEmpty(), secondary)
+        },
+    )
+}

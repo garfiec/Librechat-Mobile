@@ -9,6 +9,7 @@ import com.garfiec.librechat.core.model.content.AgentToolCall
 import com.garfiec.librechat.core.model.content.MessageContentPart
 import com.garfiec.librechat.core.model.media.ProviderId
 import com.garfiec.librechat.feature.chat.util.ToolPartKey
+import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -30,7 +31,8 @@ import org.junit.Test
 
 /**
  * A loaded full tool call reaches the exposed display path: the overlay is not undone by the
- * reply-avatar pass that runs after it in the same combine.
+ * reply-avatar pass that runs after it in the same combine. Copy and Read aloud take a Compare
+ * reply's shown lane only, fetching a previewed call first.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ChatViewModelToolPartOverlayTest {
@@ -99,6 +101,58 @@ class ChatViewModelToolPartOverlayTest {
         assertTrue(viewModel.toolPartStatuses.value.isEmpty())
         // The avatar pass still ran over the hydrated path.
         assertEquals(ProviderId.OPENROUTER, reply.avatar?.provider)
+        coVerify(exactly = 0) { fixture.messageRepository.getToolCallPart(any(), any(), any(), any(), any(), any()) }
+    }
+
+    private val laneB = "Mock reply (mock-fast) to: Hello again"
+    private val compareTurn =
+        Message(messageId = "u-2", conversationId = "conv-2", isCreatedByUser = true, text = "Hello again")
+
+    private fun compareReply(id: String, primary: MessageContentPart) = Message(
+        messageId = id,
+        conversationId = "conv-2",
+        parentMessageId = "u-2",
+        endpoint = "My Router",
+        content = listOf(
+            MessageContentPart(type = ContentType.TEXT, text = laneB, agentId = "Mock__mock-fast____1", groupId = 1),
+            primary.copy(agentId = "Mock__mock-slow", groupId = 1),
+        ),
+    )
+
+    private fun buildWithCompareReply(reply: Message): ChatViewModel {
+        every { fixture.messageRepository.observeMessages("conv-2") } returns flowOf(listOf(compareTurn, reply))
+        return fixture.build(defaultDispatcher = testDispatcher, initialConversationId = "conv-2")
+    }
+
+    @Test
+    fun copyAndReadAloudOfACompareReplyTakeTheShownLaneOnly() = runTest(testDispatcher) {
+        val viewModel = buildWithCompareReply(
+            compareReply("r-2", MessageContentPart(type = ContentType.TEXT, text = "1. item number 1")),
+        )
+        advanceUntilIdle()
+
+        val copied = viewModel.getMessageClipboardText("r-2")
+        assertThat(copied).contains("1. item number 1")
+        assertThat(copied).doesNotContain(laneB)
+        assertThat(viewModel.getSpeechText("r-2")).doesNotContain(laneB)
+        assertThat(viewModel.getMessageClipboardText("r-2", secondary = true)).isEqualTo(laneB)
+    }
+
+    @Test
+    fun copyOfACompareReplyFetchesLaneAsFullCallAndOmitsLaneB() = runTest(testDispatcher) {
+        val laneRef = ToolCallPartRef("r-2", "call-1", "step-1", "Mock__mock-slow")
+        coEvery { fixture.messageRepository.storedToolCallParts("conv-2", listOf(laneRef)) } returns
+            mapOf(laneRef to full)
+        val viewModel = buildWithCompareReply(
+            compareReply("r-2", MessageContentPart(type = ContentType.TOOL_CALL, toolCall = preview)),
+        )
+        advanceUntilIdle()
+
+        val text = viewModel.getMessageClipboardText("r-2")
+
+        // The clipboard holds the call as JSON, so the full output's newlines are escaped.
+        assertThat(text).contains("x".repeat(600))
+        assertThat(text).doesNotContain(laneB)
         coVerify(exactly = 0) { fixture.messageRepository.getToolCallPart(any(), any(), any(), any(), any(), any()) }
     }
 }

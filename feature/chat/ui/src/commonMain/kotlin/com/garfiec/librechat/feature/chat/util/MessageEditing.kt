@@ -22,7 +22,10 @@ enum class MessageEditShape {
     /** One field per editable content part, each addressed by its raw index into `content`. */
     CONTENT_PARTS,
 
-    /** Nothing a field could hold — a turn of tool calls, images or an artifact. */
+    /**
+     * Nothing a field could hold — a turn of tool calls, images or an artifact — or a Compare reply,
+     * whose panes show lane-filtered parts that a field's position can't address.
+     */
     NONE,
 }
 
@@ -31,6 +34,7 @@ fun editShapeOf(message: Message): MessageEditShape {
     // the flat text, so that is what the editor has to edit.
     val parts = message.content
     if (parts.isNullOrEmpty()) return MessageEditShape.PLAIN_TEXT
+    if (hasParallelParts(message)) return MessageEditShape.NONE
     return if (parts.any { isEditablePart(it) }) {
         MessageEditShape.CONTENT_PARTS
     } else {
