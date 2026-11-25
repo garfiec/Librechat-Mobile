@@ -73,6 +73,8 @@ data class AccountSettingsUiState(
     val showEnableTwoFactorOtpDialog: Boolean = false,
     val showBackupCodesOtpDialog: Boolean = false,
     val showRegenerateBackupCodesConfirm: Boolean = false,
+    /** The failure of the code a 2FA prompt sent, shown in that prompt; [error] is for failures with none open. */
+    val twoFactorCodeError: TwoFactorCodeError? = null,
     /** 2FA was enabled without a session to replace the retired one: closing the backup codes signs in again. */
     val twoFactorSignInRequired: Boolean = false,
     /** 2FA was enabled and the server signed out every other session; the backup codes say so. */
@@ -100,6 +102,16 @@ data class AccountSettingsUiState(
     /** How many passkeys the account has; null until known, or when the list failed. */
     val passkeyCount: Int? = null,
 )
+
+/** Why a code sent from a 2FA prompt failed. */
+@Immutable
+sealed interface TwoFactorCodeError {
+    /** The server did not accept the code. */
+    data class Rejected(val byBackupCode: Boolean) : TwoFactorCodeError
+
+    /** The request failed for another reason, in the server's words. */
+    data class Failed(val message: String) : TwoFactorCodeError
+}
 
 /** The Balance section. Shown only while [AccountSettingsUiState.balanceEnabled]. */
 @Immutable

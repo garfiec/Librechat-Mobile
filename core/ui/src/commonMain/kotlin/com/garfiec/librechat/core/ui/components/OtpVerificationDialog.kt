@@ -18,22 +18,24 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 
 /**
  * Reusable OTP verification dialog for 2FA-protected operations.
  *
- * Shows a 6-digit OTP input with visual digit boxes (paste-friendly, auto-submit on 6th digit).
- * Includes a "Use a backup code instead" toggle that switches to a single text field
- * for alphanumeric backup code input with an explicit Verify button.
+ * Shows a 6-digit OTP input with visual digit boxes (paste-friendly, auto-submit on 6th digit, and
+ * a Verify button to resend a kept code). Includes a "Use a backup code instead" toggle that
+ * switches to a single text field for alphanumeric backup code input.
  *
  * @param title Dialog title (e.g. "Verify Identity", "Enter OTP")
  * @param description Optional description text shown below the title
  * @param isLoading Whether to disable inputs while an operation is in progress
  * @param onVerify Called with (token, backupCode) — one will be non-null
  * @param onDismiss Called when the dialog is dismissed
- * @param verifyLabel Label for the verify button (backup code mode)
+ * @param errorText Why the last code sent failed; shown under the input until the code is edited
+ * @param verifyLabel Label for the verify button
  * @param cancelLabel Label for the cancel/dismiss button
  * @param backupCodeLabel Label for the backup code text field
  * @param useBackupToggleLabel Text for the "use backup code" toggle
@@ -46,6 +48,7 @@ fun OtpVerificationDialog(
     onDismiss: () -> Unit,
     description: String? = null,
     isLoading: Boolean = false,
+    errorText: String? = null,
     verifyLabel: String = "Verify",
     cancelLabel: String = "Cancel",
     backupCodeLabel: String = "Backup Code",
@@ -56,6 +59,8 @@ fun OtpVerificationDialog(
     var backupCodeValue by remember { mutableStateOf("") }
     var useBackupCode by remember { mutableStateOf(false) }
     var submitted by remember { mutableStateOf(false) }
+    // Every submit clears it, so a repeated rejection with the same text shows again.
+    var edited by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
 
     LaunchedEffect(isLoading) {
@@ -90,7 +95,10 @@ fun OtpVerificationDialog(
                 if (useBackupCode) {
                     AdaptiveOutlinedTextField(
                         value = backupCodeValue,
-                        onValueChange = { backupCodeValue = it },
+                        onValueChange = {
+                            backupCodeValue = it
+                            edited = true
+                        },
                         label = { Text(backupCodeLabel) },
                         singleLine = true,
                         enabled = !isLoading,
@@ -101,6 +109,7 @@ fun OtpVerificationDialog(
                         keyboardActions = KeyboardActions(
                             onDone = {
                                 if (backupCodeValue.isNotBlank()) {
+                                    edited = false
                                     onVerify(null, backupCodeValue.trim())
                                 }
                             },
@@ -111,8 +120,10 @@ fun OtpVerificationDialog(
                         value = otpValue,
                         onValueChange = { newValue ->
                             otpValue = newValue
+                            edited = true
                             if (newValue.length == OTP_LENGTH && !submitted) {
                                 submitted = true
+                                edited = false
                                 onVerify(newValue, null)
                             }
                         },
@@ -121,10 +132,22 @@ fun OtpVerificationDialog(
                     )
                 }
 
+                val shownError = errorText.takeUnless { edited || isLoading }
+                if (shownError != null) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = shownError,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.testTag("otp_error"),
+                    )
+                }
+
                 Spacer(modifier = Modifier.height(8.dp))
 
                 TextButton(
                     onClick = {
+                        edited = true
                         useBackupCode = !useBackupCode
                         otpValue = ""
                         backupCodeValue = ""
@@ -141,8 +164,22 @@ fun OtpVerificationDialog(
         confirmButton = {
             if (useBackupCode) {
                 TextButton(
-                    onClick = { onVerify(null, backupCodeValue.trim()) },
+                    onClick = {
+                        edited = false
+                        onVerify(null, backupCodeValue.trim())
+                    },
                     enabled = !isLoading && backupCodeValue.isNotBlank(),
+                ) {
+                    Text(verifyLabel)
+                }
+            } else {
+                TextButton(
+                    onClick = {
+                        submitted = true
+                        edited = false
+                        onVerify(otpValue, null)
+                    },
+                    enabled = !isLoading && otpValue.length == OTP_LENGTH,
                 ) {
                     Text(verifyLabel)
                 }

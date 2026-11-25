@@ -391,6 +391,8 @@
     <string name="twofa_sessions_incomplete">Двухфакторная аутентификация включена, но некоторые другие сеансы могут оставаться активными до истечения срока. Сохраните резервные коды, затем войдите снова.</string>
     <string name="twofa_other_sessions_signed_out">Двухфакторная аутентификация включена. На всех остальных устройствах выполнен выход из этого аккаунта.</string>
     <string name="twofa_sign_in_again_to_enable">Войдите снова, чтобы включить двухфакторную аутентификацию.</string>
+    <string name="twofa_code_rejected">Код не подошёл. Введите текущий код из приложения-аутентификатора.</string>
+    <string name="twofa_backup_code_rejected">Код не подошёл.</string>
     <string name="dialog_title_regenerate_backup_codes">Создать новые резервные коды?</string>
     <string name="regenerate_backup_codes_warning">Текущие резервные коды перестанут работать. Вы получите новый набор, который нужно сохранить.</string>
     <string name="action_regenerate">Создать</string>

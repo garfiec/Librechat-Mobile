@@ -33,6 +33,7 @@ import com.garfiec.librechat.feature.settings.screen.sections.BackupCodesDialog
 import com.garfiec.librechat.feature.settings.screen.sections.TwoFactorSetupDialog
 import com.garfiec.librechat.feature.settings.viewmodel.AccountSettingsUiState
 import com.garfiec.librechat.feature.settings.viewmodel.PullRequestAccountUiState
+import com.garfiec.librechat.feature.settings.viewmodel.TwoFactorCodeError
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
@@ -84,6 +85,13 @@ fun AccountSettingsContent(
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showLogoutDialog by remember { mutableStateOf(false) }
+    val twoFactorCodeErrorText = when (val codeError = uiState.twoFactorCodeError) {
+        null -> null
+        is TwoFactorCodeError.Rejected -> stringResource(
+            if (codeError.byBackupCode) Res.string.twofa_backup_code_rejected else Res.string.twofa_code_rejected,
+        )
+        is TwoFactorCodeError.Failed -> codeError.message
+    }
 
     AdaptiveGroupedPage(modifier = modifier.fillMaxSize()) {
         LazyColumn(
@@ -251,6 +259,7 @@ fun AccountSettingsContent(
                 isLoading = uiState.isTwoFactorLoading,
                 onConfirm = actions.confirmEnableTwoFactor,
                 onDismiss = actions.dismissTwoFactorSetupDialog,
+                errorText = twoFactorCodeErrorText,
             )
         }
 
@@ -261,6 +270,7 @@ fun AccountSettingsContent(
                 title = stringResource(Res.string.dialog_title_disable_2fa),
                 description = stringResource(Res.string.twofa_disable_instructions),
                 isLoading = uiState.isTwoFactorLoading,
+                errorText = twoFactorCodeErrorText,
                 onVerify = { token, backupCode ->
                     actions.confirmDisableTwoFactor(token, backupCode)
                 },
@@ -335,6 +345,7 @@ fun AccountSettingsContent(
                 title = stringResource(Res.string.otp_title_verify_identity),
                 description = stringResource(Res.string.otp_desc_delete_account),
                 isLoading = uiState.isDeletingAccount,
+                errorText = twoFactorCodeErrorText,
                 onVerify = { token, backupCode ->
                     actions.deleteAccount(token, backupCode)
                 },
@@ -353,6 +364,7 @@ fun AccountSettingsContent(
                 title = stringResource(Res.string.otp_title_verify_identity),
                 description = stringResource(Res.string.otp_desc_reenroll_2fa),
                 isLoading = uiState.isTwoFactorLoading,
+                errorText = twoFactorCodeErrorText,
                 onVerify = { token, backupCode ->
                     actions.enableTwoFactorWithOtp(token, backupCode)
                 },
@@ -371,6 +383,7 @@ fun AccountSettingsContent(
                 title = stringResource(Res.string.otp_title_verify_identity),
                 description = stringResource(Res.string.otp_desc_regenerate_backup_codes),
                 isLoading = uiState.isTwoFactorLoading,
+                errorText = twoFactorCodeErrorText,
                 onVerify = { token, backupCode ->
                     actions.regenerateBackupCodesWithOtp(token, backupCode)
                 },

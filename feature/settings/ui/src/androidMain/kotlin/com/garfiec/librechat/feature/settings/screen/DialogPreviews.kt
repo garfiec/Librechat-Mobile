@@ -17,6 +17,7 @@ import com.garfiec.librechat.feature.settings.resources.server_headers_discard_c
 import com.garfiec.librechat.feature.settings.resources.server_headers_discard_message
 import com.garfiec.librechat.feature.settings.resources.server_headers_discard_title
 import com.garfiec.librechat.feature.settings.resources.server_headers_keep_editing
+import com.garfiec.librechat.feature.settings.resources.twofa_code_rejected
 import com.garfiec.librechat.feature.settings.resources.twofa_disable_instructions
 import com.garfiec.librechat.feature.settings.screen.sections.BackupCodesDialog
 import org.jetbrains.compose.resources.stringResource
@@ -62,6 +63,7 @@ private fun DisableTwoFactorHost(style: UiStyle, height: Dp = 640.dp) = DialogPr
     OtpVerificationDialog(
         title = stringResource(Res.string.dialog_title_disable_2fa),
         description = stringResource(Res.string.twofa_disable_instructions),
+        errorText = stringResource(Res.string.twofa_code_rejected),
         onVerify = { _, _ -> },
         onDismiss = {},
     )

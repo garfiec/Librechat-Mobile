@@ -373,6 +373,8 @@
     <string name="twofa_sessions_incomplete">双重身份验证已开启，但部分其他会话可能会保持登录状态直到过期。请保存备用码，然后重新登录。</string>
     <string name="twofa_other_sessions_signed_out">双重身份验证已开启。登录此账户的所有其他设备均已退出登录。</string>
     <string name="twofa_sign_in_again_to_enable">请重新登录以开启双重身份验证。</string>
+    <string name="twofa_code_rejected">验证码不匹配。请输入身份验证器中的当前验证码。</string>
+    <string name="twofa_backup_code_rejected">验证码不匹配。</string>
     <string name="dialog_title_regenerate_backup_codes">重新生成备用码？</string>
     <string name="regenerate_backup_codes_warning">当前的备用码将失效。你将获得一组新的备用码，请妥善保存。</string>
     <string name="action_regenerate">重新生成</string>

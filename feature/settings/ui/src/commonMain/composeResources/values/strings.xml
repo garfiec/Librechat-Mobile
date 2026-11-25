@@ -388,6 +388,8 @@
     <string name="twofa_sessions_incomplete">Two-factor authentication is on, but some other sessions may stay signed in until they expire. Save your backup codes, then sign in again.</string>
     <string name="twofa_other_sessions_signed_out">Two-factor authentication is on. Every other device signed in to this account has been signed out.</string>
     <string name="twofa_sign_in_again_to_enable">Sign in again to enable two-factor authentication.</string>
+    <string name="twofa_code_rejected">That code didn't match. Enter the current code from your authenticator.</string>
+    <string name="twofa_backup_code_rejected">That code didn't match.</string>
     <string name="dialog_title_regenerate_backup_codes">Regenerate backup codes?</string>
     <string name="regenerate_backup_codes_warning">Your current backup codes will stop working. You'll get a new set to save.</string>
     <string name="action_regenerate">Regenerate</string>

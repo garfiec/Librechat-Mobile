@@ -379,6 +379,8 @@
     <string name="twofa_sessions_incomplete">Die Zwei-Faktor-Authentifizierung ist aktiv, aber einige andere Sitzungen bleiben eventuell angemeldet, bis sie ablaufen. Sichere deine Backup-Codes und melde dich dann erneut an.</string>
     <string name="twofa_other_sessions_signed_out">Die Zwei-Faktor-Authentifizierung ist aktiv. Alle anderen Geräte, die bei diesem Konto angemeldet waren, wurden abgemeldet.</string>
     <string name="twofa_sign_in_again_to_enable">Melde dich erneut an, um die Zwei-Faktor-Authentifizierung zu aktivieren.</string>
+    <string name="twofa_code_rejected">Dieser Code stimmt nicht. Gib den aktuellen Code aus deiner Authenticator-App ein.</string>
+    <string name="twofa_backup_code_rejected">Dieser Code stimmt nicht.</string>
     <string name="dialog_title_regenerate_backup_codes">Backup-Codes neu erstellen?</string>
     <string name="regenerate_backup_codes_warning">Deine aktuellen Backup-Codes funktionieren dann nicht mehr. Du erhältst einen neuen Satz zum Speichern.</string>
     <string name="action_regenerate">Neu erstellen</string>

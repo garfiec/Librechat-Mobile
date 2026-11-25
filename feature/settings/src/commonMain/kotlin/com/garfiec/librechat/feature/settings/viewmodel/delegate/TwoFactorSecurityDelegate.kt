@@ -8,6 +8,7 @@ import com.garfiec.librechat.feature.settings.viewmodel.AccountSettingsUiState
 import com.garfiec.librechat.feature.settings.viewmodel.SettingsStateHandle
 import com.garfiec.librechat.feature.settings.viewmodel.isCredentialRetirementIncomplete
 import com.garfiec.librechat.feature.settings.viewmodel.isHttpStatus
+import com.garfiec.librechat.feature.settings.viewmodel.toTwoFactorCodeError
 import kotlinx.coroutines.launch
 
 /**
@@ -46,7 +47,7 @@ class TwoFactorSecurityDelegate(
      */
     fun enableTwoFactor(token: String? = null, backupCode: String? = null) {
         stateHandle.scope.launch {
-            stateHandle.update { copy(isTwoFactorLoading = true) }
+            stateHandle.update { copy(isTwoFactorLoading = true, twoFactorCodeError = null) }
             when (val result = authRepository.enableTwoFactor(token = token, backupCode = backupCode)) {
                 is Result.Success -> {
                     stateHandle.update {
@@ -61,12 +62,19 @@ class TwoFactorSecurityDelegate(
                 }
                 is Result.Error -> {
                     // Server returns 400 when 2FA is already enabled and OTP is required to re-enroll
-                    val needsOtp = token == null && backupCode == null && result.isHttpStatus(400)
+                    val codeSent = token != null || backupCode != null
+                    val needsOtp = !codeSent && result.isHttpStatus(400)
+                    val fallback = "Failed to enable two-factor authentication"
                     stateHandle.update {
                         copy(
                             isTwoFactorLoading = false,
                             showEnableTwoFactorOtpDialog = if (needsOtp) true else showEnableTwoFactorOtpDialog,
-                            error = if (needsOtp) null else (result.message ?: "Failed to enable two-factor authentication"),
+                            error = if (needsOtp || codeSent) null else (result.message ?: fallback),
+                            twoFactorCodeError = if (codeSent) {
+                                result.toTwoFactorCodeError(401, backupCode != null, fallback)
+                            } else {
+                                null
+                            },
                         )
                     }
                 }
@@ -76,12 +84,12 @@ class TwoFactorSecurityDelegate(
     }
 
     fun dismissEnableTwoFactorOtpDialog() {
-        stateHandle.update { copy(showEnableTwoFactorOtpDialog = false) }
+        stateHandle.update { copy(showEnableTwoFactorOtpDialog = false, twoFactorCodeError = null) }
     }
 
     fun confirmEnableTwoFactor(code: String) {
         stateHandle.scope.launch {
-            stateHandle.update { copy(isTwoFactorLoading = true) }
+            stateHandle.update { copy(isTwoFactorLoading = true, twoFactorCodeError = null) }
             when (val result = authRepository.confirmTwoFactor(code)) {
                 is Result.Success -> {
                     // The backup codes to display came with enable and are held in state.
@@ -123,7 +131,7 @@ class TwoFactorSecurityDelegate(
                     stateHandle.update {
                         copy(
                             isTwoFactorLoading = false,
-                            error = result.message ?: "Invalid verification code",
+                            twoFactorCodeError = result.toTwoFactorCodeError(400, false, "Invalid verification code"),
                         )
                     }
                 }
@@ -135,7 +143,7 @@ class TwoFactorSecurityDelegate(
     /** Either code works: losing the authenticator is the usual reason to turn 2FA off. */
     fun confirmDisableTwoFactor(token: String?, backupCode: String?) {
         stateHandle.scope.launch {
-            stateHandle.update { copy(isTwoFactorLoading = true) }
+            stateHandle.update { copy(isTwoFactorLoading = true, twoFactorCodeError = null) }
             when (val result = authRepository.disableTwoFactor(token = token, backupCode = backupCode)) {
                 is Result.Success -> {
                     stateHandle.update {
@@ -150,7 +158,11 @@ class TwoFactorSecurityDelegate(
                     stateHandle.update {
                         copy(
                             isTwoFactorLoading = false,
-                            error = result.message ?: "Failed to disable two-factor authentication",
+                            twoFactorCodeError = result.toTwoFactorCodeError(
+                                401,
+                                backupCode != null,
+                                "Failed to disable two-factor authentication",
+                            ),
                         )
                     }
                 }
@@ -160,11 +172,11 @@ class TwoFactorSecurityDelegate(
     }
 
     fun dismissTwoFactorSetupDialog() {
-        stateHandle.update { copy(showTwoFactorSetupDialog = false, twoFactorOtpauthUrl = null) }
+        stateHandle.update { copy(showTwoFactorSetupDialog = false, twoFactorOtpauthUrl = null, twoFactorCodeError = null) }
     }
 
     fun dismissDisableTwoFactorDialog() {
-        stateHandle.update { copy(showDisableTwoFactorDialog = false) }
+        stateHandle.update { copy(showDisableTwoFactorDialog = false, twoFactorCodeError = null) }
     }
 
     fun dismissBackupCodesDialog() {
@@ -210,7 +222,7 @@ class TwoFactorSecurityDelegate(
 
     fun regenerateBackupCodes(token: String? = null, backupCode: String? = null) {
         stateHandle.scope.launch {
-            stateHandle.update { copy(isTwoFactorLoading = true) }
+            stateHandle.update { copy(isTwoFactorLoading = true, twoFactorCodeError = null) }
             when (val result = authRepository.regenerateBackupCodes(token = token, backupCode = backupCode)) {
                 is Result.Success -> {
                     stateHandle.update {
@@ -224,12 +236,19 @@ class TwoFactorSecurityDelegate(
                 }
                 is Result.Error -> {
                     // Server returns 400 when 2FA is enabled and OTP is required to regenerate codes
-                    val needsOtp = token == null && backupCode == null && result.isHttpStatus(400)
+                    val codeSent = token != null || backupCode != null
+                    val needsOtp = !codeSent && result.isHttpStatus(400)
+                    val fallback = "Failed to regenerate backup codes"
                     stateHandle.update {
                         copy(
                             isTwoFactorLoading = false,
                             showBackupCodesOtpDialog = if (needsOtp) true else showBackupCodesOtpDialog,
-                            error = if (needsOtp) null else (result.message ?: "Failed to regenerate backup codes"),
+                            error = if (needsOtp || codeSent) null else (result.message ?: fallback),
+                            twoFactorCodeError = if (codeSent) {
+                                result.toTwoFactorCodeError(401, backupCode != null, fallback)
+                            } else {
+                                null
+                            },
                         )
                     }
                 }
@@ -239,6 +258,6 @@ class TwoFactorSecurityDelegate(
     }
 
     fun dismissBackupCodesOtpDialog() {
-        stateHandle.update { copy(showBackupCodesOtpDialog = false) }
+        stateHandle.update { copy(showBackupCodesOtpDialog = false, twoFactorCodeError = null) }
     }
 }
