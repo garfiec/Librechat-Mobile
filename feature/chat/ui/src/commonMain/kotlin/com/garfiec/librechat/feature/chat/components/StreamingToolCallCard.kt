@@ -84,11 +84,16 @@ fun StreamingToolCallCard(
         val imageResult = remember(toolCall, streamingAttachments, baseUrl) {
             parseStreamingImageGenResult(toolCall, baseUrl, streamingAttachments)
         }
-        ImageGenCard(
-            result = imageResult,
-            modifier = modifier,
-            showDescription = showImageDescriptions,
-        )
+        if (imageResult.fallsBackToToolCard) {
+            val status = failedImageCallStatus(toolCall.output, toolCall.closedStatus)
+            GenericStreamingToolCard(toolCall.copy(closedStatus = status), baseUrl, streamingAttachments, modifier)
+        } else {
+            ImageGenCard(
+                result = imageResult,
+                modifier = modifier,
+                showDescription = showImageDescriptions,
+            )
+        }
         return
     }
 

@@ -9,6 +9,7 @@ import com.garfiec.librechat.core.common.identity.cleanServerUrl
 import com.garfiec.librechat.core.model.AskUserQuestionOption
 import com.garfiec.librechat.core.model.AskUserQuestionRequest
 import com.garfiec.librechat.core.model.Attachment
+import com.garfiec.librechat.core.model.RunStepStatus
 import com.garfiec.librechat.core.model.WebSearchAnswerBox
 import com.garfiec.librechat.core.model.WebSearchData
 import com.garfiec.librechat.core.model.content.AgentToolCall
@@ -565,13 +566,26 @@ internal fun parseImageGenResult(
     }
 
     val imageUrls = attachmentUrls.ifEmpty { listOfNotNull(imageUrl) }
+    val status = toolCall.effectiveRunStepStatus
     return ImageGenResult(
         imageUrls = imageUrls,
         prompt = prompt,
-        isGenerating = outputStr.isNullOrBlank() && imageUrls.isEmpty(),
+        isGenerating = outputStr.isNullOrBlank() && imageUrls.isEmpty() && status == null,
         toolCallId = toolCallId,
+        fallsBackToToolCard = imageGenFallsBackToToolCard(outputStr, status, imageUrls),
     )
 }
+
+/** Upstream `Part.tsx` `isFailedImageCall`: a failed step or an error output, unless the user stopped it. */
+internal fun isFailedImageCall(output: String?, status: RunStepStatus?): Boolean =
+    status != RunStepStatus.CANCELLED && (status == RunStepStatus.FAILED || isToolErrorOutput(output))
+
+/** The status the fallback tool card shows: an error output fails the call even when its step closed as completed. */
+internal fun failedImageCallStatus(output: String?, status: RunStepStatus?): RunStepStatus? =
+    if (isFailedImageCall(output, status)) RunStepStatus.FAILED else status
+
+private fun imageGenFallsBackToToolCard(output: String?, status: RunStepStatus?, imageUrls: List<String>): Boolean =
+    isFailedImageCall(output, status) || (status == RunStepStatus.CANCELLED && imageUrls.isEmpty())
 
 /**
  * Builds an [ImageGenResult] for an in-progress (streaming) image-gen tool call.
@@ -591,12 +605,15 @@ internal fun parseStreamingImageGenResult(
     val imageUrls = attachments.filter { it.toolCallId == toolCall.id }
         .mapNotNull { resolveAttachmentUrl(it, baseUrl) }
         .distinct()
+    val fallsBackToToolCard = imageGenFallsBackToToolCard(toolCall.output, toolCall.closedStatus, imageUrls)
     return ImageGenResult(
         imageUrls = imageUrls,
         prompt = prompt,
-        isGenerating = imageUrls.isEmpty(),
+        // A clean close keeps generating: the server writes the attachment after the tool ends.
+        isGenerating = imageUrls.isEmpty() && !fallsBackToToolCard,
         quality = quality,
         toolCallId = toolCall.id,
+        fallsBackToToolCard = fallsBackToToolCard,
     )
 }
 

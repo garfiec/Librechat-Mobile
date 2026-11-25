@@ -365,12 +365,17 @@ private fun ToolCallDispatcherContent(
                 val imageResult = remember(toolCall, baseUrl, attachments) {
                     parseImageGenResult(toolCall, baseUrl, attachments)
                 }
-                ImageGenCard(
-                    result = imageResult,
-                    showDescription = showImageDescriptions,
-                    hideImages = hideAttachments,
-                    modifier = cardModifier,
-                )
+                if (imageResult.fallsBackToToolCard) {
+                    val status = failedImageCallStatus(output, toolCall?.effectiveRunStepStatus)
+                    GenericToolCallCard(displayName, displayArgs, output, cardModifier, cardKey, status)
+                } else {
+                    ImageGenCard(
+                        result = imageResult,
+                        showDescription = showImageDescriptions,
+                        hideImages = hideAttachments,
+                        modifier = cardModifier,
+                    )
+                }
             }
             toolNameLower == CHECK_BACKGROUND_TASK_TOOL -> {
                 val display = remember(output) { BackgroundTaskOutput.parse(output) }

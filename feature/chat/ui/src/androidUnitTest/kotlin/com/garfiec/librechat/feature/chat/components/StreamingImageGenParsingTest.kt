@@ -1,6 +1,7 @@
 package com.garfiec.librechat.feature.chat.components
 
 import com.garfiec.librechat.core.model.Attachment
+import com.garfiec.librechat.core.model.RunStepStatus
 import com.garfiec.librechat.feature.chat.viewmodel.ActiveToolCall
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
@@ -8,6 +9,9 @@ import org.junit.Test
 class StreamingImageGenParsingTest {
 
     private val baseUrl = "https://chat.example.com"
+
+    private val schemaValidationError = "Error: Tool \"image_gen_oai\" input failed schema validation. " +
+        "Missing required fields: prompt. Use this tool's declared arguments.\n Please fix your mistakes."
 
     @Test
     fun `generating state before attachment arrives`() {
@@ -106,5 +110,55 @@ class StreamingImageGenParsingTest {
         assertThat(result.prompt).isNull()
         assertThat(result.quality).isNull()
         assertThat(result.isGenerating).isTrue()
+    }
+
+    @Test
+    fun `a completed call with a schema-validation error stops generating`() {
+        val toolCall = ActiveToolCall(
+            id = "call_1",
+            name = "image_gen_oai",
+            input = "{}",
+            isComplete = true,
+            output = schemaValidationError,
+            closedStatus = RunStepStatus.COMPLETED,
+        )
+
+        val result = parseStreamingImageGenResult(toolCall, baseUrl, emptyList())
+
+        assertThat(result.isGenerating).isFalse()
+        assertThat(result.fallsBackToToolCard).isTrue()
+    }
+
+    @Test
+    fun `a stopped call with no image stops generating`() {
+        val toolCall = ActiveToolCall(
+            id = "call_1",
+            name = "image_gen_oai",
+            input = """{"prompt":"a red fox"}""",
+            isComplete = true,
+            closedStatus = RunStepStatus.CANCELLED,
+        )
+
+        val result = parseStreamingImageGenResult(toolCall, baseUrl, emptyList())
+
+        assertThat(result.isGenerating).isFalse()
+        assertThat(result.fallsBackToToolCard).isTrue()
+    }
+
+    @Test
+    fun `a completed call still waiting for its attachment keeps generating`() {
+        val toolCall = ActiveToolCall(
+            id = "call_1",
+            name = "image_gen_oai",
+            input = """{"prompt":"a red fox"}""",
+            isComplete = true,
+            output = "Image generated successfully.",
+            closedStatus = RunStepStatus.COMPLETED,
+        )
+
+        val result = parseStreamingImageGenResult(toolCall, baseUrl, emptyList())
+
+        assertThat(result.isGenerating).isTrue()
+        assertThat(result.fallsBackToToolCard).isFalse()
     }
 }
