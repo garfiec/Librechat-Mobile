@@ -40,6 +40,7 @@ fun DrawerDemo(
     onSwitchAccount: (String) -> Unit,
     onOpenHit: (conversationId: String, jump: ChatJump) -> Unit,
     onOpenSearch: (String) -> Unit,
+    onOpenWorkspace: (WorkspaceDestination) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val accountId = accounts.firstOrNull { it.isActive }?.accountId
@@ -56,7 +57,7 @@ fun DrawerDemo(
     var tab by remember { mutableStateOf(DrawerTab.Chats) }
     var expandedProject by remember(accountId) { mutableStateOf<String?>(null) }
     var pinnedWorkspace by remember {
-        mutableStateOf(listOf(WorkspaceDestination.AGENTS.storageId, WorkspaceDestination.BOOKMARKS.storageId))
+        mutableStateOf(listOf(WorkspaceDestination.FILES.storageId))
     }
 
     val rows = sample.chats
@@ -82,7 +83,7 @@ fun DrawerDemo(
             onOpenSearch = onOpenSearch,
             onNewChat = onNewChat,
             onConversationClick = onSelectConversation,
-            onWorkspaceClick = {},
+            onWorkspaceClick = onOpenWorkspace,
             modifier = modifier,
             footerContent = {
                 DrawerAccountFooter(

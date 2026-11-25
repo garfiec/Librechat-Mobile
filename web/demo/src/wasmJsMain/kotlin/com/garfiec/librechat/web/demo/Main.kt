@@ -21,6 +21,7 @@ import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,6 +30,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
@@ -42,6 +44,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveGroupedPage
 import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
 import com.garfiec.librechat.core.ui.components.AdaptiveSectionHeader
 import com.garfiec.librechat.core.ui.components.AdaptiveSegmentedChoice
+import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
 import com.garfiec.librechat.core.ui.components.adaptiveRowColor
 import com.garfiec.librechat.core.ui.components.adaptiveSection
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
@@ -56,6 +59,8 @@ import com.garfiec.librechat.feature.conversations.drawer.AccountChip
 import com.garfiec.librechat.feature.conversations.drawer.AccountSwitcherSheet
 import com.garfiec.librechat.feature.conversations.drawer.AccountUiModel
 import com.garfiec.librechat.feature.conversations.drawer.RemoveAccountDialog
+import com.garfiec.librechat.feature.conversations.drawer.WorkspaceDestination
+import kotlinx.coroutines.launch
 
 /**
  * The initial state follows the browser: dark when it prefers dark, Liquid Glass on Apple systems,
@@ -83,13 +88,37 @@ private val Accents = listOf(
     "Violet" to Color(0xFF7C3AED),
 )
 
-/** What the content pane shows: a chat by id (at a search hit, from Search), Search, or Settings. */
+/** What the content pane shows: a chat by id (at a search hit, from Search), Search, Files, or Settings. */
 private sealed interface Route {
     data class Chat(val conversationId: String, val jump: ChatJump? = null) : Route
     /** Holds its screen's state, so Back from a hit returns to the search as it was left. */
     class Search(val session: DemoSearchSession) : Route
     data object Settings : Route
+    data object Files : Route
 }
+
+/** The snackbar for a part of the app the demo doesn't have. */
+internal fun notInTheDemo(what: String) = "$what isn't available in the demo"
+
+/** Shows [message], replacing the snackbar up rather than queueing behind it. */
+internal suspend fun SnackbarHostState.showReplacing(message: String) {
+    currentSnackbarData?.dismiss()
+    showSnackbar(message)
+}
+
+private val WorkspaceDestination.demoName: String
+    get() = when (this) {
+        WorkspaceDestination.AGENTS -> "Agents"
+        WorkspaceDestination.SKILLS -> "Skills"
+        WorkspaceDestination.PROMPTS -> "Prompts"
+        WorkspaceDestination.MCP_SERVERS -> "MCP servers"
+        WorkspaceDestination.SCHEDULES -> "Scheduled chats"
+        WorkspaceDestination.MEMORIES -> "Memories"
+        WorkspaceDestination.BOOKMARKS -> "Bookmarks"
+        WorkspaceDestination.FILES -> "Files"
+        WorkspaceDestination.SHARED_LINKS -> "Shared links"
+        WorkspaceDestination.ARCHIVED -> "Archived chats"
+    }
 
 private fun locationHash(): String = js("window.location.hash || ''")
 
@@ -134,6 +163,9 @@ private fun Demo(initial: InitialState) {
     val active = accounts.firstOrNull { it.isActive }
     var newChats by remember { mutableStateOf(1) }
     var jumps by remember { mutableStateOf(0) }
+    val snackbar = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val showNotice: (String) -> Unit = { text -> scope.launch { snackbar.showReplacing(text) } }
     var backStack by remember {
         val first = Route.Chat(initial.chat ?: "new-0")
         mutableStateOf(if (initial.settings) listOf(first, Route.Settings) else listOf<Route>(first))
@@ -195,6 +227,14 @@ private fun Demo(initial: InitialState) {
                                 navigate(Route.Search(DemoSearchSession(active?.accountId.orEmpty(), query)))
                                 close()
                             },
+                            onOpenWorkspace = { destination ->
+                                if (destination == WorkspaceDestination.FILES) {
+                                    navigate(Route.Files)
+                                    close()
+                                } else {
+                                    showNotice(notInTheDemo(destination.demoName))
+                                }
+                            },
                         )
                     },
                     content = { openDrawer ->
@@ -216,6 +256,7 @@ private fun Demo(initial: InitialState) {
                                 onBack = goBack,
                                 jump = current.jump,
                             )
+                            Route.Files -> FilesDemo(onBack = goBack)
                             is Route.Search -> SearchDemo(
                                 session = current.session,
                                 onBack = goBack,
@@ -225,6 +266,10 @@ private fun Demo(initial: InitialState) {
                         }
                     },
                 )
+                // Above the chat's composer.
+                Box(Modifier.fillMaxSize().padding(bottom = 96.dp), contentAlignment = Alignment.BottomCenter) {
+                    AdaptiveSnackbarHost(snackbar, Modifier.widthIn(max = 560.dp))
+                }
                 if (showAccounts) {
                     AccountSwitcherSheet(
                         accounts = accounts.sortedByDescending { it.isActive },

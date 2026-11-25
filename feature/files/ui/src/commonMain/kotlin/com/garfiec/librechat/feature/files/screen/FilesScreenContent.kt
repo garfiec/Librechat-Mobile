@@ -43,6 +43,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DontMemoize
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -157,7 +158,8 @@ fun FilesScreenContent(
     var singleDeleteFileId by remember { mutableStateOf<String?>(null) }
     var showCancelSelectionConfirmation by remember { mutableStateOf(false) }
 
-    val requestExitSelection = {
+    // Not memoized: in the browser build, memoizing it crashes the screen's next recomposition.
+    val requestExitSelection = @DontMemoize {
         if (uiState.selectedFileIds.isEmpty()) {
             actions.onExitSelectionMode()
         } else {

@@ -29,6 +29,7 @@ kotlin {
             implementation(project(":core:ui"))
             implementation(project(":feature:chat:ui"))
             implementation(project(":feature:conversations:ui"))
+            implementation(project(":feature:files:ui"))
             @Suppress("DEPRECATION")
             implementation(compose.runtime)
             @Suppress("DEPRECATION")
