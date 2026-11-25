@@ -2,6 +2,7 @@ package com.garfiec.librechat.feature.chat.viewmodel.delegate
 
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.error.UserKeyError
+import com.garfiec.librechat.feature.chat.components.AttachedFile
 
 /**
  * What [StreamingManagerDelegate] needs from the ViewModel that owns it: the conversation loader,
@@ -19,19 +20,19 @@ interface StreamingHost {
     fun reloadConversation(conversationId: String)
 
     /**
-     * [reloadConversation], then restores [unsent]'s text to the composer if the reloaded
-     * conversation holds no server copy of it.
+     * [reloadConversation], then restores [unsent]'s text, quotes and [files] to the composer if
+     * the reloaded conversation holds no server copy of it.
      */
-    fun reloadRestoringUnsaved(conversationId: String, unsent: Message)
+    fun reloadRestoringUnsaved(conversationId: String, unsent: Message, files: List<AttachedFile>)
 
     /**
      * Un-sends a turn the server never persisted: removes its optimistic user message
-     * ([optimisticId]) and puts that message's text and quotes back into the composer, or a drained
-     * queue item back at the queue head (the caller pauses the queue after). Null when
-     * the turn re-submitted a persisted message, which must never be removed — the live reply is
-     * still cleared.
+     * ([optimisticId]) and puts that message's text and quotes, and the turn's [files], back into
+     * the composer, or a drained queue item back at the queue head (the caller pauses the queue
+     * after). Null when the turn re-submitted a persisted message, which must never be removed — the
+     * live reply is still cleared.
      */
-    fun unsendTurn(optimisticId: String?)
+    fun unsendTurn(optimisticId: String?, files: List<AttachedFile>)
 
     /** Opens the model picker after the server refused the turn's spec ([isSpecRefusal]). */
     fun surfaceSpecRefusal()

@@ -19,6 +19,7 @@ import com.garfiec.librechat.core.model.error.parseUserKeyError
 import com.garfiec.librechat.core.model.response.ChatStatusResponse
 import com.garfiec.librechat.core.model.response.StatusResumeUserMessage
 import com.garfiec.librechat.core.network.api.chatRefusalText
+import com.garfiec.librechat.feature.chat.components.AttachedFile
 import com.garfiec.librechat.feature.chat.util.AttachedRun
 import com.garfiec.librechat.feature.chat.util.applyAbortContract
 import com.garfiec.librechat.feature.chat.util.buildActiveMessagePath
@@ -587,7 +588,7 @@ class StreamingManagerDelegate(
         // for a turn that never existed.
         if (aborted && rawEvent.earlyAbort) {
             liveReply.onFinal(responseId = null)
-            host.unsendTurn(currentTurnOptimisticUserMessageId)
+            host.unsendTurn(currentTurnOptimisticUserMessageId, currentTurnSpec?.attachments.orEmpty())
             endStream(StreamEndReason.Finalized(aborted = true))
             return
         }
@@ -758,7 +759,9 @@ class StreamingManagerDelegate(
         abortWatchdogJob = null
         abortRequested = false
         // The run is over: its spec must not be re-pinned onto a later reconnect that finds some
-        // other run (started elsewhere) still active on this conversation.
+        // other run (started elsewhere) still active on this conversation. Its files were cleared
+        // from the composer at send, so an un-send below hands back this copy.
+        val turnFiles = currentTurnSpec?.attachments.orEmpty()
         currentTurnSpec = null
         currentTurnManualSkills = null
         // Whatever ended the run usually made any human-review pause unresolvable (the job is
@@ -830,7 +833,7 @@ class StreamingManagerDelegate(
                 // typed text simply disappeared, with nothing to retry from. Null id means the turn
                 // re-submitted a persisted message (regenerate / continue / edit-AI) — never remove
                 // those.
-                currentTurnOptimisticUserMessageId?.takeUnless { probablySaved }?.let(host::unsendTurn)
+                host.unsendUnlessSaved(currentTurnOptimisticUserMessageId, probablySaved, turnFiles)
                 // Preserve partial content so users can read/copy what was received.
                 handle.update {
                     content = content.resetLiveReply(false, buffer.currentText, buffer.currentThinking)
@@ -849,7 +852,7 @@ class StreamingManagerDelegate(
                 // If the server already created a conversation, fetch whatever it persisted.
                 handle.state.conversationId?.let { conversationId ->
                     if (unsavedTurn != null) {
-                        host.reloadRestoringUnsaved(conversationId, unsavedTurn)
+                        host.reloadRestoringUnsaved(conversationId, unsavedTurn, turnFiles)
                     } else {
                         host.reloadConversation(conversationId)
                     }
@@ -1316,6 +1319,10 @@ internal fun MessagesState.attachedTo(status: ChatStatusResponse): MessagesState
             displayMessages
         },
     )
+}
+
+private fun StreamingHost.unsendUnlessSaved(optimisticId: String?, probablySaved: Boolean, files: List<AttachedFile>) {
+    optimisticId?.takeUnless { probablySaved }?.let { unsendTurn(it, files) }
 }
 
 private fun StatusResumeUserMessage.toMessage(): Message? {

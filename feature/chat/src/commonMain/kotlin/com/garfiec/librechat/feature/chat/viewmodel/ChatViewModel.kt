@@ -681,6 +681,7 @@ class ChatViewModel(
         draftRepository = draftRepository,
         defaultDispatcher = defaultDispatcher,
         applyConversationModel = modelDelegate::applyConversationModel,
+        restoreUnsentFiles = fileDelegate::addPreUploadedFiles,
         // A handed-off new chat already holds what its first turn was sent with.
         wantsStoredParameters = { !isHandedOffNewChat },
         rememberedTools = { id ->
@@ -826,9 +827,9 @@ class ChatViewModel(
             }
             override fun reloadConversation(conversationId: String) =
                 conversationLoadDelegate.loadConversation(conversationId)
-            override fun reloadRestoringUnsaved(conversationId: String, unsent: Message) =
-                conversationLoadDelegate.loadConversation(conversationId, unsavedTurn = unsent)
-            override fun unsendTurn(optimisticId: String?) {
+            override fun reloadRestoringUnsaved(conversationId: String, unsent: Message, files: List<AttachedFile>) =
+                conversationLoadDelegate.loadConversation(conversationId, unsavedTurn = unsent, unsavedFiles = files)
+            override fun unsendTurn(optimisticId: String?, files: List<AttachedFile>) {
                 val unsent = optimisticId?.let { id -> _uiState.value.messages.firstOrNull { it.messageId == id } }
                 treeDelegate.unsendOptimisticTurn(optimisticId)
                 drainedTurn?.takeIf { it.first == optimisticId }?.let { (_, drained) ->
@@ -841,6 +842,7 @@ class ChatViewModel(
                         it.text,
                         it.quotes.orEmpty(),
                         it.manualSkills.orEmpty(),
+                        files,
                     )
                 }
             }
