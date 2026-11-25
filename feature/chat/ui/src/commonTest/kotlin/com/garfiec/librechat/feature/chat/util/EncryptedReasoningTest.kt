@@ -11,30 +11,14 @@ import kotlin.test.assertTrue
 
 /**
  * A provider's encrypted reasoning (a long base64 run in a THINK part, v0.8.9-rc1 #17100) is kept
- * out of everything that treats reasoning as prose: copy, find-in-page and the editor.
+ * out of everything that treats reasoning as prose: find-in-page and the editor. Copy leaves
+ * reasoning out entirely.
  */
 class EncryptedReasoningTest {
 
     private val payload = "QUJD".repeat(64) // 256 chars of base64, no break
 
     private fun think(text: String) = MessageContentPart(type = ContentType.THINK, think = text)
-
-    @Test
-    fun copyKeepsOnlyTheReadableReasoning() {
-        val message = Message(
-            messageId = "m",
-            conversationId = "c",
-            content = listOf(
-                think("Checking the policy.\n$payload"),
-                MessageContentPart(type = ContentType.TEXT, text = "Done."),
-            ),
-        )
-
-        val copied = serializeMessageForClipboard(message)
-
-        assertFalse(payload in copied)
-        assertTrue("Checking the policy." in copied)
-    }
 
     @Test
     fun payloadOnlyReasoningCopiesNothing() {

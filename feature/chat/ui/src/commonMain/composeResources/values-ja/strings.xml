@@ -1051,7 +1051,6 @@
     <string name="code_approval_accept_edits_description">ファイルを編集し、コマンドの前に確認します</string>
     <string name="code_approval_full_access">フルアクセス</string>
     <string name="code_approval_full_access_description">編集とコマンド実行を行います。サンドボックスの制限は適用されます</string>
-    <string name="notice_copy_tool_content_failed">ツールの出力全体を読み込めなかったため、何もコピーされませんでした。</string>
     <string name="notice_queue_withdraw_refused">キュー内のメッセージをサーバーから取り消せませんでした。</string>
     <string name="notice_queue_withdraw_busy">前のメッセージの取り消しを処理中です。しばらくしてからもう一度お試しください。</string>
     <string name="notice_queue_edit_overtaken">キュー内のメッセージはすでに送信されたため、編集は適用されませんでした。</string>

@@ -288,7 +288,6 @@ private fun copyMessageToClipboard(
     clipboard: ClipboardWriter,
     messageId: String,
 ) {
-    // Asynchronous: a message with tool-call previews fetches their full parts before anything is copied.
     actions.copyMessage(messageId) { text -> clipboard.copy(text, "Message") }
 }
 

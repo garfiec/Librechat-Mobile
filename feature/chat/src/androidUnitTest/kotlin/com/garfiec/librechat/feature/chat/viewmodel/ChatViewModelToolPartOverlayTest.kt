@@ -101,4 +101,31 @@ class ChatViewModelToolPartOverlayTest {
         assertEquals(ProviderId.OPENROUTER, reply.avatar?.provider)
         coVerify(exactly = 0) { fixture.messageRepository.getToolCallPart(any(), any(), any(), any(), any(), any()) }
     }
+
+    @Test
+    fun copyingAReplyWithAPreviewedCallCopiesItsTextWithoutAFetch() = runTest(testDispatcher) {
+        val reply = messages[1].copy(
+            content = listOf(
+                MessageContentPart(type = ContentType.TOOL_CALL, toolCall = preview),
+                MessageContentPart(type = ContentType.TEXT, text = "Done."),
+            ),
+        )
+        with(fixture) {
+            every { messageRepository.observeMessages(any()) } returns flowOf(listOf(messages[0], reply))
+            coEvery { messageRepository.storedToolCallParts(any(), any()) } returns emptyMap()
+            coEvery { messageRepository.getToolCallPart(any(), any(), any(), any(), any(), any()) } returns
+                Result.Error(message = "offline")
+        }
+        val viewModel = fixture.build(defaultDispatcher = testDispatcher, initialConversationId = "conv-1")
+        advanceUntilIdle()
+        val errorBefore = viewModel.uiState.value.error
+
+        var written: String? = null
+        viewModel.copyMessage("r-1") { written = it }
+        advanceUntilIdle()
+
+        assertEquals("Done.", written)
+        assertEquals(errorBefore, viewModel.uiState.value.error)
+        coVerify(exactly = 0) { fixture.messageRepository.getToolCallPart(any(), any(), any(), any(), any(), any()) }
+    }
 }

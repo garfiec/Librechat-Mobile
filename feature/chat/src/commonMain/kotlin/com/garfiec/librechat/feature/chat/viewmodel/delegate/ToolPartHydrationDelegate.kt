@@ -15,14 +15,9 @@ import com.garfiec.librechat.feature.chat.util.ToolPartLoad
 import com.garfiec.librechat.feature.chat.util.ToolPartStatus
 import com.garfiec.librechat.feature.chat.util.hydratedChars
 import com.garfiec.librechat.feature.chat.util.isFullCopyOf
-import com.garfiec.librechat.feature.chat.util.previewedToolParts
-import com.garfiec.librechat.feature.chat.util.withHydratedToolParts
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -30,8 +25,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Semaphore
-import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 
 /**
@@ -205,44 +198,6 @@ class ToolPartHydrationDelegate(
         if (count <= 0) pins.remove(identity) else pins[identity] = count
     }
 
-    /**
-     * [messageId] with every previewed tool call in full, for the clipboard: parts already held or
-     * stored are reused, the rest fetched at most [COPY_PARALLELISM] at a time. Null when any fetch
-     * fails, so nothing shortened is ever copied.
-     */
-    suspend fun fullMessage(messageId: String): Message? {
-        val conversationId = currentConversationId() ?: return null
-        val message = currentMessages().firstOrNull { it.messageId == messageId } ?: return null
-        val known = loaded.value
-        val missing = previewedToolParts(message).mapNotNull { (index, part) ->
-            val key = ToolPartKey.of(part.toolCall, part.agentId) ?: return null
-            if (key in known) null else key to LocatedPart(message, index, requireNotNull(part.toolCall))
-        }.toMap()
-        val stored = storedFull(conversationId, missing)
-        val toFetch = missing - stored.keys
-        val fetched = if (toFetch.isEmpty()) {
-            emptyMap()
-        } else {
-            val permits = Semaphore(COPY_PARALLELISM)
-            val results = coroutineScope {
-                toFetch.map { (key, located) ->
-                    async { key to permits.withPermit { fetch(conversationId, messageId, located.index, key) } }
-                }.awaitAll()
-            }
-            if (results.any { it.second !is ToolPartLoad.Loaded }) return null
-            results.associate { (key, load) -> key to (load as ToolPartLoad.Loaded).full }
-        }
-        val landed = stored + fetched
-        if (landed.isNotEmpty() && currentConversationId() == conversationId) {
-            parts = parts + landed.mapValues { (_, full) -> ToolPartLoad.Loaded(full, hydratedChars(full)) }
-            landed.keys.forEach(::touch)
-            evict()
-            fetched.forEach { (key, full) -> keep(conversationId, currentMessages(), key, full) }
-        }
-        val hydrated = message.withHydratedToolParts(known + landed)
-        return hydrated.takeIf { full -> full.content.orEmpty().none { it.toolCall?.isPreview == true } }
-    }
-
     /** The stored full calls for [targets] that still stand for the preview each message carries now. */
     private suspend fun storedFull(
         conversationId: String,
@@ -360,9 +315,6 @@ class ToolPartHydrationDelegate(
     companion object {
         /** ~4M characters: one subagent transcript can be most of the payload previews exist to avoid. */
         const val DEFAULT_BUDGET_CHARS: Long = 4_000_000L
-
-        /** At most this many part fetches at once for a whole-message copy. */
-        const val COPY_PARALLELISM: Int = 8
 
         /** Reconnect retries per failed part before only the user's Retry asks again. */
         const val MAX_AUTO_RETRIES: Int = 3
