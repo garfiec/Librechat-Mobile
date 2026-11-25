@@ -30,7 +30,17 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.common.datetime.DateTimeFormatPrefs
+import com.garfiec.librechat.core.model.AskUserQuestionRequest
 import com.garfiec.librechat.core.model.ContentType
+import com.garfiec.librechat.core.model.PendingAction
+import com.garfiec.librechat.core.model.PendingActionPayload
+import com.garfiec.librechat.core.model.PendingActionTypes
+import com.garfiec.librechat.feature.chat.components.PAUSE_PANEL_AUTO_ADVANCE_DELAY_MS
+import com.garfiec.librechat.feature.chat.components.PausePanelAutoAdvance
+import com.garfiec.librechat.feature.chat.components.pausePanelActiveIndex
+import com.garfiec.librechat.feature.chat.util.AskAnswerDraft
+import com.garfiec.librechat.feature.chat.util.composeAskAnswer
+import com.garfiec.librechat.feature.chat.util.nextBlankQuestionIndex
 import com.garfiec.librechat.core.model.Feedback
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.MinimalFeedback
@@ -117,6 +127,7 @@ fun ChatDemo(
     val mermaidRenderCache = remember { MermaidRenderCache() }
     val parsedMarkdownCache = remember { ParsedMarkdownCache() }
     ProvideDateTimeFormat(DateTimeFormatPrefs()) {
+        ProvideDemoArtifacts {
         ChatScreenContent(
             actions = session,
             uiStateFlow = session.state,
@@ -138,6 +149,7 @@ fun ChatDemo(
             modifier = modifier,
             onOpenDrawer = openDrawer,
         )
+        }
     }
 }
 
@@ -287,6 +299,8 @@ internal class DemoChatSession(
                 // The picker lists the chat's own model too, so it shows as selected.
                 availableModels = (PickerModels + listOfNotNull(sample?.model)).distinct()
                     .groupBy({ it.endpoint }, { it.name }),
+                // The new-chat screen offers what the demo can show off, one tap each.
+                selectedAgentStarters = DemoStarters,
             ),
             content = MessagesState().withMessages(sample?.toMessages().orEmpty()),
             // Nothing here runs code, so code blocks offer no Run, as on a server without the permission.
@@ -301,6 +315,19 @@ internal class DemoChatSession(
     val compareSyncScroll = MutableStateFlow(true)
     private var job: Job? = null
     private var dictation: Job? = null
+    private var autoAdvance: Job? = null
+
+    private var asking: AskFlow? = null
+
+    init {
+        // A sample chat that ends on a question opens paused on it, its intro already streamed.
+        sample?.asking?.let { flow ->
+            val messages = _state.value.content.messages
+            val sent = userMessage(conversationId, messages.size, messages.lastOrNull()?.messageId, flow.ask, now())
+            updateContent { it.withMessages(messages + sent).copy(streamingContent = flow.intro) }
+            pauseOn(flow)
+        }
+    }
 
     // Never repeats, so a second jump to the same message still scrolls.
     private var nextFocusRequestId = 0L
@@ -308,6 +335,7 @@ internal class DemoChatSession(
     fun cancel() {
         job?.cancel()
         dictation?.cancel()
+        autoAdvance?.cancel()
     }
 
     /** The mic: "hears" a sample request for a few seconds, transcribes it, and adds it to the draft. */
@@ -371,6 +399,11 @@ internal class DemoChatSession(
     override fun sendMessage() {
         val current = _state.value
         val text = current.inputText.trim()
+        if (text.isNotEmpty() && current.renderablePendingAction != null) {
+            _state.update { it.copy(composer = it.composer.copy(inputText = "")) }
+            answerActiveQuestion(AskAnswerDraft(freeText = text))
+            return
+        }
         if (text.isEmpty() || current.isStreaming) return
         val messages = current.content.messages
         val sent = userMessage(conversationId, messages.size, messages.lastOrNull()?.messageId, text, now())
@@ -380,6 +413,15 @@ internal class DemoChatSession(
                 content = it.content.withMessages(messages + sent).copy(isStreaming = true),
                 conversation = it.conversation.copy(conversationId = conversationId),
             )
+        }
+        val flow = askFlowFor(text)
+        if (flow != null && !current.comparisonState.isEnabled) {
+            job = scope.launch {
+                delay(FIRST_TOKEN_DELAY_MS)
+                streamWords(flow.intro) { shown -> updateContent { it.copy(streamingContent = shown) } }
+                pauseOn(flow)
+            }
+            return
         }
         val canned = cannedReplyFor(text)
         if (current.comparisonState.isEnabled) {
@@ -396,9 +438,115 @@ internal class DemoChatSession(
         }
     }
 
+    override fun sendStarter(text: String) {
+        _state.update { it.copy(composer = it.composer.copy(inputText = text)) }
+        sendMessage()
+    }
+
+    override fun editStarter(text: String) {
+        _state.update { it.copy(composer = it.composer.copy(inputText = text)) }
+    }
+
     override fun stopGeneration() {
         job?.cancel()
+        asking = null
+        updateContent { it.copy(pendingAction = null) }
         if (_state.value.comparisonState.isEnabled) finishComparison() else finish()
+    }
+
+    // ─── Questions ────────────────────────────────────────────────────
+
+    /** Pauses the streaming reply on [flow]'s questions, as an agent's `ask_user_question` does. */
+    private fun pauseOn(flow: AskFlow) {
+        asking = flow
+        updateContent {
+            it.copy(
+                isStreaming = true,
+                pendingAction = PendingAction(
+                    actionId = "$conversationId-ask",
+                    conversationId = conversationId,
+                    payload = PendingActionPayload(
+                        type = PendingActionTypes.ASK_USER_QUESTION,
+                        question = flow.questions.first().let { q -> AskUserQuestionRequest(q.question, q.description, q.options, q.multiSelect) },
+                        questions = flow.questions,
+                    ),
+                ),
+                askAnswerDrafts = emptyMap(),
+                askActiveQuestionId = null,
+                askPanelCollapsed = false,
+            )
+        }
+    }
+
+    override fun answerPendingQuestion(answer: String) {
+        answerPendingQuestions(mapOf(asking?.questions?.first()?.id.orEmpty() to answer))
+    }
+
+    /** Resumes the reply with the answers: the rest of it streams on after the intro. */
+    override fun answerPendingQuestions(answers: Map<String, String>) {
+        val flow = asking ?: return
+        asking = null
+        autoAdvance?.cancel()
+        val intro = _state.value.content.streamingContent
+        updateContent { it.copy(pendingAction = null, askAnswerDrafts = emptyMap(), askActiveQuestionId = null) }
+        job = scope.launch {
+            delay(FIRST_TOKEN_DELAY_MS)
+            streamWords(flow.reply(answers)) { shown -> updateContent { it.copy(streamingContent = "$intro\n\n$shown") } }
+            finish()
+        }
+    }
+
+    override fun updateAskAnswerDraft(questionId: String, draft: AskAnswerDraft) {
+        updateContent { it.copy(askAnswerDrafts = it.askAnswerDrafts + (questionId to draft)) }
+    }
+
+    override fun selectAskQuestion(questionId: String) {
+        updateContent { it.copy(askActiveQuestionId = questionId) }
+    }
+
+    override fun setAskPanelCollapsed(collapsed: Boolean) {
+        updateContent { it.copy(askPanelCollapsed = collapsed) }
+    }
+
+    override fun cancelPausePanelAutoAdvance() {
+        autoAdvance?.cancel()
+    }
+
+    /**
+     * A tapped option, as the app's panel handles it: a single-choice pick moves on after a beat (to
+     * the next question still open, or submits on a phone; to the next tab on a wide screen, where
+     * Continue submits). A multi-select pick waits for more.
+     */
+    override fun pickAskOption(questionId: String, draft: AskAnswerDraft, advance: PausePanelAutoAdvance) {
+        autoAdvance?.cancel()
+        updateAskAnswerDraft(questionId, draft)
+        val question = asking?.questions?.firstOrNull { it.id == questionId } ?: return
+        if (question.multiSelect || draft.selectedOptions.isEmpty()) return
+        autoAdvance = scope.launch {
+            delay(PAUSE_PANEL_AUTO_ADVANCE_DELAY_MS)
+            moveOn(advance)
+        }
+    }
+
+    /** The composer's send while paused answers the question on screen, then moves on. */
+    private fun answerActiveQuestion(draft: AskAnswerDraft) {
+        val flow = asking ?: return
+        val ids = flow.questions.map { it.id }
+        updateAskAnswerDraft(ids[pausePanelActiveIndex(ids, _state.value.content.askActiveQuestionId)], draft)
+        moveOn(PausePanelAutoAdvance.AdvanceOrSubmit)
+    }
+
+    private fun moveOn(advance: PausePanelAutoAdvance) {
+        val flow = asking ?: return
+        val ids = flow.questions.map { it.id }
+        val drafts = _state.value.content.askAnswerDrafts
+        val answers = flow.questions.associate { it.id to composeAskAnswer(it.options, drafts[it.id] ?: AskAnswerDraft()) }
+        val active = pausePanelActiveIndex(ids, _state.value.content.askActiveQuestionId)
+        when (advance) {
+            PausePanelAutoAdvance.NextTab -> ids.getOrNull(active + 1)?.let(::selectAskQuestion)
+            PausePanelAutoAdvance.AdvanceOrSubmit ->
+                nextBlankQuestionIndex(ids, answers, active)?.let { selectAskQuestion(ids[it]) } ?: answerPendingQuestions(answers)
+        }
     }
 
     // ─── Find in chat ─────────────────────────────────────────────────
@@ -803,6 +951,30 @@ private class CannedReply(
 )
 
 private val CannedReplies = listOf(
+    // Apps open live in the artifact panel. With Compare on, the second model answers in words.
+    CannedReply(
+        keywords = listOf("solar", "planet", "planets", "space", "3d"),
+        answer = withArtifact(
+            before = "Here's a solar system you can spin with a finger. The planets orbit at their real relative " +
+                "speeds (just much faster), and the buttons show one fact about each.",
+            artifact = reactArtifact("solar-system", "Solar system", SolarSystemSource),
+            after = "Sizes and distances aren't to scale: at real scale the planets would be specks too small to see.",
+        ),
+        alternate = "A 3D model is the most fun for a class: the sun in the middle, planets on their orbits, " +
+            "and something to drag so it spins. Want me to build it as an app you can open on the classroom screen?",
+    ),
+    CannedReply(
+        keywords = listOf("app", "artifact", "tracker"),
+        answer = StashTracker.single().answer,
+        alternate = "A shared note works too: one line per flavour, and cross one off each time a bar goes. " +
+            "But an app can do the maths on the agent's budget for you.",
+    ),
+    CannedReply(
+        keywords = listOf("flowchart", "diagram", "mermaid"),
+        answer = ShoppingRules.single().answer,
+        alternate = "As a list: 1. Is it on the shopping list? Buy it. 2. Is it chocolate? Ask first. " +
+            "3. Did I say no? Then no. A diagram makes the loop in step 3 easier to spot.",
+    ),
     // The car wash riddle: with Compare on, one model sees the catch and the other walks.
     CannedReply(
         keywords = listOf("car", "wash"),
@@ -821,11 +993,10 @@ private val CannedReplies = listOf(
     ),
     CannedReply(
         keywords = listOf("hello", "hi", "hey", "morning"),
-        answer = "Hi! This is the Switchboard demo running right in your browser. Ask me for some code, " +
-            "a table or a plan to see how replies look, or connect your own LibreChat server in the app " +
-            "to chat for real.",
-        alternate = "Hello! You're trying Switchboard in a browser tab, with sample chats and no server. " +
-            "Ask for code, a table or a plan, or open the drawer to look around.",
+        answer = "Hi! This is the Switchboard demo, running right in your browser with sample chats and no " +
+            "server. Try one of these:\n\n" + ThingsToTry,
+        alternate = "Hello! You're trying Switchboard in a browser tab. Open the drawer to look around the " +
+            "sample chats, or ask both of us for some code and compare the answers.",
     ),
     CannedReply(
         keywords = listOf("code", "kotlin", "function", "python", "script", "program"),
@@ -925,15 +1096,36 @@ private val CannedReplies = listOf(
     ),
 )
 
-private const val FallbackAlternate = "I'm a canned stand-in too. Ask both of us for **code**, **a table** " +
-    "or **a plan** and compare how we answer side by side."
+private const val FallbackAlternate = "I'm a canned stand-in too. Ask both of us for **some code**, " +
+    "**a table** or **a trip plan** and compare how we answer side by side."
 
-private const val FallbackReply = "This is a demo, so I can only give a few canned answers. Try asking for " +
-    "**some code**, **a table** or **a plan** to see how replies look.\n\n" +
-    "To chat for real, install Switchboard and connect it to your own LibreChat server."
+// Every request the demo has an answer for, each worded so it reaches that answer
+// (cannedReplyFor and askFlowFor match on these words).
+private const val ThingsToTry = """- **Build me an app** to track my snacks: it opens live beside the chat
+- **Show me the solar system** in 3D
+- **Draw a flowchart** of my agent's rules
+- **Plan a dessert table** for Saturday: I'll ask a few questions first
+- **Explain why** the sky is blue: see the reasoning
+- **Write some code**, **make a table** or **plan a trip**"""
+
+private val DemoStarters = listOf(
+    "Build me an app to track my snacks",
+    "Show me the solar system in 3D",
+    "Plan a dessert table for Saturday",
+    "Draw a flowchart of my agent's rules",
+)
+
+private const val FallbackReply = "This is a demo, so I can only give canned answers. Here's what I can show you:\n\n" +
+    ThingsToTry + "\n\nTo chat for real, install Switchboard and connect it to your own LibreChat server."
 
 private fun cannedReplyFor(text: String): CannedReply {
     val words = text.lowercase().split(Regex("[^a-z0-9]+")).toSet()
     return CannedReplies.firstOrNull { reply -> reply.keywords.any { it in words } }
         ?: CannedReply(keywords = emptyList(), answer = FallbackReply, alternate = FallbackAlternate)
+}
+
+/** A request the demo answers by asking questions first. */
+private fun askFlowFor(text: String): AskFlow? {
+    val words = text.lowercase().split(Regex("[^a-z0-9]+")).toSet()
+    return DessertTable.takeIf { "dessert" in words || "desserts" in words || "party" in words }
 }

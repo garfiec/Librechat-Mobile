@@ -50,7 +50,8 @@ Setup runbooks for every release workflow: `docs/RELEASING.md`.
 ## Website — `.github/workflows/pages.yml`
 - Triggers: push to `develop` touching the site, the demo or the UI modules it renders (the `paths:` list),
   a release published or edited (What's new reads the Highlights, often added after publishing;
-  drafts skip), and `workflow_dispatch`. A module the demo newly depends on goes in `paths:`.
+  drafts skip), and `workflow_dispatch`. A module the demo newly depends on goes in `paths:`, and so
+  does any other directory `assembleSite` copies (`:feature:chat`'s `files/web`).
 - Always builds `develop` (a release run would otherwise check out its tag's older site), with
   `-Plibrechat.web=true -Psite.strict :web:demo:assembleSite` and full history (tags feed
   Compatibility and the home page's tested range) and deploys `web/demo/build/site` to GitHub Pages

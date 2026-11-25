@@ -11,8 +11,9 @@ import kotlin.time.Duration.Companion.minutes
 // The demo's sample data: each account's chats and projects, which the drawer lists and the chat
 // screen opens, and the models they use. One list, so a chat's title and model match in both.
 //
-// The browser draws no math, Mermaid, artifacts or images (their renderers are WebViews in the app),
-// so transcripts keep to Markdown text, tables and code.
+// Artifacts open live in the artifact panel (ArtifactFrame) and Mermaid blocks draw as images
+// (RenderedDiagram); the browser draws no math or images in messages, so transcripts keep to Markdown
+// text, tables, code and diagrams.
 
 /** When the page loaded: sample chats are dated relative to it, so their ages read the same everywhere. */
 internal val PageLoadedAt = Clock.System.now()
@@ -48,6 +49,8 @@ internal class SampleChat(
     val project: String? = null,
     val unread: Boolean = false,
     val turns: List<SampleTurn>,
+    /** The chat's last request, still waiting on the visitor's answers to its questions. */
+    val asking: AskFlow? = null,
 )
 
 internal class SampleAccount(val chats: List<SampleChat>, val projects: List<ChatProject>)
@@ -737,12 +740,15 @@ internal val AccountSamples: Map<String, SampleAccount> = mapOf(
     "personal" to SampleAccount(
         chats = listOf(
             SampleChat("chocolate-bars", "My agent bought 40 chocolate bars", ClaudeOpus, 20.minutes, pinned = true, project = "agent", turns = ChocolateBars),
+            SampleChat("dessert-table", "Dessert table for Saturday", ClaudeSonnet, 5.minutes, turns = emptyList(), asking = DessertTable),
+            SampleChat("stash", "Chocolate stash tracker app", ClaudeSonnet, 45.minutes, project = "agent", turns = StashTracker),
             SampleChat("car-wash", "Walk or drive to the car wash?", ClaudeOpus, 1.hours, turns = CarWash),
             SampleChat("desserts", "Viral desserts, ranked", ClaudeOpus, 3.hours, favorite = true, turns = ViralDesserts),
             SampleChat("game-night", "Groceries for game night", ClaudeSonnet, 5.hours, unread = true, project = "agent", turns = GameNight),
             SampleChat("vacuum-review", "Performance review: robot vacuum", ClaudeHaiku, 26.hours, turns = VacuumReview),
             SampleChat("vacuum-pet", "Is a robot vacuum a pet?", ClaudeHaiku, 2.days, turns = VacuumPet),
             SampleChat("agent-rules", "Teach my agent to say no", ClaudeHaiku, 3.days, project = "agent", turns = AgentRules),
+            SampleChat("shopping-rules", "Flowchart: my agent's shopping rules", ClaudeSonnet, 3.days + 1.hours, project = "agent", turns = ShoppingRules),
             SampleChat("pistachio", "Pistachio cream substitutes", ClaudeHaiku, 4.days, favorite = true, turns = PistachioSubstitutes),
             SampleChat("melted", "Is my chocolate supposed to look like this?", ClaudeOpus, 6.days, turns = MeltedBar),
             SampleChat("hot-car", "How long chocolate lasts in a hot car", Gpt5, 6.days + 2.hours, turns = HotCar),
@@ -773,6 +779,7 @@ internal val AccountSamples: Map<String, SampleAccount> = mapOf(
     "family" to SampleAccount(
         chats = listOf(
             SampleChat("bedtime", "Mayor Whiskers and the dark lighthouse", Llama, 50.minutes, pinned = true, turns = BedtimeStory),
+            SampleChat("solar", "Solar system for Maya's science fair", Qwen, 90.minutes, favorite = true, turns = SolarSystem),
             SampleChat("sky", "Why is the sky blue?", Qwen, 3.hours, turns = SkyBlue),
             SampleChat("dinner", "Dinner from what's in the fridge", Llama, 7.hours, unread = true, turns = FridgeDinner),
             SampleChat("chores", "Chore chart for the kids", Qwen, 2.days, favorite = true, turns = ChoreChart),
