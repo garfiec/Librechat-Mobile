@@ -9,10 +9,14 @@ import com.garfiec.librechat.core.model.content.MessageContentPart
 import kotlinx.serialization.json.JsonPrimitive
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
-/** Mirrors web `serializeMessageForClipboard` (useCopyToClipboard.ts, d920328bfa53). */
+/** Mirrors web `getMessageParts` / `getMessageClipboardSource` (useCopyToClipboard.ts, v0.8.9). */
 class MessageClipboardTest {
+
+    private val backgroundToolWakeup =
+        "2 background tool tasks have finished. Continue using their durable results below.\n" +
+            """[{"background_task_id":"bg-1","tool_call_id":"call-1","tool":"web_search","status":"completed","result":"ok"},""" +
+            """{"background_task_id":"bg-2","tool_call_id":"call-2","tool":"execute_code","status":"error","result":"boom"}]"""
 
     private fun message(parts: List<MessageContentPart>?, text: String = "") = Message(
         messageId = "m1",
@@ -36,7 +40,7 @@ class MessageClipboardTest {
     }
 
     @Test
-    fun reasoningCopiesAsALabeledBlockWithThinkTagsStripped() {
+    fun reasoningIsNotCopied() {
         val out = serializeMessageForClipboard(
             message(
                 listOf(
@@ -45,11 +49,11 @@ class MessageClipboardTest {
                 ),
             ),
         )
-        assertEquals("Thinking:\nchain of thought\nanswer", out)
+        assertEquals("answer", out)
     }
 
     @Test
-    fun toolCallsCopyAsLabeledJson() {
+    fun toolCallsAreNotCopied() {
         val out = serializeMessageForClipboard(
             message(
                 listOf(
@@ -61,13 +65,11 @@ class MessageClipboardTest {
                 ),
             ),
         )
-        assertTrue(out.startsWith("Tool:\n{"), "got: $out")
-        assertTrue("\"name\":\"search\"" in out)
-        assertTrue(out.endsWith("\nanswer"))
+        assertEquals("answer", out)
     }
 
     @Test
-    fun codeInterpreterCallsGetTheirOwnLabel() {
+    fun nonTextPartsAreNotCopied() {
         val out = serializeMessageForClipboard(
             message(
                 listOf(
@@ -75,38 +77,31 @@ class MessageClipboardTest {
                         type = ContentType.TOOL_CALL,
                         toolCall = AgentToolCall(type = ToolCallType.CODE_INTERPRETER, id = "t1"),
                     ),
-                ),
-            ),
-        )
-        assertTrue(out.startsWith("Run Code:\n"), "got: $out")
-    }
-
-    @Test
-    fun imageUrlCopiesTheUrlItself() {
-        val out = serializeMessageForClipboard(
-            message(
-                listOf(
                     MessageContentPart(
                         type = ContentType.IMAGE_URL,
                         imageUrl = ImageUrlContent(url = "https://x/img.png"),
                     ),
+                    MessageContentPart(type = ContentType.STEER, steer = JsonPrimitive("go left")),
+                    MessageContentPart(type = ContentType.ACTIVITY_LABEL, activityLabel = "Searched the docs"),
+                    MessageContentPart(type = ContentType.SUMMARY, text = "earlier turns"),
+                    MessageContentPart(type = ContentType.AGENT_UPDATE),
+                    text("answer"),
                 ),
             ),
         )
-        assertEquals("Image:\nhttps://x/img.png", out)
+        assertEquals("answer", out)
     }
 
     @Test
-    fun steersAndActivityLabelsCopyWithTheirWebLabels() {
-        val out = serializeMessageForClipboard(
-            message(
-                listOf(
-                    MessageContentPart(type = ContentType.STEER, steer = JsonPrimitive("go left")),
-                    MessageContentPart(type = ContentType.ACTIVITY_LABEL, activityLabel = "Searched the docs"),
-                ),
-            ),
-        )
-        assertEquals("You (steered):\ngo left\nActivity:\nSearched the docs", out)
+    fun aWakeUpCopiesItsTaskResultsNotThePrompt() {
+        val wakeup = message(null, text = backgroundToolWakeup).copy(isCreatedByUser = true)
+        assertEquals("ok\n\nboom", serializeMessageForClipboard(wakeup))
+    }
+
+    @Test
+    fun aUserSubmittedWakeUpLookalikeCopiesItsText() {
+        val typed = message(null, text = backgroundToolWakeup).copy(isCreatedByUser = true, isUserSubmitted = true)
+        assertEquals(backgroundToolWakeup, serializeMessageForClipboard(typed))
     }
 
     @Test

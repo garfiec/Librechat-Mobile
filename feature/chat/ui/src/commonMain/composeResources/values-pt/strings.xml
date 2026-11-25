@@ -1083,7 +1083,6 @@
     <string name="code_approval_accept_edits_description">Edita arquivos, pergunta antes de comandos</string>
     <string name="code_approval_full_access">Acesso total</string>
     <string name="code_approval_full_access_description">Edita e executa comandos; os limites do sandbox se aplicam</string>
-    <string name="notice_copy_tool_content_failed">Não foi possível carregar a saída completa da ferramenta, então nada foi copiado.</string>
     <string name="notice_queue_withdraw_refused">Não foi possível retirar esta mensagem na fila do servidor.</string>
     <string name="notice_queue_withdraw_busy">Ainda retirando a mensagem anterior. Tente novamente em instantes.</string>
     <string name="notice_queue_edit_overtaken">Essa mensagem na fila já foi enviada, então sua edição não foi aplicada.</string>

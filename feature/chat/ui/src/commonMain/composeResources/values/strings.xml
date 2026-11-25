@@ -1124,7 +1124,6 @@
     <string name="code_approval_accept_edits_description">Edits files, asks before commands</string>
     <string name="code_approval_full_access">Full access</string>
     <string name="code_approval_full_access_description">Edits and runs commands; sandbox limits apply</string>
-    <string name="notice_copy_tool_content_failed">Couldn't load the full tool output, so nothing was copied.</string>
     <string name="notice_queue_withdraw_refused">Couldn't withdraw this queued message from the server.</string>
     <string name="notice_queue_withdraw_busy">Still finishing the previous withdrawal. Try again in a moment.</string>
     <string name="notice_queue_edit_overtaken">That queued message was already sent, so your edit wasn't applied.</string>

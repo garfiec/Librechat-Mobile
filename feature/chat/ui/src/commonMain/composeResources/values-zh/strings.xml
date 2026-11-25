@@ -1051,7 +1051,6 @@
     <string name="code_approval_accept_edits_description">编辑文件，运行命令前询问</string>
     <string name="code_approval_full_access">完全访问</string>
     <string name="code_approval_full_access_description">编辑并运行命令；沙盒限制仍然适用</string>
-    <string name="notice_copy_tool_content_failed">无法加载完整的工具输出，因此未复制任何内容。</string>
     <string name="notice_queue_withdraw_refused">无法从服务器撤回这条排队的消息。</string>
     <string name="notice_queue_withdraw_busy">仍在撤回上一条消息，请稍后再试。</string>
     <string name="notice_queue_edit_overtaken">这条排队的消息已发送，因此你的编辑未生效。</string>

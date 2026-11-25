@@ -136,7 +136,6 @@ private fun localizedNotice(parsed: ChatNotice.Parsed): String {
         ChatNotice.CODE_WORKSPACE_MOVE_STALE -> Res.string.code_workspace_move_stale
         ChatNotice.CODE_WORKSPACE_MOVE_BUSY -> Res.string.code_workspace_move_busy
         ChatNotice.CODE_WORKSPACE_MOVE_FAILED -> Res.string.code_workspace_move_error
-        ChatNotice.COPY_TOOL_CONTENT_FAILED -> Res.string.notice_copy_tool_content_failed
         ChatNotice.QUEUE_WITHDRAW_REFUSED -> Res.string.notice_queue_withdraw_refused
         ChatNotice.QUEUE_WITHDRAW_BUSY -> Res.string.notice_queue_withdraw_busy
         ChatNotice.QUEUE_EDIT_OVERTAKEN -> Res.string.notice_queue_edit_overtaken

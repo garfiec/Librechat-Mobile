@@ -11,7 +11,6 @@ import com.garfiec.librechat.core.model.content.MessageContentPart
 import com.garfiec.librechat.feature.chat.util.ToolPartKey
 import com.garfiec.librechat.feature.chat.util.ToolPartLoad
 import com.garfiec.librechat.feature.chat.util.ToolPartStatus
-import com.garfiec.librechat.feature.chat.util.serializeMessageForClipboard
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -199,42 +198,6 @@ class ToolPartHydrationDelegateTest {
         delegate.request(key("b"))
         advanceUntilIdle()
         assertThat(delegate.loaded.value.keys).containsExactly(key("b"))
-    }
-
-    @Test
-    fun `a whole-message copy fetches every preview and serialises the full calls`() = runTest {
-        coEvery { repository.getToolCallPart(any(), any(), any(), "a", any(), any()) } returns Result.Success(full("a"))
-        coEvery { repository.getToolCallPart(any(), any(), any(), "b", any(), any()) } returns Result.Success(full("b"))
-        val delegate = delegate()
-
-        val message = requireNotNull(delegate.fullMessage("m1"))
-
-        val calls = message.content!!.mapNotNull { it.toolCall }
-        assertThat(calls.none { it.isPreview }).isTrue()
-        assertThat(serializeMessageForClipboard(message)).doesNotContain("outputTruncated")
-        assertThat(delegate.loaded.value.keys).containsExactly(key("a"), key("b"))
-    }
-
-    @Test
-    fun `a copy with any failed fetch copies nothing`() = runTest {
-        coEvery { repository.getToolCallPart(any(), any(), any(), "a", any(), any()) } returns Result.Success(full("a"))
-        coEvery { repository.getToolCallPart(any(), any(), any(), "b", any(), any()) } returns Result.Error(message = "offline")
-        val delegate = delegate()
-
-        assertThat(delegate.fullMessage("m1")).isNull()
-    }
-
-    @Test
-    fun `a copy reuses parts already fetched`() = runTest {
-        coEvery { repository.getToolCallPart(any(), any(), any(), "a", any(), any()) } returns Result.Success(full("a"))
-        coEvery { repository.getToolCallPart(any(), any(), any(), "b", any(), any()) } returns Result.Success(full("b"))
-        val delegate = delegate()
-        delegate.request(key("a"))
-        advanceUntilIdle()
-
-        delegate.fullMessage("m1")
-
-        coVerify(exactly = 1) { repository.getToolCallPart(any(), any(), any(), "a", any(), any()) }
     }
 
     @Test

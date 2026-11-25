@@ -1051,7 +1051,6 @@
     <string name="code_approval_accept_edits_description">파일을 편집하고 명령 전에는 묻습니다</string>
     <string name="code_approval_full_access">전체 액세스</string>
     <string name="code_approval_full_access_description">편집하고 명령을 실행합니다. 샌드박스 제한은 적용됩니다</string>
-    <string name="notice_copy_tool_content_failed">도구 출력 전체를 불러오지 못해 아무것도 복사되지 않았습니다.</string>
     <string name="notice_queue_withdraw_refused">대기 중인 메시지를 서버에서 철회하지 못했습니다.</string>
     <string name="notice_queue_withdraw_busy">이전 메시지를 아직 철회하는 중입니다. 잠시 후 다시 시도하세요.</string>
     <string name="notice_queue_edit_overtaken">대기 중인 메시지가 이미 전송되어 수정 내용이 적용되지 않았습니다.</string>

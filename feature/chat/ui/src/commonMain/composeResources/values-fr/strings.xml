@@ -1083,7 +1083,6 @@
     <string name="code_approval_accept_edits_description">Modifie les fichiers, demande avant les commandes</string>
     <string name="code_approval_full_access">Accès complet</string>
     <string name="code_approval_full_access_description">Modifie et exécute des commandes ; les limites du bac à sable s'appliquent</string>
-    <string name="notice_copy_tool_content_failed">Impossible de charger la sortie complète de l'outil, rien n'a donc été copié.</string>
     <string name="notice_queue_withdraw_refused">Impossible de retirer ce message en file d'attente du serveur.</string>
     <string name="notice_queue_withdraw_busy">Le retrait du message précédent est toujours en cours. Réessayez dans un instant.</string>
     <string name="notice_queue_edit_overtaken">Ce message en file d'attente a déjà été envoyé, votre modification n'a donc pas été appliquée.</string>

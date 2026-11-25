@@ -1224,9 +1224,12 @@ Message / content shapes:
   annotated-object form and every later fetch returns it. Mobile decodes both shapes via a tolerant
   serializer (`FlexibleTextSerializer`), normalizing to the string; `annotations` are dropped
   (nothing renders them) and re-encoding writes the plain string. Correct on every server, no gate. (BUILT)
-- Whole-message copy serializes ALL parts (web `serializeMessageForClipboard`, d920328b): tool calls,
-  reasoning, media and steer parts as labeled blocks. Mobile mirrors it in
-  `feature/chat/.../util/MessageClipboard.kt`; `getMessageText` (TTS / edit prefill) is unchanged. (BUILT)
+- Whole-message copy is text parts only (web `getMessageParts` / `getPartText`; 8640bf89e replaced
+  d920328b's all-parts `serializeMessageForClipboard` with a TEXT-only copy), and a wake-up copies its
+  tasks' results joined by a blank line (`getMessageClipboardSource`, dc375a8e1). Mobile mirrors both in
+  `feature/chat/.../util/MessageClipboard.kt`, keeping ERROR parts' text; web disables Copy when nothing
+  is copyable (`hasCopyableText`), mobile keeps it shown and copies nothing. `getMessageText` (TTS / edit
+  prefill) is unchanged. (BUILT)
 
 HITL / generation protocol:
 - `POST /api/agents/chat/resume` takes `generationCreatedAt` — the run's generation epoch, from the

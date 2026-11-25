@@ -289,7 +289,7 @@ private fun WakeupTaskCard(task: WakeupTask, kind: WakeupKind, fontSizeMultiplie
             // direction scroll (core/ui rule 11). What keeps a long result from taking over the
             // thread is that the row opens collapsed.
             // Selectable like a bubble's content, and only the result: the labels above are
-            // chrome, and the footer's Copy copies the stored prompt text, not this.
+            // chrome. The footer's Copy copies every task's result.
             SelectionContainer(Modifier.padding(top = 6.dp)) {
                 MarkdownContent(text = task.result, fontSizeMultiplier = fontSizeMultiplier, useKatex = useKatex)
             }

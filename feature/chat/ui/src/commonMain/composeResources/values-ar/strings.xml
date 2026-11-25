@@ -1146,7 +1146,6 @@
     <string name="code_approval_accept_edits_description">يعدّل الملفات ويسأل قبل الأوامر</string>
     <string name="code_approval_full_access">وصول كامل</string>
     <string name="code_approval_full_access_description">يعدّل ويشغّل الأوامر؛ تنطبق حدود بيئة العزل</string>
-    <string name="notice_copy_tool_content_failed">تعذّر تحميل مخرجات الأداة كاملة، لذا لم يُنسخ شيء.</string>
     <string name="notice_queue_withdraw_refused">تعذّر سحب هذه الرسالة في قائمة الانتظار من الخادم.</string>
     <string name="notice_queue_withdraw_busy">لا يزال سحب الرسالة السابقة جاريًا. حاول مرة أخرى بعد قليل.</string>
     <string name="notice_queue_edit_overtaken">أُرسلت الرسالة في قائمة الانتظار بالفعل، لذا لم يُطبَّق تعديلك.</string>

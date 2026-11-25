@@ -1108,7 +1108,6 @@
     <string name="code_approval_accept_edits_description">Правит файлы, спрашивает перед командами</string>
     <string name="code_approval_full_access">Полный доступ</string>
     <string name="code_approval_full_access_description">Правит файлы и выполняет команды; действуют ограничения песочницы</string>
-    <string name="notice_copy_tool_content_failed">Не удалось загрузить полный вывод инструмента, поэтому ничего не скопировано.</string>
     <string name="notice_queue_withdraw_refused">Не удалось отозвать это сообщение в очереди с сервера.</string>
     <string name="notice_queue_withdraw_busy">Предыдущее сообщение ещё отзывается. Попробуйте ещё раз через минуту.</string>
     <string name="notice_queue_edit_overtaken">Это сообщение в очереди уже отправлено, поэтому ваше изменение не применено.</string>

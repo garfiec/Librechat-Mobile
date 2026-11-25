@@ -1607,37 +1607,18 @@ class ChatViewModel(
 
     /**
      * What Read Aloud speaks for a message: its answer, never its reasoning (upstream
-     * `getSpeechText`, see [speechTextOf]). NOT the copy path — whole-message copy goes through
-     * [getMessageClipboardText], which serializes every part.
+     * `getSpeechText`, see [speechTextOf]).
      */
     fun getSpeechText(messageId: String): String {
         val message = _uiState.value.messages.find { it.messageId == messageId } ?: return ""
         return speechTextOf(message)
     }
 
-    /**
-     * The clipboard serialization of a whole message — tool calls, reasoning and media parts as
-     * labeled blocks, not just its text. Mirrors web `serializeMessageForClipboard`.
-     */
+    /** Copies a message's answer text; see [serializeMessageForClipboard]. */
     override fun copyMessage(messageId: String, write: (String) -> Unit) {
-        viewModelScope.launch {
-            val text = getMessageClipboardText(messageId)
-            if (text.isNotBlank()) write(text)
-        }
-    }
-
-    internal suspend fun getMessageClipboardText(messageId: String): String {
-        val message = _uiState.value.messages.find { it.messageId == messageId } ?: return ""
-        if (message.content.orEmpty().none { it.toolCall?.isPreview == true }) {
-            return serializeMessageForClipboard(message)
-        }
-        // A previewed call would copy shortened output: fetch the full parts first, or copy nothing.
-        val full = toolPartDelegate.fullMessage(messageId)
-        if (full == null) {
-            stateHandle.update { copy(error = ChatNotice.COPY_TOOL_CONTENT_FAILED.marker()) }
-            return ""
-        }
-        return serializeMessageForClipboard(full)
+        val message = _uiState.value.messages.find { it.messageId == messageId } ?: return
+        val text = serializeMessageForClipboard(message)
+        if (text.isNotBlank()) write(text)
     }
 
     /** Tool-call previews: what each card whose full content is not in place shows. */

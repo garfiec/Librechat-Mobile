@@ -1070,7 +1070,6 @@
     <string name="code_approval_accept_edits_description">Bearbeitet Dateien, fragt vor Befehlen</string>
     <string name="code_approval_full_access">Vollzugriff</string>
     <string name="code_approval_full_access_description">Bearbeitet und führt Befehle aus; Sandbox-Grenzen gelten</string>
-    <string name="notice_copy_tool_content_failed">Die vollständige Tool-Ausgabe konnte nicht geladen werden, daher wurde nichts kopiert.</string>
     <string name="notice_queue_withdraw_refused">Die eingereihte Nachricht konnte nicht vom Server zurückgezogen werden.</string>
     <string name="notice_queue_withdraw_busy">Die vorherige Nachricht wird noch zurückgezogen. Versuche es gleich noch einmal.</string>
     <string name="notice_queue_edit_overtaken">Die eingereihte Nachricht wurde bereits gesendet, daher wurde deine Änderung nicht übernommen.</string>

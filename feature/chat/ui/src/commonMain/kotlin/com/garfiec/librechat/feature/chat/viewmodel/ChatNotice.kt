@@ -116,12 +116,6 @@ enum class ChatNotice(val wire: String) {
     /** A workspace change that failed for any other reason. */
     CODE_WORKSPACE_MOVE_FAILED("code_workspace_move_failed"),
 
-    /**
-     * A message copy whose tool-call previews could not be fetched in full. Nothing was copied:
-     * copying the previews would hand out shortened output as if it were the whole.
-     */
-    COPY_TOOL_CONTENT_FAILED("copy_tool_content_failed"),
-
     /** The server declined to withdraw a queued message. */
     QUEUE_WITHDRAW_REFUSED("queue_withdraw_refused"),
 

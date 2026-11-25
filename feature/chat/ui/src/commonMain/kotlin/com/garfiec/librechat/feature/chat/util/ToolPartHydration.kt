@@ -1,7 +1,6 @@
 package com.garfiec.librechat.feature.chat.util
 
 import com.garfiec.librechat.core.model.ContentType
-import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.content.AgentToolCall
 import com.garfiec.librechat.core.model.content.MessageContentPart
 
@@ -69,14 +68,6 @@ fun List<MessageNode>.withHydratedToolParts(loaded: Map<ToolPartKey, AgentToolCa
     return if (changed) result else this
 }
 
-/** The same substitution over one message, for a caller that holds messages rather than nodes. */
-fun Message.withHydratedToolParts(loaded: Map<ToolPartKey, AgentToolCall>): Message {
-    if (loaded.isEmpty()) return this
-    val content = content ?: return this
-    val hydrated = content.withHydratedToolParts(loaded, loaded.keys.mapTo(HashSet()) { it.identity })
-    return if (hydrated === content) this else copy(content = hydrated)
-}
-
 private fun List<MessageContentPart>.withHydratedToolParts(
     loaded: Map<ToolPartKey, AgentToolCall>,
     identities: Set<ToolPartIdentity>,
@@ -96,12 +87,6 @@ private fun List<MessageContentPart>.withHydratedToolParts(
     }
     return if (changed) result else this
 }
-
-/** The previewed tool-call parts of [message], with their raw index into `content` (the route's `partIndex`). */
-fun previewedToolParts(message: Message): List<Pair<Int, MessageContentPart>> =
-    message.content.orEmpty().withIndex()
-        .filter { (_, part) -> part.type == ContentType.TOOL_CALL && part.toolCall?.isPreview == true }
-        .map { (index, part) -> index to part }
 
 /** What holding [full] costs, in characters: output, args and the serialised transcript. */
 fun hydratedChars(full: AgentToolCall): Long =

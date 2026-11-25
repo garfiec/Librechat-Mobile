@@ -2,132 +2,35 @@ package com.garfiec.librechat.feature.chat.util
 
 import com.garfiec.librechat.core.model.ContentType
 import com.garfiec.librechat.core.model.Message
-import com.garfiec.librechat.core.model.ToolCallType
-import com.garfiec.librechat.core.model.content.AgentToolCall
 import com.garfiec.librechat.core.model.content.CitationClipboard
 import com.garfiec.librechat.core.model.content.CitationIndex
 import com.garfiec.librechat.core.model.content.MessageContentPart
-import com.garfiec.librechat.core.model.content.stripOpaqueReasoning
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
+import com.garfiec.librechat.feature.chat.components.systemEventFor
 
 /**
- * Serializes a whole message for the clipboard, mirroring web `serializeMessageForClipboard`
- * (`client/src/hooks/Messages/useCopyToClipboard.ts` + `formatMessageContent` in
- * `client/src/hooks/Conversations/format.ts`, upstream d920328bfa53).
+ * A message's clipboard text, mirroring web `getMessageParts` and `getMessageClipboardSource`
+ * (`client/src/hooks/Messages/useCopyToClipboard.ts`, v0.8.9): only the answer's text parts, joined
+ * by newlines, with inline citations numbered and a sources footer. Reasoning, tool calls and media
+ * are not copied. A wake-up copies its tasks' results, never the hidden prompt it is stored as.
  *
- * EVERY part serializes, as a `label:\nvalue` block (label-less for plain text) joined by single
- * newlines like web's clipboard path — a text-parts-only copy reduces an agent turn whose
- * substance is tool calls to a fragment, or to nothing at all. The labels
- * are web's own English export strings; mobile ViewModel-layer copy has no localization channel,
- * matching the rest of this layer's user-facing strings.
- *
- * This is the CLIPBOARD serialization only. Read Aloud speaks `speechTextOf` (the answer's text
- * parts alone) and the editor seeds from the message's own text, where serialized tool calls would
- * be read aloud or written back as corruption.
+ * ERROR parts copy their error text, unlike web, so Copy on a failed reply is not a silent no-op.
  */
 fun serializeMessageForClipboard(message: Message): String {
-    // Inline citations become numbered references and a sources list, as web's copy writes them.
+    systemEventFor(message, isEditing = false)?.let { wakeup ->
+        return wakeup.tasks.joinToString("\n\n") { it.result }
+    }
     val citations = CitationClipboard(CitationIndex.from(message.attachments))
     val parts = message.content
-    if (parts.isNullOrEmpty()) {
-        return listOfNotNull(citations.process(message.text), citations.footer()).joinToString("\n")
+    val texts = if (parts.isNullOrEmpty()) {
+        listOf(citations.process(message.text))
+    } else {
+        parts.mapNotNull { clipboardTextOf(it, citations) }
     }
-
-    return parts
-        .mapNotNull { part -> formatPartForClipboard(part, citations) }
-        .map { (label, value) -> if (label.isEmpty()) value else "$label:\n$value" }
-        .filter { it.isNotBlank() }
-        .plus(listOfNotNull(citations.footer()))
-        .joinToString("\n")
+    return (texts.filter { it.isNotBlank() } + listOfNotNull(citations.footer())).joinToString("\n")
 }
 
-/** Web export label strings (`com_ui_export_*` / `com_endpoint_thinking`, en). */
-private object ClipboardLabels {
-    const val THINKING = "Thinking"
-    const val TOOL = "Tool"
-    const val RUN_CODE = "Run Code"
-    const val RETRIEVAL = "Retrieval"
-    const val FILE_SEARCH = "File Search"
-    const val IMAGE = "Image"
-    const val AUDIO = "Audio"
-    const val VIDEO = "Video"
-    const val AGENT_UPDATE = "Agent Update"
-    const val SUMMARY = "Summary"
-    const val STEER = "You (steered)"
-    const val ACTIVITY = "Activity"
-}
-
-private val clipboardJson = Json { encodeDefaults = false }
-
-/** `label to value`, empty label meaning "value alone" (plain text); null meaning "skip". */
-@Suppress("CyclomaticComplexMethod") // debt: complexity 26
-private fun formatPartForClipboard(part: MessageContentPart, citations: CitationClipboard): Pair<String, String>? = when (part.type) {
-    ContentType.ERROR -> "" to (part.error ?: part.text.orEmpty())
-
-    ContentType.TEXT, ContentType.TEXT_DELTA ->
-        part.text?.takeIf { it.isNotBlank() }?.let { "" to citations.process(it) }
-
-    ContentType.THINK -> part.think
-        ?.let(::stripOpaqueReasoning)
-        ?.trim()
-        ?.removePrefix("<think>")
-        ?.removeSuffix("</think>")
-        ?.trim()
-        ?.takeIf { it.isNotBlank() }
-        ?.let { ClipboardLabels.THINKING to it }
-
-    ContentType.TOOL_CALL -> {
-        val call = part.toolCall
-        val label = when (call?.type) {
-            ToolCallType.CODE_INTERPRETER -> ClipboardLabels.RUN_CODE
-            ToolCallType.RETRIEVAL -> ClipboardLabels.RETRIEVAL
-            ToolCallType.FILE_SEARCH -> ClipboardLabels.FILE_SEARCH
-            else -> ClipboardLabels.TOOL
-        }
-        val value = call?.let {
-            runCatching { clipboardJson.encodeToString(AgentToolCall.serializer(), it) }
-                .getOrDefault("null")
-        } ?: "null"
-        label to value
-    }
-
-    ContentType.IMAGE_FILE -> ClipboardLabels.IMAGE to part.imageFile.jsonOrNull()
-
-    ContentType.IMAGE_URL -> ClipboardLabels.IMAGE to (part.imageUrl?.url ?: part.imageUrl.jsonOrNull())
-
-    ContentType.VIDEO_URL -> ClipboardLabels.VIDEO to (part.videoUrl?.url ?: part.videoUrl.jsonOrNull())
-
-    ContentType.INPUT_AUDIO -> ClipboardLabels.AUDIO to part.inputAudio.jsonOrNull()
-
-    ContentType.AGENT_UPDATE -> ClipboardLabels.AGENT_UPDATE to part.agentUpdate.jsonOrNull()
-
-    ContentType.SUMMARY -> ClipboardLabels.SUMMARY to summaryText(part)
-
-    ContentType.STEER ->
-        part.steerText()?.let { ClipboardLabels.STEER to it }
-
-    ContentType.ACTIVITY_LABEL ->
-        part.activityLabel?.trim()?.takeIf { it.isNotEmpty() }
-            ?.let { ClipboardLabels.ACTIVITY to it }
-}
-
-/** The summary body: an array of `{type, text}` blocks, a raw string, or the legacy `text`. */
-private fun summaryText(part: MessageContentPart): String {
-    when (val content = part.content) {
-        is JsonArray -> return content.joinToString("") { block ->
-            ((block as? JsonObject)?.get("text") as? JsonPrimitive)?.content.orEmpty()
-        }
-        is JsonPrimitive -> if (content.isString) return content.content
-        else -> Unit
-    }
-    return part.text.orEmpty()
-}
-
-private inline fun <reified T : Any> T?.jsonOrNull(): String = when (this) {
-    null -> "null"
-    else -> runCatching { clipboardJson.encodeToString(kotlinx.serialization.serializer<T>(), this) }
-        .getOrDefault(toString())
+private fun clipboardTextOf(part: MessageContentPart, citations: CitationClipboard): String? = when (part.type) {
+    ContentType.ERROR -> part.error ?: part.text
+    ContentType.TEXT, ContentType.TEXT_DELTA -> part.text?.takeIf { it.isNotBlank() }?.let(citations::process)
+    else -> null
 }
