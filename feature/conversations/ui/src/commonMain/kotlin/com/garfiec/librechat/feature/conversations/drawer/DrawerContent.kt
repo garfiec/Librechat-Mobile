@@ -700,18 +700,19 @@ fun DrawerContent(
             )
         }
 
-        val shouldLoadMore = remember {
+        // listState keeps its last layout while the Projects panel shows, so it must not page there.
+        val currentShowChats by rememberUpdatedState(showChats)
+        val currentUiState by rememberUpdatedState(uiState)
+        val shouldLoadMore = remember(listState) {
             derivedStateOf {
-                val lastVisibleItem = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
-                val totalItems = listState.layoutInfo.totalItemsCount
-                lastVisibleItem >= totalItems - 8 && totalItems > 0
+                currentShowChats && currentUiState.shouldLoadMore(
+                    lastVisibleIndex = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0,
+                    totalItems = listState.layoutInfo.totalItemsCount,
+                )
             }
         }
-
-        LaunchedEffect(shouldLoadMore.value) {
-            if (shouldLoadMore.value && uiState.hasMore && !uiState.isLoadingMore) {
-                currentOnLoadMore()
-            }
+        LaunchedEffect(shouldLoadMore) {
+            snapshotFlow { shouldLoadMore.value }.collect { if (it) currentOnLoadMore() }
         }
 
         Box(modifier = Modifier.weight(1f)) {

@@ -194,6 +194,9 @@ class ConversationListStateHolder(
         } else {
             Logger.w((result as? Result.Error)?.exception) { "Failed to load conversations page" }
             if (cursor == null) _listLoad.value = ListLoad.FAILED
+            // The drawer pages whenever the end is in view and hasMore holds, so a failure that left
+            // it true would retry in a tight loop; a refresh or the stale reload turns it back on.
+            _hasMore.value = false
             false
         }
     }
@@ -220,9 +223,9 @@ class ConversationListStateHolder(
             true
         } else {
             Logger.w((result as? Result.Error)?.exception) { "Failed to load filtered conversations" }
+            _hasMore.value = false
             if (cursor == null) {
                 filteredRows = emptyList()
-                _hasMore.value = false
                 _filterLoadFailed.value = true
                 regroup()
             }
@@ -324,10 +327,14 @@ class ConversationListStateHolder(
                 return@launch
             }
             page1LoadedAtMillis = nowMillis()
-            if (_listLoad.value != ListLoad.LOADED && _filters.value == null) {
+            if (_filters.value != null) return@launch
+            if (_listLoad.value != ListLoad.LOADED) {
                 nextCursor = result.data
                 _hasMore.value = result.data != null
                 _listLoad.value = ListLoad.LOADED
+            } else if (nextCursor != null) {
+                // A failed next page keeps its cursor, so paging resumes; a list at its real end has none.
+                _hasMore.value = true
             }
         }
     }
