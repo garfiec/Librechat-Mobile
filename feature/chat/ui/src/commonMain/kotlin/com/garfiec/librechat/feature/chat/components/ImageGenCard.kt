@@ -69,6 +69,8 @@ data class ImageGenResult(
     /** Image-gen quality ("low" | "medium" | "high"). Tunes the faux-progress
      *  duration while [isGenerating], matching the web client. */
     val quality: String? = null,
+    /** The call failed or was stopped without an image: draw the generic tool card, which shows its status and output. */
+    val fallsBackToToolCard: Boolean = false,
 )
 
 internal const val IMAGE_GEN_INITIAL_PROGRESS = 0.1f
