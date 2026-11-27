@@ -160,6 +160,8 @@
     <string name="favorites_empty_message">ثبّت الوكلاء أو النماذج من محدد النموذج لرؤيتها هنا.</string>
     <string name="favorites_count_of">%1$d من %2$d</string>
     <string name="favorites_unpin_cd">إلغاء تثبيت المفضلة</string>
+    <string name="favorites_kind_agent">وكيل</string>
+    <string name="favorites_kind_spec">مواصفات النموذج</string>
 
     <!-- About info -->
     <string name="app_version_label">إصدار التطبيق</string>

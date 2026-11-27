@@ -160,6 +160,8 @@
     <string name="favorites_empty_message">在模型选择器中固定智能体或模型，即可在此查看。</string>
     <string name="favorites_count_of">%1$d / %2$d</string>
     <string name="favorites_unpin_cd">取消固定收藏</string>
+    <string name="favorites_kind_agent">智能体</string>
+    <string name="favorites_kind_spec">模型规格</string>
 
     <!-- About info -->
     <string name="app_version_label">应用版本</string>

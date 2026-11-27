@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlin.concurrent.Volatile
 
 class FavoritesRepositoryImpl(
     private val favoritesApi: FavoritesApi,
@@ -29,6 +30,10 @@ class FavoritesRepositoryImpl(
     private val _favorites = MutableStateFlow<List<UserFavorite>>(emptyList())
     override val favorites: StateFlow<List<UserFavorite>> = _favorites.asStateFlow()
 
+    @Volatile
+    override var isLoaded: Boolean = false
+        private set
+
     init {
         // A process-lifetime singleton holding one server's pins. Reset when the active account
         // changes: the incoming account's refresh replaces the list only on success, so a flaky
@@ -38,7 +43,10 @@ class FavoritesRepositoryImpl(
                 .mapNotNull { (it as? AccountState.Resolved)?.id }
                 .distinctUntilChanged()
                 .drop(1)
-                .collect { _favorites.value = emptyList() }
+                .collect {
+                    isLoaded = false
+                    _favorites.value = emptyList()
+                }
         }
     }
 
@@ -60,7 +68,10 @@ class FavoritesRepositoryImpl(
         val origin = activeAccountProvider.currentAccountId()
         return when (val result = safeApiCall { favoritesApi.getFavorites() }) {
             is Result.Success -> {
-                if (stillOn(origin)) _favorites.value = result.data
+                if (stillOn(origin)) {
+                    _favorites.value = result.data
+                    isLoaded = true
+                }
                 result
             }
             else -> result

@@ -160,6 +160,8 @@
     <string name="favorites_empty_message">Fixe agentes ou modelos no seletor de modelos para vê-los aqui.</string>
     <string name="favorites_count_of">%1$d de %2$d</string>
     <string name="favorites_unpin_cd">Desafixar favorito</string>
+    <string name="favorites_kind_agent">Agente</string>
+    <string name="favorites_kind_spec">Especificações do modelo</string>
 
     <!-- About info -->
     <string name="app_version_label">Versão do app</string>

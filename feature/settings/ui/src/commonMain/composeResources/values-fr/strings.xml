@@ -160,6 +160,8 @@
     <string name="favorites_empty_message">Épinglez des agents ou des modèles depuis le sélecteur de modèle pour les voir ici.</string>
     <string name="favorites_count_of">%1$d sur %2$d</string>
     <string name="favorites_unpin_cd">Désépingler le favori</string>
+    <string name="favorites_kind_agent">Agent</string>
+    <string name="favorites_kind_spec">Spécification du modèle</string>
 
     <!-- About info -->
     <string name="app_version_label">Version de l'application</string>

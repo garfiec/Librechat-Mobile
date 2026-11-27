@@ -160,6 +160,8 @@
     <string name="favorites_empty_message">Закрепляйте агентов или модели в выборе модели, чтобы они появлялись здесь.</string>
     <string name="favorites_count_of">%1$d из %2$d</string>
     <string name="favorites_unpin_cd">Открепить из избранного</string>
+    <string name="favorites_kind_agent">Агент</string>
+    <string name="favorites_kind_spec">Спецификация модели</string>
 
     <!-- About info -->
     <string name="app_version_label">Версия приложения</string>

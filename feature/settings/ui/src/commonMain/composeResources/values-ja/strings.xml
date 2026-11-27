@@ -160,6 +160,8 @@
     <string name="favorites_empty_message">モデルセレクターからエージェントやモデルをピン留めすると、ここに表示されます。</string>
     <string name="favorites_count_of">%2$d 件中 %1$d 件</string>
     <string name="favorites_unpin_cd">お気に入りのピンを外す</string>
+    <string name="favorites_kind_agent">エージェント</string>
+    <string name="favorites_kind_spec">モデル仕様</string>
 
     <!-- About info -->
     <string name="app_version_label">アプリのバージョン</string>

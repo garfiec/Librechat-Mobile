@@ -19,6 +19,13 @@ interface FavoritesRepository {
      */
     val favorites: StateFlow<List<UserFavorite>>
 
+    /**
+     * True once the active account's list has been read from the server. The server replaces the
+     * whole list on every write, so a write built from [favorites] while this is false would drop
+     * pins the client never saw.
+     */
+    val isLoaded: Boolean
+
     /** Fetches the canonical list from the server and publishes it to [favorites]. */
     suspend fun refresh(): Result<List<UserFavorite>>
 
