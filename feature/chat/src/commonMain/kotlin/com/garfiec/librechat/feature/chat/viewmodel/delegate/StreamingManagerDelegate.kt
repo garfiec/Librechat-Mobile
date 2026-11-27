@@ -731,14 +731,12 @@ class StreamingManagerDelegate(
      * un-send — decides where its text goes.
      *
      * Past `created`, probably. Before it, only a refusal on an existing conversation: denyRequest
-     * saves the user message and the error reply whenever the request named a conversation and a
-     * real parent, so the thread keeps the refused message under its error, as the web does,
-     * instead of the text landing in the composer as well. Not a temporary chat: those never
-     * reload, so nothing would replace the un-sent bubble.
+     * saves the user message and the error reply (a temporary chat's flagged temporary) whenever
+     * the request named a conversation and a real parent, so the thread keeps the refused message
+     * under its error, as the web does, instead of the text landing in the composer as well.
      */
     private fun isTurnProbablySaved(reason: StreamEndReason.StreamError): Boolean =
-        currentTurnCreated ||
-            (reason.refusedByServer && handle.state.conversationId != null && !handle.state.isTemporaryChat)
+        currentTurnCreated || (reason.refusedByServer && handle.state.conversationId != null)
 
     /**
      * The stream-termination chokepoint for every *event-driven* end — clean or aborted Final,

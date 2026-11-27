@@ -301,6 +301,25 @@ class MessageTreeDelegateTest {
     }
 
     @Test
+    fun `switchBranch in a temporary chat shows the chosen sibling`() {
+        val rows = listOf(
+            message("u1", isUser = true),
+            message("a1", parentId = "u1"),
+            message("a2", parentId = "u1"),
+        )
+        val (delegate, flow) = delegateWith(
+            ChatUiState(
+                content = MessagesState(messages = rows, displayMessages = buildActiveMessagePath(rows)),
+                conversation = ConversationMetaState(conversationId = "conv-1", isTemporaryChat = true),
+            ),
+        )
+
+        delegate.switchBranch("u1", 0)
+
+        assertThat(flow.value.displayMessages.map { it.message.messageId }).containsExactly("u1", "a1").inOrder()
+    }
+
+    @Test
     fun `unsendOptimisticTurn removes the minted message and clears streaming in one emission`() {
         val prior = message("p1", isUser = true)
         val optimistic = message("u1", parentId = "p1", text = "unsent", isUser = true)

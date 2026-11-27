@@ -613,8 +613,7 @@ class ComparisonModeDelegate(
      * id: at once, or with [afterReload] once the reload has settled.
      *
      * The server's saved message goes into the tree in the update that ends the comparison, as web
-     * appends it without refetching (`useBranchMessageMutation`). A temporary chat depends on that:
-     * it never loads from the server or Room.
+     * appends it without refetching (`useBranchMessageMutation`).
      *
      * [afterReload] holds a Continue until the reload settles: a reload that lands mid-stream writes
      * Room and the observer rebuilds the path without the streaming anchor. [KEEP_RELOAD_TIMEOUT_MS]

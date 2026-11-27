@@ -3,7 +3,9 @@ package com.garfiec.librechat.feature.chat.viewmodel
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.model.Message
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
+import io.mockk.verify
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -146,6 +148,24 @@ class ChatViewModelCacheFirstLoadTest {
         assertFalse("cached rows must not arm the empty state", state.messagesLoadFailed)
         assertEquals(ChatScreenState.ACTIVE, state.screenState)
         assertEquals(1, state.displayMessages.size)
+    }
+
+    @Test
+    fun aTemporaryChatReopenedAfterProcessDeathShowsItsThreadWithoutRoom() = runTest(testDispatcher) {
+        val reply = Message(messageId = "a-1", conversationId = "conv-1", parentMessageId = "m-1", text = "reply")
+        coEvery { messageRepository.fetchMessagesFull("conv-1") } returns Result.Success(cachedMessages + reply)
+
+        val viewModel = fixture.build(
+            defaultDispatcher = testDispatcher,
+            initialConversationId = "conv-1",
+            initialIsTemporary = true,
+        )
+        advanceUntilIdle()
+
+        assertEquals(listOf("m-1", "a-1"), viewModel.uiState.value.displayMessages.map { it.message.messageId })
+        coVerify(exactly = 0) { messageRepository.getMessages(any(), any()) }
+        coVerify(exactly = 0) { messageRepository.cacheMessages(any(), any()) }
+        verify(exactly = 0) { messageRepository.observeMessages(any()) }
     }
 
     private fun newViewModel(): ChatViewModel =

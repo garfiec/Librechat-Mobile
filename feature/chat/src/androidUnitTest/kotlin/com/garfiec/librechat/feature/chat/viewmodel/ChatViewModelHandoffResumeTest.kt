@@ -5,7 +5,11 @@ import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.model.ContentType
 import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.EndpointConfig
+import com.garfiec.librechat.core.model.Feedback
+import com.garfiec.librechat.core.model.FeedbackRating
+import com.garfiec.librechat.core.model.FeedbackTag
 import com.garfiec.librechat.core.model.Message
+import com.garfiec.librechat.core.model.MinimalFeedback
 import com.garfiec.librechat.core.model.StreamEvent
 import com.garfiec.librechat.core.model.content.MessageContentPart
 import com.garfiec.librechat.core.model.preferences.ChatFontSize
@@ -20,6 +24,7 @@ import com.garfiec.librechat.core.model.response.StatusResumeUserMessage
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PlatformFileHandler
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -678,6 +683,116 @@ class ChatViewModelHandoffResumeTest {
         } finally {
             vm.viewModelScope.cancel()
         }
+    }
+
+    /**
+     * A temporary chat has no Room rows: a reply that ended server-side while the app was away
+     * reaches the screen through the server's copy, read into memory only.
+     */
+    @Test
+    fun `a temporary chat that finished its reply while paused shows it on return`() = runTest(testDispatcher) {
+        coEvery { fixture.chatRepository.checkStreamStatus(eq(CONVERSATION_ID), any()) } returns
+            ChatStatusResponse(active = false)
+        coEvery { fixture.messageRepository.fetchMessagesFull(CONVERSATION_ID) } coAnswers { Result.Success(onServer) }
+        startChatReturns(
+            flow {
+                emit(StreamEvent.ContentDelta(chunk = "Kap"))
+                awaitCancellation()
+            },
+        )
+        val vm = temporaryChat()
+        try {
+            vm.onInputChanged(user.text)
+            vm.sendMessage()
+            advanceTimeBy(STEP_MS)
+            runCurrent()
+            assertThat(vm.uiState.value.isStreaming).isTrue()
+
+            vm.onPause()
+            onServer = listOf(user, reply)
+            vm.onResume()
+            advanceTimeBy(STEP_MS)
+            runCurrent()
+
+            assertThat(displayedIds(vm)).containsExactly("user-1", "assistant-1").inOrder()
+            assertThat(vm.uiState.value.streamingContent).isEmpty()
+            coVerify(exactly = 0) { fixture.messageRepository.getMessages(any(), any()) }
+            coVerify(exactly = 0) { fixture.messageRepository.cacheMessages(any(), any()) }
+        } finally {
+            vm.viewModelScope.cancel()
+        }
+    }
+
+    @Test
+    fun `rating a reply in a temporary chat shows the rating`() = runTest(testDispatcher) {
+        val vm = temporaryChatWithReply()
+        try {
+            coEvery { fixture.messageRepository.updateFeedback(CONVERSATION_ID, "assistant-1", any()) } coAnswers {
+                onServer = listOf(user, reply.copy(feedback = Feedback(rating = FeedbackRating.THUMBS_UP)))
+                Result.Success(Unit)
+            }
+            vm.submitFeedback("assistant-1", MinimalFeedback(FeedbackRating.THUMBS_UP, FeedbackTag.ACCURATE_RELIABLE))
+            advanceUntilIdle()
+
+            assertThat(vm.uiState.value.displayMessages.last().message.feedback?.rating).isEqualTo(FeedbackRating.THUMBS_UP)
+        } finally {
+            vm.viewModelScope.cancel()
+        }
+    }
+
+    @Test
+    fun `editing a reply in a temporary chat shows the new text`() = runTest(testDispatcher) {
+        val vm = temporaryChatWithReply()
+        try {
+            coEvery { fixture.messageRepository.updateMessageText(CONVERSATION_ID, "assistant-1", "Kappa!") } coAnswers {
+                onServer = listOf(user, reply.copy(text = "Kappa!"))
+                Result.Success(Unit)
+            }
+            vm.startEditing("assistant-1")
+            vm.onEditTextChanged("Kappa!")
+            vm.saveEdit()
+            advanceUntilIdle()
+
+            assertThat(vm.uiState.value.displayMessages.last().message.text).isEqualTo("Kappa!")
+        } finally {
+            vm.viewModelScope.cancel()
+        }
+    }
+
+    private fun startChatReturns(stream: kotlinx.coroutines.flow.Flow<StreamEvent>) {
+        every {
+            fixture.chatRepository.startChat(
+                any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
+                any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
+                any(),
+            )
+        } returns stream
+    }
+
+    private fun TestScope.temporaryChat(): ChatViewModel {
+        fixture.selectionHandoff.put(conversationId = CONVERSATION_ID, choice = ModelChoice.Raw(ENDPOINT, MODEL))
+        val vm = fixture.build(
+            defaultDispatcher = testDispatcher,
+            initialConversationId = CONVERSATION_ID,
+            initialIsTemporary = true,
+        )
+        advanceUntilIdle()
+        return vm
+    }
+
+    /** A temporary chat whose one turn finalized in memory, with the server holding the same turn. */
+    private fun TestScope.temporaryChatWithReply(): ChatViewModel {
+        coEvery { fixture.chatRepository.checkStreamStatus(eq(CONVERSATION_ID), any()) } returns
+            ChatStatusResponse(active = false)
+        coEvery { fixture.messageRepository.fetchMessagesFull(CONVERSATION_ID) } coAnswers { Result.Success(onServer) }
+        startChatReturns(flowOf(StreamEvent.Final(requestMessage = user, responseMessage = reply)))
+        val vm = temporaryChat()
+        vm.onInputChanged(user.text)
+        vm.sendMessage()
+        advanceUntilIdle()
+        onServer = listOf(user, reply)
+        assertThat(displayedIds(vm)).containsExactly("user-1", "assistant-1").inOrder()
+        return vm
     }
 
     private companion object {

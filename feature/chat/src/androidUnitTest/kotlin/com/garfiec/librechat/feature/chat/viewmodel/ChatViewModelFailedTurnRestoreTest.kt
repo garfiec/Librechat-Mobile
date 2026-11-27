@@ -82,6 +82,8 @@ class ChatViewModelFailedTurnRestoreTest {
         stored.value = listOf(user, reply)
         coEvery { fixture.messageRepository.getMessages(CONVERSATION_ID, any()) } returns
             Result.Success(listOf(user, reply))
+        coEvery { fixture.messageRepository.fetchMessagesFull(CONVERSATION_ID) } returns
+            Result.Success(listOf(user, reply))
     }
 
     @After
@@ -154,6 +156,8 @@ class ChatViewModelFailedTurnRestoreTest {
             stored.value = serverAfterFailure
             Result.Success(serverAfterFailure)
         }
+        // A temporary chat reads the same server copy into memory only.
+        coEvery { fixture.messageRepository.fetchMessagesFull(CONVERSATION_ID) } returns Result.Success(serverAfterFailure)
         // A new chat has no handoff to take its selection from.
         if (conversationId == null) vm.onModelSelected(ENDPOINT, MODEL)
         vm.onInputChanged(TYPED)
@@ -336,14 +340,34 @@ class ChatViewModelFailedTurnRestoreTest {
     }
 
     @Test
-    fun `a refused temporary chat is un-sent - it never reloads to show the server's copy`() =
+    fun `a refused temporary chat keeps the server's copy, like a saved one`() =
         runTest(testDispatcher) {
-            val vm = sendRefused(MODERATION, serverAfterFailure = listOf(user, reply), temporary = true)
+            // denyRequest saves a temporary chat's refused message too, flagged temporary.
+            val saved = Message(
+                messageId = "refused-user",
+                conversationId = CONVERSATION_ID,
+                parentMessageId = "assistant-1",
+                text = TYPED,
+                isCreatedByUser = true,
+            )
+            val errorTurn = Message(
+                messageId = "refused-error",
+                conversationId = CONVERSATION_ID,
+                parentMessageId = "refused-user",
+                text = MODERATION,
+                isCreatedByUser = false,
+                error = true,
+            )
+            val vm = sendRefused(
+                MODERATION,
+                serverAfterFailure = listOf(user, reply, saved, errorTurn),
+                temporary = true,
+            )
             try {
                 val state = vm.uiState.value
                 assertThat(state.error).isEqualTo(StreamErrorType.MODERATION.marker)
-                assertThat(state.inputText).isEqualTo(TYPED)
-                assertThat(state.displayMessages.map { it.message.text }).doesNotContain(TYPED)
+                assertThat(state.inputText).isEmpty()
+                assertThat(state.displayMessages.map { it.message.text }).contains(TYPED)
             } finally {
                 vm.viewModelScope.cancel()
             }
