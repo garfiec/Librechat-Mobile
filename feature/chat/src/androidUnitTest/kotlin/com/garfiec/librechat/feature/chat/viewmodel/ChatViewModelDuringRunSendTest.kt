@@ -22,10 +22,12 @@ import com.garfiec.librechat.core.model.preferences.StarredModelsDisplay
 import com.garfiec.librechat.core.model.preferences.UploadRoutingMode
 import com.garfiec.librechat.core.model.request.ChatResumeRequest
 import com.garfiec.librechat.core.model.request.SteerRequest
+import com.garfiec.librechat.core.model.response.ChatAbortResponse
 import com.garfiec.librechat.core.model.response.ChatResumeResponse
 import com.garfiec.librechat.core.model.response.ChatStatusResponse
 import com.garfiec.librechat.core.model.response.SteerResponse
 import com.garfiec.librechat.feature.chat.components.AttachedFile
+import com.garfiec.librechat.feature.chat.util.AbortFrameFixtures
 import com.garfiec.librechat.feature.chat.util.AskAnswerDraft
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PickedFile
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PlatformFileHandler
@@ -43,6 +45,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
@@ -597,6 +600,97 @@ class ChatViewModelDuringRunSendTest {
 
             assertThat(vm.uiState.value.justSettledMessageId).isEqualTo(SETTLED_ID)
         }
+
+    @Test
+    fun `a queued turn whose start fails goes back to the queue, held, and the composer keeps its text`() {
+        val file = AttachedFile(uri = "content://a.pdf", name = "a.pdf", uploadProgress = 1f, fileId = "file-1")
+        val attached = MutableStateFlow(listOf(file))
+        return duringRunTest(
+            preference = DuringRunAction.QUEUE,
+            arrange = {
+                every { fileHandler.attachedFiles } returns attached
+                every {
+                    chatRepository.startChat(
+                        any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
+                        any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
+                        any(),
+                    )
+                } returns flow {
+                    throw ApiException(
+                        statusCode = 403,
+                        message = "Insufficient permissions to access this agent",
+                        serverAuthored = true,
+                    )
+                }
+            },
+        ) { vm ->
+            vm.onInputChanged("the next turn")
+            vm.queueMessage()
+            runCurrent()
+            val queued = vm.uiState.value.messageQueue.single()
+            assertThat(queued.attachments.map { it.fileId }).containsExactly("file-1")
+            attached.value = emptyList()
+            vm.onInputChanged("still typing")
+
+            resumedStream.emit(cleanFinal())
+            runCurrent()
+
+            coVerify(exactly = 1) {
+                chatRepository.startChat(
+                    any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
+                    any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
+                    any(),
+                )
+            }
+            val state = vm.uiState.value
+            assertThat(state.messageQueue).containsExactly(queued)
+            assertThat(state.messageQueue.single().attachments).isEqualTo(queued.attachments)
+            assertThat(state.messageQueue.single().attachments.map { it.fileId }).containsExactly("file-1")
+            assertThat(state.isQueuePaused).isTrue()
+            assertThat(state.inputText).isEqualTo("still typing")
+            assertThat(state.isStreaming).isFalse()
+            assertThat(state.messages.map { it.text }).doesNotContain("the next turn")
+        }
+    }
+
+    @Test
+    fun `a queued turn stopped before it was created goes back to the queue, held`() {
+        val next = MutableSharedFlow<StreamEvent>(extraBufferCapacity = 8)
+        return duringRunTest(
+            preference = DuringRunAction.QUEUE,
+            arrange = {
+                every {
+                    chatRepository.startChat(
+                        any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
+                        any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
+                        any(),
+                    )
+                } returns next
+                coEvery { chatRepository.abortChat(any(), any(), any()) } returns
+                    Result.Success(ChatAbortResponse())
+            },
+        ) { vm ->
+            vm.onInputChanged("the next turn")
+            vm.queueMessage()
+            runCurrent()
+            val queued = vm.uiState.value.messageQueue.single()
+            vm.onInputChanged("still typing")
+            resumedStream.emit(cleanFinal())
+            runCurrent()
+            assertThat(vm.uiState.value.messageQueue).isEmpty()
+
+            vm.stopGeneration()
+            runCurrent()
+            next.emit(AbortFrameFixtures.earlyAbortFrame(userText = "the next turn"))
+            runCurrent()
+
+            val state = vm.uiState.value
+            assertThat(state.messageQueue).containsExactly(queued)
+            assertThat(state.isQueuePaused).isTrue()
+            assertThat(state.inputText).isEqualTo("still typing")
+            assertThat(state.messages.map { it.text }).doesNotContain("the next turn")
+        }
+    }
 
     /**
      * A steer the reply finished before taking (no tool step to inject at) comes back on the

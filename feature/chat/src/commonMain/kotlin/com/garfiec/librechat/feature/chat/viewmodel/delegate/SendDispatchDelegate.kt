@@ -61,9 +61,15 @@ class SendDispatchDelegate(
     /**
      * `StreamingManagerDelegate.beginStreaming` for a new turn: the minted optimistic user-message
      * id and the spec this turn actually dispatches, not the composer's current state, because a
-     * human-review pause is resumed against the config the run was started with.
+     * human-review pause is resumed against the config the run was started with. `drainedSpec` is
+     * the queue item a drain sent, which goes back to the queue if the turn fails before `created`;
+     * null for every other send.
      */
-    private val beginStreaming: (optimisticUserMessageId: String, turnSpec: QueuedMessage) -> Unit,
+    private val beginStreaming: (
+        optimisticUserMessageId: String,
+        turnSpec: QueuedMessage,
+        drainedSpec: QueuedMessage?,
+    ) -> Unit,
     /** `StreamingManagerDelegate.launchStream`. */
     private val launchStream: (Flow<StreamEvent>) -> Unit,
     /** `ComparisonModeDelegate.onSendStart`, before the added conversation is built. */
@@ -452,11 +458,12 @@ class SendDispatchDelegate(
      * staged quote and skill chips onto the spec (which also turns Skills on) and clear the
      * composer, so a lost readiness race can't wipe an unsent message or its chips. False for
      * drains, which carry their own chips and must leave the user's composer untouched.
+     * [drained] marks a queue drain: [baseSpec] is what goes back to the queue on a failed start.
      *
      * Returns whether the turn was sent.
      */
     @OptIn(ExperimentalUuidApi::class)
-    fun doSendWithSpec(baseSpec: QueuedMessage, fromComposer: Boolean = false): Boolean {
+    fun doSendWithSpec(baseSpec: QueuedMessage, fromComposer: Boolean = false, drained: Boolean = false): Boolean {
         val fileRefs = baseSpec.attachments.map { it.toFileReference() }
         val hasFiles = fileRefs.isNotEmpty()
         val messageText = baseSpec.text
@@ -530,7 +537,7 @@ class SendDispatchDelegate(
             )
             error = null
         }
-        beginStreaming(optimisticMessage.messageId, spec)
+        beginStreaming(optimisticMessage.messageId, spec, baseSpec.takeIf { drained })
 
         Logger.d {
             "sendMessage: webSearch=${spec.webSearch}, " +
