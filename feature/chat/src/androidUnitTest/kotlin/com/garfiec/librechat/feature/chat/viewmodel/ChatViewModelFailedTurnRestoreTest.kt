@@ -7,12 +7,14 @@ import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.StreamEvent
 import com.garfiec.librechat.core.model.error.StreamErrorType
+import com.garfiec.librechat.feature.chat.components.AttachedFile
 import com.garfiec.librechat.feature.chat.util.AbortFrameFixtures
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PlatformFileHandler
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
@@ -90,6 +92,7 @@ class ChatViewModelFailedTurnRestoreTest {
     private fun kotlinx.coroutines.test.TestScope.sendFailingAfterCreated(
         error: StreamEvent.Error,
         serverAfterFailure: List<Message>,
+        tray: List<AttachedFile> = emptyList(),
     ): ChatViewModel = sendStreaming(
         StreamEvent.Created(
             conversationId = CONVERSATION_ID,
@@ -98,12 +101,14 @@ class ChatViewModelFailedTurnRestoreTest {
         ),
         error,
         serverAfterFailure = serverAfterFailure,
+        tray = tray,
     )
 
     private fun kotlinx.coroutines.test.TestScope.sendStreaming(
         vararg events: StreamEvent,
         serverAfterFailure: List<Message> = listOf(user, reply),
-    ): ChatViewModel = send(flowOf(*events), serverAfterFailure)
+        tray: List<AttachedFile> = emptyList(),
+    ): ChatViewModel = send(flowOf(*events), serverAfterFailure, tray = tray)
 
     /**
      * A send the server's middleware refused: the start POST itself throws, the way `ChatApi`
@@ -127,7 +132,9 @@ class ChatViewModelFailedTurnRestoreTest {
         serverAfterFailure: List<Message>,
         conversationId: String? = CONVERSATION_ID,
         temporary: Boolean = false,
+        tray: List<AttachedFile> = emptyList(),
     ): ChatViewModel {
+        every { fileHandler.attachedFiles } returns MutableStateFlow(tray)
         every {
             fixture.chatRepository.startChat(
                 any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
@@ -391,7 +398,54 @@ class ChatViewModelFailedTurnRestoreTest {
         }
     }
 
+    /** The sent file goes back beside the text, appended so files staged since stay. */
+    private fun assertFileHandedBack(vm: ChatViewModel) {
+        assertThat(vm.uiState.value.inputText).isEqualTo(TYPED)
+        verify(exactly = 1) { fileHandler.addPreUploadedFiles(listOf(FILE)) }
+        verify(exactly = 0) { fileHandler.restoreAttachedFiles(any()) }
+    }
+
+    @Test
+    fun `a send whose start is refused before created gets its files back`() = runTest(testDispatcher) {
+        val vm = send(
+            flow { throw ApiException(statusCode = 404, message = "agent not found") },
+            serverAfterFailure = emptyList(),
+            conversationId = null,
+            tray = listOf(FILE),
+        )
+        try {
+            assertFileHandedBack(vm)
+        } finally {
+            vm.viewModelScope.cancel()
+        }
+    }
+
+    @Test
+    fun `an early abort hands the files back with the text`() = runTest(testDispatcher) {
+        val vm = sendStreaming(AbortFrameFixtures.earlyAbortFrame(userText = "frame text"), tray = listOf(FILE))
+        try {
+            assertFileHandedBack(vm)
+        } finally {
+            vm.viewModelScope.cancel()
+        }
+    }
+
+    @Test
+    fun `a created turn the server never saved hands its files back`() = runTest(testDispatcher) {
+        val vm = sendFailingAfterCreated(
+            StreamEvent.Error("An error occurred while processing the request: 401"),
+            serverAfterFailure = listOf(user, reply),
+            tray = listOf(FILE),
+        )
+        try {
+            assertFileHandedBack(vm)
+        } finally {
+            vm.viewModelScope.cancel()
+        }
+    }
+
     private companion object {
+        val FILE = AttachedFile(uri = "notes.pdf", name = "notes.pdf", fileId = "file-1", uploadProgress = 1f)
         const val MESSAGE_LIMIT = """{"type":"message_limit","max":40,"limiter":"ip","windowInMinutes":1}"""
         const val MESSAGE_LIMIT_WITH_RETRY =
             """{"type":"message_limit","max":40,"limiter":"ip","windowInMinutes":1,"resetAt":1,"retryAfterSeconds":45}"""

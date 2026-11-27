@@ -16,6 +16,7 @@ import com.garfiec.librechat.core.model.hasParameters
 import com.garfiec.librechat.core.model.isCodeConversation
 import com.garfiec.librechat.core.model.parametersStale
 import com.garfiec.librechat.core.model.request.MAX_MANUAL_SKILLS
+import com.garfiec.librechat.feature.chat.components.AttachedFile
 import com.garfiec.librechat.feature.chat.util.MessageNode
 import com.garfiec.librechat.feature.chat.util.NEW_CHAT_DRAFT_KEY
 import com.garfiec.librechat.feature.chat.util.buildActiveMessagePath
@@ -56,6 +57,8 @@ class ConversationLoadDelegate(
     private val defaultDispatcher: CoroutineDispatcher,
     /** ModelSelectionDelegate.applyConversationModel: seeds the selection from a fetched conversation. */
     private val applyConversationModel: (Conversation) -> Boolean,
+    /** Appends an un-sent turn's files to the composer tray, keeping files staged since. */
+    private val restoreUnsentFiles: (List<AttachedFile>) -> Unit = {},
     /** Whether this screen takes the conversation's stored parameters (not a handed-off new chat). */
     private val wantsStoredParameters: () -> Boolean = { false },
     /** Writes the conversation's parameters, with the tool switches this device remembered for it. */
@@ -187,7 +190,8 @@ class ConversationLoadDelegate(
      * in the background; `init` is the only opt-in (#300).
      *
      * [unsavedTurn] is a failed turn's optimistic user message whose persistence is unknown: once
-     * the fetch settles, its text goes back into the composer if the server kept no copy of it.
+     * the fetch settles, its text and [unsavedFiles] go back into the composer if the server kept
+     * no copy of it.
      *
      * [onSettled] runs once, after the settled read is on screen. A later load that replaces this
      * one first takes it over and runs it when it settles. Never in a temporary chat (nothing loads).
@@ -196,6 +200,7 @@ class ConversationLoadDelegate(
         conversationId: String,
         cacheFirst: Boolean = false,
         unsavedTurn: Message? = null,
+        unsavedFiles: List<AttachedFile> = emptyList(),
         onSettled: (() -> Unit)? = null,
     ) {
         // SECURITY: do not remove — temp-chat data-at-rest guard.
@@ -294,7 +299,12 @@ class ConversationLoadDelegate(
                             it.messageId == unsent.messageId || it.isServerCopyOf(unsent)
                         }
                         if (!kept) {
-                            restoreUnsentInput(unsent.text, unsent.quotes.orEmpty(), unsent.manualSkills.orEmpty())
+                            restoreUnsentInput(
+                                unsent.text,
+                                unsent.quotes.orEmpty(),
+                                unsent.manualSkills.orEmpty(),
+                                unsavedFiles,
+                            )
                         }
                     }
                     // Restore comparison mode when reopening a Compare Models conversation: the
@@ -382,20 +392,23 @@ class ConversationLoadDelegate(
      * landed before the server persisted anything, so the optimistic bubble was removed).
      * Yields to anything the user has since typed — same rule as [restoreDraft] — and persists
      * as a draft so the restored text survives process death, same as `ChatViewModel.onInputChanged`.
-     * A turn with no text (files only) still puts its quote and skill chips back.
+     * A turn with no text (files only) still puts its quote and skill chips and its [files] back.
      */
     fun restoreUnsentInput(
         text: String,
         quotes: List<String> = emptyList(),
         manualSkills: List<String> = emptyList(),
+        files: List<AttachedFile> = emptyList(),
     ) {
         val stashed = handle.state.editingQueuedItem?.stashed
         if (stashed != null) {
             restoreUnsentInputToStash(stashed, text, quotes, manualSkills)
             return
         }
+        var restored = false
         handle.update {
-            if (inputText.isBlank() || text.isBlank()) {
+            restored = inputText.isBlank() || text.isBlank()
+            if (restored) {
                 if (text.isNotBlank()) inputText = text
                 // The chips were taken (and cleared) when the spec was minted, so an
                 // un-send has to put them back or the retry silently loses the excerpts.
@@ -406,6 +419,7 @@ class ConversationLoadDelegate(
                 pendingManualSkills = (manualSkills + pendingManualSkills).distinct().take(MAX_MANUAL_SKILLS)
             }
         }
+        if (restored && files.isNotEmpty()) restoreUnsentFiles(files)
         if (text.isBlank() || handle.state.inputText != text) return
         val draftKey = handle.state.conversationId ?: newChatDraftKey
         handle.scope.launch {

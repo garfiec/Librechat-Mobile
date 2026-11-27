@@ -310,7 +310,7 @@ class StreamingManagerStopTest {
             events.send(AbortFrameFixtures.earlyAbortFrame())
             runCurrent()
 
-            verify(exactly = 1) { host.unsendTurn("u1") }
+            verify(exactly = 1) { host.unsendTurn("u1", any()) }
             // Nothing was saved server-side: no completion work at all — no conversation save,
             // no cacheTurn, no title refresh, no TTS.
             verify(exactly = 0) {
@@ -335,7 +335,7 @@ class StreamingManagerStopTest {
         events.send(AbortFrameFixtures.earlyAbortFrame())
         runCurrent()
 
-        verify(exactly = 1) { host.unsendTurn(null) }
+        verify(exactly = 1) { host.unsendTurn(null, any()) }
         events.close()
         advanceUntilIdle()
     }

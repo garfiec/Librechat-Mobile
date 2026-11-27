@@ -309,7 +309,7 @@ class StreamingManagerEndStreamTest {
             events.send(StreamEvent.Error(message = "Request failed (HTTP 302)"))
             runCurrent()
 
-            verify(exactly = 1) { host.unsendTurn("u1") }
+            verify(exactly = 1) { host.unsendTurn("u1", any()) }
             // The failure is still reported — un-sending is not the same as swallowing it.
             assertThat(flow.value.error).isEqualTo("Request failed (HTTP 302)")
 
@@ -335,7 +335,7 @@ class StreamingManagerEndStreamTest {
         events.send(StreamEvent.Error(message = "boom"))
         runCurrent()
 
-        verify(exactly = 0) { host.unsendTurn(any()) }
+        verify(exactly = 0) { host.unsendTurn(any(), any()) }
 
         events.close()
         delegate.reset()
@@ -463,7 +463,7 @@ class StreamingManagerEndStreamTest {
         events.send(StreamEvent.Error(message = "boom"))
         runCurrent()
 
-        verify(exactly = 0) { host.unsendTurn(any()) }
+        verify(exactly = 0) { host.unsendTurn(any(), any()) }
 
         events.close()
         delegate.reset()
