@@ -172,7 +172,7 @@ fun ColumnScope.ChatContent(
             bottomContentPadding = bottomContentPadding,
             paneBottomInset = paneBottomInset,
             scrollToBottomPadding = scrollToBottomPadding,
-            onCopyMessage = { messageId -> copyMessageToClipboard(actions, clipboard, messageId) },
+            onCopyMessage = { messageId, secondary -> copyMessageToClipboard(actions, clipboard, messageId, secondary) },
             onShowSecondaryModelSheet = onShowSecondaryModelSheet,
             onComparisonTabChange = onComparisonTabChange,
             wide = comparisonWide,
@@ -287,9 +287,10 @@ private fun copyMessageToClipboard(
     actions: ChatActions,
     clipboard: ClipboardWriter,
     messageId: String,
+    secondary: Boolean = false,
 ) {
     // Asynchronous: a message with tool-call previews fetches their full parts before anything is copied.
-    actions.copyMessage(messageId) { text -> clipboard.copy(text, "Message") }
+    actions.copyMessage(messageId, secondary) { text -> clipboard.copy(text, "Message") }
 }
 
 /**

@@ -1,6 +1,8 @@
 package com.garfiec.librechat.feature.chat.viewmodel.delegate
 
+import com.garfiec.librechat.core.model.ContentType
 import com.garfiec.librechat.core.model.Message
+import com.garfiec.librechat.core.model.content.MessageContentPart
 import com.garfiec.librechat.core.model.request.AddedConversation
 import com.garfiec.librechat.feature.chat.util.MessageNode
 import com.garfiec.librechat.feature.chat.viewmodel.ChatRequestBuilder
@@ -140,5 +142,31 @@ class MessageEditingComparisonTest {
         f.delegate.regenerateMessage("a1")
 
         assertThat(f.sent.addedConvo).isNull()
+    }
+
+    @Test
+    fun `startEditing on a Compare reply opens no editor`() {
+        val compareReply = reply.copy(
+            content = listOf(
+                MessageContentPart(
+                    type = ContentType.TEXT,
+                    text = "Mock reply (mock-fast) to: Hello again",
+                    agentId = "Mock__mock-fast____1",
+                    groupId = 1,
+                ),
+                MessageContentPart(
+                    type = ContentType.TEXT,
+                    text = "1. item number 1",
+                    agentId = "Mock__mock-slow",
+                    groupId = 1,
+                ),
+            ),
+        )
+        val f = Fixture(listOf(userTurn, compareReply), comparing = true)
+
+        f.delegate.startEditing("a1")
+
+        assertThat(f.flow.value.editing.editingMessageId).isNull()
+        assertThat(f.flow.value.editing.partDrafts).isEmpty()
     }
 }

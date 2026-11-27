@@ -22,6 +22,8 @@ data class MessageNode(
     val avatar: IconSource? = null,
     /** The reply's author row is left out: it is the agent the header's selector already names. Mapped with [avatar]. */
     val authorHidden: Boolean = false,
+    /** Its parts are one Compare lane's filtered copy, so their positions aren't the stored indices an edit writes. */
+    val laneView: Boolean = false,
 )
 
 /**

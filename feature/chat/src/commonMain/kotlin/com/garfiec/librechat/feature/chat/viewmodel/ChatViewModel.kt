@@ -101,6 +101,7 @@ import com.garfiec.librechat.feature.chat.util.ToolPartStatus
 import com.garfiec.librechat.feature.chat.util.buildActiveMessagePath
 import com.garfiec.librechat.feature.chat.util.extractBranchMedia
 import com.garfiec.librechat.feature.chat.util.isAddedAgentId
+import com.garfiec.librechat.feature.chat.util.messageForLane
 import com.garfiec.librechat.feature.chat.util.newChatDraftKey
 import com.garfiec.librechat.feature.chat.util.overrideFor
 import com.garfiec.librechat.feature.chat.util.parametersFor
@@ -1621,27 +1622,30 @@ class ChatViewModel(
 
     /**
      * What Read Aloud speaks for a message: its answer, never its reasoning (upstream
-     * `getSpeechText`, see [speechTextOf]). NOT the copy path — whole-message copy goes through
-     * [getMessageClipboardText], which serializes every part.
+     * `getSpeechText`, see [speechTextOf]), and of a Compare reply only the primary lane, the one
+     * offering Read aloud. NOT the copy path — whole-message copy goes through
+     * [getMessageClipboardText], which serializes every part of the lane.
      */
     fun getSpeechText(messageId: String): String {
         val message = _uiState.value.messages.find { it.messageId == messageId } ?: return ""
-        return speechTextOf(message)
+        return speechTextOf(messageForLane(message, secondary = false))
     }
 
     /**
      * The clipboard serialization of a whole message — tool calls, reasoning and media parts as
      * labeled blocks, not just its text. Mirrors web `serializeMessageForClipboard`.
      */
-    override fun copyMessage(messageId: String, write: (String) -> Unit) {
+    override fun copyMessage(messageId: String, secondary: Boolean, write: (String) -> Unit) {
         viewModelScope.launch {
-            val text = getMessageClipboardText(messageId)
+            val text = getMessageClipboardText(messageId, secondary)
             if (text.isNotBlank()) write(text)
         }
     }
 
-    internal suspend fun getMessageClipboardText(messageId: String): String {
-        val message = _uiState.value.messages.find { it.messageId == messageId } ?: return ""
+    /** A Compare reply copies only the lane its pane shows ([secondary]), as [messageForLane] scopes it. */
+    internal suspend fun getMessageClipboardText(messageId: String, secondary: Boolean = false): String {
+        val stored = _uiState.value.messages.find { it.messageId == messageId } ?: return ""
+        val message = messageForLane(stored, secondary)
         if (message.content.orEmpty().none { it.toolCall?.isPreview == true }) {
             return serializeMessageForClipboard(message)
         }
@@ -1651,7 +1655,7 @@ class ChatViewModel(
             stateHandle.update { copy(error = ChatNotice.COPY_TOOL_CONTENT_FAILED.marker()) }
             return ""
         }
-        return serializeMessageForClipboard(full)
+        return serializeMessageForClipboard(messageForLane(full, secondary))
     }
 
     /** Tool-call previews: what each card whose full content is not in place shows. */

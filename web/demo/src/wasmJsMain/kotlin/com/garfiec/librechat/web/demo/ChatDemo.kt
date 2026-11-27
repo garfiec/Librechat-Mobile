@@ -392,7 +392,7 @@ internal class DemoChatSession(
         }
     }
 
-    override fun copyMessage(messageId: String, write: (String) -> Unit) {
+    override fun copyMessage(messageId: String, secondary: Boolean, write: (String) -> Unit) {
         _state.value.content.messages.firstOrNull { it.messageId == messageId }?.let { write(it.text) }
     }
 

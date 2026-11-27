@@ -291,4 +291,43 @@ class ComparisonDisplayTest {
         assertThat(collapsed[0].message.attachments?.map { it.fileId })
             .containsExactly("f-primary", "f-bg")
     }
+
+    @Test
+    fun `messageForLane scopes content and attachments per lane`() {
+        val message = toolBearingParallelNode(
+            listOf(attachment("f-primary", "call-primary"), attachment("f-secondary", "call-secondary")),
+        ).message
+
+        val primary = messageForLane(message, secondary = false)
+        val secondary = messageForLane(message, secondary = true)
+
+        assertThat(primary.content?.map { it.toolCall?.id }).containsExactly("call-primary")
+        assertThat(primary.attachments?.map { it.fileId }).containsExactly("f-primary")
+        assertThat(secondary.content?.map { it.toolCall?.id }).containsExactly("call-secondary")
+        assertThat(secondary.attachments?.map { it.fileId }).containsExactly("f-secondary")
+    }
+
+    @Test
+    fun `messageForLane returns a non-parallel message unchanged`() {
+        val plain = Message(messageId = "m0", conversationId = "c1", content = listOf(textPart("hi", agentId = null)))
+
+        assertThat(messageForLane(plain, secondary = true)).isSameInstanceAs(plain)
+    }
+
+    @Test
+    fun `a lane-filtered node is marked as a lane view, a plain one is not`() {
+        val plain = node(Message(messageId = "m0", conversationId = "c1", text = "hi"))
+        val nodes = listOf(plain, parallelNode("m1"))
+        fun pane(secondary: Boolean) = buildComparisonDisplayMessages(
+            nodes,
+            secondary = secondary,
+            parallelMessageId = "m1",
+            finalContent = null,
+            senderName = "Sender",
+        )
+
+        listOf(pane(secondary = false), pane(secondary = true), collapseParallelToPrimary(nodes)).forEach { shown ->
+            assertThat(shown.map { it.laneView }).containsExactly(false, true).inOrder()
+        }
+    }
 }

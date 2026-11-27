@@ -319,16 +319,15 @@ class ChatViewModelKeepAndContinueTest {
         }
 
     @Test
-    fun `rerunning an edited reply in a comparison re-runs both lanes`() =
+    fun `rerunning an edited question in a comparison re-runs both lanes`() =
         vmTest(seed = listOf(USER, PARALLEL)) { vm ->
-            vm.startEditing(PARALLEL_ID)
-            vm.onEditPartTextChanged(0, "edited answer")
+            vm.startEditing(USER.messageId)
+            vm.onEditTextChanged("Which is better, really?")
             vm.rerunEdit()
             runCurrent()
 
             val rerun = sends.single()
             assertThat(rerun.addedConvo?.endpoint).isEqualTo(SECOND_ENDPOINT)
-            assertThat(rerun.responseMessageId).isEqualTo(PARALLEL_ID)
             val comparison = vm.uiState.value.comparisonState
             assertThat(comparison.primaryIsStreaming).isTrue()
             assertThat(comparison.secondaryIsStreaming).isTrue()
