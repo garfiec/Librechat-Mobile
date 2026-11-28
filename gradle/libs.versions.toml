@@ -1,6 +1,6 @@
 [versions]
 # Core Android
-agp = "9.5.2"
+agp = "9.5.3"
 kotlin = "2.4.10"
 ksp = "2.3.14"
 compose-bom = "2026.09.00"
